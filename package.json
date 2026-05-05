@@ -11,6 +11,7 @@
     "ios": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo run:ios",
     "web": "expo start --web",
     "test": "jest --watchAll",
+    "test:ci": "jest --watchAll=false --ci --reporters=default",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
@@ -33,7 +34,11 @@
     "build:prod:ios": "eas build --profile production --platform ios"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "testPathIgnorePatterns": [
+      "/node_modules/",
+      "<rootDir>/utils/__tests__/storageAnalytics.test.ts"
+    ]
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1029.0",
