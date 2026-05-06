@@ -112,6 +112,7 @@ interface RenderEntry {
   lineIndex: number;
   paragraph: SkParagraph;
   strokeParagraph: SkParagraph | null;
+  boldOffset: number;
   yPos: number;
   width: number;
   model: QCFLineRenderModel | null;
@@ -360,7 +361,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
       }
 
       qcfFontLoader.prefetch(
-        [pageNumber - 1, pageNumber + 1, pageNumber - 2, pageNumber + 2],
+        [pageNumber - 1, pageNumber + 1, pageNumber - 2, pageNumber + 2, pageNumber - 3, pageNumber + 3],
         fontMgr,
       );
     })();
@@ -397,6 +398,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
     ): {
       paragraph: SkParagraph;
       strokeParagraph: SkParagraph | null;
+      boldOffset: number;
       width: number;
     } => {
       const color = Skia.Color(textColor);
@@ -460,10 +462,11 @@ const QCFPage: React.FC<QCFPageProps> = ({
       };
 
       const base = buildParagraph(false);
-      const stroke = strokeWidth > 0 ? buildParagraph(true).paragraph : null;
+      const stroke = strokeWidth > 0 ? base.paragraph : null;
       return {
         paragraph: base.paragraph,
         strokeParagraph: stroke,
+        boldOffset: strokeWidth * 0.55,
         width: base.width,
       };
     };
@@ -502,6 +505,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
           lineIndex: i,
           paragraph: built.paragraph,
           strokeParagraph: built.strokeParagraph,
+          boldOffset: built.boldOffset,
           width: built.width,
           yPos,
           model: null,
@@ -800,7 +804,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
               />
             ))}
           {renderEntries.map(
-            ({key, lineIndex, paragraph, strokeParagraph, yPos, width}) => (
+            ({key, lineIndex, paragraph, strokeParagraph, boldOffset, yPos, width}) => (
               <Group key={key}>
                 {(lineBackgroundHighlights.get(lineIndex) ?? []).map(
                   (highlight, index) => {
@@ -824,7 +828,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
                 {strokeParagraph && (
                   <Paragraph
                     paragraph={strokeParagraph}
-                    x={(CONTENT_WIDTH - width) / 2}
+                    x={(CONTENT_WIDTH - width) / 2 + boldOffset}
                     y={yPos}
                     width={Math.ceil(width) + 2}
                   />

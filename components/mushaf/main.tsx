@@ -62,6 +62,8 @@ import PageEdgeDecoration, {
   EDGE_HORIZONTAL_INSET,
 } from './PageEdgeDecoration';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+import {qcfFontLoader} from '@/services/mushaf/QCFFontLoader';
+import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 
 const TOTAL_PAGES = 604;
 const ANIMATION_DURATION = 300;
@@ -191,7 +193,9 @@ const DKPageView: React.FC<{
         width: metrics.pageWidth,
         height: metrics.screenHeight,
         backgroundColor: isBookLayout ? bgColor : cardColor,
-        opacity: pageReady ? 1 : 0,
+        // QCF fonts load async — keep page visible so the background color
+        // shows immediately after navigation instead of a blank white screen
+        opacity: isQCF ? 1 : pageReady ? 1 : 0,
       }}>
       {isBookLayout && (
         <>
@@ -521,6 +525,7 @@ export default function MushafViewer({
   const viewMode = useMushafSettingsStore(s => s.viewMode);
   const scrollDirection = useMushafSettingsStore(s => s.scrollDirection);
   const rewayah = useMushafSettingsStore(s => s.rewayah);
+  const mushafRenderer = useMushafSettingsStore(s => s.mushafRenderer);
   const isVertical = scrollDirection === 'vertical';
   const isBookLayout = pageLayout === 'book';
   const edgeBg = isDarkMode ? '#000' : readingColors.card;
@@ -843,6 +848,11 @@ export default function MushafViewer({
   const navigateToPage = useCallback(
     (targetPage: number) => {
       setIsSearchMode(false);
+      // Preload QCF page font immediately, overlapping with the scroll/animation
+      if (mushafRenderer === 'qcf_v2') {
+        const fm = mushafPreloadService.fontMgr;
+        if (fm) qcfFontLoader.ensure(targetPage, fm).catch(() => {});
+      }
       // Explicit navigation = start a new chain (preserves old position)
       const surahId = digitalKhattDataService.initialized
         ? digitalKhattDataService.getPageToSurah()[targetPage]
@@ -859,7 +869,7 @@ export default function MushafViewer({
         });
       }
     },
-    [isVertical, pageToFlatListIndex],
+    [isVertical, mushafRenderer, pageToFlatListIndex],
   );
 
   const navigateToPageAnimated = useCallback(

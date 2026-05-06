@@ -16,6 +16,7 @@ function mmkvKey(fontFamily: string, pageNumber: number): string {
 
 class QCFLayoutCacheService {
   private mmkv: MMKV;
+  private memCache = new Map<string, QCFPageLayoutMetrics>();
 
   constructor() {
     this.mmkv = createMMKV({id: 'qcf-layouts'});
@@ -31,7 +32,11 @@ class QCFLayoutCacheService {
     pageNumber: number,
     fontFamily: string,
   ): QCFPageLayoutMetrics | undefined {
-    const json = this.mmkv.getString(mmkvKey(fontFamily, pageNumber));
+    const key = mmkvKey(fontFamily, pageNumber);
+    const memHit = this.memCache.get(key);
+    if (memHit) return memHit;
+
+    const json = this.mmkv.getString(key);
     if (!json) return undefined;
 
     try {
@@ -44,6 +49,7 @@ class QCFLayoutCacheService {
       ) {
         return undefined;
       }
+      this.memCache.set(key, parsed);
       return parsed;
     } catch {
       return undefined;
@@ -55,10 +61,13 @@ class QCFLayoutCacheService {
     fontFamily: string,
     data: QCFPageLayoutMetrics,
   ): void {
-    this.mmkv.set(mmkvKey(fontFamily, pageNumber), JSON.stringify(data));
+    const key = mmkvKey(fontFamily, pageNumber);
+    this.memCache.set(key, data);
+    this.mmkv.set(key, JSON.stringify(data));
   }
 
   clearAll(): void {
+    this.memCache.clear();
     this.mmkv.clearAll();
     this.mmkv.set('qcf_schema_version', SCHEMA_VERSION);
   }
