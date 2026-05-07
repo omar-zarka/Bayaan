@@ -244,6 +244,18 @@ AI tools (Cursor, Copilot, Claude, etc.) are welcome and encouraged. See [docs/c
 - You are responsible for every line you submit — review and understand AI output before pushing
 - The PR template includes an AI disclosure checkbox
 
+### Forks and Claude Code tooling
+
+Bayaan's `.gitignore` excludes the entire `.claude/` directory because it can contain operational paths private to a maintainer's machine. Forks that want to ship their own project-versioned Claude Code skills or scheduled tasks (so they survive across machines and collaborators) can opt-in by adding negation rules to the fork's own `.gitignore`, e.g.:
+
+```gitignore
+# Un-ignore project-versioned Claude Code tooling
+!.claude/skills/
+!.claude/scheduled-tasks/
+```
+
+Keep machine-local Claude state ignored: `.claude/settings.local.json`, `scheduled_tasks.lock`, `.claude/projects/`. The convention separates project tooling (versioned, shared) from per-developer state (machine-local).
+
 ---
 
 ## Architecture navigation
