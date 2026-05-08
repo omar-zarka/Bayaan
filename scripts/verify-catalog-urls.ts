@@ -106,6 +106,11 @@ function headRequest(
  * Fetches the first 64 bytes of the URL via Range request and returns the
  * detected audio format from magic bytes. Some CDNs ignore Range and return
  * the full body; that's fine — we destroy the response once we have enough.
+ *
+ * Note: `http.request` does not follow 3xx redirects. A catalog URL that
+ * 301/302s to the canonical asset will be reported as a failure here. That
+ * is the intended behavior for a verifier — the catalog should reference
+ * canonical URLs directly.
  */
 function sniffFirstBytes(url: string): Promise<AudioFormat> {
   return new Promise((resolve, reject) => {
@@ -127,7 +132,10 @@ function sniffFirstBytes(url: string): Promise<AudioFormat> {
             if (received >= 64) res.destroy();
           }
         });
-        res.on('end', () => resolve(detectFormat(Buffer.concat(chunks))));
+        // Only listen on `'close'` — fires both on natural end-of-stream and
+        // on the `res.destroy()` above, so it's a strict superset of `'end'`.
+        // Avoids the (harmless but unclean) double-resolve when both events
+        // fire after destroy.
         res.on('close', () => resolve(detectFormat(Buffer.concat(chunks))));
         res.on('error', reject);
       },
