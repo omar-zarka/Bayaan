@@ -2,6 +2,14 @@
 
 # iOS Archive and Upload Script
 # Usage: ./scripts/ios-archive.sh [--upload]
+#
+# Auto-detects the iOS workspace + scheme by scanning `ios/*.xcworkspace`,
+# rather than hardcoding the app name. Drop-in for forks that customize the
+# appName via `expo prebuild --clean` — the script names the archive +
+# IPA according to whatever workspace exists, no edits needed.
+#
+# Companion: ios/ExportOptions.example.plist — copy to ios/ExportOptions.plist
+# (gitignored — it contains your team ID) and fill in your APPLE_TEAM_ID.
 
 set -e
 
@@ -17,13 +25,27 @@ GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
-# Configuration
-WORKSPACE="ios/Bayaan.xcworkspace"
-SCHEME="Bayaan"
+# ── Auto-detect workspace + scheme ────────────────────────────────────────────
+shopt -s nullglob
+WORKSPACES=(ios/*.xcworkspace)
+shopt -u nullglob
+if [ ${#WORKSPACES[@]} -eq 0 ]; then
+    echo -e "${RED}❌ No iOS workspace found. Run 'npx expo prebuild --platform ios' first.${NC}"
+    exit 1
+fi
+if [ ${#WORKSPACES[@]} -gt 1 ]; then
+    echo -e "${RED}❌ Multiple iOS workspaces found in ios/. Expected exactly one.${NC}"
+    printf '   %s\n' "${WORKSPACES[@]}"
+    exit 1
+fi
+WORKSPACE="${WORKSPACES[0]}"
+APP_NAME="$(basename "$WORKSPACE" .xcworkspace)"
+SCHEME="$APP_NAME"
 CONFIGURATION="Release"
-ARCHIVE_PATH="build/Bayaan.xcarchive"
+ARCHIVE_PATH="build/${APP_NAME}.xcarchive"
 EXPORT_PATH="build/export"
 EXPORT_OPTIONS="ios/ExportOptions.plist"
+IPA_PATH="${EXPORT_PATH}/${APP_NAME}.ipa"
 
 # Parse arguments
 UPLOAD=false
@@ -38,10 +60,20 @@ done
 
 echo -e "${YELLOW}🔧 iOS Archive Script${NC}"
 echo "========================"
+echo -e "  Workspace: ${GREEN}$WORKSPACE${NC}"
+echo -e "  Scheme:    ${GREEN}$SCHEME${NC}"
+echo -e "  IPA:       ${GREEN}$IPA_PATH${NC}"
 
 # Get version from package.json
 VERSION=$(node -p "require('./package.json').version")
-echo -e "Version: ${GREEN}$VERSION${NC}"
+echo -e "  Version:   ${GREEN}$VERSION${NC}"
+
+# Pre-flight: ExportOptions.plist must exist (created by hand during sprint
+# bootstrap; see planning/ for the team-id-aware template).
+if [ ! -f "$EXPORT_OPTIONS" ]; then
+    echo -e "${RED}❌ Missing $EXPORT_OPTIONS. Create it with method=app-store and your APPLE_TEAM_ID.${NC}"
+    exit 1
+fi
 
 # Clean build folder
 echo -e "\n${YELLOW}📁 Cleaning build folder...${NC}"
@@ -85,30 +117,31 @@ xcodebuild -exportArchive \
     -exportPath "$EXPORT_PATH" \
     -exportOptionsPlist "$EXPORT_OPTIONS"
 
-if [ ! -f "$EXPORT_PATH/Bayaan.ipa" ]; then
-    echo -e "${RED}❌ Export failed${NC}"
+if [ ! -f "$IPA_PATH" ]; then
+    echo -e "${RED}❌ Export failed (expected $IPA_PATH)${NC}"
     exit 1
 fi
 
-echo -e "${GREEN}✅ IPA exported to $EXPORT_PATH/Bayaan.ipa${NC}"
+echo -e "${GREEN}✅ IPA exported to $IPA_PATH${NC}"
 
 # Upload to App Store Connect (optional)
 if [ "$UPLOAD" = true ]; then
     echo -e "\n${YELLOW}🚀 Uploading to App Store Connect...${NC}"
-    xcrun altool --upload-app \
-        --type ios \
-        --file "$EXPORT_PATH/Bayaan.ipa" \
-        --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
-        --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID" \
-        2>/dev/null || \
-    xcrun notarytool submit "$EXPORT_PATH/Bayaan.ipa" \
-        --keychain-profile "AC_PASSWORD" \
-        --wait 2>/dev/null || \
-    echo -e "${YELLOW}⚠️  Auto-upload requires App Store Connect API key setup.${NC}"
-    echo -e "${YELLOW}   You can manually upload using Transporter app or:${NC}"
-    echo -e "${YELLOW}   xcrun altool --upload-app --type ios --file $EXPORT_PATH/Bayaan.ipa${NC}"
+    if [ -n "$APP_STORE_CONNECT_API_KEY_ID" ] && [ -n "$APP_STORE_CONNECT_ISSUER_ID" ]; then
+        xcrun altool --upload-app \
+            --type ios \
+            --file "$IPA_PATH" \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_ISSUER_ID"
+    else
+        echo -e "${YELLOW}⚠️  APP_STORE_CONNECT_API_KEY_ID / _ISSUER_ID not set in env.${NC}"
+        echo -e "${YELLOW}   Manual upload options:${NC}"
+        echo -e "${YELLOW}     • Transporter.app — drag $IPA_PATH onto its window${NC}"
+        echo -e "${YELLOW}     • xcrun altool --upload-app --type ios --file $IPA_PATH \\${NC}"
+        echo -e "${YELLOW}       --apiKey \$ID --apiIssuer \$ISSUER  (Apple ID API key)${NC}"
+    fi
 fi
 
 echo -e "\n${GREEN}🎉 Done!${NC}"
-echo -e "Archive: $ARCHIVE_PATH"
-echo -e "IPA: $EXPORT_PATH/Bayaan.ipa"
+echo -e "  Archive: $ARCHIVE_PATH"
+echo -e "  IPA:     $IPA_PATH"

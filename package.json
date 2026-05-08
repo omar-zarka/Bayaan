@@ -4,7 +4,7 @@
   "version": "2.2.0",
   "license": "AGPL-3.0-or-later",
   "scripts": {
-    "postinstall": "patch-package",
+    "postinstall": "patch-package && node scripts/bootstrap-android-local-properties.js",
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo run:android",
@@ -19,7 +19,7 @@
     "generate-icons": "node scripts/generate-icons.js",
     "fetch-reciters": "ts-node scripts/fetchReciterData.ts",
     "resize-splash-images": "ts-node scripts/resize-splash-images.js",
-    "prebuild": "expo prebuild --clean",
+    "prebuild": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo prebuild --clean",
     "version:patch": "node scripts/version-bump.js patch",
     "version:minor": "node scripts/version-bump.js minor",
     "version:major": "node scripts/version-bump.js major",
