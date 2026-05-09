@@ -75,6 +75,23 @@ if [ ! -f "$EXPORT_OPTIONS" ]; then
     exit 1
 fi
 
+# Pre-flight: assert version sync between app.config.ts source-of-truth +
+# iOS Info.plist + android/app/build.gradle. `expo prebuild` regenerates the
+# native dirs from the config, but if you bump app.config.ts and forget to
+# re-prebuild before archiving, the archive will ship with stale version
+# metadata — Apple rejects builds whose CFBundleShortVersionString is below
+# a previously-shipped value. Catching this at archive time costs an extra
+# build cycle.
+#
+# `--fix` auto-patches the working tree to match. Standing rule: archive
+# BEFORE committing the resulting sync (committing first bumps the build
+# count and leaves the native files 1 behind again).
+echo -e "\n${YELLOW}🔍 Verifying version sync (auto-fix on drift)...${NC}"
+node "$(dirname "$0")/verify-version-sync.js" --fix || {
+    echo -e "${RED}❌ Version sync patch failed — manual fix needed (see output above).${NC}"
+    exit 1
+}
+
 # Clean build folder
 echo -e "\n${YELLOW}📁 Cleaning build folder...${NC}"
 rm -rf build/
