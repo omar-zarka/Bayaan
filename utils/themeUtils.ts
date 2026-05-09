@@ -6,6 +6,7 @@ import {
 } from '@/styles/colorSchemes';
 import {Dimensions, ColorSchemeName, Appearance} from 'react-native';
 import {PHONE_SCALE_CAP} from '@/utils/responsive';
+import branding from '@/config/branding';
 
 const {width} = Dimensions.get('window');
 // Clamp scaling base so tablets (iPad) do not inflate the theme typography.
@@ -30,9 +31,19 @@ export const createTheme = (
     effectiveColorScheme = colorScheme === 'dark' ? 'dark' : 'light';
   }
 
+  const baseColors =
+    effectiveColorScheme === 'dark' ? darkColors : lightColors;
+  // Optional fork-supplied overrides. Bayaan ships with no `theme` key, so
+  // these are typically undefined and the spread is a no-op.
+  const overrides =
+    effectiveColorScheme === 'dark'
+      ? branding.theme?.darkOverrides
+      : branding.theme?.lightOverrides;
+
   return {
     colors: {
-      ...(effectiveColorScheme === 'dark' ? darkColors : lightColors),
+      ...baseColors,
+      ...(overrides ?? {}),
       primary: primaryColors[primaryColor],
     },
     isDarkMode: effectiveColorScheme === 'dark',
