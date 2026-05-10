@@ -44,14 +44,16 @@ const FIX = args.includes('--fix');
 
 function readVersionFromGenerator() {
   const {execFileSync} = require('child_process');
+  // `--json-only` makes generate-version.js write only the JSON document,
+  // no header. Avoids regex-extracting `{...}` from interleaved log output,
+  // which would silently parse the wrong object if the generator ever logs
+  // a JSON-shaped line before the result. See PR #251 review.
   const out = execFileSync(
     'node',
-    [path.join(__dirname, 'generate-version.js')],
+    [path.join(__dirname, 'generate-version.js'), '--json-only'],
     {encoding: 'utf8'},
   );
-  const m = out.match(/\{[\s\S]*?\}/);
-  if (!m) throw new Error('Could not parse generate-version.js output');
-  const json = JSON.parse(m[0]);
+  const json = JSON.parse(out);
   return {
     semanticVersion: json.semanticVersion,
     buildNumber: String(json.buildNumber),
