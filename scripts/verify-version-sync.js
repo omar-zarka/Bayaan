@@ -60,17 +60,62 @@ function readVersionFromGenerator() {
   };
 }
 
+// Directory names under `ios/` that are NEVER the app target. Filter
+// these out of findInfoPlistPath() — they often contain their own
+// Info.plist files (test targets in particular) and could be picked up
+// by readdirSync's filesystem-order traversal before the app target.
+// See PR #251 review.
+const IOS_NON_APP_DIRS = new Set([
+  'Pods',
+  'build',
+  'DerivedData',
+]);
+
+// Suffixes that mark a directory as an Xcode test/extension target rather
+// than the app target. Test target plists track the test bundle's version,
+// which is unrelated to the app's CFBundleShortVersionString — patching
+// them silently corrupts the test bundle metadata. Extensions (`*Extension`,
+// `*Widget`) are similarly out of scope for this script's intent.
+const IOS_NON_APP_SUFFIXES = ['Tests', 'UITests', 'Extension', 'Widget'];
+
 function findInfoPlistPath() {
   const iosDir = path.join(REPO, 'ios');
   if (!fs.existsSync(iosDir)) return null;
-  // Scan top-level ios/<AppName>/Info.plist (matches what `expo prebuild`
-  // emits regardless of the chosen app name).
+  // Scan ios/<AppName>/Info.plist, filtering known non-app entries
+  // (Pods, build artifacts) and entries whose name marks them as a test
+  // target or extension. If multiple candidates remain after filtering,
+  // surface the ambiguity loudly rather than picking one — better to
+  // refuse than to silently patch the wrong file.
+  const candidates = [];
   for (const entry of fs.readdirSync(iosDir, {withFileTypes: true})) {
     if (!entry.isDirectory()) continue;
+    if (entry.name.startsWith('.')) continue;
+    if (IOS_NON_APP_DIRS.has(entry.name)) continue;
+    if (
+      IOS_NON_APP_SUFFIXES.some(suffix => entry.name.endsWith(suffix))
+    ) {
+      continue;
+    }
+    // Skip Xcode project/workspace bundle directories.
+    if (
+      entry.name.endsWith('.xcodeproj') ||
+      entry.name.endsWith('.xcworkspace')
+    ) {
+      continue;
+    }
     const candidate = path.join(iosDir, entry.name, 'Info.plist');
-    if (fs.existsSync(candidate)) return candidate;
+    if (fs.existsSync(candidate)) candidates.push(candidate);
   }
-  return null;
+  if (candidates.length === 0) return null;
+  if (candidates.length > 1) {
+    throw new Error(
+      `Ambiguous app target: found multiple ios/<App>/Info.plist candidates ` +
+        `after filtering test targets and extensions:\n  ${candidates.join('\n  ')}\n` +
+        `Add the non-app directory name to IOS_NON_APP_DIRS or IOS_NON_APP_SUFFIXES ` +
+        `in scripts/verify-version-sync.js.`,
+    );
+  }
+  return candidates[0];
 }
 
 function readVersionFromInfoPlist() {
