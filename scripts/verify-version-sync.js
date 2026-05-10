@@ -111,8 +111,8 @@ const IOS_NON_APP_DIRS = new Set([
 // `*Widget`) are similarly out of scope for this script's intent.
 const IOS_NON_APP_SUFFIXES = ['Tests', 'UITests', 'Extension', 'Widget'];
 
-function findInfoPlistPath() {
-  const iosDir = path.join(REPO, 'ios');
+function findInfoPlistPath(repoRoot = REPO) {
+  const iosDir = path.join(repoRoot, 'ios');
   if (!fs.existsSync(iosDir)) return null;
   // Scan ios/<AppName>/Info.plist, filtering known non-app entries
   // (Pods, build artifacts) and entries whose name marks them as a test
@@ -151,8 +151,8 @@ function findInfoPlistPath() {
   return candidates[0];
 }
 
-function readVersionFromInfoPlist() {
-  const p = findInfoPlistPath();
+function readVersionFromInfoPlist(repoRoot = REPO) {
+  const p = findInfoPlistPath(repoRoot);
   if (!p) {
     throw new Error(
       'Could not find ios/<App>/Info.plist — has `expo prebuild` run yet?',
@@ -171,8 +171,8 @@ function readVersionFromInfoPlist() {
   return {semanticVersion: semantic[1], buildNumber: build[1], path: p};
 }
 
-function readVersionFromAndroidGradle() {
-  const p = path.join(REPO, 'android/app/build.gradle');
+function readVersionFromAndroidGradle(repoRoot = REPO) {
+  const p = path.join(repoRoot, 'android/app/build.gradle');
   if (!fs.existsSync(p)) {
     throw new Error(
       `Could not find ${p} — has \`expo prebuild\` run yet?`,
@@ -237,7 +237,7 @@ function main() {
   let ios = null;
   if (CHECK_IOS) {
     try {
-      ios = readVersionFromInfoPlist();
+      ios = readVersionFromInfoPlist(REPO);
     } catch (e) {
       console.error('FATAL:', e.message);
       process.exit(2);
@@ -247,7 +247,7 @@ function main() {
   let android = null;
   if (CHECK_ANDROID) {
     try {
-      android = readVersionFromAndroidGradle();
+      android = readVersionFromAndroidGradle(REPO);
     } catch (e) {
       console.error('FATAL:', e.message);
       process.exit(2);
@@ -290,13 +290,13 @@ function main() {
     // Re-verify so we report the post-fix state authoritatively.
     const iosAfterPair = CHECK_IOS
       ? (() => {
-          const a = readVersionFromInfoPlist();
+          const a = readVersionFromInfoPlist(REPO);
           return `${a.semanticVersion}/${a.buildNumber}`;
         })()
       : null;
     const androidAfterPair = CHECK_ANDROID
       ? (() => {
-          const a = readVersionFromAndroidGradle();
+          const a = readVersionFromAndroidGradle(REPO);
           return `${a.semanticVersion}/${a.buildNumber}`;
         })()
       : null;
@@ -345,4 +345,18 @@ function main() {
   process.exit(1);
 }
 
-main();
+// Pure functions exported for unit testing — see scripts/__tests__/.
+// `main()` and CLI argv parsing remain script-only.
+module.exports = {
+  findInfoPlistPath,
+  readVersionFromInfoPlist,
+  readVersionFromAndroidGradle,
+  patchInfoPlist,
+  patchAndroidGradle,
+  IOS_NON_APP_DIRS,
+  IOS_NON_APP_SUFFIXES,
+};
+
+if (require.main === module) {
+  main();
+}
