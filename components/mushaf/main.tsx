@@ -51,6 +51,7 @@ import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
 import {useMushafAutoPageTurn} from '@/hooks/useMushafAutoPageTurn';
 import {MushafPlayerBar} from './MushafPlayerBar';
 import SkiaPage from './skia/SkiaPage';
+import QCFPage from './qcf/QCFPage';
 import ReadingPageView from './reading/ReadingPageView';
 import ContinuousListView, {
   type ContinuousListViewHandle,
@@ -61,6 +62,8 @@ import PageEdgeDecoration, {
   EDGE_HORIZONTAL_INSET,
 } from './PageEdgeDecoration';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+import {qcfFontLoader} from '@/services/mushaf/QCFFontLoader';
+import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 
 const TOTAL_PAGES = 604;
 const ANIMATION_DURATION = 300;
@@ -145,6 +148,8 @@ const DKPageView: React.FC<{
 }) => {
   const [pageReady, setPageReady] = useState(false);
   const insets = useSafeAreaInsets();
+  const mushafRenderer = useMushafSettingsStore(s => s.mushafRenderer);
+  const isQCF = mushafRenderer === 'qcf_v2';
 
   const {isRightPage, contentMarginLeft} = useMemo(
     () => getPageEdgeLayout(pageNumber),
@@ -188,7 +193,9 @@ const DKPageView: React.FC<{
         width: metrics.pageWidth,
         height: metrics.screenHeight,
         backgroundColor: isBookLayout ? bgColor : cardColor,
-        opacity: pageReady ? 1 : 0,
+        // QCF fonts load async — keep page visible so the background color
+        // shows immediately after navigation instead of a blank white screen
+        opacity: isQCF ? 1 : pageReady ? 1 : 0,
       }}>
       {isBookLayout && (
         <>
@@ -227,21 +234,32 @@ const DKPageView: React.FC<{
           />
         </>
       )}
-      <SkiaPage
-        pageNumber={pageNumber}
-        textColor={textColor}
-        dividerColor={labelColor}
-        contentMarginLeft={effectiveMarginLeft}
-        onReady={() => setPageReady(true)}
-        onTap={onTap}
-        screenWidth={metrics.pageWidth}
-        screenHeight={metrics.screenHeight}
-        contentWidth={metrics.contentWidth}
-        contentHeight={metrics.contentHeight}
-        baseLineHeight={metrics.baseLineHeight}
-        paddingHorizontal={metrics.paddingHorizontal}
-        paddingTop={metrics.paddingTop}
-      />
+      {isQCF ? (
+        <QCFPage
+          pageNumber={pageNumber}
+          textColor={textColor}
+          dividerColor={labelColor}
+          contentMarginLeft={effectiveMarginLeft}
+          onReady={() => setPageReady(true)}
+          onTap={onTap}
+        />
+      ) : (
+        <SkiaPage
+          pageNumber={pageNumber}
+          textColor={textColor}
+          dividerColor={labelColor}
+          contentMarginLeft={effectiveMarginLeft}
+          onReady={() => setPageReady(true)}
+          onTap={onTap}
+          screenWidth={metrics.pageWidth}
+          screenHeight={metrics.screenHeight}
+          contentWidth={metrics.contentWidth}
+          contentHeight={metrics.contentHeight}
+          baseLineHeight={metrics.baseLineHeight}
+          paddingHorizontal={metrics.paddingHorizontal}
+          paddingTop={metrics.paddingTop}
+        />
+      )}
       {isBookLayout && (
         <PageEdgeDecoration
           isRightPage={isRightPage}
@@ -507,6 +525,7 @@ export default function MushafViewer({
   const viewMode = useMushafSettingsStore(s => s.viewMode);
   const scrollDirection = useMushafSettingsStore(s => s.scrollDirection);
   const rewayah = useMushafSettingsStore(s => s.rewayah);
+  const mushafRenderer = useMushafSettingsStore(s => s.mushafRenderer);
   const isVertical = scrollDirection === 'vertical';
   const isBookLayout = pageLayout === 'book';
   const edgeBg = isDarkMode ? '#000' : readingColors.card;
@@ -829,6 +848,11 @@ export default function MushafViewer({
   const navigateToPage = useCallback(
     (targetPage: number) => {
       setIsSearchMode(false);
+      // Preload QCF page font immediately, overlapping with the scroll/animation
+      if (mushafRenderer === 'qcf_v2') {
+        const fm = mushafPreloadService.fontMgr;
+        if (fm) qcfFontLoader.ensure(targetPage, fm).catch(() => {});
+      }
       // Explicit navigation = start a new chain (preserves old position)
       const surahId = digitalKhattDataService.initialized
         ? digitalKhattDataService.getPageToSurah()[targetPage]
@@ -845,7 +869,7 @@ export default function MushafViewer({
         });
       }
     },
-    [isVertical, pageToFlatListIndex],
+    [isVertical, mushafRenderer, pageToFlatListIndex],
   );
 
   const navigateToPageAnimated = useCallback(

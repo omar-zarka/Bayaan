@@ -19,6 +19,11 @@ set -e
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
+# Don't fail the archive when Sentry source-map upload hits a transient
+# network error (DNS, SSL_read, etc). Symbolication is best-effort; a
+# flaky upload should not block a release build.
+export SENTRY_ALLOW_FAILURE=true
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
