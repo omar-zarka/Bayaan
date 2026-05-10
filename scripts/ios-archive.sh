@@ -98,15 +98,17 @@ fi
 # files on every archive run, which (a) makes the working tree non-pristine
 # whenever the script runs, and (b) means there's no signal when drift
 # actually exists vs. when everything was already in sync.
+# --platform=ios scopes the check to the iOS Info.plist only — an Android-only
+# build number drift shouldn't block an iOS archive (release cadences differ).
 if [ "${VERIFY_FIX:-}" = "1" ] || [ "${VERIFY_FIX:-}" = "true" ]; then
     echo -e "\n${YELLOW}🔍 Verifying version sync (VERIFY_FIX=1 → auto-fix on drift)...${NC}"
-    node "$(dirname "$0")/verify-version-sync.js" --fix || {
+    node "$(dirname "$0")/verify-version-sync.js" --platform=ios --fix || {
         echo -e "${RED}❌ Version sync patch failed — manual fix needed (see output above).${NC}"
         exit 1
     }
 else
-    echo -e "\n${YELLOW}🔍 Verifying version sync (check-only)...${NC}"
-    node "$(dirname "$0")/verify-version-sync.js" || {
+    echo -e "\n${YELLOW}🔍 Verifying version sync (check-only, iOS)...${NC}"
+    node "$(dirname "$0")/verify-version-sync.js" --platform=ios || {
         echo -e "${RED}❌ Version drift detected. Review output above, then either:${NC}"
         echo -e "${RED}   - re-run with VERIFY_FIX=1 ${0} to auto-patch and archive in one shot, OR${NC}"
         echo -e "${RED}   - fix manually and re-run ${0}.${NC}"

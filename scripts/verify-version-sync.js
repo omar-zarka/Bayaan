@@ -18,12 +18,19 @@
  * decides whether to invoke --fix.
  *
  * Usage:
- *   node scripts/verify-version-sync.js          # check-only; exit 1 on drift (default)
- *   node scripts/verify-version-sync.js --fix    # auto-patch native files to match source
+ *   node scripts/verify-version-sync.js                    # check both platforms; exit 1 on drift
+ *   node scripts/verify-version-sync.js --fix              # auto-patch both platforms
+ *   node scripts/verify-version-sync.js --platform=ios     # check iOS only
+ *   node scripts/verify-version-sync.js --platform=android # check Android only
+ *   node scripts/verify-version-sync.js --platform=ios --fix
+ *
+ * `--platform` (default: both) lets a single-platform archive (e.g. iOS-only
+ * release) skip the other platform's drift check. Without it a legitimate
+ * Android-only build number bump would block an iOS archive.
  *
  * In scripts/ios-archive.sh, --fix is gated behind `VERIFY_FIX=1` so
- * archive runs don't silently mutate native files. See PR #251 review
- * for the rationale.
+ * archive runs don't silently mutate native files, and `--platform=ios`
+ * is set so iOS archives don't fail on Android drift. See PR #251 review.
  *
  * Exit codes:
  *   0 — all 3 in sync (after --fix, this means the patch succeeded)
@@ -45,6 +52,28 @@ const path = require('path');
 const REPO = path.join(__dirname, '..');
 const args = process.argv.slice(2);
 const FIX = args.includes('--fix');
+
+// `--platform=<ios|android|both>` (default: both). Skip the platform that
+// isn't being archived this run. Common case: the iOS App Store and Play
+// Store ship on different cadences, so a legitimate Android-only build
+// number bump shouldn't block an iOS archive.
+//
+// Supported forms: --platform=ios, --platform ios, --platform=android, etc.
+const PLATFORM = (() => {
+  const eq = args.find(a => a.startsWith('--platform='));
+  if (eq) return eq.slice('--platform='.length);
+  const idx = args.indexOf('--platform');
+  if (idx !== -1 && idx + 1 < args.length) return args[idx + 1];
+  return 'both';
+})();
+if (!['ios', 'android', 'both'].includes(PLATFORM)) {
+  console.error(
+    `--platform must be one of: ios, android, both (got: ${PLATFORM})`,
+  );
+  process.exit(2);
+}
+const CHECK_IOS = PLATFORM === 'ios' || PLATFORM === 'both';
+const CHECK_ANDROID = PLATFORM === 'android' || PLATFORM === 'both';
 
 function readVersionFromGenerator() {
   const {execFileSync} = require('child_process');
@@ -197,59 +226,83 @@ function patchAndroidGradle(p, current, target) {
 }
 
 function main() {
-  let truth, ios, android;
+  let truth;
   try {
     truth = readVersionFromGenerator();
   } catch (e) {
     console.error('FATAL: generate-version.js failed:', e.message);
     process.exit(2);
   }
-  try {
-    ios = readVersionFromInfoPlist();
-  } catch (e) {
-    console.error('FATAL:', e.message);
-    process.exit(2);
+
+  let ios = null;
+  if (CHECK_IOS) {
+    try {
+      ios = readVersionFromInfoPlist();
+    } catch (e) {
+      console.error('FATAL:', e.message);
+      process.exit(2);
+    }
   }
-  try {
-    android = readVersionFromAndroidGradle();
-  } catch (e) {
-    console.error('FATAL:', e.message);
-    process.exit(2);
+
+  let android = null;
+  if (CHECK_ANDROID) {
+    try {
+      android = readVersionFromAndroidGradle();
+    } catch (e) {
+      console.error('FATAL:', e.message);
+      process.exit(2);
+    }
   }
 
   const truthPair = `${truth.semanticVersion}/${truth.buildNumber}`;
-  const iosPair = `${ios.semanticVersion}/${ios.buildNumber}`;
-  const androidPair = `${android.semanticVersion}/${android.buildNumber}`;
-  const allMatch = truthPair === iosPair && truthPair === androidPair;
+  const iosPair = ios ? `${ios.semanticVersion}/${ios.buildNumber}` : null;
+  const androidPair = android
+    ? `${android.semanticVersion}/${android.buildNumber}`
+    : null;
+  const iosMatch = !CHECK_IOS || iosPair === truthPair;
+  const androidMatch = !CHECK_ANDROID || androidPair === truthPair;
+  const allMatch = iosMatch && androidMatch;
 
-  console.log('Version sync check:');
+  console.log(`Version sync check (platform=${PLATFORM}):`);
   console.log(
     `  Source of truth (app.config.ts via generate-version.js): ${truthPair}`,
   );
-  console.log(`  iOS ${ios.path}: ${iosPair}`);
-  console.log(`  Android ${android.path}: ${androidPair}`);
+  if (CHECK_IOS) console.log(`  iOS ${ios.path}: ${iosPair}`);
+  else console.log('  iOS: skipped (--platform=android)');
+  if (CHECK_ANDROID) console.log(`  Android ${android.path}: ${androidPair}`);
+  else console.log('  Android: skipped (--platform=ios)');
 
   if (allMatch) {
-    console.log('\n✓ All three sources agree.');
+    console.log('\n✓ All checked sources agree.');
     process.exit(0);
   }
 
   if (FIX) {
     console.log('\n--fix: patching working tree to match source-of-truth…');
-    if (iosPair !== truthPair) {
+    if (CHECK_IOS && iosPair !== truthPair) {
       patchInfoPlist(ios.path, ios, truth);
       console.log(`  ✓ ${ios.path} → ${truthPair}`);
     }
-    if (androidPair !== truthPair) {
+    if (CHECK_ANDROID && androidPair !== truthPair) {
       patchAndroidGradle(android.path, android, truth);
       console.log(`  ✓ ${android.path} → ${truthPair}`);
     }
     // Re-verify so we report the post-fix state authoritatively.
-    const iosAfter = readVersionFromInfoPlist();
-    const androidAfter = readVersionFromAndroidGradle();
-    const iosAfterPair = `${iosAfter.semanticVersion}/${iosAfter.buildNumber}`;
-    const androidAfterPair = `${androidAfter.semanticVersion}/${androidAfter.buildNumber}`;
-    if (iosAfterPair === truthPair && androidAfterPair === truthPair) {
+    const iosAfterPair = CHECK_IOS
+      ? (() => {
+          const a = readVersionFromInfoPlist();
+          return `${a.semanticVersion}/${a.buildNumber}`;
+        })()
+      : null;
+    const androidAfterPair = CHECK_ANDROID
+      ? (() => {
+          const a = readVersionFromAndroidGradle();
+          return `${a.semanticVersion}/${a.buildNumber}`;
+        })()
+      : null;
+    const iosOk = !CHECK_IOS || iosAfterPair === truthPair;
+    const androidOk = !CHECK_ANDROID || androidAfterPair === truthPair;
+    if (iosOk && androidOk) {
       console.log('\n✓ Working tree now in sync.');
       console.log(
         'Standing rule: archive BEFORE committing the version sync. ' +
@@ -258,19 +311,19 @@ function main() {
       process.exit(0);
     }
     console.error('\n✗ Patch failed — manual fix needed.');
-    console.error(`  iOS now: ${iosAfterPair}`);
-    console.error(`  Android now: ${androidAfterPair}`);
+    if (CHECK_IOS) console.error(`  iOS now: ${iosAfterPair}`);
+    if (CHECK_ANDROID) console.error(`  Android now: ${androidAfterPair}`);
     process.exit(1);
   }
 
-  console.error('\n✗ MISMATCH detected. The 3 version sources disagree.');
-  if (iosPair !== truthPair) {
+  console.error('\n✗ MISMATCH detected. Checked sources disagree.');
+  if (CHECK_IOS && iosPair !== truthPair) {
     console.error(
       `  ${ios.path}\n    has    CFBundleShortVersionString=${ios.semanticVersion}, CFBundleVersion=${ios.buildNumber}` +
         `\n    needs  CFBundleShortVersionString=${truth.semanticVersion}, CFBundleVersion=${truth.buildNumber}`,
     );
   }
-  if (androidPair !== truthPair) {
+  if (CHECK_ANDROID && androidPair !== truthPair) {
     console.error(
       `  ${android.path}\n    has    versionName "${android.semanticVersion}", versionCode ${android.buildNumber}` +
         `\n    needs  versionName "${truth.semanticVersion}", versionCode ${truth.buildNumber}`,
