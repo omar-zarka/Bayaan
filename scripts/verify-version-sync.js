@@ -260,35 +260,30 @@ function main() {
   }
 
   console.error('\n✗ MISMATCH detected. The 3 version sources disagree.');
-  console.error('\nFix:');
   if (iosPair !== truthPair) {
     console.error(
-      `  ${ios.path} needs CFBundleShortVersionString=${truth.semanticVersion}, CFBundleVersion=${truth.buildNumber}`,
-    );
-    console.error(
-      `    sed -i '' 's|<string>${ios.semanticVersion}</string>|<string>${truth.semanticVersion}</string>|' ${ios.path}`,
-    );
-    console.error(
-      `    sed -i '' 's|<string>${ios.buildNumber}</string>|<string>${truth.buildNumber}</string>|' ${ios.path}`,
+      `  ${ios.path}\n    has    CFBundleShortVersionString=${ios.semanticVersion}, CFBundleVersion=${ios.buildNumber}` +
+        `\n    needs  CFBundleShortVersionString=${truth.semanticVersion}, CFBundleVersion=${truth.buildNumber}`,
     );
   }
   if (androidPair !== truthPair) {
     console.error(
-      `  ${android.path} needs versionName "${truth.semanticVersion}", versionCode ${truth.buildNumber}`,
-    );
-    console.error(
-      `    sed -i '' 's|versionName "${android.semanticVersion}"|versionName "${truth.semanticVersion}"|' ${android.path}`,
-    );
-    console.error(
-      `    sed -i '' 's|versionCode ${android.buildNumber}|versionCode ${truth.buildNumber}|' ${android.path}`,
+      `  ${android.path}\n    has    versionName "${android.semanticVersion}", versionCode ${android.buildNumber}` +
+        `\n    needs  versionName "${truth.semanticVersion}", versionCode ${truth.buildNumber}`,
     );
   }
+  // Don't suggest manual sed commands — naive `sed s|<string>X</string>|...|`
+  // patterns match every <string>X</string> in the plist, not just the
+  // CFBundleShortVersionString/CFBundleVersion entries. The auto-patcher
+  // (--fix) uses a regex anchored on the CFBundle key to avoid that
+  // collision. See PR #251 review.
   console.error(
-    '\nOr re-run with `--fix` to auto-patch the working tree:',
+    '\nResolve by re-running with --fix (auto-patches the working tree):',
   );
   console.error('  node scripts/verify-version-sync.js --fix');
   console.error(
-    '\nThen archive (do NOT commit yet — committing first bumps the build count and re-introduces drift).',
+    '\nThen archive. Do NOT commit the patch first — committing bumps the\n' +
+      'git-rev-list commit count, re-introducing drift before archive.',
   );
   process.exit(1);
 }
