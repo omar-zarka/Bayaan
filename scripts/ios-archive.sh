@@ -88,14 +88,31 @@ fi
 # a previously-shipped value. Catching this at archive time costs an extra
 # build cycle.
 #
-# `--fix` auto-patches the working tree to match. Standing rule: archive
-# BEFORE committing the resulting sync (committing first bumps the build
-# count and leaves the native files 1 behind again).
-echo -e "\n${YELLOW}🔍 Verifying version sync (auto-fix on drift)...${NC}"
-node "$(dirname "$0")/verify-version-sync.js" --fix || {
-    echo -e "${RED}❌ Version sync patch failed — manual fix needed (see output above).${NC}"
-    exit 1
-}
+# Default: check-only. On drift, exit non-zero and ask the developer to
+# re-run with VERIFY_FIX=1 (consciously opt-in to native-file mutation).
+# `VERIFY_FIX=1` triggers `--fix` on this single archive run; standing rule
+# is still archive BEFORE committing the resulting sync (committing first
+# bumps the build count and leaves the native files 1 behind again).
+#
+# Why opt-in: previous default of unconditional `--fix` mutated native
+# files on every archive run, which (a) makes the working tree non-pristine
+# whenever the script runs, and (b) means there's no signal when drift
+# actually exists vs. when everything was already in sync.
+if [ "${VERIFY_FIX:-}" = "1" ] || [ "${VERIFY_FIX:-}" = "true" ]; then
+    echo -e "\n${YELLOW}🔍 Verifying version sync (VERIFY_FIX=1 → auto-fix on drift)...${NC}"
+    node "$(dirname "$0")/verify-version-sync.js" --fix || {
+        echo -e "${RED}❌ Version sync patch failed — manual fix needed (see output above).${NC}"
+        exit 1
+    }
+else
+    echo -e "\n${YELLOW}🔍 Verifying version sync (check-only)...${NC}"
+    node "$(dirname "$0")/verify-version-sync.js" || {
+        echo -e "${RED}❌ Version drift detected. Review output above, then either:${NC}"
+        echo -e "${RED}   - re-run with VERIFY_FIX=1 ${0} to auto-patch and archive in one shot, OR${NC}"
+        echo -e "${RED}   - fix manually and re-run ${0}.${NC}"
+        exit 1
+    }
+fi
 
 # Clean build folder
 echo -e "\n${YELLOW}📁 Cleaning build folder...${NC}"

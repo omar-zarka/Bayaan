@@ -13,13 +13,17 @@
  * and Play Store rejects builds with stale `versionCode`. Catching this
  * at archive time costs an extra build cycle.
  *
- * Run as the FIRST step in the iOS archive helper. Exits non-zero if any
- * of the 3 sources disagree, with a clear report and either suggested
- * sed commands (default) or auto-applied fixes (`--fix`).
+ * Run as the FIRST step in the iOS archive helper. Default is check-only
+ * (no mutation). On drift, exits non-zero with a clear report; consumer
+ * decides whether to invoke --fix.
  *
  * Usage:
- *   node scripts/verify-version-sync.js          # check-only; exit 1 on drift
+ *   node scripts/verify-version-sync.js          # check-only; exit 1 on drift (default)
  *   node scripts/verify-version-sync.js --fix    # auto-patch native files to match source
+ *
+ * In scripts/ios-archive.sh, --fix is gated behind `VERIFY_FIX=1` so
+ * archive runs don't silently mutate native files. See PR #251 review
+ * for the rationale.
  *
  * Exit codes:
  *   0 — all 3 in sync (after --fix, this means the patch succeeded)
