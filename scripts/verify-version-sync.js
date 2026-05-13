@@ -98,11 +98,7 @@ function readVersionFromGenerator() {
 // Info.plist files (test targets in particular) and could be picked up
 // by readdirSync's filesystem-order traversal before the app target.
 // See PR #251 review.
-const IOS_NON_APP_DIRS = new Set([
-  'Pods',
-  'build',
-  'DerivedData',
-]);
+const IOS_NON_APP_DIRS = new Set(['Pods', 'build', 'DerivedData']);
 
 // Suffixes that mark a directory as an Xcode test/extension target rather
 // than the app target. Test target plists track the test bundle's version,
@@ -124,9 +120,7 @@ function findInfoPlistPath(repoRoot = REPO) {
     if (!entry.isDirectory()) continue;
     if (entry.name.startsWith('.')) continue;
     if (IOS_NON_APP_DIRS.has(entry.name)) continue;
-    if (
-      IOS_NON_APP_SUFFIXES.some(suffix => entry.name.endsWith(suffix))
-    ) {
+    if (IOS_NON_APP_SUFFIXES.some(suffix => entry.name.endsWith(suffix))) {
       continue;
     }
     // Skip Xcode project/workspace bundle directories.
@@ -143,7 +137,9 @@ function findInfoPlistPath(repoRoot = REPO) {
   if (candidates.length > 1) {
     throw new Error(
       `Ambiguous app target: found multiple ios/<App>/Info.plist candidates ` +
-        `after filtering test targets and extensions:\n  ${candidates.join('\n  ')}\n` +
+        `after filtering test targets and extensions:\n  ${candidates.join(
+          '\n  ',
+        )}\n` +
         `Add the non-app directory name to IOS_NON_APP_DIRS or IOS_NON_APP_SUFFIXES ` +
         `in scripts/verify-version-sync.js.`,
     );
@@ -163,8 +159,9 @@ function readVersionFromInfoPlist(repoRoot = REPO) {
     /<key>CFBundleShortVersionString<\/key>\s*<string>([^<]+)<\/string>/.exec(
       text,
     );
-  const build =
-    /<key>CFBundleVersion<\/key>\s*<string>([^<]+)<\/string>/.exec(text);
+  const build = /<key>CFBundleVersion<\/key>\s*<string>([^<]+)<\/string>/.exec(
+    text,
+  );
   if (!semantic || !build) {
     throw new Error(`Could not parse version from ${p}`);
   }
@@ -174,9 +171,7 @@ function readVersionFromInfoPlist(repoRoot = REPO) {
 function readVersionFromAndroidGradle(repoRoot = REPO) {
   const p = path.join(repoRoot, 'android/app/build.gradle');
   if (!fs.existsSync(p)) {
-    throw new Error(
-      `Could not find ${p} — has \`expo prebuild\` run yet?`,
-    );
+    throw new Error(`Could not find ${p} — has \`expo prebuild\` run yet?`);
   }
   const text = fs.readFileSync(p, 'utf8');
   const versionName = /versionName\s+"([^"]+)"/.exec(text);
