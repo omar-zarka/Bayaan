@@ -8,7 +8,9 @@
 
 ## Summary
 
-Move filter composition into the Search tab. Today, "Browse by X" tiles on the Home/Listen tab each route into `components/browse/BrowseReciters.tsx` with a single pre-set filter param (`country`, `translation`, `teacher`/`student`, `surahId`), but the filter is invisible to the user once they're there — they can't see *what* filtered them in, and can't *combine* dimensions. This RFC proposes consolidating reciter filtering into the Search tab with composable, user-editable filter chips covering every dimension `Reciter` exposes (Country, Rewaya, Translation, Style, Has-surah, …) and reducing the Browse-by-X tiles on the Home tab to preset deeplinks into Search with those chips pre-applied.
+Move filter composition into the Search tab. Today, "Browse by X" tiles on the Home/Listen tab each route into `components/browse/BrowseReciters.tsx` with a single pre-set filter param (`surahId`, `teacher`/`student`, `rewayatName`), but the filter is invisible to the user once they're there — they can't see *what* filtered them in, and can't *combine* dimensions. This RFC proposes consolidating reciter filtering into the Search tab with composable, user-editable filter chips and reducing the Browse-by-X tiles on the Home tab to preset deeplinks into Search with those chips pre-applied.
+
+The chip set spans the dimensions the Reciter model can support — `rewaya` and `has-surah` work against fields that exist today (`Reciter.rewayat[].name`, `Reciter.rewayat[].surah_list`); `country` / `translation` / `recitation-style` are **future dimensions** that first require adding the corresponding fields to `Reciter` in `data/reciterData.ts` and populating them from the catalog. The RFC treats those as a named prerequisite rather than assuming they already exist (see Design).
 
 Default behavior is preserved via opt-in: a new `branding.searchFilters?: SearchFilterDimension[]` (or component-slot equivalent — see Alternatives) lets each tenant declare which dimensions to surface and in what order. If undefined, Search behaves exactly as today.
 
@@ -16,7 +18,7 @@ Default behavior is preserved via opt-in: a new `branding.searchFilters?: Search
 
 ## Motivation
 
-The destination is *already* unified — `app/(tabs)/(a.home)/reciter/browse.tsx` and `app/(tabs)/(b.search)/reciter/browse.tsx` both render `BrowseReciters.tsx`, which accepts `surahId | country | translation | teacher | student | rewayatName | countryName | translationName` as URL params. Every "Browse by X" tile constructs one of these param sets and deeplinks in.
+The destination is *already* unified — `app/(tabs)/(a.home)/reciter/browse.tsx` and `app/(tabs)/(b.search)/reciter/browse.tsx` both render `BrowseReciters.tsx`. Today the param surface is small: `BrowseRecitersProps` declares `surahId | initialTeacher | initialStudent`, the Home route reads `surahId | teacher | student | rewayatName`, and the Search route reads only `surahId`. This RFC's composable-filter model **would extend** that param surface (a small additive change — adding `country | translation | …` params and the matching props); the ~600-LOC migration estimate below is measured from that real starting point, not from a pre-existing full param set. Every "Browse by X" tile constructs one of these param sets and deeplinks in.
 
 The user feedback that triggered this RFC (on the Qariah fork's TestFlight beta, 2026-05-19) crystallized the problem: tapping "Surah Al-Baqarah" from the Home/Listen tab dropped the user into a reciter list filtered to Al-Baqarah, but the user couldn't tell *why* the list was filtered, couldn't relax the filter to see more reciters, and couldn't add a second filter ("show me Spanish-translation reciters who have Al-Baqarah"). The hidden-filter UX masks the platform's actual capability.
 
@@ -63,15 +65,17 @@ export interface Branding {
 }
 
 export type SearchFilterDimension =
-  | 'country'             // Reciter.country  (slug-compare)
-  | 'rewaya'              // Reciter.rewayat[].name → teacher/student
-  | 'translation'         // Reciter.translation  (slug-compare)
-  | 'has-surah'           // surah picker → Reciter.rewayat[].surah_list includes
-  | 'has-photo'           // Reciter.image_url present
-  | 'recitation-style';   // Reciter.rewayat[].style (forks may add more)
+  | 'rewaya'              // Reciter.rewayat[].name → teacher/student (exists today)
+  | 'has-surah'           // surah picker → Reciter.rewayat[].surah_list includes (exists today)
+  | 'has-photo'           // Reciter.image_url present (exists today)
+  | 'country'             // ⚠ prerequisite: add Reciter.country, then slug-compare
+  | 'translation'         // ⚠ prerequisite: add Reciter.translation, then slug-compare
+  | 'recitation-style';   // ⚠ prerequisite: add Reciter.rewayat[].style
 ```
 
-Bayaan adopts with whatever subset fits its product (`['country', 'rewaya', 'translation']`?). Forks add their preferred dims on top.
+**Field prerequisites.** `Reciter` in `data/reciterData.ts` is `{id, name, slug, date, image_url, rewayat}` today — so `rewaya`, `has-surah`, and `has-photo` are implementable against existing fields, but `country`, `translation`, and `recitation-style` first need their fields added to the `Reciter` (and/or `Rewayat`) type and populated from the catalog API. A tenant that lists those dimensions in `branding.searchFilters` without the fields present should get a dev-time warning and a no-op chip. Bayaan can ship the three exists-today dimensions immediately; the rest land as the catalog model grows.
+
+Bayaan adopts with whatever subset fits its product — initially the exists-today dimensions (`['rewaya', 'has-surah', 'has-photo']`), adding `country` / `translation` once their `Reciter` fields land. Forks add their preferred dims on top.
 
 Pro: each chip dimension lives in shared chip UI. New filter dims need a code PR per dim (the chip's value picker, label, predicate).
 Con: extensibility requires a code PR — but the cost is small (each new dim is ~50 LOC).
