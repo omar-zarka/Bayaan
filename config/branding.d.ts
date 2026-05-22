@@ -46,6 +46,27 @@ export interface HomeRow {
  */
 export interface ListenTabTopComponentProps {}
 
+/**
+ * RFC-012 — identifier for a Search/Browse-tab filter dimension.
+ *
+ * Each id is a predicate the `BrowseReciters` filter pipeline can apply
+ * to the reciter list. Forks declare an array in `branding.searchFilters`
+ * to opt in to the user-editable chip framework; when undefined, the
+ * Search tab keeps today's bespoke chip set (teacher/student) unchanged.
+ *
+ * v1 ships the exists-today subset only — every dimension here resolves
+ * against fields that already exist on `Reciter` / `Reciter.rewayat[]`.
+ * Future dimensions (`country`, `translation`, `recitation-style` with
+ * canonical slugs like `'mojawwad'` / `'moalim'` / `'murattal'` per
+ * `data/rewayat-slugs.json`) require the corresponding fields to be
+ * added to the `Reciter` type and populated from the catalog first;
+ * they're not part of this PR.
+ */
+export type SearchFilterDimension =
+  | 'rewaya' // Reciter.rewayat[].name — teacher/student (already bespoke; here for future migration)
+  | 'has-surah' // surah picker → Reciter.rewayat[].surah_list includes (already bespoke; here for future migration)
+  | 'has-photo'; // Reciter.image_url present
+
 /** App identity values that vary across forks. */
 export interface Branding {
   appName: string;
@@ -104,6 +125,30 @@ export interface Branding {
    * future extension.
    */
   listenTabTopComponent?: ComponentType<ListenTabTopComponentProps>;
+  /**
+   * RFC-012 — composable Search-tab filter dimensions. When set, the
+   * Search tab renders a user-editable chip per id; tiles on the Home
+   * tab can deeplink in with chips pre-applied via the matching URL
+   * params on the `reciter/browse` route. RFC-012 chips render AFTER
+   * Bayaan's existing bespoke chips (teacher/student) — trailing
+   * position is intentional so users of a forked build see the
+   * familiar chips first and the fork's additions after.
+   *
+   * Tri-state semantics:
+   *   - `undefined` (default) — "not migrated"; Search tab keeps
+   *     today's bespoke chip set unchanged. Bayaan ships this.
+   *   - `[]` — "explicitly disable all RFC-012 chips". Observably the
+   *     same as `undefined` today, but the intent is distinct for
+   *     future v2 migration when bespoke chips themselves move under
+   *     this seam.
+   *   - non-empty array — opt in to the listed dimensions.
+   *
+   * v1 ships exists-today dimensions only — see `SearchFilterDimension`.
+   *
+   * @example
+   * searchFilters: ['rewaya', 'has-surah', 'has-photo']
+   */
+  searchFilters?: SearchFilterDimension[];
 }
 
 declare const branding: Branding;
