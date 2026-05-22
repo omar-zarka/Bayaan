@@ -10,7 +10,7 @@
 
 Move filter composition into the Search tab. Today, "Browse by X" tiles on the Home/Listen tab each route into `components/browse/BrowseReciters.tsx` with a single pre-set filter param (`surahId`, `teacher`/`student`, `rewayatName`), but the filter is invisible to the user once they're there — they can't see *what* filtered them in, and can't *combine* dimensions. This RFC proposes consolidating reciter filtering into the Search tab with composable, user-editable filter chips and reducing the Browse-by-X tiles on the Home tab to preset deeplinks into Search with those chips pre-applied.
 
-The chip set spans the dimensions the Reciter model can support — `rewaya` and `has-surah` work against fields that exist today (`Reciter.rewayat[].name`, `Reciter.rewayat[].surah_list`); `country` / `translation` / `recitation-style` are **future dimensions** that first require adding the corresponding fields to `Reciter` in `data/reciterData.ts` and populating them from the catalog. The RFC treats those as a named prerequisite rather than assuming they already exist (see Design).
+The chip set spans the dimensions the Reciter model can support — `rewaya`, `has-surah`, `has-photo`, and `recitation-style` work against fields that exist today (`Reciter.rewayat[].name`, `Reciter.rewayat[].surah_list`, `Reciter.image_url`, `Reciter.rewayat[].style`); `country` / `translation` are **future dimensions** that first require adding the corresponding fields to `Reciter` in `data/reciterData.ts` and populating them from the catalog. The RFC treats those two as a named prerequisite rather than assuming they already exist (see Design).
 
 Default behavior is preserved via opt-in: a new `branding.searchFilters?: SearchFilterDimension[]` (or component-slot equivalent — see Alternatives) lets each tenant declare which dimensions to surface and in what order. If undefined, Search behaves exactly as today.
 
@@ -68,14 +68,14 @@ export type SearchFilterDimension =
   | 'rewaya'              // Reciter.rewayat[].name → teacher/student (exists today)
   | 'has-surah'           // surah picker → Reciter.rewayat[].surah_list includes (exists today)
   | 'has-photo'           // Reciter.image_url present (exists today)
+  | 'recitation-style'    // Reciter.rewayat[].style → 'murattal'|'mojawwad'|'molim' (exists today)
   | 'country'             // ⚠ prerequisite: add Reciter.country, then slug-compare
-  | 'translation'         // ⚠ prerequisite: add Reciter.translation, then slug-compare
-  | 'recitation-style';   // ⚠ prerequisite: add Reciter.rewayat[].style
+  | 'translation';        // ⚠ prerequisite: add Reciter.translation, then slug-compare
 ```
 
-**Field prerequisites.** `Reciter` in `data/reciterData.ts` is `{id, name, slug, date, image_url, rewayat}` today — so `rewaya`, `has-surah`, and `has-photo` are implementable against existing fields, but `country`, `translation`, and `recitation-style` first need their fields added to the `Reciter` (and/or `Rewayat`) type and populated from the catalog API. A tenant that lists those dimensions in `branding.searchFilters` without the fields present should get a dev-time warning and a no-op chip. Bayaan can ship the three exists-today dimensions immediately; the rest land as the catalog model grows.
+**Field prerequisites.** `Reciter` in `data/reciterData.ts` is `{id, name, slug, date, image_url, rewayat}` today, and `Rewayat` carries `name`, `surah_list`, and `style` — so `rewaya`, `has-surah`, `has-photo`, and `recitation-style` are implementable against existing fields, but `country` and `translation` first need their fields added to the `Reciter` type and populated from the catalog API. A tenant that lists those two dimensions in `branding.searchFilters` without the fields present should get a dev-time warning and a no-op chip. Bayaan can ship the four exists-today dimensions immediately; the rest land as the catalog model grows.
 
-Bayaan adopts with whatever subset fits its product — initially the exists-today dimensions (`['rewaya', 'has-surah', 'has-photo']`), adding `country` / `translation` once their `Reciter` fields land. Forks add their preferred dims on top.
+Bayaan adopts with whatever subset fits its product — initially the exists-today dimensions (`['rewaya', 'has-surah', 'has-photo', 'recitation-style']`), adding `country` / `translation` once their `Reciter` fields land. Forks add their preferred dims on top.
 
 Pro: each chip dimension lives in shared chip UI. New filter dims need a code PR per dim (the chip's value picker, label, predicate).
 Con: extensibility requires a code PR — but the cost is small (each new dim is ~50 LOC).
