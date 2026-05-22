@@ -56,16 +56,15 @@ export interface ListenTabTopComponentProps {}
  *
  * v1 ships the exists-today subset only — every dimension here resolves
  * against fields that already exist on `Reciter` / `Reciter.rewayat[]`.
- * Future dimensions (`country`, `translation`, `recitation-style` with
- * canonical slugs like `'mojawwad'` / `'moalim'` / `'murattal'` per
- * `data/rewayat-slugs.json`) require the corresponding fields to be
- * added to the `Reciter` type and populated from the catalog first;
- * they're not part of this PR.
+ * Future dimensions (`country`, `translation`) require the corresponding
+ * fields to be added to the `Reciter` type and populated from the
+ * catalog first; they're not part of this PR.
  */
 export type SearchFilterDimension =
   | 'rewaya' // Reciter.rewayat[].name — teacher/student (already bespoke; here for future migration)
   | 'has-surah' // surah picker → Reciter.rewayat[].surah_list includes (already bespoke; here for future migration)
-  | 'has-photo'; // Reciter.image_url present
+  | 'has-photo' // Reciter.image_url present
+  | 'recitation-style'; // Reciter.rewayat[].style — canonical slugs 'murattal'|'mojawwad'|'moalim' per data/rewayat-slugs.json (already bespoke; here for future migration)
 
 /** App identity values that vary across forks. */
 export interface Branding {
