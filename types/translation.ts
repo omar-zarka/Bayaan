@@ -36,6 +36,16 @@ export interface RemoteTranslationEdition {
   direction: 'ltr' | 'rtl';
 }
 
+// A single translated verse, as returned by a TranslationProvider.
+// (Moved here from TranslationApiService.ts in RFC-009 so the provider
+// interface and its implementations can share the type.)
+export interface TranslationVerse {
+  surahNumber: number;
+  ayahNumber: number;
+  verseKey: string;
+  text: string;
+}
+
 // Metadata for a downloaded translation stored in SQLite
 export interface DownloadedTranslationMeta {
   identifier: string;

@@ -1,5 +1,7 @@
 import type {ComponentType} from 'react';
 import type {Track} from '@/types/audio';
+import type {TranslationProvider} from '@/types/TranslationProvider';
+import type {TafsirProvider} from '@/types/TafsirProvider';
 
 /** Catalog source config for the active branding. */
 export interface BrandingCatalogConfig {
@@ -176,6 +178,18 @@ export interface Branding {
    * }
    */
   initialPlayerVerseKey?: (track: Track) => string | undefined;
+  /**
+   * RFC-009 — optional translation source for Settings → Translations.
+   * `undefined` keeps Bayaan's default (the alQuran.cloud-backed
+   * `alQuranCloudTranslationProvider`).
+   */
+  translationProvider?: TranslationProvider;
+  /**
+   * RFC-009 — optional tafsir source for Settings → Tafsir. `undefined`
+   * keeps Bayaan's default (the api.quran.com-backed
+   * `quranComTafsirProvider`).
+   */
+  tafsirProvider?: TafsirProvider;
 }
 
 declare const branding: Branding;
