@@ -1,3 +1,5 @@
+import type {ComponentType} from 'react';
+
 /** Catalog source config for the active branding. */
 export interface BrandingCatalogConfig {
   source: 'bundled' | 'remote';
@@ -33,6 +35,16 @@ export interface HomeRow {
   /** Whether this row renders. Rows whose data is empty still self-hide. */
   enabled: boolean;
 }
+
+/**
+ * Props passed to a fork's `listenTabTopComponent` (RFC-008).
+ *
+ * Reserved for future extension — the slot starts with no required props
+ * so forks can ship a plain `() => JSX.Element`. Any future additions
+ * (theming context, navigation hooks, …) must default to optional so
+ * existing implementations keep compiling.
+ */
+export interface ListenTabTopComponentProps {}
 
 /** App identity values that vary across forks. */
 export interface Branding {
@@ -81,6 +93,17 @@ export interface Branding {
    * always the source of truth on cold-start.
    */
   catalogVersionEndpoint?: string;
+  /**
+   * RFC-008 — optional component that replaces the Listen-tab top
+   * region (the default `RecitersHero`). Forks return a React
+   * component; `undefined` keeps Bayaan's `RecitersHero` verbatim.
+   *
+   * The component renders directly inside the Listen-tab ScrollView at
+   * the top, above the rows controlled by `homeRowConfig`. It receives
+   * no required props today; `ListenTabTopComponentProps` is a slot for
+   * future extension.
+   */
+  listenTabTopComponent?: ComponentType<ListenTabTopComponentProps>;
 }
 
 declare const branding: Branding;
