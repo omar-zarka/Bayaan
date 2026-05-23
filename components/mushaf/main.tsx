@@ -25,6 +25,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {useReadingThemeColors} from '@/hooks/useReadingThemeColors';
 import {Ionicons, Feather} from '@expo/vector-icons';
 import {mushafShareUrl, shareUrl} from '@/utils/shareUtils';
+import branding from '@/config/branding';
 import {SheetManager} from 'react-native-actions-sheet';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
@@ -218,18 +219,18 @@ const DKPageView: React.FC<{
                     borderBottomRightRadius: EDGE_BORDER_RADIUS,
                   }
                 : isRightPage
-                ? {
-                    left: 0,
-                    right: EDGE_HORIZONTAL_INSET,
-                    borderTopRightRadius: EDGE_BORDER_RADIUS,
-                    borderBottomRightRadius: EDGE_BORDER_RADIUS,
-                  }
-                : {
-                    left: EDGE_HORIZONTAL_INSET,
-                    right: 0,
-                    borderTopLeftRadius: EDGE_BORDER_RADIUS,
-                    borderBottomLeftRadius: EDGE_BORDER_RADIUS,
-                  },
+                  ? {
+                      left: 0,
+                      right: EDGE_HORIZONTAL_INSET,
+                      borderTopRightRadius: EDGE_BORDER_RADIUS,
+                      borderBottomRightRadius: EDGE_BORDER_RADIUS,
+                    }
+                  : {
+                      left: EDGE_HORIZONTAL_INSET,
+                      right: 0,
+                      borderTopLeftRadius: EDGE_BORDER_RADIUS,
+                      borderBottomLeftRadius: EDGE_BORDER_RADIUS,
+                    },
             ]}
           />
         </>
@@ -687,7 +688,10 @@ export default function MushafViewer({
 
   const handleSharePage = useCallback(() => {
     const url = mushafShareUrl(currentPage, isDarkMode ? 'dark' : 'light');
-    shareUrl(url, `Check out page ${currentPage} of the Quran on Bayaan`);
+    shareUrl(
+      url,
+      `Check out page ${currentPage} of the Quran on ${branding.appName}`,
+    );
   }, [currentPage, isDarkMode]);
 
   // iOS 26: configure Stack navigator header based on current mode

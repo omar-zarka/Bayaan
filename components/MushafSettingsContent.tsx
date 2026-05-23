@@ -32,6 +32,7 @@ import {
 } from '@/constants/mushafAllahHighlight';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import {showToast} from '@/utils/toastUtils';
+import branding from '@/config/branding';
 import {
   ALL_REWAYAH_IDS,
   getDescription,
@@ -676,7 +677,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       if (switchingToQCF) {
         Alert.alert(
           'Mushaf 1440 Beta',
-          'Mushaf 1440 is Bayaan’s most modern mushaf pipeline, but it is still in beta. Some features are currently disabled, including tajweed coloring and rewayah switching.',
+          `Mushaf 1440 is ${branding.appName}’s most modern mushaf pipeline, but it is still in beta. Some features are currently disabled, including tajweed coloring and rewayah switching.`,
         );
       }
     },
