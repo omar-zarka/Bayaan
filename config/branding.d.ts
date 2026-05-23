@@ -167,9 +167,12 @@ export interface Branding {
    * @example
    * // Fork with catalog metadata describing partial recitations:
    * initialPlayerVerseKey: (track) => {
-   *   if (!track.surahId) return undefined;
-   *   const meta = getSurahMetadata(track.reciterId, track.rewayatId, +track.surahId);
-   *   return meta?.range ? `${track.surahId}:${meta.range.from}` : undefined;
+   *   if (!track.surahId || !track.reciterId) return undefined;
+   *   const surahNum = parseInt(track.surahId, 10);
+   *   if (Number.isNaN(surahNum)) return undefined;
+   *   const meta = getSurahMetadata(track.reciterId, track.rewayatId, surahNum);
+   *   if (!meta || meta.is_full || !meta.range) return undefined;
+   *   return `${track.surahId}:${meta.range.from}`;
    * }
    */
   initialPlayerVerseKey?: (track: Track) => string | undefined;

@@ -1,5 +1,11 @@
 import React, {useCallback, useRef, useEffect, useState, useMemo} from 'react';
-import {View, StyleSheet, Pressable, useWindowDimensions} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Pressable,
+  useWindowDimensions,
+  type LayoutChangeEvent,
+} from 'react-native';
 import {moderateScale, verticalScale} from '@/utils/scale';
 import {useResponsive} from '@/hooks/useResponsive';
 import {Ionicons} from '@expo/vector-icons';
@@ -166,6 +172,22 @@ export const QuranView: React.FC<QuranViewProps> = ({
   // Counter to force re-render when enhanced verses are rebuilt (async)
   const [, setRebuildCounter] = useState(0);
 
+  // Measured ListHeaderComponent height (SurahDivider + BasmalaHeader). Used
+  // as a negative `viewOffset` on imperative scrollToIndex calls so the
+  // target verse lands fully below the header rather than partially behind
+  // it. FlashList v2's `initialScrollIndex` + `scrollToIndex` compute their
+  // target offset from item layouts only; without this compensation, the
+  // 5% viewPosition lands inside the header band. Stored in a ref so a
+  // measurement change doesn't itself trigger re-render of the surah-change
+  // effect — the ref is read at scroll time, by which point onLayout has
+  // run. Initialized to 0 (no compensation) → first paint may briefly
+  // under-shoot; the 2-rAF deferred scrollToIndex below corrects it once
+  // the header has measured.
+  const headerHeightRef = useRef(0);
+  const handleHeaderLayout = useCallback((e: LayoutChangeEvent) => {
+    headerHeightRef.current = e.nativeEvent.layout.height;
+  }, []);
+
   // DK Skia rendering: derive font family and fontMgr from mushafRenderer
   const isDK =
     (mushafRenderer === 'dk_v1' ||
@@ -234,6 +256,22 @@ export const QuranView: React.FC<QuranViewProps> = ({
   // mount, `initialScrollIndex` on FlashList handles it natively, so this
   // effect's branch is mainly for subsequent in-app surah switches where
   // the list stays mounted.
+  //
+  // `viewOffset: -headerHeight` compensates for ListHeaderComponent
+  // (SurahDivider + BasmalaHeader). Without this, FlashList v2 computes
+  // the target scroll offset from item layouts only and the verse lands
+  // partially behind the header. `viewPosition: 0.05` then places the
+  // verse 5% down from the post-header viewport top.
+  //
+  // Multi-surah double-fire note: in single-surah Bayaan tracks, a track
+  // change always changes currentSurah, so this effect fires exactly once.
+  // If multi-surah tracks ship later (e.g. Juz-spanning recitations), the
+  // dep array can fire twice — once from `currentSurah` advancing within
+  // the same track, once from `initialScrollIndex` resolving on a later
+  // render. Future implementer adding multi-surah support should add a
+  // ref-based guard like `if (lastFiredForSurahRef.current === currentSurah
+  // && lastFiredForIndexRef.current === initialScrollIndex) return;`
+  // before the imperative scroll. Out of scope for RFC-013 v1.
   useEffect(() => {
     if (!listRef.current) return;
     setIsLocked(true);
@@ -245,6 +283,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
               index: initialScrollIndex,
               animated: false,
               viewPosition: 0.05,
+              viewOffset: -headerHeightRef.current,
             });
           } catch {
             listRef.current?.scrollToOffset({offset: 0, animated: false});
@@ -264,7 +303,12 @@ export const QuranView: React.FC<QuranViewProps> = ({
     if (index === -1) return;
 
     try {
-      listRef.current.scrollToIndex({index, animated: true, viewPosition: 0.3});
+      listRef.current.scrollToIndex({
+        index,
+        animated: true,
+        viewPosition: 0.3,
+        viewOffset: -headerHeightRef.current,
+      });
     } catch {
       // Index may be out of range during recycling — ignore
     }
@@ -350,20 +394,22 @@ export const QuranView: React.FC<QuranViewProps> = ({
         keyExtractor={keyExtractor}
         initialScrollIndex={initialScrollIndex}
         ListHeaderComponent={
-          <QuranListHeader
-            surahNumber={currentSurah}
-            showBismillah={!!surah?.bismillah_pre}
-            width={contentWidth}
-            textColor={readingColors.textSecondary}
-            nameColor={readingColors.text}
-            showTajweed={showTajweed}
-            fontMgr={fontMgr}
-            dkFontFamily={dkFontFamily}
-            indexedTajweedData={indexedTajweedData}
-            arabicTextWeight={arabicTextWeight}
-            showAllahNameHighlight={showAllahNameHighlight}
-            allahNameHighlightColor={allahNameHighlightColor}
-          />
+          <View onLayout={handleHeaderLayout}>
+            <QuranListHeader
+              surahNumber={currentSurah}
+              showBismillah={!!surah?.bismillah_pre}
+              width={contentWidth}
+              textColor={readingColors.textSecondary}
+              nameColor={readingColors.text}
+              showTajweed={showTajweed}
+              fontMgr={fontMgr}
+              dkFontFamily={dkFontFamily}
+              indexedTajweedData={indexedTajweedData}
+              arabicTextWeight={arabicTextWeight}
+              showAllahNameHighlight={showAllahNameHighlight}
+              allahNameHighlightColor={allahNameHighlightColor}
+            />
+          </View>
         }
         contentContainerStyle={{
           paddingTop: effectivePaddingTop,
@@ -393,6 +439,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
                 index,
                 animated: true,
                 viewPosition: 0.3,
+                viewOffset: -headerHeightRef.current,
               });
             }
           }}>

@@ -1,8 +1,13 @@
 # RFC-013: branding.initialPlayerVerseKey — anchor the PlayerSheet ayah list on a fork-supplied verse
 
-**Status:** Draft (combined doc + code PR — opt-in seam with default-undefined no-op preserves today's Bayaan behavior verbatim)
-**Authors:** Omar Zarka (Qariah fork)
-**Related:** RFC-007 (multi-tenant config seam, merged), RFC-008 (listen-tab top component slot, merged), RFC-010 (catalog version endpoint, merged), RFC-011 (continue-reading history size, in flight)
+| Field   | Value                                                                                                                                                       |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Status  | Accepted                                                                                                                                                    |
+| Date    | 2026-05-23                                                                                                                                                  |
+| Author  | Omar Zarka (Qariah fork)                                                                                                                                    |
+| Related | RFC-007 (multi-tenant config seam, merged), RFC-008 (listen-tab top component slot, merged), RFC-010 (catalog version endpoint, merged), RFC-011 (in flight) |
+
+> Combined doc + code PR — opt-in seam with default-`undefined` no-op preserves today's Bayaan behavior verbatim.
 
 ---
 
@@ -142,7 +147,9 @@ Add `Reciter.rewayat[].surah_metadata?: SurahMetadata[]` upstream and have Quran
    import {getSurahMetadataSync} from '@/services/dataService';
    initialPlayerVerseKey: (track) => {
      if (!track.surahId || !track.reciterId) return undefined;
-     const meta = getSurahMetadataSync(track.reciterId, track.rewayatId, parseInt(track.surahId, 10));
+     const surahNum = parseInt(track.surahId, 10);
+     if (Number.isNaN(surahNum)) return undefined;
+     const meta = getSurahMetadataSync(track.reciterId, track.rewayatId, surahNum);
      if (!meta || meta.is_full || !meta.range) return undefined;
      return `${track.surahId}:${meta.range.from}`;
    }
