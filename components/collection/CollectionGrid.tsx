@@ -2,7 +2,7 @@ import React, {useMemo, useCallback} from 'react';
 import {View, StyleSheet, useWindowDimensions} from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {moderateScale as moderateScaleCapped} from '@/utils/scale';
-import {LegendList} from '@legendapp/list';
+import {LegendList, type LegendListRenderItemProps} from '@legendapp/list';
 import {Theme} from '@/utils/themeUtils';
 import {PlaylistCard} from '@/components/cards/PlaylistCard';
 import {CircularReciterCard} from '@/components/cards/CircularReciterCard';
@@ -255,7 +255,7 @@ export const CollectionGrid = React.memo(
 
     // Render a row of items
     const renderRow = useCallback(
-      ({item}: {item: CollectionItem[]}) => (
+      ({item}: LegendListRenderItemProps<CollectionItem[]>) => (
         <View style={styles.row}>
           {item.map(collectionItem => renderCard(collectionItem))}
           {/* Add empty placeholders for incomplete rows */}

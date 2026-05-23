@@ -10,8 +10,12 @@ import {
   Pressable,
   Animated as RNAnimated,
   BackHandler,
+  type ListRenderItemInfo,
 } from 'react-native';
-import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
+import {
+  FlashList,
+  type ListRenderItemInfo as FlashListRenderItemInfo,
+} from '@shopify/flash-list';
 import {moderateScale as ms} from 'react-native-size-matters';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '@/hooks/useTheme';
@@ -698,7 +702,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   // Browse mode renderers
   // ──────────────────────────────────────────────────────────
   const renderBrowseItem = useCallback(
-    ({item}: ListRenderItemInfo<BrowseItem>) => {
+    ({item}: FlashListRenderItemInfo<BrowseItem>) => {
       if (item.type === 'juz-header') {
         return (
           <View
@@ -806,7 +810,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   // Search mode renderers
   // ──────────────────────────────────────────────────────────
   const renderSearchResult = useCallback(
-    ({item}: {item: SearchResultItem}) => (
+    ({item}: ListRenderItemInfo<SearchResultItem>) => (
       <SearchResultRow
         item={item}
         textColor={theme.colors.text}
@@ -818,7 +822,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   );
 
   const renderHistoryItem = useCallback(
-    ({item}: {item: SearchHistoryItem}) => (
+    ({item}: ListRenderItemInfo<SearchHistoryItem>) => (
       <HistoryRow
         item={item}
         textColor={theme.colors.text}
