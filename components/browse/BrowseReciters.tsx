@@ -37,6 +37,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useHeaderHeight} from '@react-navigation/elements';
 import branding from '@/config/branding';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {useBottomInset} from '@/hooks/useBottomInset';
 
 interface BrowseRecitersProps {
   theme: Theme;
@@ -122,6 +123,7 @@ export default function BrowseReciters({
   const {startNewChain} = useRecentlyPlayedStore();
   const {setReciterPreference} = useSettings();
   const insets = useSafeAreaInsets();
+  const bottomInset = useBottomInset();
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   // On iOS, the native Stack header handles the top area; on Android, use custom Header
@@ -675,6 +677,7 @@ export default function BrowseReciters({
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={() => Keyboard.dismiss()}
             getRewayatIdForReciter={getRewayatIdForReciter}
+            bottomInset={bottomInset}
           />
         </View>
 
