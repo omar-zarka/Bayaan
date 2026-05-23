@@ -23,6 +23,7 @@ import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import type {MushafArabicTextWeight} from '@/store/mushafSettingsStore';
 import {useTajweedStore} from '@/store/tajweedStore';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
+import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import type {SkTypefaceFontProvider} from '@shopify/react-native-skia';
 import type {IndexedTajweedData} from '@/utils/tajweedLoader';
@@ -201,7 +202,8 @@ export const QuranView: React.FC<QuranViewProps> = ({
       : mushafRenderer === 'dk_v1'
         ? 'DigitalKhattV1'
         : 'DigitalKhattV2';
-  const fontMgr = isDK ? mushafPreloadService.fontMgr : null;
+  const subscribedFontMgr = useMushafFontMgr();
+  const fontMgr = isDK ? subscribedFontMgr : null;
 
   // Tajweed data for DK Skia rendering (verse-level indexed)
   const indexedTajweedData = useTajweedStore(s => s.indexedTajweedData);

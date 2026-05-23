@@ -22,6 +22,7 @@ import FormattedTextRenderer from '@/components/utils/FormattedText';
 import {LinearGradient} from 'expo-linear-gradient';
 import SkiaVerseText from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
+import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import type {SkTypefaceFontProvider} from '@shopify/react-native-skia';
 import type {IndexedTajweedData} from '@/utils/tajweedLoader';
@@ -613,11 +614,12 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-      ? 'DigitalKhattV1'
-      : 'DigitalKhattV2';
+        ? 'DigitalKhattV1'
+        : 'DigitalKhattV2';
+  const subscribedFontMgr = useMushafFontMgr();
   const fontMgr =
     mushafPreloadService.initialized && digitalKhattDataService.initialized
-      ? mushafPreloadService.fontMgr
+      ? subscribedFontMgr
       : null;
 
   const actualTranslationText = useMemo(() => {
@@ -669,7 +671,10 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
         try {
           await digitalKhattDataService.switchRewayah('hafs');
         } catch (error) {
-          console.error('[MushafSettings] Failed to reset rewayah for QCF:', error);
+          console.error(
+            '[MushafSettings] Failed to reset rewayah for QCF:',
+            error,
+          );
         }
         setRewayah('hafs');
       }
@@ -861,9 +866,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           <Text style={styles.settingRowLabel}>
             {themeMode === 'system'
               ? 'System'
-              : getReadingThemeById(
+              : (getReadingThemeById(
                   themeMode === 'light' ? lightThemeId : darkThemeId,
-                )?.name ?? 'System'}
+                )?.name ?? 'System')}
           </Text>
           <Feather
             name="chevron-right"
@@ -1139,15 +1144,17 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             Rewayah switching is disabled in Mushaf 1440 beta.
           </Text>
         </View>
-      ) : hasDiffData(rewayah) && (
-        <RewayahDiffCard
-          rewayah={rewayah}
-          showRewayahDiffs={showRewayahDiffs}
-          toggleRewayahDiffs={toggleRewayahDiffs}
-          trackColor={trackColor}
-          styles={styles}
-          theme={theme}
-        />
+      ) : (
+        hasDiffData(rewayah) && (
+          <RewayahDiffCard
+            rewayah={rewayah}
+            showRewayahDiffs={showRewayahDiffs}
+            toggleRewayahDiffs={toggleRewayahDiffs}
+            trackColor={trackColor}
+            styles={styles}
+            theme={theme}
+          />
+        )
       )}
       <RewayahAccordion
         selectedId={rewayah}
