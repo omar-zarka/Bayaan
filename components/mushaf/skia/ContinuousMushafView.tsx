@@ -740,7 +740,11 @@ const ContinuousMushafView = forwardRef<
     // at first-mount.
     const fontMgr = useMushafFontMgr();
 
-    // Surah header fonts (computed once from quranCommon typeface)
+    // Surah header fonts (computed once from quranCommon typeface).
+    // `fontMgr` dep mirrors the SkiaPage memo: when the preload completes
+    // after this view mounted, the subscription re-renders but `lineWidth`
+    // hasn't changed, so without `fontMgr` in deps the memo would stay on
+    // its cached null-divider snapshot.
     const surahHeaderFonts = useMemo(() => {
       const qcTypeface = mushafPreloadService.quranCommonTypeface;
       if (!qcTypeface) return {dividerFont: null, nameFontSize: 0};
@@ -753,7 +757,7 @@ const ContinuousMushafView = forwardRef<
         dividerFont: Skia.Font(qcTypeface, scaledSize),
         nameFontSize: scaledSize * 0.4,
       };
-    }, [lineWidth]);
+    }, [lineWidth, fontMgr]);
 
     // Settings subscriptions
     const showTajweed = useMushafSettingsStore(s => s.showTajweed);
@@ -776,8 +780,8 @@ const ContinuousMushafView = forwardRef<
       (mushafRenderer === 'dk_indopak'
         ? 'DigitalKhattIndoPak'
         : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2');
+          ? 'DigitalKhattV1'
+          : 'DigitalKhattV2');
     const allahNameHighlightColor = useMemo(
       () =>
         getAllahNameHighlightColorHex(
