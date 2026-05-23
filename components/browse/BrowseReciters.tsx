@@ -328,6 +328,7 @@ export default function BrowseReciters({
     surahId,
     advancedFilters,
     hasPhoto,
+    hasPhotoEnabled,
   ]);
 
   const handleFilterModalPress = () => {
@@ -589,6 +590,9 @@ export default function BrowseReciters({
                   </View>
                 ) : (
                   <Pressable
+                    accessibilityRole="togglebutton"
+                    accessibilityLabel={chip.label}
+                    accessibilityState={{selected: chip.isSelected}}
                     style={({pressed}) => [
                       styles.filterChip,
                       chip.isSelected && styles.filterChipActive,
@@ -614,10 +618,12 @@ export default function BrowseReciters({
              * once they're wired through (or live as bespoke chips above). */}
             {hasPhotoEnabled && (
               <Animated.View
-                key="rfc012-has-photo"
                 entering={FadeIn.duration(300)}
                 layout={LinearTransition.duration(300)}>
                 <Pressable
+                  accessibilityRole="togglebutton"
+                  accessibilityLabel="Has photo"
+                  accessibilityState={{selected: hasPhoto}}
                   style={({pressed}) => [
                     styles.filterChip,
                     hasPhoto && styles.filterChipActive,
