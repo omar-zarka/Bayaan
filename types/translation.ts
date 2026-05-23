@@ -25,7 +25,11 @@ export const BUNDLED_TRANSLATIONS: Record<
   },
 };
 
-// Remote translation edition from Al Quran Cloud API
+// Shared translation edition contract (RFC-009). Used by
+// `TranslationProvider` implementations (Bayaan's alQuran.cloud-backed
+// default + any fork override) and by the SQLite cache layer.
+// Provider implementations are responsible for mapping their upstream
+// API shape into this shape.
 export interface RemoteTranslationEdition {
   identifier: string;
   language: string;

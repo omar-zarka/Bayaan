@@ -21,10 +21,18 @@ export interface TafsirProvider {
    * (consecutive verses sharing one tafsir text) are encoded via the
    * optional `groupVerseKey` / `fromAyah` / `toAyah` fields on
    * `TafseerVerse`; providers returning ungrouped tafsir leave them unset.
+   *
+   * Callers that already have the resolved `TafseerEdition` in scope
+   * (e.g. from a prior `fetchAvailableEditions` result, or from the
+   * static `AVAILABLE_TAFASEER` boot-time list) MAY pass it as the third
+   * argument; providers SHOULD treat the passed value as authoritative
+   * and skip any internal editions-list lookup. When omitted, the
+   * provider resolves the edition itself.
    */
   fetchFullTafseer(
     editionId: string,
     onProgress?: (progress: number) => void,
+    edition?: TafseerEdition,
   ): Promise<{
     edition: TafseerEdition;
     verses: TafseerVerse[];

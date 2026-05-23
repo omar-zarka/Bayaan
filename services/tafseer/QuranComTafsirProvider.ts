@@ -28,7 +28,11 @@ interface QFTafsirResource {
 interface QFTafsirVerse {
   resource_id: number;
   verse_key: string;
-  text: string;
+  // `text` is typed as `string` by QF's OpenAPI spec but the response is
+  // cast unvalidated, and empty grouped-verse slots have been observed
+  // returning `null` in the wild. The fetch path null-guards `.trim()`
+  // (see `fetchChapterTafseer`).
+  text: string | null;
 }
 
 interface QFPagination {
@@ -76,17 +80,26 @@ class QuranComTafsirProvider implements TafsirProvider {
   async fetchFullTafseer(
     editionId: string,
     onProgress?: (progress: number) => void,
+    edition?: TafseerEdition,
   ): Promise<{
     edition: TafseerEdition;
     verses: TafseerVerse[];
   }> {
     onProgress?.(0);
 
-    // Fetch edition info from available list
-    const editions = await this.fetchAvailableEditions();
-    const edition = editions.find(e => e.identifier === editionId);
-    if (!edition) {
-      throw new Error(`Tafseer edition not found: ${editionId}`);
+    // Resolve the edition. Callers that already have it in scope (e.g.
+    // from `AVAILABLE_TAFASEER`) can pass it to skip the extra network
+    // round-trip; otherwise we look it up from the live editions list.
+    let resolvedEdition: TafseerEdition;
+    if (edition && edition.identifier === editionId) {
+      resolvedEdition = edition;
+    } else {
+      const editions = await this.fetchAvailableEditions();
+      const found = editions.find(e => e.identifier === editionId);
+      if (!found) {
+        throw new Error(`Tafseer edition not found: ${editionId}`);
+      }
+      resolvedEdition = found;
     }
 
     const verses: TafseerVerse[] = [];
@@ -97,7 +110,7 @@ class QuranComTafsirProvider implements TafsirProvider {
       onProgress?.(ch / 114);
     }
 
-    return {edition, verses};
+    return {edition: resolvedEdition, verses};
   }
 
   private async fetchChapterTafseer(
@@ -121,11 +134,21 @@ class QuranComTafsirProvider implements TafsirProvider {
       page = json.pagination.next_page;
     }
 
-    // Detect verse groups: empty-text entries belong to the previous non-empty entry
-    const groups: {leader: QFTafsirVerse; members: QFTafsirVerse[]}[] = [];
+    // Detect verse groups: empty-text entries belong to the previous non-empty entry.
+    // `entry.text` is typed `string` by QF's spec but the response is cast
+    // unvalidated; treat `null` / `undefined` / whitespace as empty so an
+    // unexpected `null` doesn't throw and abort the chapter download mid-flight.
+    // The leader carries a narrowed non-null `text` so downstream consumers
+    // don't have to re-check.
+    type GroupLeader = QFTafsirVerse & {text: string};
+    const groups: {leader: GroupLeader; members: QFTafsirVerse[]}[] = [];
     for (const entry of raw) {
-      if (entry.text.trim()) {
-        groups.push({leader: entry, members: [entry]});
+      const trimmed = entry.text?.trim();
+      if (trimmed) {
+        groups.push({
+          leader: {...entry, text: entry.text as string},
+          members: [entry],
+        });
       } else if (groups.length > 0) {
         groups[groups.length - 1].members.push(entry);
       }

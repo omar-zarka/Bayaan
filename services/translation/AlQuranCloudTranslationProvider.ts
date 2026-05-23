@@ -56,7 +56,16 @@ class AlQuranCloudTranslationProvider implements TranslationProvider {
     if (json.code !== 200) {
       throw new Error(`API error: ${json.status}`);
     }
-    return json.data;
+    // Match the provider contract: every returned edition has a
+    // non-undefined `direction`. The /edition endpoint sometimes omits it
+    // (and the response is cast unsafely from `unknown`), so default by
+    // language — consistent with `fetchFullTranslation`'s normalization.
+    return json.data.map(edition => ({
+      ...edition,
+      direction:
+        edition.direction ??
+        (RTL_LANGUAGES.has(edition.language) ? 'rtl' : 'ltr'),
+    }));
   }
 
   async fetchFullTranslation(
