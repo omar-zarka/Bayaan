@@ -17,6 +17,7 @@
     "apply:timestamps-coverage": "tsx scripts/apply-timestamps-coverage.ts",
     "mirror:timestamps": "tsx scripts/mirror-timestamps-to-r2.ts",
     "strip:broken-qdc": "tsx scripts/strip-broken-qdc-ids.ts",
+    "add:new-reciters": "tsx scripts/add-new-reciters.ts",
     "format": "prettier --write .",
     "generate-reciter-images": "tsx scripts/generateReciterImages.ts",
     "generate-icons": "node scripts/generate-icons.js",
