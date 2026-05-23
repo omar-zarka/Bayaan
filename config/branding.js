@@ -23,4 +23,23 @@ module.exports = {
     source: 'bundled',
     fallbackPath: undefined,
   },
+  /**
+   * Order + visibility of Listen-tab home rows. Bayaan's default mirrors
+   * the historical hardcoded order in RecitersView.tsx for parity. Forks
+   * override this to reorder, hide, or omit rows entirely.
+   */
+  homeRowConfig: [
+    {id: 'continue-listening', enabled: true},
+    {id: 'new-to-quran', enabled: true},
+    {id: 'favorites', enabled: true},
+    {id: 'featured', enabled: true},
+    {id: 'adhkar', enabled: true},
+    {id: 'follow-along', enabled: true},
+    {id: 'playlists', enabled: true},
+    {id: 'exclusives', enabled: true},
+    {id: 'tajweed', enabled: true},
+    {id: 'memorization', enabled: true},
+    {id: 'rewayat', enabled: true},
+    {id: 'collection', enabled: true},
+  ],
 };
