@@ -35,6 +35,22 @@ class MushafPreloadService {
   private _surahNameTypeface: SkTypeface | null = null;
   private _initialized = false;
   private _initPromise: Promise<void> | null = null;
+  // `useSyncExternalStore` subscribers so mushaf components can read
+  // fontMgr synchronously without needing a useFonts fallback that races
+  // at first-mount.
+  private _listeners = new Set<() => void>();
+
+  /** Subscribe to font-preload completion. Returns an unsubscribe fn. */
+  subscribe(listener: () => void): () => void {
+    this._listeners.add(listener);
+    return () => {
+      this._listeners.delete(listener);
+    };
+  }
+
+  private _notify(): void {
+    for (const fn of this._listeners) fn();
+  }
 
   get initialized(): boolean {
     return this._initialized;
@@ -93,6 +109,7 @@ class MushafPreloadService {
     await this.loadSkiaFonts();
 
     this._initialized = true;
+    this._notify();
     console.log('[MushafPreload] Initialization complete');
   }
 
