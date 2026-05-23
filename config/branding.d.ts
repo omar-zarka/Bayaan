@@ -1,4 +1,5 @@
 import type {ComponentType} from 'react';
+import type {Track} from '@/types/audio';
 
 /** Catalog source config for the active branding. */
 export interface BrandingCatalogConfig {
@@ -148,6 +149,33 @@ export interface Branding {
    * searchFilters: ['rewaya', 'has-surah', 'has-photo']
    */
   searchFilters?: SearchFilterDimension[];
+  /**
+   * RFC-013 — optional hook returning the verse_key (e.g. `"2:197"`) the
+   * PlayerSheet ayah list (`QuranView`) should anchor on for the
+   * currently-playing track. Called on cold-mount and on every
+   * currentSurah change thereafter. Returning `undefined` (the default)
+   * keeps the current scroll-to-top-of-surah behavior verbatim.
+   *
+   * Used by forks that ship range-restricted recitations (audio tracks
+   * covering only a subset of a surah). The hook returns the start of
+   * that subset; QuranView handles the rest (initial-scroll position +
+   * deferred imperative scroll on subsequent surah changes).
+   *
+   * If the returned verse_key isn't found in the current surah's verses,
+   * QuranView silently falls back to scrolling to the top.
+   *
+   * @example
+   * // Fork with catalog metadata describing partial recitations:
+   * initialPlayerVerseKey: (track) => {
+   *   if (!track.surahId || !track.reciterId) return undefined;
+   *   const surahNum = parseInt(track.surahId, 10);
+   *   if (Number.isNaN(surahNum)) return undefined;
+   *   const meta = getSurahMetadata(track.reciterId, track.rewayatId, surahNum);
+   *   if (!meta || meta.is_full || !meta.range) return undefined;
+   *   return `${track.surahId}:${meta.range.from}`;
+   * }
+   */
+  initialPlayerVerseKey?: (track: Track) => string | undefined;
 }
 
 declare const branding: Branding;
