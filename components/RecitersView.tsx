@@ -725,6 +725,11 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
 
   const homeRowConfig = branding.homeRowConfig ?? DEFAULT_HOME_ROW_CONFIG;
 
+  // RFC-008 — Listen-tab top-region slot. Forks may replace the default
+  // `RecitersHero` via `branding.listenTabTopComponent`; capitalised here
+  // so it can be used as a JSX element. `undefined` keeps Bayaan's hero.
+  const ListenTabTopComponent = branding.listenTabTopComponent;
+
   return (
     <ScrollView
       style={styles.container}
@@ -736,8 +741,10 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
       contentInsetAdjustmentBehavior={USE_GLASS ? 'automatic' : 'never'}
       showsVerticalScrollIndicator={false}
       removeClippedSubviews={true}>
-      {/* Use the unified RecitersHero component */}
-      <RecitersHero />
+      {/* RFC-008 — Listen-tab top region. Default is the unified
+       * `RecitersHero`; forks may substitute their own via
+       * `branding.listenTabTopComponent`. */}
+      {ListenTabTopComponent ? <ListenTabTopComponent /> : <RecitersHero />}
 
       {homeRowConfig
         .filter(row => row.enabled)
