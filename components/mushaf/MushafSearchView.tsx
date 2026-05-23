@@ -821,18 +821,6 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
     [theme.colors, handleResultPress],
   );
 
-  const renderHistoryItem = useCallback(
-    ({item}: ListRenderItemInfo<SearchHistoryItem>) => (
-      <HistoryRow
-        item={item}
-        textColor={theme.colors.text}
-        secondaryColor={theme.colors.textSecondary}
-        onPress={() => handleHistoryPress(item)}
-      />
-    ),
-    [theme.colors, handleHistoryPress],
-  );
-
   const isQueryEmpty = searchQuery.trim().length === 0;
 
   // ──────────────────────────────────────────────────────────
