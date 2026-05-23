@@ -1,11 +1,7 @@
 import React, {useMemo, useState, useEffect, useRef, useCallback} from 'react';
 import {View, Platform} from 'react-native';
-import {
-  Canvas,
-  Skia,
-  useFonts,
-  type SkParagraph,
-} from '@shopify/react-native-skia';
+import {Canvas, Skia, type SkParagraph} from '@shopify/react-native-skia';
+import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {runOnJS} from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
@@ -106,21 +102,10 @@ const SkiaPage: React.FC<SkiaPageProps> = ({
   const PAGE_PADDING_TOP = propPaddingTop ?? DEFAULT_PAGE_PADDING_TOP;
 
   const {theme} = useTheme();
-  // Keep useFonts hook as fallback (can't conditionally call hooks).
-  // Prefer preloaded fontMgr from MushafPreloadService; ready synchronously
-  // on first render since AppInitializer runs before Mushaf tab mounts.
-  const hookFontMgr = useFonts({
-    DigitalKhattV1: [require('@/data/mushaf/legacy/DigitalKhattQuranicV1.otf')],
-    DigitalKhattV2: [
-      require('@/data/mushaf/digitalkhatt/DigitalKhattFont.otf'),
-    ],
-    DigitalKhattIndoPak: [
-      require('@/data/mushaf/indopak/DigitalKhattIndoPak.otf'),
-    ],
-    QuranCommon: [require('@/data/mushaf/quran-common.ttf')],
-    SurahNameV4: [require('@/data/mushaf/surah-name-v4.ttf')],
-  });
-  const fontMgr = mushafPreloadService.fontMgr || hookFontMgr;
+  // Subscribe to the preloaded fontMgr instead of running a parallel
+  // useFonts() fallback that races at first-mount and surfaces as
+  // "Couldn't create typeface for SurahNameV4" Sentry exceptions.
+  const fontMgr = useMushafFontMgr();
 
   // Calculate rendering dimensions (hoisted above surahHeaderFonts so lineWidth is available)
   const scale = CONTENT_WIDTH / PAGE_WIDTH;

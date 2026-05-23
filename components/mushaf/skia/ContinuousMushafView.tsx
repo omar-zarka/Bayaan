@@ -11,11 +11,11 @@ import {FlashList, type FlashListRef} from '@shopify/flash-list';
 import {
   Canvas,
   Skia,
-  useFonts,
   type SkFont,
   type SkParagraph,
   type SkTypefaceFontProvider,
 } from '@shopify/react-native-skia';
+import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {runOnJS} from 'react-native-worklets';
 import * as Haptics from 'expo-haptics';
@@ -736,21 +736,9 @@ const ContinuousMushafView = forwardRef<
     const render = useMemo(() => buildRenderConstants(metrics), [metrics]);
     const {lineWidth} = render;
 
-    // Font loading (fallback — prefer preloaded fontMgr)
-    const hookFontMgr = useFonts({
-      DigitalKhattV1: [
-        require('@/data/mushaf/legacy/DigitalKhattQuranicV1.otf'),
-      ],
-      DigitalKhattV2: [
-        require('@/data/mushaf/digitalkhatt/DigitalKhattFont.otf'),
-      ],
-      DigitalKhattIndoPak: [
-        require('@/data/mushaf/indopak/DigitalKhattIndoPak.otf'),
-      ],
-      QuranCommon: [require('@/data/mushaf/quran-common.ttf')],
-      SurahNameV4: [require('@/data/mushaf/surah-name-v4.ttf')],
-    });
-    const fontMgr = mushafPreloadService.fontMgr || hookFontMgr;
+    // Subscribe to preloaded fontMgr; no useFonts fallback that races
+    // at first-mount.
+    const fontMgr = useMushafFontMgr();
 
     // Surah header fonts (computed once from quranCommon typeface)
     const surahHeaderFonts = useMemo(() => {
