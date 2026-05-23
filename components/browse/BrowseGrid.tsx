@@ -18,16 +18,21 @@ interface BrowseGridProps {
   keyboardShouldPersistTaps?: 'always' | 'handled' | 'never';
   onScrollBeginDrag?: () => void;
   getRewayatIdForReciter?: (reciter: Reciter) => string | undefined;
+  // Optional bottom inset to clear the floating mini-player + tab bar.
+  // Callers compute via `useBottomInset` so the last grid row stays
+  // tappable when the mini-player is visible. Defaults to 0 for callers
+  // that don't need it.
+  bottomInset?: number;
 }
 
-function createStyles(_theme: Theme) {
+function createStyles(_theme: Theme, bottomInset = 0) {
   return StyleSheet.create({
     container: {
       flex: 1,
     },
     gridContainer: {
       paddingHorizontal: moderateScale(10),
-      paddingBottom: moderateScale(80),
+      paddingBottom: Math.max(moderateScale(80), bottomInset + moderateScale(16)),
       paddingTop: moderateScale(8),
     },
     row: {
@@ -61,6 +66,7 @@ const BrowseGrid = React.memo(
     theme,
     onScrollBeginDrag,
     getRewayatIdForReciter,
+    bottomInset = 0,
   }: BrowseGridProps) => {
     const {width: windowWidth} = useWindowDimensions();
     const [isLoading] = useState(false);
@@ -76,7 +82,10 @@ const BrowseGrid = React.memo(
       return createItemRows(reciters, numColumns);
     }, [reciters, numColumns]);
 
-    const styles = useMemo(() => createStyles(theme), [theme]);
+    const styles = useMemo(
+      () => createStyles(theme, bottomInset),
+      [theme, bottomInset],
+    );
 
     // Calculate item dimensions
     const itemDimensions = useMemo(() => {
@@ -169,7 +178,8 @@ const BrowseGrid = React.memo(
     prevProps.theme === nextProps.theme &&
     prevProps.onReciterPress === nextProps.onReciterPress &&
     prevProps.reciters.length === nextProps.reciters.length &&
-    prevProps.getRewayatIdForReciter === nextProps.getRewayatIdForReciter,
+    prevProps.getRewayatIdForReciter === nextProps.getRewayatIdForReciter &&
+    prevProps.bottomInset === nextProps.bottomInset,
 );
 
 BrowseGrid.displayName = 'BrowseGrid';
