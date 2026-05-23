@@ -28,6 +28,8 @@ import {
 } from '@/utils/enhancedVerseData';
 import {getTranslationName} from '@/utils/translationLookup';
 import {useCurrentTrackRewayah} from '@/hooks/useCurrentTrackRewayah';
+import {usePlayerStore} from '@/services/player/store/playerStore';
+import branding from '@/config/branding';
 
 const surahData = require('@/data/surahData.json') as Surah[];
 
@@ -199,16 +201,60 @@ export const QuranView: React.FC<QuranViewProps> = ({
     });
   }, [selectedTranslationId]);
 
-  // Direct lookup from module-scope pre-built arrays — zero computation per surah change
-  const verses = enhancedVersesBySurah[currentSurah] ?? [];
+  // Direct lookup from module-scope pre-built arrays — zero computation per surah change.
+  // useMemo gives a stable reference so dep arrays of hooks reading `verses` don't
+  // change on every render (was a pre-existing react-hooks/exhaustive-deps warning).
+  const verses = useMemo(
+    () => enhancedVersesBySurah[currentSurah] ?? [],
+    [currentSurah],
+  );
 
-  // Reset scroll position when currentSurah changes
+  // RFC-013 — fork-supplied initial anchor. Granular selectors so QuranView
+  // doesn't re-render on every player tick. The hook is consulted on
+  // currentSurah change; `undefined` (no hook OR hook returns undefined OR
+  // returned verse_key not found in `verses`) keeps today's
+  // scroll-to-top-of-surah behavior.
+  const currentTrack = usePlayerStore(
+    s => s.queue.tracks[s.queue.currentIndex],
+  );
+  const initialScrollIndex = useMemo(() => {
+    if (!currentTrack || !branding.initialPlayerVerseKey) return undefined;
+    const verseKey = branding.initialPlayerVerseKey(currentTrack);
+    if (!verseKey) return undefined;
+    const idx = verses.findIndex(v => v.verse_key === verseKey);
+    return idx >= 0 ? idx : undefined;
+  }, [currentTrack, verses]);
+
+  // Reset scroll position when currentSurah changes. When the fork's
+  // `initialPlayerVerseKey` resolves to an index, defer scrollToIndex two
+  // animation frames so FlashList has time to re-layout for the new `data`
+  // — calling scrollToIndex synchronously in the same render cycle as the
+  // data change silently no-ops on FlashList v2 (no
+  // `onScrollToIndexFailed` escape hatch like FlatList). For the first
+  // mount, `initialScrollIndex` on FlashList handles it natively, so this
+  // effect's branch is mainly for subsequent in-app surah switches where
+  // the list stays mounted.
   useEffect(() => {
-    if (listRef.current) {
+    if (!listRef.current) return;
+    setIsLocked(true);
+    if (initialScrollIndex !== undefined) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          try {
+            listRef.current?.scrollToIndex({
+              index: initialScrollIndex,
+              animated: false,
+              viewPosition: 0.05,
+            });
+          } catch {
+            listRef.current?.scrollToOffset({offset: 0, animated: false});
+          }
+        });
+      });
+    } else {
       listRef.current.scrollToOffset({offset: 0, animated: false});
     }
-    setIsLocked(true);
-  }, [currentSurah, setIsLocked]);
+  }, [currentSurah, initialScrollIndex, setIsLocked]);
 
   // Auto-scroll to active ayah (only when locked)
   useEffect(() => {
@@ -302,6 +348,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
         renderItem={renderItem}
         extraData={`${showWBW}-${wbwShowTranslation}-${wbwShowTransliteration}-${showTajweed}-${arabicFontSize}-${arabicTextWeight}-${showTranslation}-${showTransliteration}-${showAllahNameHighlight}-${allahNameHighlightColor}`}
         keyExtractor={keyExtractor}
+        initialScrollIndex={initialScrollIndex}
         ListHeaderComponent={
           <QuranListHeader
             surahNumber={currentSurah}
