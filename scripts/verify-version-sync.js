@@ -214,7 +214,8 @@ function findExtensionConfigBlocks(repoRoot = REPO) {
   let m;
   while ((m = blockRe.exec(text)) !== null) {
     const block = m[0];
-    const infoPlistMatch = /(?<![A-Z_])INFOPLIST_FILE\s+=\s+"?([^";]+)"?\s*;/.exec(block);
+    const infoPlistMatch =
+      /(?<![A-Z_])INFOPLIST_FILE\s+=\s+"?([^";]+)"?\s*;/.exec(block);
     if (!infoPlistMatch) continue;
     const infoPlistRelPath = infoPlistMatch[1];
     // Extension target plists in Xcode are named `<TargetName>-Info.plist`

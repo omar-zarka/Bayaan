@@ -346,7 +346,7 @@ const SAMPLE_PBXPROJ = `// !$*UTF8*$!
 \t\t\t\tCURRENT_PROJECT_VERSION = 1;
 \t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (
 \t\t\t\t\t"DEBUG=1",
-\t\t\t\t\t"\$(inherited)",
+\t\t\t\t\t"$(inherited)",
 \t\t\t\t);
 \t\t\t\tGENERATE_INFOPLIST_FILE = YES;
 \t\t\t\tINFOPLIST_FILE = Bayaan/Info.plist;
@@ -430,7 +430,7 @@ describe('findExtensionConfigBlocks', () => {
   it('does not match GENERATE_INFOPLIST_FILE (regex anchoring)', () => {
     // Construct a config block that has GENERATE_INFOPLIST_FILE = YES but no
     // standalone INFOPLIST_FILE — should NOT be picked up as an extension.
-    const trick = `// !\$*UTF8*\$!
+    const trick = `// !$*UTF8*$!
 {
 \tobjects = {
 \t\tA1B2C3D4E5F6789012345678 /* Debug */ = {
