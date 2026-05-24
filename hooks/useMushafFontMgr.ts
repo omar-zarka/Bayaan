@@ -47,9 +47,11 @@ import {
 } from '@shopify/react-native-skia';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 
-// Mushaf-critical font families that the fallback `useFonts` must load to
-// keep the Mushaf renderable when the preload pipeline fails. Kept in
-// sync with the `FONT_ASSETS` map in `MushafPreloadService`.
+// Mushaf-critical subset of `FONT_ASSETS` in `MushafPreloadService`. UI
+// fonts (Manrope) are intentionally excluded — they're loaded by the
+// app-wide font loader, not the Mushaf preload service, so the fallback
+// path doesn't need to re-load them. Updating this list does NOT need to
+// mirror every `FONT_ASSETS` addition; only the Mushaf-rendering families.
 const FALLBACK_FONT_SOURCES = {
   DigitalKhattV1: [require('@/data/mushaf/legacy/DigitalKhattQuranicV1.otf')],
   DigitalKhattV2: [require('@/data/mushaf/digitalkhatt/DigitalKhattFont.otf')],
@@ -62,20 +64,27 @@ const FALLBACK_FONT_SOURCES = {
 };
 
 export function useMushafFontMgr(): SkTypefaceFontProvider | null {
-  const preloadFontMgr = useSyncExternalStore(
+  // Single subscription per hook instance (Osman review MEDIUM). The
+  // previous shape called `useSyncExternalStore` twice — once for
+  // `fontMgr`, once for `loadError` — so each `_notify()` scheduled two
+  // re-renders per subscribing component per state transition. Under
+  // Hermes legacy rendering with 13+ subscribers across the Mushaf tree
+  // that's a double cold-start render storm at the worst moment.
+  //
+  // Now: one subscription, snapshot is a primitive boolean `isReady`
+  // (`true` once preload terminated as 'ready' OR 'failed'). Primitive
+  // snapshot means default identity comparison correctly short-circuits
+  // unchanged renders without needing a custom comparator. `fontMgr` and
+  // `loadError` are then derived from the service's current state at
+  // render time — both flip together inside `_notify`, so reading them
+  // post-isReady-flip is consistent.
+  const isReady = useSyncExternalStore(
     listener => mushafPreloadService.subscribe(listener),
-    () => mushafPreloadService.fontMgr,
-    () => mushafPreloadService.fontMgr,
+    () => mushafPreloadService.initialized,
+    () => mushafPreloadService.initialized,
   );
-
-  // Subscribe to loadError so a transition from 'loading' → 'failed' flips
-  // the hook return to the fallback fontMgr below (and so a 'failed' →
-  // 'ready' retry flips it back to the preload result).
-  const loadError = useSyncExternalStore(
-    listener => mushafPreloadService.subscribe(listener),
-    () => mushafPreloadService.loadError,
-    () => mushafPreloadService.loadError,
-  );
+  const preloadFontMgr = isReady ? mushafPreloadService.fontMgr : null;
+  const loadError = isReady && mushafPreloadService.loadError;
 
   // Rules of Hooks: `useFonts` must be called unconditionally on every
   // render. The result is only consumed when the preload truly has nothing

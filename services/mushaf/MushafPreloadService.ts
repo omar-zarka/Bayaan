@@ -93,10 +93,17 @@ class MushafPreloadService {
     if (this._state === 'ready') return;
     // Allow a retry after a prior failure (Osman review LOW): the previous
     // implementation cached the rejected promise forever, so a later call
-    // got the same rejection with no way to recover.
+    // got the same rejection with no way to recover. Also explicitly
+    // reset typeface/fontMgr fields so the invariant "retry starts from
+    // a clean slate" is in the code, not implicit on the second run's
+    // overwrites. Otherwise a fallback-then-retry sequence could observe
+    // a stale `_quranCommonTypeface` mid-init.
     if (this._state === 'failed') {
       this._initPromise = null;
       this._state = 'idle';
+      this._fontMgr = null;
+      this._quranCommonTypeface = null;
+      this._surahNameTypeface = null;
     }
     if (this._initPromise) return this._initPromise;
 
@@ -207,8 +214,22 @@ class MushafPreloadService {
   }
 
   private async loadSkiaFontsSequentialFallback(): Promise<void> {
+    // Mushaf-critical families: at least one DK variant + QuranCommon must
+    // register or the Mushaf renders blank. SurahName fonts are ornamental
+    // (surah header glyphs); their absence is cosmetic, not catastrophic.
+    // Tracked separately so a fallback that drops only ornamental fonts
+    // still publishes a usable provider.
+    const CRITICAL_FAMILIES = new Set([
+      'DigitalKhattV1',
+      'DigitalKhattV2',
+      'DigitalKhattIndoPak',
+      'QuranCommon',
+    ]);
     try {
       const fontMgr = Skia.TypefaceFontProvider.Make();
+      const registered = new Set<string>();
+      let anyCriticalFailed = false;
+
       for (const [family, asset] of Object.entries(FONT_ASSETS)) {
         try {
           const uri = Image.resolveAssetSource(asset).uri;
@@ -218,21 +239,37 @@ class MushafPreloadService {
             console.warn(
               `[MushafPreload] Fallback failed for ${family}, skipping`,
             );
+            if (CRITICAL_FAMILIES.has(family)) anyCriticalFailed = true;
             continue;
           }
           if (family === 'QuranCommon') this._quranCommonTypeface = typeface;
           if (family === 'SurahNameV4') this._surahNameTypeface = typeface;
           fontMgr.registerFont(typeface, family);
+          registered.add(family);
         } catch (err) {
           console.warn(
             `[MushafPreload] Fallback exception for ${family}:`,
             err,
           );
+          if (CRITICAL_FAMILIES.has(family)) anyCriticalFailed = true;
         }
       }
-      // Publish whatever we got; even a partial provider keeps most of
-      // the Mushaf renderable, which is strictly better than the
-      // permanent-blank outcome before this fix.
+
+      // Only publish if every critical family registered AND at least one
+      // typeface landed. A zero-typeface provider is a non-null empty
+      // object — assigning it would pass `_doInit`'s null-guard, flip
+      // `_state` to 'ready' with `loadError === false`, and the hook's
+      // fallback (`useFonts`) would never fire. Result: every consumer
+      // gets the empty provider, every Mushaf surface renders blank, no
+      // recovery. Leaving `_fontMgr` null on critical-typeface failure
+      // makes the null-guard fire so the hook's `useFonts` fallback
+      // activates per Osman review HIGH.
+      if (anyCriticalFailed || registered.size === 0) {
+        console.warn(
+          '[MushafPreload] Sequential fallback dropped critical typefaces; leaving _fontMgr null so useFonts fallback activates',
+        );
+        return;
+      }
       this._fontMgr = fontMgr;
     } catch (error) {
       console.warn('[MushafPreload] Sequential fallback rejected:', error);
