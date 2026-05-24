@@ -13,7 +13,7 @@
 1. **Active ayah highlighting** — the currently-playing ayah gets a background tint in QuranView
 2. **Smart auto-scroll** — QuranView follows playback; pauses when user scrolls manually; re-center FAB button appears to resume
 3. **Seek-to-ayah utility** — `seekToAyah()` function ready in PlayerContent for future UI binding (e.g. double-tap, button)
-4. **R2-mirrored timestamp JSON** — ayah timing for ~114 reciters (113 mp3quran + Bandar Baleelah from QDC), fetched direct from CDN
+4. **R2-mirrored timestamp JSON**: ayah timing for ~114 reciters (113 mp3quran + Bandar Baleelah from QDC), fetched direct from CDN
 
 ### Not Yet Implemented
 
@@ -50,13 +50,16 @@ QuranView (isActive prop on VerseItem, auto-scroll)
 Each file at `cdn.thebayaan.com/timestamps/{rewayat_id}/{NNN}.json` is an `AyahTimestamp[]`:
 
 ```ts
-type AyahTimestamp = {
-  ayah: number;          // 1-based ayah number within surah
-  from: number;          // start offset in ms
-  to: number;            // end offset in ms
-  segments?: number[][]; // optional word-level [[word_idx, start_ms, end_ms], ...]
-};
+interface AyahTimestamp {
+  surahNumber: number;
+  ayahNumber: number;
+  timestampFrom: number; // milliseconds
+  timestampTo: number;   // milliseconds
+  durationMs: number;
+}
 ```
+
+Source of truth: `types/timestamps.ts`. The shape matches exactly what the mirror script writes and what the mobile client reads, so no transformation is needed at read time.
 
 ---
 
