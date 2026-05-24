@@ -16,8 +16,10 @@ const {
   findInfoPlistPath,
   readVersionFromInfoPlist,
   readVersionFromAndroidGradle,
+  findExtensionConfigBlocks,
   patchInfoPlist,
   patchAndroidGradle,
+  patchExtensionConfigBlocks,
 } = require('../verify-version-sync');
 
 /**
@@ -317,5 +319,170 @@ describe('round-trip', () => {
     const after = readVersionFromAndroidGradle(tmpRoot);
     expect(after.semanticVersion).toBe('4.0.0');
     expect(after.buildNumber).toBe('1000');
+  });
+});
+
+// =====================================================================
+// findExtensionConfigBlocks / patchExtensionConfigBlocks
+// =====================================================================
+
+// Minimal pbxproj fixture: one main app XCBuildConfiguration (Info.plist =
+// Bayaan/Info.plist, no MARKETING_VERSION set) and one ShareExtension pair
+// (Debug + Release, INFOPLIST_FILE ending `-Info.plist`, both carrying
+// MARKETING_VERSION + CURRENT_PROJECT_VERSION). Mirrors expo-prebuild
+// pbxproj output structure with tab indentation.
+const SAMPLE_PBXPROJ = `// !$*UTF8*$!
+{
+\tarchiveVersion = 1;
+\tclasses = {
+\t};
+\tobjectVersion = 60;
+\tobjects = {
+
+/* Begin XCBuildConfiguration section */
+\t\t13B07F941A680F5B00A75B9A /* Debug */ = {
+\t\t\tisa = XCBuildConfiguration;
+\t\t\tbuildSettings = {
+\t\t\t\tCURRENT_PROJECT_VERSION = 1;
+\t\t\t\tGCC_PREPROCESSOR_DEFINITIONS = (
+\t\t\t\t\t"DEBUG=1",
+\t\t\t\t\t"$(inherited)",
+\t\t\t\t);
+\t\t\t\tGENERATE_INFOPLIST_FILE = YES;
+\t\t\t\tINFOPLIST_FILE = Bayaan/Info.plist;
+\t\t\t\tMARKETING_VERSION = 1.0;
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = "com.bayaan.app";
+\t\t\t\tPRODUCT_NAME = Bayaan;
+\t\t\t};
+\t\t\tname = Debug;
+\t\t};
+\t\t376EE19454074DB08B7E9626 /* Debug */ = {
+\t\t\tisa = XCBuildConfiguration;
+\t\t\tbuildSettings = {
+\t\t\t\tCODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+\t\t\t\tCURRENT_PROJECT_VERSION = 698;
+\t\t\t\tGENERATE_INFOPLIST_FILE = YES;
+\t\t\t\tINFOPLIST_FILE = "ShareExtension/ShareExtension-Info.plist";
+\t\t\t\tMARKETING_VERSION = 2.2.0;
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = "com.bayaan.app.share-extension";
+\t\t\t\tPRODUCT_NAME = ShareExtension;
+\t\t\t};
+\t\t\tname = Debug;
+\t\t};
+\t\t376EE19454074DB08B7E9627 /* Release */ = {
+\t\t\tisa = XCBuildConfiguration;
+\t\t\tbuildSettings = {
+\t\t\t\tCODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
+\t\t\t\tCURRENT_PROJECT_VERSION = 698;
+\t\t\t\tGENERATE_INFOPLIST_FILE = YES;
+\t\t\t\tINFOPLIST_FILE = "ShareExtension/ShareExtension-Info.plist";
+\t\t\t\tMARKETING_VERSION = 2.2.0;
+\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = "com.bayaan.app.share-extension";
+\t\t\t\tPRODUCT_NAME = ShareExtension;
+\t\t\t};
+\t\t\tname = Release;
+\t\t};
+/* End XCBuildConfiguration section */
+\t};
+\trootObject = 83CB B9F71A601CBA00E9 B192;
+}
+`;
+
+describe('findExtensionConfigBlocks', () => {
+  it('returns empty list when ios/ does not exist', () => {
+    const result = findExtensionConfigBlocks(tmpRoot);
+    expect(result.pbxprojPath).toBeNull();
+    expect(result.blocks).toEqual([]);
+  });
+
+  it('returns empty list when no extension targets are present', () => {
+    // Main-app-only pbxproj: INFOPLIST_FILE = Bayaan/Info.plist (no `-Info.plist` suffix).
+    writeFile(
+      'ios/Bayaan.xcodeproj/project.pbxproj',
+      `${SAMPLE_PBXPROJ.replace(
+        /[\s\S]*?376EE19454074DB08B7E9626 \/\* Debug \*\/ = \{[\s\S]*?376EE19454074DB08B7E9627 \/\* Release \*\/ = \{[\s\S]*?\t\t\};/m,
+        '',
+      )}`,
+    );
+    const result = findExtensionConfigBlocks(tmpRoot);
+    expect(result.pbxprojPath).toContain('project.pbxproj');
+    expect(result.blocks).toEqual([]);
+  });
+
+  it('finds the Debug + Release config blocks for an extension target', () => {
+    writeFile('ios/Bayaan.xcodeproj/project.pbxproj', SAMPLE_PBXPROJ);
+    const result = findExtensionConfigBlocks(tmpRoot);
+    expect(result.blocks).toHaveLength(2);
+    const debug = result.blocks.find(b => b.configName === 'Debug');
+    const release = result.blocks.find(b => b.configName === 'Release');
+    expect(debug).toMatchObject({
+      infoPlistRelPath: 'ShareExtension/ShareExtension-Info.plist',
+      marketingVersion: '2.2.0',
+      currentProjectVersion: '698',
+    });
+    expect(release).toMatchObject({
+      infoPlistRelPath: 'ShareExtension/ShareExtension-Info.plist',
+      marketingVersion: '2.2.0',
+      currentProjectVersion: '698',
+    });
+  });
+
+  it('does not match GENERATE_INFOPLIST_FILE (regex anchoring)', () => {
+    // Construct a config block that has GENERATE_INFOPLIST_FILE = YES but no
+    // standalone INFOPLIST_FILE — should NOT be picked up as an extension.
+    const trick = `// !$*UTF8*$!
+{
+\tobjects = {
+\t\tA1B2C3D4E5F6789012345678 /* Debug */ = {
+\t\t\tisa = XCBuildConfiguration;
+\t\t\tbuildSettings = {
+\t\t\t\tCURRENT_PROJECT_VERSION = 99;
+\t\t\t\tGENERATE_INFOPLIST_FILE = YES;
+\t\t\t\tMARKETING_VERSION = 9.9.9;
+\t\t\t};
+\t\t\tname = Debug;
+\t\t};
+\t};
+}
+`;
+    writeFile('ios/Bayaan.xcodeproj/project.pbxproj', trick);
+    const result = findExtensionConfigBlocks(tmpRoot);
+    expect(result.blocks).toEqual([]);
+  });
+});
+
+describe('patchExtensionConfigBlocks', () => {
+  it('patches MARKETING_VERSION + CURRENT_PROJECT_VERSION for all blocks', () => {
+    const pbxprojPath = writeFile(
+      'ios/Bayaan.xcodeproj/project.pbxproj',
+      SAMPLE_PBXPROJ,
+    );
+    const before = findExtensionConfigBlocks(tmpRoot);
+    patchExtensionConfigBlocks(pbxprojPath, before.blocks, {
+      semanticVersion: '4.0.0',
+      buildNumber: '1000',
+    });
+    const after = findExtensionConfigBlocks(tmpRoot);
+    expect(after.blocks).toHaveLength(2);
+    for (const block of after.blocks) {
+      expect(block.marketingVersion).toBe('4.0.0');
+      expect(block.currentProjectVersion).toBe('1000');
+    }
+  });
+
+  it('leaves main-app config blocks untouched', () => {
+    const pbxprojPath = writeFile(
+      'ios/Bayaan.xcodeproj/project.pbxproj',
+      SAMPLE_PBXPROJ,
+    );
+    const before = findExtensionConfigBlocks(tmpRoot);
+    patchExtensionConfigBlocks(pbxprojPath, before.blocks, {
+      semanticVersion: '4.0.0',
+      buildNumber: '1000',
+    });
+    const text = fs.readFileSync(pbxprojPath, 'utf8');
+    // Main app block still has the 1.0 / 1 placeholders.
+    expect(text).toMatch(/MARKETING_VERSION = 1\.0;/);
+    expect(text).toMatch(/CURRENT_PROJECT_VERSION = 1;/);
   });
 });

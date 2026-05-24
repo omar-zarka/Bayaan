@@ -168,6 +168,102 @@ function readVersionFromInfoPlist(repoRoot = REPO) {
   return {semanticVersion: semantic[1], buildNumber: build[1], path: p};
 }
 
+// iOS Share / Action / Notification extension targets carry their own
+// CFBundleShortVersionString + CFBundleVersion values in Xcode build
+// settings (`MARKETING_VERSION` + `CURRENT_PROJECT_VERSION` written into
+// `project.pbxproj`). Their stub `*-Info.plist` files don't contain the
+// raw CFBundle keys — Xcode generates them at build time by substituting
+// the build settings. So we parse the pbxproj, not the plist.
+//
+// Apple's processor warns at submission time when an embedded
+// extension's CFBundleVersion drifts from the parent app's
+// (`CFBundleVersion of an app extension ('N') must match that of its
+// containing parent app ('M')`). The warning isn't a hard rejection
+// but it pollutes the upload log and the extension's TestFlight build
+// metadata stays stale. PR #251 introduced this verifier for the main
+// app's Info.plist + Android gradle; this widens it to cover Xcode
+// extension targets (Share Extension, Action Extension, Notification
+// Service, Widget, etc.).
+//
+// Auto-discovery: scan `project.pbxproj` for `XCBuildConfiguration`
+// blocks whose `INFOPLIST_FILE` points at a file ending `-Info.plist`
+// (Xcode's convention for non-main-app target stub plists). Each such
+// block carries one Debug + one Release entry; we read + patch both.
+function findExtensionConfigBlocks(repoRoot = REPO) {
+  const candidates = [];
+  const iosDir = path.join(repoRoot, 'ios');
+  if (!fs.existsSync(iosDir)) return {pbxprojPath: null, blocks: candidates};
+  // Find the .xcodeproj/project.pbxproj. Fork-agnostic.
+  let pbxprojPath = null;
+  for (const entry of fs.readdirSync(iosDir, {withFileTypes: true})) {
+    if (entry.isDirectory() && entry.name.endsWith('.xcodeproj')) {
+      const p = path.join(iosDir, entry.name, 'project.pbxproj');
+      if (fs.existsSync(p)) {
+        pbxprojPath = p;
+        break;
+      }
+    }
+  }
+  if (!pbxprojPath) return {pbxprojPath: null, blocks: candidates};
+  const text = fs.readFileSync(pbxprojPath, 'utf8');
+  // Match XCBuildConfiguration objects. Greedy-but-bounded by the
+  // closing `};` that ends the object. pbxproj formatting is consistent
+  // enough that this regex works on Xcode 14-26 output.
+  const blockRe =
+    /(\w{24})\s+\/\*\s+(Debug|Release)\s+\*\/\s+=\s+\{\s+isa = XCBuildConfiguration;[\s\S]*?\n\s+\};/g;
+  let m;
+  while ((m = blockRe.exec(text)) !== null) {
+    const block = m[0];
+    const infoPlistMatch =
+      /(?<![A-Z_])INFOPLIST_FILE\s+=\s+"?([^";]+)"?\s*;/.exec(block);
+    if (!infoPlistMatch) continue;
+    const infoPlistRelPath = infoPlistMatch[1];
+    // Extension target plists in Xcode are named `<TargetName>-Info.plist`
+    // (or sometimes `Info.plist` inside an `<Extension>/` directory we
+    // already skip in findInfoPlistPath). The `-Info.plist` suffix is the
+    // reliable marker. The main app's plist is just `<App>/Info.plist`.
+    if (!infoPlistRelPath.endsWith('-Info.plist')) continue;
+    const cpvMatch = /CURRENT_PROJECT_VERSION\s+=\s+([^;]+);/.exec(block);
+    const mvMatch = /MARKETING_VERSION\s+=\s+([^;]+);/.exec(block);
+    if (!cpvMatch || !mvMatch) continue;
+    candidates.push({
+      configName: m[2],
+      configId: m[1],
+      blockStart: m.index,
+      blockEnd: m.index + block.length,
+      infoPlistRelPath,
+      currentProjectVersion: cpvMatch[1].trim(),
+      marketingVersion: mvMatch[1].trim(),
+    });
+  }
+  return {pbxprojPath, blocks: candidates};
+}
+
+function patchExtensionConfigBlocks(pbxprojPath, blocks, target) {
+  // Rewrite the pbxproj once, patching each block in place. Going
+  // back-to-front preserves the byte offsets of earlier blocks.
+  let text = fs.readFileSync(pbxprojPath, 'utf8');
+  const sorted = blocks.slice().sort((a, b) => b.blockStart - a.blockStart);
+  for (const block of sorted) {
+    let patched = text.slice(block.blockStart, block.blockEnd);
+    if (block.marketingVersion !== target.semanticVersion) {
+      patched = patched.replace(
+        /MARKETING_VERSION\s+=\s+[^;]+;/,
+        `MARKETING_VERSION = ${target.semanticVersion};`,
+      );
+    }
+    if (block.currentProjectVersion !== target.buildNumber) {
+      patched = patched.replace(
+        /CURRENT_PROJECT_VERSION\s+=\s+[^;]+;/,
+        `CURRENT_PROJECT_VERSION = ${target.buildNumber};`,
+      );
+    }
+    text =
+      text.slice(0, block.blockStart) + patched + text.slice(block.blockEnd);
+  }
+  fs.writeFileSync(pbxprojPath, text, 'utf8');
+}
+
 function readVersionFromAndroidGradle(repoRoot = REPO) {
   const p = path.join(repoRoot, 'android/app/build.gradle');
   if (!fs.existsSync(p)) {
@@ -230,9 +326,14 @@ function main() {
   }
 
   let ios = null;
+  let iosExtensions = null;
   if (CHECK_IOS) {
     try {
       ios = readVersionFromInfoPlist(REPO);
+      // Auto-discover Xcode extension targets and include each in the
+      // check. Empty list (no extensions) is fine — means the project
+      // ships only the main app and the SE/widget check is a no-op.
+      iosExtensions = findExtensionConfigBlocks(REPO);
     } catch (e) {
       console.error('FATAL:', e.message);
       process.exit(2);
@@ -255,8 +356,19 @@ function main() {
     ? `${android.semanticVersion}/${android.buildNumber}`
     : null;
   const iosMatch = !CHECK_IOS || iosPair === truthPair;
+  // Extension targets agree when every discovered XCBuildConfiguration
+  // block matches the source-of-truth (both Debug + Release for each
+  // target). Drift in any one fails the check.
+  const extensionMismatches = CHECK_IOS
+    ? iosExtensions.blocks.filter(
+        b =>
+          b.marketingVersion !== truth.semanticVersion ||
+          b.currentProjectVersion !== truth.buildNumber,
+      )
+    : [];
+  const extensionsMatch = extensionMismatches.length === 0;
   const androidMatch = !CHECK_ANDROID || androidPair === truthPair;
-  const allMatch = iosMatch && androidMatch;
+  const allMatch = iosMatch && extensionsMatch && androidMatch;
 
   console.log(`Version sync check (platform=${PLATFORM}):`);
   console.log(
@@ -264,6 +376,13 @@ function main() {
   );
   if (CHECK_IOS) console.log(`  iOS ${ios.path}: ${iosPair}`);
   else console.log('  iOS: skipped (--platform=android)');
+  if (CHECK_IOS && iosExtensions.blocks.length > 0) {
+    for (const block of iosExtensions.blocks) {
+      console.log(
+        `  iOS extension ${iosExtensions.pbxprojPath} (${block.infoPlistRelPath} ${block.configName}): ${block.marketingVersion}/${block.currentProjectVersion}`,
+      );
+    }
+  }
   if (CHECK_ANDROID) console.log(`  Android ${android.path}: ${androidPair}`);
   else console.log('  Android: skipped (--platform=ios)');
 
@@ -278,6 +397,18 @@ function main() {
       patchInfoPlist(ios.path, ios, truth);
       console.log(`  ✓ ${ios.path} → ${truthPair}`);
     }
+    if (CHECK_IOS && extensionMismatches.length > 0) {
+      patchExtensionConfigBlocks(
+        iosExtensions.pbxprojPath,
+        extensionMismatches,
+        truth,
+      );
+      for (const block of extensionMismatches) {
+        console.log(
+          `  ✓ ${iosExtensions.pbxprojPath} ${block.infoPlistRelPath} ${block.configName} → ${truthPair}`,
+        );
+      }
+    }
     if (CHECK_ANDROID && androidPair !== truthPair) {
       patchAndroidGradle(android.path, android, truth);
       console.log(`  ✓ ${android.path} → ${truthPair}`);
@@ -289,6 +420,16 @@ function main() {
           return `${a.semanticVersion}/${a.buildNumber}`;
         })()
       : null;
+    const iosExtensionsAfter = CHECK_IOS
+      ? findExtensionConfigBlocks(REPO)
+      : null;
+    const iosExtensionsOk = CHECK_IOS
+      ? iosExtensionsAfter.blocks.every(
+          b =>
+            b.marketingVersion === truth.semanticVersion &&
+            b.currentProjectVersion === truth.buildNumber,
+        )
+      : true;
     const androidAfterPair = CHECK_ANDROID
       ? (() => {
           const a = readVersionFromAndroidGradle(REPO);
@@ -297,7 +438,7 @@ function main() {
       : null;
     const iosOk = !CHECK_IOS || iosAfterPair === truthPair;
     const androidOk = !CHECK_ANDROID || androidAfterPair === truthPair;
-    if (iosOk && androidOk) {
+    if (iosOk && iosExtensionsOk && androidOk) {
       console.log('\n✓ Working tree now in sync.');
       console.log(
         'Standing rule: archive BEFORE committing the version sync. ' +
@@ -317,6 +458,14 @@ function main() {
       `  ${ios.path}\n    has    CFBundleShortVersionString=${ios.semanticVersion}, CFBundleVersion=${ios.buildNumber}` +
         `\n    needs  CFBundleShortVersionString=${truth.semanticVersion}, CFBundleVersion=${truth.buildNumber}`,
     );
+  }
+  if (CHECK_IOS && extensionMismatches.length > 0) {
+    for (const block of extensionMismatches) {
+      console.error(
+        `  ${iosExtensions.pbxprojPath} (${block.infoPlistRelPath} ${block.configName})\n    has    MARKETING_VERSION=${block.marketingVersion}, CURRENT_PROJECT_VERSION=${block.currentProjectVersion}` +
+          `\n    needs  MARKETING_VERSION=${truth.semanticVersion}, CURRENT_PROJECT_VERSION=${truth.buildNumber}`,
+      );
+    }
   }
   if (CHECK_ANDROID && androidPair !== truthPair) {
     console.error(
@@ -346,8 +495,10 @@ module.exports = {
   findInfoPlistPath,
   readVersionFromInfoPlist,
   readVersionFromAndroidGradle,
+  findExtensionConfigBlocks,
   patchInfoPlist,
   patchAndroidGradle,
+  patchExtensionConfigBlocks,
   IOS_NON_APP_DIRS,
   IOS_NON_APP_SUFFIXES,
 };
