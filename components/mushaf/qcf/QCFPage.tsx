@@ -54,6 +54,7 @@ import {
 } from '@/services/mushaf/QCFFontLoader';
 import {qcfLayoutCacheService} from '@/services/mushaf/QCFLayoutCacheService';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
+import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {getTextAllahNameCharMap} from '@/services/mushaf/AllahNameHighlightService';
 import {themeDataService} from '@/services/mushaf/ThemeDataService';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
@@ -134,7 +135,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
   onTap,
 }) => {
   const {theme} = useTheme();
-  const fontMgr = mushafPreloadService.fontMgr;
+  const fontMgr = useMushafFontMgr();
   const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
   const showThemes = useMushafSettingsStore(s => s.showThemes);
   const showAllahNameHighlight = useMushafSettingsStore(
@@ -361,7 +362,14 @@ const QCFPage: React.FC<QCFPageProps> = ({
       }
 
       qcfFontLoader.prefetch(
-        [pageNumber - 1, pageNumber + 1, pageNumber - 2, pageNumber + 2, pageNumber - 3, pageNumber + 3],
+        [
+          pageNumber - 1,
+          pageNumber + 1,
+          pageNumber - 2,
+          pageNumber + 2,
+          pageNumber - 3,
+          pageNumber + 3,
+        ],
         fontMgr,
       );
     })();
@@ -804,7 +812,15 @@ const QCFPage: React.FC<QCFPageProps> = ({
               />
             ))}
           {renderEntries.map(
-            ({key, lineIndex, paragraph, strokeParagraph, boldOffset, yPos, width}) => (
+            ({
+              key,
+              lineIndex,
+              paragraph,
+              strokeParagraph,
+              boldOffset,
+              yPos,
+              width,
+            }) => (
               <Group key={key}>
                 {(lineBackgroundHighlights.get(lineIndex) ?? []).map(
                   (highlight, index) => {
