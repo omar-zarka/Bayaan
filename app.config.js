@@ -170,7 +170,6 @@ module.exports = {
       'expo-router',
       ['expo-audio', {enableBackgroundPlayback: true}],
       'expo-sqlite',
-      'expo-media-library',
       [
         'expo-splash-screen',
         {
