@@ -190,6 +190,35 @@ export interface Branding {
    * `quranComTafsirProvider`).
    */
   tafsirProvider?: TafsirProvider;
+  /**
+   * RFC-014 — strategy for wiring the player Mushaf FlashList's scroll
+   * handling.
+   *
+   * `'gorhom'` — `useBottomSheetScrollableCreator()` is called and its
+   *   result is passed as `renderScrollComponent` on FlashList. The
+   *   swipe-down-to-dismiss gesture on the player sheet is active.
+   *   Imperative `scrollToIndex` / `scrollToOffset` calls issued before
+   *   the sheet's animation has settled into EXTENDED/FILL_PARENT are
+   *   intercepted by the gorhom wrapper and silently no-op.
+   *
+   * `'native'` — gorhom wrapper skipped; imperative scroll calls reach
+   *   the native scroll node immediately, regardless of the sheet's
+   *   animation state. The sheet's swipe-down-to-dismiss gesture stops
+   *   working at the Mushaf list level — forks opting in must provide
+   *   an alternative dismiss affordance (e.g. an explicit close button
+   *   in the player header). A `__DEV__`-only warning fires once per
+   *   JS context to surface this responsibility.
+   *
+   * Field absent from `config/branding.js` → consumer applies
+   * `?? 'gorhom'` at the call site, byte-equivalent to today's behavior.
+   *
+   * Applies identically on iOS and Android — forks don't need
+   * platform-conditional branding. A future strategy (e.g.
+   * `'gesture-handler-v3'`) is an additive change to this union.
+   *
+   * See docs/rfcs/014-player-scroll-strategy-seam.md.
+   */
+  playerMushafScrollBehavior?: 'gorhom' | 'native';
 }
 
 declare const branding: Branding;
