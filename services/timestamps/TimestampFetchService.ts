@@ -6,10 +6,38 @@ import type {AyahTimestamp} from '@/types/timestamps';
 // RFC-015 — fork-supplied timestamp CDN base. Absent from `branding.js`
 // → fallback to Bayaan's production CDN (byte-equivalent to the
 // pre-RFC-015 hardcoded value). Forks set `branding.timestampCdnBase`
-// to their own mirror's base. No trailing slash; the URL is composed
-// below as `${R2_BASE}/${rewayatId}/${paddedSurah}.json`.
-const R2_BASE =
-  branding.timestampCdnBase ?? 'https://cdn.thebayaan.com/timestamps';
+// to their own mirror's base. The URL is composed below as
+// `${R2_BASE}/${rewayatId}/${paddedSurah}.json`.
+//
+// The JSDoc on `branding.timestampCdnBase` documents "no trailing
+// slash", but a fork typo (`'https://cdn.myfork.com/timestamps/'`)
+// would compose `…/timestamps//rewayat-id/001.json` and silently 404
+// every lookup against R2 / most CDNs that don't normalize doubled
+// slashes. Strip a trailing slash defensively so the runtime matches
+// the contract regardless of the fork-side value.
+const R2_BASE = (
+  branding.timestampCdnBase ?? 'https://cdn.thebayaan.com/timestamps'
+).replace(/\/+$/, '');
+
+// Minimal per-element shape check for the fetched JSON. The cast
+// `as AyahTimestamp[]` existed pre-RFC, but this RFC widens the set
+// of CDN operators to fork maintainers — a structurally wrong JSON
+// (snake-cased fields from a raw mp3quran upload, an old shape
+// without `durationMs`, etc.) would land `undefined` in the SQLite
+// `duration_ms` column and corrupt the ayah-highlight offsets.
+// Cheap first-element probe is enough to catch the obvious cases
+// without pulling in a runtime validator.
+function isAyahTimestampShape(x: unknown): x is AyahTimestamp {
+  if (typeof x !== 'object' || x === null) return false;
+  const o = x as Record<string, unknown>;
+  return (
+    typeof o.surahNumber === 'number' &&
+    typeof o.ayahNumber === 'number' &&
+    typeof o.timestampFrom === 'number' &&
+    typeof o.timestampTo === 'number' &&
+    typeof o.durationMs === 'number'
+  );
+}
 
 class TimestampFetchService {
   /**
@@ -51,8 +79,15 @@ class TimestampFetchService {
         );
         return null;
       }
-      const data = (await res.json()) as AyahTimestamp[];
-      if (!Array.isArray(data) || data.length === 0) return null;
+      const raw = (await res.json()) as unknown;
+      if (!Array.isArray(raw) || raw.length === 0) return null;
+      if (!isAyahTimestampShape(raw[0])) {
+        console.warn(
+          `[TimestampFetch] Unexpected JSON shape for ${rewayatId} surah ${surahNumber}; skipping`,
+        );
+        return null;
+      }
+      const data = raw as AyahTimestamp[];
 
       await timestampDatabaseService.writeTimestamps(
         rewayatId,
