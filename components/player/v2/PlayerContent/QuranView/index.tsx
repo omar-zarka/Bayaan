@@ -40,6 +40,24 @@ import branding from '@/config/branding';
 
 const surahData = require('@/data/surahData.json') as Surah[];
 
+// RFC-014 — module-scope one-shot dev warning for forks that opt into the
+// 'native' scroll behavior. Surfaces the "must provide an alternative
+// dismiss affordance" responsibility at dev time (no type-level
+// enforcement). Stripped from Release by the __DEV__ dead-code path at
+// the call site.
+let __warnedPlayerScrollBehaviorNative = false;
+function warnOncePlayerScrollBehaviorNative() {
+  if (__warnedPlayerScrollBehaviorNative) return;
+  __warnedPlayerScrollBehaviorNative = true;
+  console.warn(
+    "[branding.playerMushafScrollBehavior] === 'native': the player " +
+      "sheet's swipe-down-to-dismiss gesture is disabled at the Mushaf " +
+      'list level. Ensure an alternative dismiss affordance (e.g. an ' +
+      'explicit close button) is present in the player header. See ' +
+      'docs/rfcs/014-player-scroll-strategy-seam.md.',
+  );
+}
+
 // Module-scope header — stable component identity prevents FlashList unmount/remount
 interface QuranListHeaderProps {
   surahNumber: number;
@@ -133,7 +151,24 @@ export const QuranView: React.FC<QuranViewProps> = ({
     maxReadingColumn,
   );
   const listRef = useRef<FlashListRef<EnhancedVerse>>(null);
-  const renderScrollComponent = useBottomSheetScrollableCreator();
+  // RFC-014 — fork-supplied scroll-handler strategy. `'gorhom'` (default)
+  // wires the bottom-sheet scrollable so the player sheet inherits the
+  // FlashList scroll gesture as its swipe-down-to-dismiss. `'native'`
+  // skips the wrapper — imperative scrollToIndex/scrollToOffset calls
+  // (RFC-013's anchor, the active-ayah auto-scroll, the rAF-deferred
+  // surah-change seek, and the scroll-to-top fallback) reach the native
+  // scroll node immediately, but the sheet's swipe-to-dismiss gesture is
+  // lost at the Mushaf list level — forks opting in must provide an
+  // alternative dismiss affordance. The hook is called unconditionally to
+  // satisfy rules-of-hooks; the factory is discarded when behavior is
+  // 'native'. See docs/rfcs/014-player-scroll-strategy-seam.md.
+  const scrollBehavior = branding.playerMushafScrollBehavior ?? 'gorhom';
+  const gorhomScrollComponent = useBottomSheetScrollableCreator();
+  const renderScrollComponent =
+    scrollBehavior === 'gorhom' ? gorhomScrollComponent : undefined;
+  if (__DEV__ && scrollBehavior === 'native') {
+    warnOncePlayerScrollBehaviorNative();
+  }
   const trackRewayah = useCurrentTrackRewayah();
   const surah = surahData.find(s => s.id === currentSurah);
 
@@ -417,7 +452,9 @@ export const QuranView: React.FC<QuranViewProps> = ({
           paddingTop: effectivePaddingTop,
           paddingBottom: effectivePaddingBottom,
         }}
-        renderScrollComponent={renderScrollComponent}
+        // RFC-014: conditional spread keeps prop-shape parity with
+        // upstream's no-fork path when scrollBehavior === 'native'.
+        {...(renderScrollComponent ? {renderScrollComponent} : {})}
         showsVerticalScrollIndicator={false}
         bounces={true}
         overScrollMode="never"
