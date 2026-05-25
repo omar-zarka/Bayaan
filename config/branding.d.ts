@@ -219,6 +219,24 @@ export interface Branding {
    * See docs/rfcs/014-player-scroll-strategy-seam.md.
    */
   playerMushafScrollBehavior?: 'gorhom' | 'native';
+  /**
+   * RFC-015 — base URL for ayah-timestamp JSONs served from a fork's
+   * R2 bucket (or any CDN with the same
+   * `{base}/{rewayatId}/{NNN}.json` layout `TimestampFetchService`
+   * constructs).
+   *
+   * Field absent → consumer applies `?? 'https://cdn.thebayaan.com/timestamps'`
+   * at the call site → byte-equivalent to today's behavior.
+   *
+   * Forks set this to their own mirror's base when the `has_timestamps`
+   * flag is true for any reciter in their catalog and the timestamp
+   * JSONs live somewhere other than the Bayaan production CDN. No
+   * trailing slash; consumer composes
+   * `${timestampCdnBase}/${rewayatId}/${paddedSurah}.json`.
+   *
+   * See docs/rfcs/015-timestamp-cdn-seam.md.
+   */
+  timestampCdnBase?: string;
 }
 
 declare const branding: Branding;

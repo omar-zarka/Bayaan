@@ -1,8 +1,15 @@
+import branding from '@/config/branding';
 import {RECITERS, type Rewayat} from '@/data/reciterData';
 import {timestampDatabaseService} from './TimestampDatabaseService';
 import type {AyahTimestamp} from '@/types/timestamps';
 
-const R2_BASE = 'https://cdn.thebayaan.com/timestamps';
+// RFC-015 — fork-supplied timestamp CDN base. Absent from `branding.js`
+// → fallback to Bayaan's production CDN (byte-equivalent to the
+// pre-RFC-015 hardcoded value). Forks set `branding.timestampCdnBase`
+// to their own mirror's base. No trailing slash; the URL is composed
+// below as `${R2_BASE}/${rewayatId}/${paddedSurah}.json`.
+const R2_BASE =
+  branding.timestampCdnBase ?? 'https://cdn.thebayaan.com/timestamps';
 
 class TimestampFetchService {
   /**
