@@ -195,6 +195,13 @@ export default function TranslationsContent() {
   const handleDownload = useCallback(
     async (editionId: string) => {
       lightHaptics();
+      if (downloadingId || tafseerDownloadingId) {
+        Alert.alert(
+          'Download in progress',
+          'Please wait until the current download completes before starting another.',
+        );
+        return;
+      }
       try {
         await downloadTranslation(editionId);
       } catch {
@@ -204,7 +211,7 @@ export default function TranslationsContent() {
         );
       }
     },
-    [downloadTranslation],
+    [downloadTranslation, downloadingId, tafseerDownloadingId],
   );
 
   const handleDelete = useCallback(
@@ -242,6 +249,13 @@ export default function TranslationsContent() {
   const handleDownloadTafseer = useCallback(
     async (editionId: string) => {
       lightHaptics();
+      if (downloadingId || tafseerDownloadingId) {
+        Alert.alert(
+          'Download in progress',
+          'Please wait until the current download completes before starting another.',
+        );
+        return;
+      }
       try {
         await downloadTafseer(editionId);
       } catch {
@@ -251,7 +265,7 @@ export default function TranslationsContent() {
         );
       }
     },
-    [downloadTafseer],
+    [downloadTafseer, downloadingId, tafseerDownloadingId],
   );
 
   const handleDeleteTafseer = useCallback(
