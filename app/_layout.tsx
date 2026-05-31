@@ -19,7 +19,7 @@ import {
   type AppStateStatus,
 } from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
-import {ThemeProvider} from '@react-navigation/native';
+import {ThemeProvider} from 'expo-router';
 import {PlayerSheet} from '@/components/player/v2/PlayerSheet';
 import {
   WhatsNewModal,
