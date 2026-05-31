@@ -456,7 +456,7 @@ def main() -> None:
         classifier_mode = "abu_amr"
 
     patched_words = 0
-    kept_base_markers = 0  # Hafs marker slots with no matching target marker (verse-count diff)
+    blanked_markers = 0  # Hafs marker slots with no matching target marker (merged verses)
     unmatched_base = 0  # Hafs slots the aligner couldn't map
     dropped_target = 0  # Bazzi content words that fell outside alignment
 
@@ -539,9 +539,10 @@ def main() -> None:
                 # Marker slot. The "target content position" we've reached
                 # is last_target_idx + 1. If the target has a marker at that
                 # position, use it (preserving the target rewayah's verse
-                # number). If not (target merged these verses / verse-count
-                # traditions differ), keep the Hafs base marker so a verse
-                # number always displays — never blank it.
+                # number). If not, blank it — this Hafs verse boundary does
+                # not exist in the target rewayah (merged verses / different
+                # verse-count tradition). A blank word renders as nothing,
+                # which is correct: no verse number should appear here.
                 target_pos = last_target_idx + 1
                 target_marker_text = target_markers_by_pos.get(target_pos)
                 if target_marker_text is not None:
@@ -554,9 +555,11 @@ def main() -> None:
                     # Consume this marker so it's not used again
                     del target_markers_by_pos[target_pos]
                 else:
-                    # No target marker here (verse-count difference between
-                    # traditions). Keep the Hafs base text; do NOT blank it.
-                    kept_base_markers += 1
+                    cur.execute(
+                        "UPDATE words SET text = ? WHERE id = ?",
+                        ("", row_id),
+                    )
+                    blanked_markers += 1
 
     conn.commit()
     conn.close()
@@ -582,7 +585,7 @@ def main() -> None:
     for cat in sorted(category_counts.keys()):
         print(f"  -> {cat}: {category_counts[cat]}")
     print(f"  -> total flagged verses: {len(compact_diff_map)}")
-    print(f"Kept base markers (verse-count diff, no target marker): {kept_base_markers}")
+    print(f"Blanked markers (merged verses / no target boundary): {blanked_markers}")
     print(f"Unmatched base slots (kept Hafs text): {unmatched_base}")
     print(f"Dropped target words (no base slot): {dropped_target}")
     print()
