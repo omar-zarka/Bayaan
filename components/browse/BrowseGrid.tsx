@@ -66,6 +66,7 @@ const BrowseGrid = React.memo(
     reciters,
     onReciterPress,
     theme,
+    keyboardShouldPersistTaps = 'handled',
     onScrollBeginDrag,
     getRewayatIdForReciter,
     bottomInset = 0,
@@ -168,7 +169,7 @@ const BrowseGrid = React.memo(
           drawDistance={2000}
           showsVerticalScrollIndicator={false}
           ListFooterComponent={renderFooter}
-          keyboardShouldPersistTaps="handled"
+          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
           waitForInitialLayout
           onEndReachedThreshold={0.5}
           maintainVisibleContentPosition
