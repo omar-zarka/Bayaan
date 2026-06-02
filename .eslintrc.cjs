@@ -22,15 +22,8 @@ module.exports = {
       },
     ],
     'react/prop-types': 'off',
-    // Guard against duplicate object-literal keys. `eslint:recommended` already
-    // enables this, but declaring it here makes the intent explicit and survives
-    // any future reordering of `extends`. Cheap insurance against the
-    // last-key-wins footgun in large config objects (e.g. config/branding.ts).
+
     'no-dupe-keys': 'error',
-    // Catch a silent-bug class where a component declares a prop in its
-    // TypeScript interface but never destructures / uses it, so callers
-    // pass values that get silently dropped. Set to 'warn' to avoid
-    // breaking pre-existing findings; flip to 'error' once triaged.
     'react/no-unused-prop-types': 'warn',
     'react/react-in-jsx-scope': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
