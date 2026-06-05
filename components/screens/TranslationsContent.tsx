@@ -195,7 +195,11 @@ export default function TranslationsContent() {
   const handleDownload = useCallback(
     async (editionId: string) => {
       lightHaptics();
-      if (downloadingId || tafseerDownloadingId) {
+      // Guard on this download type's own in-flight state. translations and
+      // tafaseer write separate DBs (no shared write path) so they can run
+      // concurrently; the store already no-ops a double-tap — this Alert just
+      // makes that refusal visible to the user.
+      if (downloadingId) {
         Alert.alert(
           'Download in progress',
           'Please wait until the current download completes before starting another.',
@@ -211,7 +215,7 @@ export default function TranslationsContent() {
         );
       }
     },
-    [downloadTranslation, downloadingId, tafseerDownloadingId],
+    [downloadTranslation, downloadingId],
   );
 
   const handleDelete = useCallback(
@@ -249,7 +253,9 @@ export default function TranslationsContent() {
   const handleDownloadTafseer = useCallback(
     async (editionId: string) => {
       lightHaptics();
-      if (downloadingId || tafseerDownloadingId) {
+      // Own-state guard (see handleDownload) — tafaseer.db is separate from
+      // translations.db, so a running translation download must not block this.
+      if (tafseerDownloadingId) {
         Alert.alert(
           'Download in progress',
           'Please wait until the current download completes before starting another.',
@@ -265,7 +271,7 @@ export default function TranslationsContent() {
         );
       }
     },
-    [downloadTafseer, downloadingId, tafseerDownloadingId],
+    [downloadTafseer, tafseerDownloadingId],
   );
 
   const handleDeleteTafseer = useCallback(
