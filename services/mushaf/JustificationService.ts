@@ -929,8 +929,13 @@ export class JustService {
         fontFamily,
       );
       if (mmkvHit) {
-        // Populate in-memory cache for fastest subsequent access
-        pageCache.set(pageNumber, mmkvHit);
+        // Populate in-memory cache for fastest subsequent access (bounded)
+        JustService.cachePageLayout(
+          fontSizeLineWidthRatio,
+          pageNumber,
+          mmkvHit,
+          fontFamily,
+        );
         return mmkvHit;
       }
     } catch {
@@ -947,7 +952,24 @@ export class JustService {
     fontFamily: string = 'DigitalKhatt',
   ): void {
     const pageCache = getPageLayoutCache(fontSizeLineWidthRatio, fontFamily);
+    // Bound the per-partition page cache to the most recently used pages.
+    // Map preserves insertion order, so re-inserting on hit keeps recent
+    // pages live and the first key is always the oldest to evict.
+    pageCache.delete(pageNumber);
+    if (pageCache.size >= MAX_CACHED_PAGES_PER_PARTITION) {
+      const oldest = pageCache.keys().next().value;
+      if (oldest !== undefined) pageCache.delete(oldest);
+    }
     pageCache.set(pageNumber, layout);
+  }
+
+  /**
+   * Drop all in-memory page layouts. Layouts are keyed by rewayah/font/ratio,
+   * so stale partitions accumulate as the user switches rewayah or font size;
+   * call this on those transitions (QuranTextService.clearCaches does).
+   */
+  static clearPageLayoutCache(): void {
+    pageLayoutsCache.clear();
   }
 }
 
@@ -988,6 +1010,12 @@ function getPageLayoutCache(
   pageLayoutsCache.set(cacheKey, created);
   return created;
 }
+
+// Per-partition LRU bound. A reader rarely keeps more than a handful of
+// recently visited pages hot; the MMKV layer backs anything evicted, so a
+// modest cap keeps the in-memory cache useful without growing toward 604
+// pages per rewayah/font/ratio partition.
+const MAX_CACHED_PAGES_PER_PARTITION = 50;
 
 const pageLayoutsCache: Map<
   string,
