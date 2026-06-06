@@ -205,6 +205,17 @@ const SkiaLine: React.FC<SkiaLineProps> = ({
   const paragraph = paragraphs?.paragraph;
   const strokeParagraph = paragraphs?.strokeParagraph;
 
+  // SkParagraph holds native memory that JS GC does not reclaim. Dispose the
+  // previous paragraphs when the memo recomputes (and on unmount). The cleanup
+  // runs with the prior `paragraphs` value, so the set being rendered this
+  // frame is never disposed early.
+  useEffect(() => {
+    return () => {
+      paragraphs?.paragraph?.dispose();
+      paragraphs?.strokeParagraph?.dispose();
+    };
+  }, [paragraphs]);
+
   const lineInfo = quranTextService.getLineInfo(pageNumber, lineIndex);
   const maxWidth = pageWidth * 2;
   const currLineWidth = paragraph?.getLongestLine() ?? 0;
