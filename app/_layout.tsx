@@ -48,6 +48,7 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {showToast} from '@/utils/toastUtils';
 import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
 import * as ScreenOrientation from 'expo-screen-orientation';
 
@@ -74,10 +75,34 @@ SystemUI.setBackgroundColorAsync(
 const analyticsEnabled = process.env.EXPO_PUBLIC_ANALYTICS_ENABLED !== 'false';
 
 if (analyticsEnabled) {
+  // Explicit release + dist tagging. Android events were landing with no
+  // release (`release: None`), so crashes/ANRs couldn't be tied to a build.
+  // Derive both from the build-time version injected into
+  // expoConfig.extra.version by scripts/generate-version.js — reliable on both
+  // platforms, unlike Sentry's native auto-detection. `undefined` is a safe
+  // no-op (Sentry falls back to auto-detect), so a missing manifest can't
+  // regress the current behavior.
+  const versionInfo = Constants.expoConfig?.extra?.version as
+    | {semanticVersion?: string; buildNumber?: string | number}
+    | undefined;
+  const appId =
+    Constants.expoConfig?.ios?.bundleIdentifier ??
+    Constants.expoConfig?.android?.package;
+  const sentryRelease =
+    versionInfo?.semanticVersion != null && versionInfo?.buildNumber != null
+      ? `${appId}@${versionInfo.semanticVersion}+${versionInfo.buildNumber}`
+      : undefined;
+  const sentryDist =
+    versionInfo?.buildNumber != null
+      ? String(versionInfo.buildNumber)
+      : undefined;
+
   Sentry.init({
     dsn: process.env.EXPO_PUBLIC_SENTRY_DSN ?? '',
     tracesSampleRate: 0.2,
     enableAutoSessionTracking: true,
+    release: sentryRelease,
+    dist: sentryDist,
   });
 }
 
@@ -206,21 +231,42 @@ function RootLayout() {
     }
 
     async function prepare() {
+      // Cold-start observability. Breadcrumb each boot phase so any later
+      // crash/ANR carries the boot trail, and fire a one-shot 'slow-cold-start'
+      // Sentry message if we blow past the budget — turning the otherwise-
+      // invisible splash-screen hang into a queryable signal that names the
+      // phase it stalled in.
+      let lastBootStep = 'start';
+      const markBoot = (step: string): void => {
+        lastBootStep = step;
+        Sentry.addBreadcrumb({category: 'boot', message: step, level: 'info'});
+      };
+      const slowBootWatchdog = setTimeout(() => {
+        Sentry.captureMessage('slow-cold-start', {
+          level: 'warning',
+          tags: {scope: 'cold-start', boot_step: lastBootStep},
+        });
+      }, 8000);
       try {
+        markBoot('start');
         if (__DEV__)
           console.log('[App] Starting initialization with expo-audio...');
 
         // Initialize expo-audio service
         await expoAudioService.initialize();
+        markBoot('expo-audio-ready');
         if (__DEV__) console.log('[App] expo-audio service initialized');
 
         // Fetch reciter data from backend API (or fallback if killswitch active)
+        markBoot('catalog-fetch-start');
         await getAllReciters();
+        markBoot('catalog-ready');
         if (__DEV__) console.log('[App] Reciter data loaded');
 
         // Initialize all SQLite services, adhkar, playlists, mushaf, fonts, stores, etc.
         // This blocks splash screen so everything is ready when the user sees the app
         await appInitializer.initialize();
+        markBoot('app-initializer-ready');
         if (__DEV__) console.log('[App] AppInitializer complete');
 
         // PRE-WARM: Initialize stores BEFORE first play to prevent cold start lag
@@ -237,6 +283,7 @@ function RootLayout() {
         // Restore last session so floating player + lock screen show last track
         try {
           await restoreSession();
+          markBoot('session-restored');
           if (__DEV__) console.log('[App] Session restored');
         } catch (error) {
           console.debug('[App] Failed to restore session:', error);
@@ -246,6 +293,7 @@ function RootLayout() {
         setIsPlayerReady(true);
         setAppIsReady(true);
         initializationRef.current = true;
+        markBoot('ready');
         if (__DEV__) console.log('[App] Initialization complete');
       } catch (error) {
         console.error('[App] Preparation error:', error);
@@ -263,6 +311,8 @@ function RootLayout() {
         setIsPlayerReady(false);
         setAppIsReady(false);
         initializationRef.current = false;
+      } finally {
+        clearTimeout(slowBootWatchdog);
       }
     }
 
