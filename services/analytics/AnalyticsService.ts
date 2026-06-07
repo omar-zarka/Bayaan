@@ -31,6 +31,7 @@ import {
 } from './events';
 import {localAggregationStore} from './LocalAggregationStore';
 import {MeaningfulListenTracker} from './MeaningfulListenTracker';
+import {useAnalyticsConsentStore} from '@/store/analyticsConsentStore';
 
 function isAnalyticsEnabled(): boolean {
   return process.env.EXPO_PUBLIC_ANALYTICS_ENABLED !== 'false';
@@ -64,12 +65,27 @@ class AnalyticsServiceImpl {
     if (!this.enabled) return;
     this.posthog = instance;
     instance.register({platform: 'mobile'});
+    // Honor the user's runtime opt-out choice on the fresh instance.
+    this.applyConsent(useAnalyticsConsentStore.getState().analyticsEnabled);
+  }
+
+  /**
+   * Apply the user's analytics consent choice to the live PostHog instance.
+   * `optIn()`/`optOut()` are persisted by the SDK and respected across launches.
+   * Call this whenever the Settings → Privacy toggle changes.
+   */
+  applyConsent(enabled: boolean): void {
+    if (!this.posthog) return;
+    void (enabled ? this.posthog.optIn() : this.posthog.optOut());
   }
 
   private capture(
     event: string,
     properties: Record<string, string | number | boolean | null>,
   ): void {
+    // Respect the user's runtime opt-out (Settings → Privacy) in addition to
+    // PostHog's own opt-out state — belt-and-suspenders.
+    if (!useAnalyticsConsentStore.getState().analyticsEnabled) return;
     this.posthog?.capture(event, properties);
   }
 
