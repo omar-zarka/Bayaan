@@ -29,10 +29,18 @@ type FakePostHog = {
   capture: jest.Mock;
   identify: jest.Mock;
   register: jest.Mock;
+  optIn: jest.Mock;
+  optOut: jest.Mock;
 };
 
 function makeFakePostHog(): FakePostHog {
-  return {capture: jest.fn(), identify: jest.fn(), register: jest.fn()};
+  return {
+    capture: jest.fn(),
+    identify: jest.fn(),
+    register: jest.fn(),
+    optIn: jest.fn(),
+    optOut: jest.fn(),
+  };
 }
 
 async function loadService(envEnabled: string | undefined): Promise<{
