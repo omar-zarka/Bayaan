@@ -14,7 +14,7 @@ Codify the wire-shape and client-side polling contract that RFC-010 (`/v1/catalo
 
 Also codify the **platform-parity rule** that RFC-016 introduced as a first-class contract on envelope endpoints: no `?platform=` query parameter, no per-platform variance in the response, and a defined escape hatch for the rare case where a row or feature genuinely cannot exist on a given surface.
 
-Doc only. Zero code change. The two endpoints that already exist (RFC-010, RFC-016) are conformant by construction.
+Doc only. Zero code change. The envelope, auth, and status-code rules below are written to match what the shipped RFC-016 `/v1/home-config` endpoint and `hooks/useRemoteHomeConfig.ts` already do — the deployed code conforms to this contract as documented. The one forward-looking item (a CDN `Cache-Control` header) is called out explicitly as a recommendation, not a claim about the current backend.
 
 ## Motivation
 
@@ -35,23 +35,26 @@ The corrosion this RFC prevents is real. Without a named contract:
 
 ### The envelope
 
-Every server-driven config endpoint returns a JSON object with these top-level fields:
+Every server-driven config endpoint returns a JSON object with a single `data` wrapper holding these fields:
 
-| Field        | Type                  | Notes                                                                                                 |
-| ------------ | --------------------- | ----------------------------------------------------------------------------------------------------- |
-| `version`    | `integer`             | Monotonically increasing. Bumped on every admin write that changes the payload.                       |
-| `updated_at` | `string` (ISO 8601)   | Server's last-write timestamp, UTC, second-precision (e.g. `"2026-05-26T10:00:00Z"`).                 |
-| _payload_    | object or array       | Feature-specific. Key name is the feature's `snake_case` slug (e.g. `rows`, `filters`, `slots`).      |
+| Field           | Type                  | Notes                                                                                                 |
+| --------------- | --------------------- | ----------------------------------------------------------------------------------------------------- |
+| `data`          | object                | Wrapper. All envelope fields live under this single top-level key.                                    |
+| `data.version`    | `integer`             | Monotonically increasing. Bumped on every admin write that changes the payload.                       |
+| `data.updated_at` | `string` (ISO 8601)   | Server's last-write timestamp, UTC, second-precision (e.g. `"2026-05-26T10:00:00Z"`).                 |
+| `data.{payload}`  | object or array       | Feature-specific. Key name is the feature's `snake_case` slug (e.g. `rows`, `filters`, `slots`).      |
 
-Example (RFC-016 conformant):
+Example (RFC-016 conformant — this is the exact shape `hooks/useRemoteHomeConfig.ts` parses):
 
 ```json
 {
-  "version": 7,
-  "updated_at": "2026-05-26T10:00:00Z",
-  "rows": [
-    {"id": "continue-listening", "enabled": true}
-  ]
+  "data": {
+    "version": 7,
+    "updated_at": "2026-05-26T10:00:00Z",
+    "rows": [
+      {"id": "continue-listening", "enabled": true}
+    ]
+  }
 }
 ```
 
@@ -59,28 +62,30 @@ Example (hypothetical search-filter RFC, RFC-012's `/v1/search-filters`):
 
 ```json
 {
-  "version": 3,
-  "updated_at": "2026-05-26T10:00:00Z",
-  "filters": [
-    {"id": "has-photo", "label": "Has photo", "default": false}
-  ]
+  "data": {
+    "version": 3,
+    "updated_at": "2026-05-26T10:00:00Z",
+    "filters": [
+      {"id": "has-photo", "label": "Has photo", "default": false}
+    ]
+  }
 }
 ```
 
-The payload key is **always** at the top level (not nested under `data` or `payload`). The reason is grep-ability and shell ergonomics: `curl … | jq .rows` and `curl … | jq .filters` are the natural read shapes for ops debugging, and a uniform `.data` wrapper bought no real type-safety while adding one level of indentation everywhere.
+The envelope is **`data`-wrapped**: `version`, `updated_at`, and the feature payload key all live under a single top-level `data` object. The client reads `body.data` and the payload key off that (e.g. `body.data.rows`); the natural ops read shape is `curl … | jq .data.rows`. This is the shape the shipped RFC-016 endpoint serves and `useRemoteHomeConfig.ts` consumes (`const next = body.data`), so the "conformant by construction" claim holds for the deployed code. See [Alternatives considered](#alternatives-considered) for why the wrapper is kept rather than flattened.
 
 ### Endpoint conventions
 
 | Concern              | Rule                                                                                                                    |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | Path                 | `GET /v{N}/{feature-slug}` on the existing Bayaan backend.                                                              |
-| Auth                 | Public (no auth) for read. Per-user fields are NOT permitted on envelope endpoints — split into a separate auth'd path. |
-| Cache-Control        | `public, max-age=60, s-maxage=60`. The CDN absorbs >99% of traffic; the 60s ceiling bounds propagation lag.             |
-| Method               | `GET` only. Writes go through `/admin/{feature-slug}` and require the admin JWT (existing pattern).                     |
+| Auth                 | Bearer API key required via the existing `apiAuth` middleware. Per-user fields are NOT permitted on envelope endpoints — split those into a separate auth'd path. The client sends `Authorization: Bearer ${EXPO_PUBLIC_BAYAAN_API_KEY}`. |
+| Cache-Control        | Not set today. The shipped `/v1/home-config` route emits no `Cache-Control` header; the client's own version-poll + 5-min foreground debounce bounds traffic. **Recommendation (not yet shipped):** add `public, max-age=60, s-maxage=60` so a CDN can absorb read traffic and bound propagation lag; tracked as a follow-up, not a current conformance claim. |
+| Method               | `GET` only. Writes go through the admin surface and require the admin JWT (existing pattern).                          |
 | Content-Type         | `application/json; charset=utf-8`.                                                                                      |
-| HTTP status on empty | `200` with the payload key present and empty (`"rows": []`) NOT `404`. Clients treat empty as "valid, render nothing."  |
+| HTTP status on empty | `404` (`NotFoundError`) when no config row exists — the shipped `homeConfigService` throws when the row is absent. Clients treat any non-`2xx` (including this `404`) as fail-open: keep the cached or bundled fallback. To deliberately publish an empty surface, the admin writes a row whose payload is an empty array (`"rows": []`), which returns `200`. |
 
-The empty-vs-404 distinction matters: a transient `404` is indistinguishable from a misrouted request, which trips the client's fail-open path and silently keeps the stale cache. An explicit `"rows": []` is the unambiguous "the admin deliberately cleared this" signal.
+The 404-on-missing-row behaviour is what the shipped backend does (`homeConfigService` throws `NotFoundError` → HTTP 404), and the client's fail-open path already treats it correctly: a `404` is a non-`2xx`, so the client keeps its cached/bundled value and renders nothing-new rather than clobbering state. To signal "the admin deliberately cleared this surface" distinctly from "no row was ever provisioned," the admin writes an explicit empty payload (`"rows": []`, returned as `200`) rather than deleting the row. A future envelope endpoint MAY instead choose to return `200` with an empty payload on a missing row; the contract only requires that the client fail-open on `404`, which it does.
 
 ### Client-side polling contract
 
@@ -89,11 +94,12 @@ Every envelope-consuming client (mobile / web / TV) MUST implement the following
 1. **Cold-start read order:** local cache → render → fetch → if `server.version > cache.version`, update cache + re-render.
 2. **Foreground refresh:** debounced. On `AppState 'active'` transition, fetch IFF more than 5 minutes since the last successful fetch.
 3. **Timeout:** 1500 ms on the network request. AbortController + timer.
-4. **Fail-open:** any non-`2xx` response, network error, or timeout → silently keep the cached (or bundled) value. No retry storm.
-5. **Version comparison:** `server.version > cache.version`. NOT `!==` (a backend rollback should not clobber a newer client cache for the rest of the session; the cache-control TTL bounds the staleness either way).
-6. **Bundled fallback:** every envelope MUST have a bundled-in-binary fallback (the constant that the seam originally replaced). Cache missing AND network down on first launch → use the bundled value. This is what makes RFC-016's offline-first claim load-bearing.
+4. **Shape validation (do not skip):** after `res.json()`, unwrap `body.data` and validate it before trusting any field. Reject (treat as fail-open) if `data` is absent, `data.version` is not a `number`, or the feature payload is not the expected type (e.g. `Array.isArray(data.rows)` for the home-config seam). Never feed an unvalidated `res.json()` into the cache or the render path. This mirrors what `useRemoteHomeConfig.ts` does (`const next = body.data; if (!next || typeof next.version !== 'number' || !Array.isArray(next.rows)) return;`) and the validation requirement the RFC-015 review (PR #286) established for fork-facing payloads — the server is trusted-but-versioned, not infallible, and a malformed write must not poison the cache.
+5. **Fail-open:** any non-`2xx` response, network error, timeout, or shape-validation failure (step 4) → silently keep the cached (or bundled) value. No retry storm.
+6. **Version comparison:** `server.version > cache.version`. NOT `!==` (a backend rollback should not clobber a newer client cache for the rest of the session; the cache-control TTL bounds the staleness either way).
+7. **Bundled fallback:** every envelope MUST have a bundled-in-binary fallback (the constant that the seam originally replaced). Cache missing AND network down on first launch → use the bundled value. This is what makes RFC-016's offline-first claim load-bearing.
 
-Reference implementations live at `services/catalogVersionPoll.ts` (RFC-010) and RFC-016's proposed `hooks/useRemoteHomeConfig.ts`. New consumers should copy the structure, not refactor it into a generic hook factory — the per-seam types and cache key are clearer inline than abstracted.
+Reference implementations live at `services/catalogVersionPoll.ts` (RFC-010) and the shipped `hooks/useRemoteHomeConfig.ts` (RFC-016) — both unwrap `body.data` and run the step-4 shape check before touching the cache. New consumers should copy the structure, not refactor it into a generic hook factory — the per-seam types and cache key are clearer inline than abstracted.
 
 ### Platform-parity rule
 
@@ -132,13 +138,13 @@ I am NOT proposing we ship any of these as part of this RFC. They are listed onl
 
 What we have today. Rejected because RFC-010 and RFC-016 already had to litigate the same questions (cache TTL, fail-open, version-bump semantics). Standardizing across two existing precedents is cheap; standardizing across six is expensive and the divergence has set by then.
 
-### B. A `data`-wrapped envelope (`{version, updated_at, data: {...}}`)
+### B. A flat envelope (`{version, updated_at, ...payload}` at the top level)
 
-Used by REST APIs that need to add metadata over time without colliding with payload keys (think `pagination`, `errors`, `links`). Rejected because we control both ends and the payload key is feature-specific (`rows`, `filters`, `slots`) — there is no risk of collision. The flat shape is easier to grep and easier to type.
+Tempting for grep ergonomics (`jq .rows` instead of `jq .data.rows`) and one less level of indentation. Rejected because it diverges from the shipped RFC-016 endpoint, which serves the `data`-wrapped shape and is parsed by `useRemoteHomeConfig.ts` via `body.data`. Re-flattening now would require a backend change plus a coordinated client migration for a purely cosmetic win. The `data` wrapper also leaves room to add cross-cutting metadata later (`pagination`, `errors`, `links`) without colliding with a feature payload key, and the extra `jq` segment is trivial. The wrapper is the canonical envelope (see [The envelope](#the-envelope)); the flat form is the rejected alternative.
 
 ### C. Per-feature `etag` instead of `version`
 
-HTTP `ETag` + `If-None-Match` is well-trodden and would let us drop the `version` integer. Rejected for two reasons: (1) the application-level `version` integer lets clients trivially express the "newer wins" rule without having to remember which etag they last saw, and (2) the CDN's `Cache-Control: max-age=60` already absorbs the bandwidth that conditional GETs would save. Keep both axes orthogonal: HTTP-level caching handles freshness, application-level `version` handles change detection.
+HTTP `ETag` + `If-None-Match` is well-trodden and would let us drop the `version` integer. Rejected for two reasons: (1) the application-level `version` integer lets clients trivially express the "newer wins" rule without having to remember which etag they last saw, and (2) the client's own 5-min foreground debounce already bounds read traffic today, and the recommended `Cache-Control: max-age=60` (see the conventions table) would absorb the rest at the CDN if/when it lands. Keep both axes orthogonal: HTTP-level caching handles freshness, application-level `version` handles change detection.
 
 ### D. Per-platform endpoint (`?platform=ios` or `/v1/home-config/ios`)
 
@@ -158,14 +164,14 @@ Rejected per RFC-016 alternative C: home row order and the candidate future seam
 
 **Neutral:**
 
-- RFC-010 and RFC-016 endpoints are conformant as written. No code change to either.
+- The shipped RFC-016 `/v1/home-config` endpoint and `useRemoteHomeConfig.ts` hook conform to the envelope, auth, and 404-on-missing-row rules as documented above — this RFC describes the deployed reality, not a target state. No code change to either is required to satisfy the contract. The only non-shipped item is the `Cache-Control` recommendation, which is explicitly flagged as a follow-up rather than a conformance claim.
 - The escape hatch (new id) for genuine platform-only features is the same pattern RFC-016 already implies; this RFC just names it.
 
 **Negative / risks:**
 
 - A future genuinely-cross-platform-divergent case would force an RFC amendment. Probability estimate is low given the candidate-seam list above, but real.
 - The `version` integer is per-endpoint, not global. A user juggling multiple envelope-driven features sees independent version counters. This is fine for our use cases but worth flagging if we ever want a "config bundle" surface.
-- The `s-maxage=60` ceiling means a misconfigured admin write is visible to all users within 60s. Mitigated by admin-side schema validation (RFC-016 already specifies this for `home-config`) and a documented rollback path (admin re-writes with the prior payload + a bumped `version`).
+- The `Cache-Control` recommendation (`max-age=60, s-maxage=60`) is not yet shipped — `/v1/home-config` sets no cache header today, so the client's version-poll cadence is the only thing bounding read traffic. If/when the recommendation lands, a misconfigured admin write would be visible to all users within the chosen TTL. Mitigated by admin-side schema validation (RFC-016 already specifies this for `home-config`) and a documented rollback path (admin re-writes with the prior payload + a bumped `version`).
 
 ## How we'll know it worked
 
@@ -184,8 +190,8 @@ Rejected per RFC-016 alternative C: home row order and the candidate future seam
 cc @osmansaeday. This RFC directly responds to the two specific questions in RFC-016's "Maintainer ask" section. Both answers are codified above:
 
 1. **No `?platform=` from day 1** — endorsed, with the escape-hatch pattern named explicitly.
-2. **Wire shape as future standard** — yes, formalized as the envelope, with four candidate future consumers listed.
+2. **Wire shape as future standard** — yes, formalized as the `data`-wrapped envelope (`{ data: { version, updated_at, ...payload } }`), matching exactly what the shipped `/v1/home-config` serves and `useRemoteHomeConfig.ts` parses, with four candidate future consumers listed.
 
-If you accept this RFC, RFC-016 can ship as-is (it is already conformant) and future RFCs of the same family cite this one. If you want adjustments to the envelope before locking it in, this is the cheapest moment to make them — zero code change either way.
+If you accept this RFC, RFC-016 ships as-is — the envelope, Bearer auth, and 404-on-missing-row rules above are written to describe the deployed `/v1/home-config` + `useRemoteHomeConfig.ts`, so the conformance claim is now literal rather than aspirational. The only forward-looking item is the optional `Cache-Control` header, flagged as a recommendation, not a current claim. If you want adjustments to the envelope before locking it in, this is the cheapest moment to make them — zero code change either way.
 
 Happy to fold this into RFC-016 directly if you would rather have one document instead of two. The argument for keeping it separate is that the envelope contract outlives any single seam.
