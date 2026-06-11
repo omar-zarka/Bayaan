@@ -10,8 +10,8 @@
 
 Add two optional, paired `Branding` slots so a fork can surface community-authored reflections on an ayah without forking the verse-render path:
 
-1. `communityReflectionsProvider?: (chapterId, verseNumber, locale?) => Promise<CommunityReflection[]>` — a data fetcher returning verified, popular reflections for one ayah.
-2. `ayahCommunityReflectionsComponent?: ComponentType<{chapterId, verseNumber}>` — an optional render slot (RFC-008 pattern) mounted under the Arabic line in the player Mushaf list, gated behind a new `MushafSettingsStore.showCommunityReflections` toggle.
+1. `communityReflectionsProvider?: (surahNumber, ayahNumber, locale?) => Promise<CommunityReflection[]>` — a data fetcher returning verified, popular reflections for one ayah.
+2. `ayahCommunityReflectionsComponent?: ComponentType<{surahNumber, ayahNumber}>` — an optional render slot (RFC-008 pattern) mounted under the Arabic line in the player Mushaf list, gated behind a new `MushafSettingsStore.showCommunityReflections` toggle.
 
 When both are unset (Bayaan's default), nothing renders, no toggle row appears, and there is zero behavior change. This is the fifth entry in the XF-NNN multi-tenancy series (RFC-007 `Branding`/`CatalogProvider`, RFC-008 `listenTabTopComponent`, RFC-009 translation/tafsir providers, RFC-013 `initialPlayerVerseKey`).
 
@@ -47,8 +47,8 @@ export interface CommunityReflection {
 }
 
 export type CommunityReflectionsProvider = (
-  chapterId: number,
-  verseNumber: number,
+  surahNumber: number,
+  ayahNumber: number,
   locale?: string, // user's translation preference; provider may combine `${locale},en`
 ) => Promise<CommunityReflection[]>;
 ```
@@ -80,8 +80,8 @@ export interface Branding {
    * supply data without UI, e.g. to power only the action-sheet popup).
    */
   ayahCommunityReflectionsComponent?: ComponentType<{
-    chapterId: number;
-    verseNumber: number;
+    surahNumber: number;
+    ayahNumber: number;
   }>;
 }
 ```
@@ -116,7 +116,7 @@ Ship `communityReflectionsProvider` but let forks fork `VerseItem.tsx` to render
 
 ### Alt 3 — Generic "ayah annotation slot" array
 
-A general `branding.ayahSlots?: ComponentType<{chapterId, verseNumber}>[]` that forks fill with arbitrary per-ayah widgets.
+A general `branding.ayahSlots?: ComponentType<{surahNumber, ayahNumber}>[]` that forks fill with arbitrary per-ayah widgets.
 
 **Rejected as premature.** Tempting, but there's exactly one concrete consumer today. A generic slot array needs ordering/keying/layout-arbitration semantics that no current need exercises. If a second per-ayah widget surfaces, generalize then. (Same reasoning RFC-009 used to reject the generic `ContentEditionProvider<T>`.)
 
@@ -150,7 +150,7 @@ Bayaan ships a QuranReflect client and a `branding.communityReflectionsSourceId:
 ## Open questions
 
 1. **Toggle home.** `showCommunityReflections` lives on `MushafSettingsStore` alongside translation/transliteration toggles. Reasonable, but reviewers may prefer a dedicated store or a `branding`-driven default for the initial value. Defaulting `false` matches the translation/transliteration opt-in pattern.
-2. **Render-slot props.** v1 passes `{chapterId, verseNumber}` only. A future need (theme context, an `onOpenPopup` callback) would be an additive optional prop. Flagging so the prop shape can be bikeshed now rather than later.
+2. **Render-slot props.** v1 passes `{surahNumber, ayahNumber}` only. A future need (theme context, an `onOpenPopup` callback) would be an additive optional prop. Flagging so the prop shape can be bikeshed now rather than later.
 3. **Naming.** `communityReflectionsProvider` / `ayahCommunityReflectionsComponent` vs. a shorter `reflectionsProvider`. Matched the descriptive style of `listenTabTopComponent`. Open to bikeshedding.
 
 ## Implementation plan
