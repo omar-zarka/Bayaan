@@ -24,12 +24,32 @@ a CDN) has no seam to plug that into the fetch service: the only way to make
 `hasSource` / `hasSurah` / `fetchAndCache` aware of a locally-provided dataset
 is to shadow the whole file.
 
-This RFC adds an optional
-`branding.timestampLocalProvider?: (rewayatId, surahNumber) => AyahTimestamp[] | null`.
-When set, the three consumer methods consult it before going to the network;
-when unset (Bayaan's default), an inline `?? null` coalesce makes every path
-byte-identical to today. The `'local'` `TimestampSource` already exists in the
-upstream schema — this RFC just gives a fork a supported way to reach it.
+This RFC adds an optional **provider pair**:
+
+- `branding.timestampLocalProvider?: (rewayatId, surahNumber) => AyahTimestamp[] | null`
+  — returns the bundled timings for one surah, or `null`.
+- `branding.timestampLocalSurahList?: (rewayatId) => number[] | null` — the
+  **explicit coverage signal**: the list of surahs the bundle covers for a
+  rewayat (`null` / empty → no local coverage). This mirrors the catalog's
+  existing `Rewayat.timestamps_surah_list?: number[]` exactly, so `hasSource` /
+  `hasSurah` can answer coverage questions **without** calling the data
+  provider or guessing from a sentinel surah.
+
+When set, the three consumer methods consult the pair before going to the
+network — `hasSource` / `hasSurah` gate on the coverage list, `fetchAndCache`
+calls the data provider and validates its output; when unset (Bayaan's
+default), an inline `?? null` coalesce makes every path byte-identical to
+today. The `'local'` `TimestampSource` already exists in the upstream schema —
+this RFC just gives a fork a supported way to reach it.
+
+> **Why a coverage list rather than a surah-1 presence probe** (review,
+> Issue 1): a fork that bundles timings for a partial-coverage reciter —
+> one whose `surah_list` lacks surah 1 (28 of ~268 rewayat in the current
+> catalog have no surah 1) — would return `null` from a surah-1 probe, so
+> `hasSource` would report "no local source" and the follow-along UI (gated on
+> `hasTimestampSource`) would be suppressed entirely despite valid bundled
+> data. The coverage list keyed by rewayat (not by a fixed sentinel surah) is
+> the correctness fix; see Open question 1.
 
 ---
 
@@ -52,7 +72,7 @@ A fork that bundles its own timing data today has three options, all bad:
    conditional is the anti-pattern RFC-015 already rejected; every new fork
    balloons it.
 
-A single optional config field — symmetric with RFC-015's read-side seam —
+An optional config-field pair — symmetric with RFC-015's read-side seam —
 absorbs all forks at the three consumer call sites.
 
 ### Why now
@@ -86,21 +106,41 @@ export interface Branding {
    * their own offline-authored timestamps for a reciter rather than serving
    * them from a CDN (see `timestampCdnBase`, RFC-015).
    *
-   * Called by `TimestampFetchService` before any network fetch. Return the
-   * surah's timestamps (written to the cache with source `'local'`), or
-   * `null` to fall through to the existing R2/CDN path.
+   * Called by `TimestampFetchService.fetchAndCache` (the data path) before any
+   * network fetch. Return the surah's timestamps (validated, then written to
+   * the cache with source `'local'`), or `null` to fall through to the
+   * existing R2/CDN path.
    *
    * Field absent → consumer applies `?? null` at each call site →
    * byte-equivalent to today's behavior (network-only resolution).
    *
-   * Must be synchronous and side-effect-free; it runs inside `hasSource`,
-   * `hasSurah`, and `fetchAndCache`. Read bundled data from a module-level
-   * import, not I/O.
+   * Must be synchronous and side-effect-free. Read bundled data from a
+   * module-level import, not I/O.
    */
   timestampLocalProvider?: (
     rewayatId: string,
     surahNumber: number,
   ) => AyahTimestamp[] | null;
+
+  /**
+   * Optional **coverage signal** companion to `timestampLocalProvider`: the
+   * list of surah numbers the bundle covers for a rewayat, or `null` / `[]`
+   * for a rewayat with no local coverage.
+   *
+   * This is what `hasSource` / `hasSurah` consult to gate the follow-along UI —
+   * NOT a presence probe against the data provider. Keying coverage by rewayat
+   * (rather than probing a fixed sentinel surah) is required for **partial-
+   * coverage** reciters whose `surah_list` lacks surah 1; a surah-1 probe would
+   * falsely suppress the feature for them.
+   *
+   * Mirrors the catalog's existing `Rewayat.timestamps_surah_list?: number[]`
+   * one-to-one, so the local path answers coverage the same way the R2 path
+   * already does. A fork sets this alongside `timestampLocalProvider`; the two
+   * must agree (a surah in the list must have data from the provider).
+   *
+   * Must be synchronous and side-effect-free.
+   */
+  timestampLocalSurahList?: (rewayatId: string) => number[] | null;
 }
 ```
 
@@ -112,8 +152,11 @@ distribution.
 
 ### `services/timestamps/TimestampFetchService.ts` (the only code diff)
 
-The provider is consulted in the three resolution methods, each falling through
-to today's logic when the provider is unset or returns `null`. Sketch:
+The pair is consulted in the three resolution methods, each falling through to
+today's logic when the fields are unset. Coverage is decided by
+`timestampLocalSurahList` (the explicit signal) in `hasSource` / `hasSurah`; the
+data provider is called only on the `fetchAndCache` write path, where its
+output is shape-validated before it reaches the cache. Sketch:
 
 ```diff
  import branding from '@/config/branding';
@@ -122,27 +165,23 @@ to today's logic when the provider is unset or returns `null`. Sketch:
  import type {AyahTimestamp} from '@/types/timestamps';
 
  class TimestampFetchService {
++  // Fork-supplied local coverage for a rewayat, or [] when none. Reads the
++  // explicit coverage signal — never probes the data provider, so a partial-
++  // coverage reciter whose bundle omits surah 1 is not falsely suppressed.
++  // `?? null` keeps Bayaan's behavior identical when the field is unset.
++  private localSurahs(rewayatId: string): number[] {
++    return branding.timestampLocalSurahList?.(rewayatId) ?? [];
++  }
++
    hasSource(rewayatId: string): boolean {
-+    // A fork-bundled provider counts as a source. `?? null` keeps Bayaan's
-+    // behavior identical when the field is unset.
-+    if (branding.timestampLocalProvider) {
-+      // Cheap presence check — surah 1 is the conventional probe; a provider
-+      // returns null for rewayat it doesn't cover.
-+      if ((branding.timestampLocalProvider(rewayatId, 1) ?? null) !== null) {
-+        return true;
-+      }
-+    }
++    // Any local coverage at all counts as a source.
++    if (this.localSurahs(rewayatId).length > 0) return true;
      const rw = this.findRewayat(rewayatId);
      return Boolean(rw?.has_timestamps);
    }
 
    hasSurah(rewayatId: string, surahNumber: number): boolean {
-+    if (
-+      (branding.timestampLocalProvider?.(rewayatId, surahNumber) ?? null) !==
-+      null
-+    ) {
-+      return true;
-+    }
++    if (this.localSurahs(rewayatId).includes(surahNumber)) return true;
      const rw = this.findRewayat(rewayatId);
      // ... unchanged ...
    }
@@ -151,15 +190,31 @@ to today's logic when the provider is unset or returns `null`. Sketch:
      rewayatId: string,
      surahNumber: number,
    ): Promise<AyahTimestamp[] | null> {
-+    const local = branding.timestampLocalProvider?.(rewayatId, surahNumber) ?? null;
-+    if (local && local.length > 0) {
-+      await timestampDatabaseService.writeTimestamps(
-+        rewayatId,
-+        surahNumber,
-+        local,
-+        'local',
-+      );
-+      return local;
++    // Local bundle wins over R2 (Open question 3), but only when the coverage
++    // signal claims this surah AND the provider returns a well-shaped array.
++    if (this.localSurahs(rewayatId).includes(surahNumber)) {
++      const local =
++        branding.timestampLocalProvider?.(rewayatId, surahNumber) ?? null;
++      // Same first-element shape probe the R2 path runs (added post-#286):
++      // fork-authored bundles are an untrusted-shape source too. A malformed
++      // entry (snake_cased fields, a missing `durationMs`, an old shape) would
++      // otherwise land `undefined` in the SQLite `duration_ms` column and
++      // produce NaN highlight offsets.
++      if (
++        Array.isArray(local) &&
++        local.length > 0 &&
++        isAyahTimestampShape(local[0])
++      ) {
++        await timestampDatabaseService.writeTimestamps(
++          rewayatId,
++          surahNumber,
++          local,
++          'local',
++        );
++        return local;
++      }
++      // Coverage claimed but data missing/malformed → fall through to R2
++      // rather than caching garbage.
 +    }
      if (!this.hasSurah(rewayatId, surahNumber)) return null;
      // ... unchanged R2 fetch ...
@@ -167,11 +222,11 @@ to today's logic when the provider is unset or returns `null`. Sketch:
  }
 ```
 
-The exact probe shape (especially `hasSource`'s surah-1 presence check) is the
-main thing this doc-first RFC is asking the maintainer to confirm — see Open
-question 1. Total upstream diff is one branding type + three guarded early-outs
-in `TimestampFetchService` (plus a one-line import for `AyahTimestamp` in
-`branding.d.ts`). No new files, no new infrastructure.
+`isAyahTimestampShape` is the existing module-level guard the R2 path gained in
+the RFC-015 review (PR #286); the local path reuses it verbatim — no new
+validator. Total upstream diff is two branding types + one private helper +
+three guarded early-outs in `TimestampFetchService` (plus a one-line import for
+`AyahTimestamp` in `branding.d.ts`). No new files, no new infrastructure.
 
 ---
 
@@ -180,34 +235,51 @@ in `TimestampFetchService` (plus a one-line import for `AyahTimestamp` in
 **Bayaan:** no change. Field absent → every `?? null` short-circuits → the R2
 fetch path runs exactly as today. Byte-equivalent; zero action required.
 
-**Forks opting in:** declare `timestampLocalProvider` once in
-`config/branding.js`, returning the bundled timings for the rewayat they
-authored and `null` for everything else. The cache stores them with source
-`'local'` (already a valid `TimestampSource`), so the rest of the highlight
-pipeline is unchanged.
+**Forks opting in:** declare the pair once in `config/branding.js` —
+`timestampLocalSurahList` returning the covered surah numbers for each
+authored rewayat (`null` otherwise), and `timestampLocalProvider` returning the
+bundled timings for a covered `(rewayatId, surahNumber)` (`null` otherwise).
+The two must agree: every surah in the coverage list must have data from the
+provider. The cache stores validated entries with source `'local'` (already a
+valid `TimestampSource`), so the rest of the highlight pipeline is unchanged.
+
+The coverage list is what gates the follow-along UI, so a fork bundling a
+**partial-coverage** reciter (e.g. surahs 2–286 with no surah 1) simply lists
+the surahs it has; the feature is enabled for exactly those, never falsely
+suppressed.
 
 ---
 
 ## Open questions
 
-1. **`hasSource` presence-probe shape.** `hasSource` takes only a `rewayatId`,
-   but the provider is keyed by `(rewayatId, surahNumber)`. The sketch probes
-   surah 1 to decide "does this rewayat have any local coverage." Alternatives:
-   (a) widen the provider to also expose a `hasRewayat(rewayatId)` or a surah
-   list, or (b) add a separate `branding.timestampLocalSurahList?: (rewayatId)
-   => number[] | null`. The single-function shape is the smallest surface;
-   happy to split if the probe feels too implicit.
+1. **~~`hasSource` presence-probe shape.~~ RESOLVED (review, Issue 1).** The
+   original sketch probed surah 1 to answer "does this rewayat have local
+   coverage." That is a **correctness hole, not a taste question**: a
+   partial-coverage reciter whose bundle lacks surah 1 (28 of ~268 rewayat in
+   the current catalog have no surah 1 in `surah_list`) returns `null` from the
+   probe → `hasSource` reports false → the follow-along UI, gated on
+   `hasTimestampSource`, is suppressed entirely despite valid bundled data.
+   Adopted the alternative (b) from the original draft: an explicit
+   `branding.timestampLocalSurahList?: (rewayatId) => number[] | null` coverage
+   signal, mirroring the catalog's existing `Rewayat.timestamps_surah_list`.
+   `hasSource` / `hasSurah` consult the list (never the data provider, never a
+   sentinel surah); the data provider is called only on the `fetchAndCache`
+   write path. No open question remains here.
 
-2. **Sync vs async provider.** This RFC specifies a **synchronous** provider
-   (the methods `hasSource`/`hasSurah` are sync today, and bundled data is
+2. **Sync vs async provider.** This RFC specifies a **synchronous** pair (the
+   methods `hasSource`/`hasSurah` are sync today, and bundled data is
    in-memory). If a fork ever needs async-loaded bundled data, the provider
    would need a `Promise` return and `hasSurah` would have to become async — a
    larger change. Keeping it sync unless there's a concrete async need.
 
-3. **Precedence vs R2.** The sketch lets a non-null local result win over the
-   R2 path. That's the intended semantic (a fork that bundles timings wants
-   them used), but it's worth stating explicitly so a future reciter that has
-   *both* a bundle and an R2 mirror resolves deterministically (local wins).
+3. **Precedence vs R2.** The sketch lets a covered, well-shaped local result
+   win over the R2 path. That's the intended semantic (a fork that bundles
+   timings wants them used). Stated explicitly so a future reciter that has
+   *both* a bundle and an R2 mirror resolves deterministically: **local wins
+   when the coverage list claims the surah and the provider returns valid
+   data**; if coverage is claimed but the bundle is missing or malformed, the
+   code falls through to R2 rather than caching garbage (see the `fetchAndCache`
+   sketch).
 
 ---
 
@@ -242,7 +314,9 @@ arrays. Wrong tool for a provider seam.
 
 - **The R2/CDN fetch path** (RFC-015 / PR #278). This RFC adds a pre-network
   provider; it does not change how R2 timings are fetched, validated, or
-  cached.
+  cached. It does **reuse** the R2 path's `isAyahTimestampShape` guard (PR #286)
+  on the local data before writing — same threat model (fork/operator-authored
+  data of untrusted shape), same one-line guard, no new validator.
 - **Timestamp authoring / bundling tooling.** Forks own how they produce and
   bundle their timing data; this RFC is read-side configurability only.
 - **The `cached_surahs.source` column / `TimestampSource` enum.** Already in
@@ -255,12 +329,16 @@ arrays. Wrong tool for a provider seam.
 
 Qariah's adoption ships against the same shape:
 
-- `config/branding.js` declares `timestampLocalProvider` returning the bundled
-  timings for the fork's locally-authored reciter (today a single reciter whose
-  timings are baked into the app), `null` otherwise.
+- `config/branding.js` declares the pair — `timestampLocalSurahList` returning
+  the covered surah numbers for the fork's locally-authored reciter (today a
+  single reciter whose timings are baked into the app, with a partial coverage
+  list) and `timestampLocalProvider` returning the bundled timings for a
+  covered surah, `null` otherwise.
 - `services/timestamps/TimestampFetchService.ts` consumes the seam with the
-  `?? null` fallbacks shown above — retiring a recurring hot-file divergence
-  that has been dropped multiple times on wholesale absorptions of this file.
+  `?? null` fallbacks shown above, gating coverage on the explicit list and
+  running the existing `isAyahTimestampShape` guard on local data before it
+  reaches the cache — retiring a recurring hot-file divergence that has been
+  dropped multiple times on wholesale absorptions of this file.
 
 ---
 
