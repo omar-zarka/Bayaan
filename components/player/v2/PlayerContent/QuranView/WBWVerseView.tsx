@@ -229,8 +229,14 @@ function measureTextWidth(
   builder.addText(text);
   builder.pop();
   const p = builder.build();
-  p.layout(10000);
-  return Math.ceil(p.getLongestLine()) + 1;
+  // This SkParagraph is built only to measure; dispose its native memory
+  // before returning so it doesn't leak on every recompute.
+  try {
+    p.layout(10000);
+    return Math.ceil(p.getLongestLine()) + 1;
+  } finally {
+    p.dispose();
+  }
 }
 
 function computeColumnWidth(
