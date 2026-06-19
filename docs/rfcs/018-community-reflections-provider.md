@@ -55,6 +55,10 @@ export type CommunityReflectionsProvider = (
 
 The provider resolves to an array (possibly empty) of reflections for one ayah. It is the provider's job to filter/sort (Qariah's impl returns verified-only, popular-sorted, top-N, language-filtered). Throws/rejects on network or auth/scope errors; the consuming component renders an empty/error state silently. The caller may invoke it freely — caching is the provider's responsibility.
 
+**Provider ↔ component wiring (review reconciliation — the double-fetch question).** The render slot's props are `{surahNumber, ayahNumber}` only — the fetched data is **not** passed down as a prop. The resolution chosen here: `ayahCommunityReflectionsComponent` **calls `branding.communityReflectionsProvider` internally**, keyed on `(surahNumber, ayahNumber)`. So `communityReflectionsProvider` is *both* the gate-predicate (its presence enables the toggle row + the slot) *and* the data source the slot invokes. Because the action-sheet popup (§4) also calls the same provider for the same ayah, the two surfaces would issue two requests — **provider-internal caching is therefore load-bearing, not optional**: a fork's provider MUST de-dupe/cache by `(surahNumber, ayahNumber[, locale])` so the inline slot and the popup share one fetch rather than racing two. This is why the interface above states caching is the provider's responsibility.
+
+The rejected alternative was passing the fetched `CommunityReflection[]` (or the provider itself) down to the component as a prop, which would let `VerseItem` own the fetch + the loading state and hand results to a pure render slot. That keeps the component pure but pushes per-ayah I/O into the hot list item (`VerseItem`) on **every** fork that sets the slot, and couples the slot's prop shape to the data type. We keep the slot self-contained (it fetches via the provider) + lean on provider caching; revisit if a fork needs the host to own the fetch lifecycle.
+
 ### 2. Branding slots (additive)
 
 ```ts
@@ -88,9 +92,17 @@ export interface Branding {
 
 ### 3. Default no-op render + the gated toggle
 
-Upstream ships a default-noop `<AyahCommunityReflections />` that returns `null` when `branding.ayahCommunityReflectionsComponent` is unset. `VerseItem.tsx` mounts it unconditionally under the Arabic line; the noop makes that free for Bayaan.
+Upstream ships a default-noop `<AyahCommunityReflections />` that returns `null` when `branding.ayahCommunityReflectionsComponent` is unset. `VerseItem.tsx` mounts it under the Arabic line; the noop makes that free for Bayaan.
+
+**Blast radius (review reconciliation).** `VerseItem` is **not** rendered only by the player's FlashList — it is the shared verse row for **three** callers: the player Mushaf list (`QuranView`), `ContinuousListView`, and `ReadingPageView`. A slot mounted unconditionally in `VerseItem` therefore appears in **all three** surfaces. That is acknowledged and acceptable for Qariah (community reflections under the Arabic line in every verse-list surface is the intended behavior), but the code PR has a knob: `VerseItem` already receives a `source` prop, so a fork that wants the slot in only some surfaces can scope the mount with `source === 'player'` (or whichever subset). **Decision for v1:** mount in all three (gated only on provider + toggle), and document the `source`-prop scoping as the available narrowing rather than baking a subset choice into upstream. A reviewer who wants the slot scoped to the player surface only should say so and the gate becomes `… && source === 'player'`.
 
 `MushafSettingsStore` gains `showCommunityReflections: boolean` (default `false`); `MushafSettingsContent` renders the toggle row **only when `branding.communityReflectionsProvider != null`** — so Bayaan shows no orphan toggle. `VerseItem` gates the render on `branding.communityReflectionsProvider && showCommunityReflections`.
+
+**Hot-path contract (review reconciliation).** Unlike RFC-009's providers (consumed by cold Settings flows), this provider runs **per-ayah on a recycling FlashList**. The slot contract is therefore stricter and MUST be honored by any fork's component + provider:
+
+- **Non-blocking.** The render slot MUST NOT block the list item's render. It fetches asynchronously and renders an empty/placeholder state until data resolves; it never does synchronous I/O in render.
+- **Recycling-tolerant.** FlashList recycles `VerseItem` instances — the slot MUST tolerate rapid mount/unmount and `(surahNumber, ayahNumber)` prop churn as a row is reused for a different ayah. In-flight requests for a now-stale ayah MUST be ignored/aborted (key the fetch on the current ayah; drop late responses for a key that no longer matches the mounted props), so a recycled row never shows the previous ayah's reflections.
+- **ErrorBoundary at the mount site (recommended).** Because this slot does I/O — unlike RFC-008's slot, which deferred the ErrorBoundary — a throw in a fork's component would otherwise unmount the verse row. Wrapping the slot in an ErrorBoundary at the mount site in `VerseItem` is recommended so a provider/component failure degrades to "no reflections on this ayah" rather than a blank verse. This closes the gap RFC-008 left open, which is more acute here.
 
 ### 4. Action-sheet entry (optional, same gate)
 
@@ -157,7 +169,7 @@ Bayaan ships a QuranReflect client and a `branding.communityReflectionsSourceId:
 
 This is a doc-only RFC. If accepted:
 
-1. **Code PR — Bayaan side (~120 LOC):** add `types/CommunityReflection.ts`; add the two `Branding` fields; add the default-noop `<AyahCommunityReflections />`; mount it in `VerseItem.tsx` under the Arabic line gated on the provider + toggle; add `showCommunityReflections` to `MushafSettingsStore` + the gated toggle row in `MushafSettingsContent`; add the gated EXPLORE row + popup shell in `VerseActionsSheet.tsx`. Bayaan branding leaves both fields unset; behavior unchanged.
+1. **Code PR — Bayaan side (~120 LOC):** add `types/CommunityReflection.ts`; add the two `Branding` fields; add the default-noop `<AyahCommunityReflections />`; mount it in `VerseItem.tsx` under the Arabic line gated on the provider + toggle, **wrapped in an ErrorBoundary at the mount site** (hot-path contract), and recognising the mount lands in all three `VerseItem` callers (`QuranView` / `ContinuousListView` / `ReadingPageView`) — scope via the existing `source` prop if a narrower surface is preferred; add `showCommunityReflections` to `MushafSettingsStore` + the gated toggle row in `MushafSettingsContent`; add the gated EXPLORE row + popup shell in `VerseActionsSheet.tsx`. Bayaan branding leaves both fields unset; behavior unchanged.
 2. **Code PR — Qariah side (qariah-v2 repo):** ship the QuranReflect-backed provider + the inline component, set both branding fields. Qariah's ledger rows for the four hot files flip to "Upstreamed (RFC-018)".
 
 If the maintainer prefers Alt 2 (data-only), Alt 3 (generic slot array), or Alt 4 (baked-in source), this RFC is withdrawn and a new one opens with the preferred shape.
