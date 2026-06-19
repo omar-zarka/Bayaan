@@ -18,6 +18,7 @@ import {
   InteractionManager,
   Platform,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useTheme} from '@/hooks/useTheme';
@@ -37,7 +38,13 @@ import {shuffleArray} from '@/utils/arrayUtils';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useFavoriteReciters} from '@/hooks/useFavoriteReciters';
-import {useDownloadQueries} from '@/services/player/store/downloadSelectors';
+import {
+  useDownloadQueries,
+  useDownloadActions,
+  useDownloads,
+} from '@/services/player/store/downloadSelectors';
+import {downloadSurah} from '@/services/downloadService';
+import {bulkDownloadSurahs} from '@/services/player/bulkDownloadSurahs';
 import {createSharedStyles} from './styles';
 import {useSettings} from '@/hooks/useSettings';
 import {Feather} from '@expo/vector-icons';
@@ -291,7 +298,9 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                   const slug = reciter?.slug ?? currentReciterId;
                   shareUrl(
                     reciterShareUrl(slug),
-                    `Listen to ${reciter?.name ?? 'this reciter'} on ${branding.appName}`,
+                    `Listen to ${reciter?.name ?? 'this reciter'} on ${
+                      branding.appName
+                    }`,
                   );
                 }}
                 hitSlop={8}>
@@ -339,7 +348,20 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   // iOS: offset below transparent native header; Android: below custom sticky title
   const stickyPinOffset = isGlass ? headerHeight : stickyTitleHeight;
   const {isLovedWithRewayat} = useLoved();
-  const {isDownloaded} = useDownloadQueries();
+  const {
+    isDownloaded,
+    isDownloadedWithRewayat,
+    isDownloading,
+    isDownloadingWithRewayat,
+  } = useDownloadQueries();
+  // @ai-start
+  const {setDownloading, clearDownloading, addDownload, setDownloadProgress} =
+    useDownloadActions();
+  const downloads = useDownloads();
+  const [isDownloadingAll, setIsDownloadingAll] = useState(false);
+  const [downloadAllProgress, setDownloadAllProgress] = useState(0);
+  const downloadAllCancelledRef = useRef(false);
+  // @ai-end
   const {startNewChain} = useRecentlyPlayedStore();
   const {reciterPreferences, setReciterPreference} = useSettings();
 
@@ -564,6 +586,113 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     shuffleEnabled,
     toggleShuffleAction,
   ]);
+
+  // @ai-start
+  // Derived from `downloads` (not the query selectors) so it recomputes as
+  // items complete; mirrors the store's isDownloadedWithRewayat semantics.
+  const allDownloaded = useMemo(() => {
+    if (!selectedRewayat || filteredSurahs.length === 0) return false;
+    return filteredSurahs.every(s =>
+      downloads.some(
+        d =>
+          d.reciterId === currentReciterId &&
+          d.surahId === s.id.toString() &&
+          d.rewayatId === selectedRewayat.id &&
+          d.status === 'completed',
+      ),
+    );
+  }, [filteredSurahs, selectedRewayat, currentReciterId, downloads]);
+
+  const handleDownloadAll = useCallback(async () => {
+    if (!reciter || !selectedRewayat) return;
+
+    // A second tap while a batch is running requests cancellation.
+    if (isDownloadingAll) {
+      downloadAllCancelledRef.current = true;
+      return;
+    }
+
+    if (filteredSurahs.length === 0) return;
+
+    if (allDownloaded) {
+      Alert.alert(
+        'Already Downloaded',
+        'Every surah shown is already downloaded for this rewayah.',
+      );
+      return;
+    }
+
+    downloadAllCancelledRef.current = false;
+    setIsDownloadingAll(true);
+    setDownloadAllProgress(0);
+
+    try {
+      const items = filteredSurahs.map(s => ({
+        surahId: s.id,
+        reciterId: reciter.id,
+        rewayatId: selectedRewayat.id,
+      }));
+
+      const summary = await bulkDownloadSurahs(
+        items,
+        {
+          downloadSurah,
+          isDownloaded,
+          isDownloadedWithRewayat,
+          isDownloading,
+          isDownloadingWithRewayat,
+          setDownloading,
+          clearDownloading,
+          addDownload,
+          setDownloadProgress,
+        },
+        {
+          onProgress: (completed, total) =>
+            setDownloadAllProgress(total > 0 ? completed / total : 1),
+          isCancelled: () => downloadAllCancelledRef.current,
+        },
+      );
+
+      if (summary.cancelled) {
+        Alert.alert(
+          'Download Stopped',
+          `Downloaded ${summary.downloaded} surah(s) before stopping.`,
+        );
+      } else if (summary.failed > 0) {
+        Alert.alert(
+          'Download Finished',
+          `${summary.downloaded} downloaded, ${summary.failed} failed. Tap again to retry the rest.`,
+        );
+      } else if (summary.downloaded > 0) {
+        Alert.alert(
+          'Download Complete',
+          `All surahs for ${reciter.name} are now available offline.`,
+        );
+      }
+    } catch (error) {
+      console.error('Error downloading all surahs:', error);
+      Alert.alert('Download Error', 'Some downloads may have failed.');
+    } finally {
+      setIsDownloadingAll(false);
+      setDownloadAllProgress(0);
+      downloadAllCancelledRef.current = false;
+    }
+  }, [
+    reciter,
+    selectedRewayat,
+    filteredSurahs,
+    isDownloadingAll,
+    allDownloaded,
+    isDownloaded,
+    isDownloadedWithRewayat,
+    isDownloading,
+    isDownloadingWithRewayat,
+    setDownloading,
+    clearDownloading,
+    addDownload,
+    setDownloadProgress,
+  ]);
+  // @ai-end
 
   const handleToggleFavorite = useCallback(() => {
     if (reciter) {
@@ -921,6 +1050,10 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                   onShufflePress={handleShuffleAll}
                   onPlayPress={handlePlayAll}
                   isFavoriteReciter={isFavoriteReciter(reciter.id)}
+                  onDownloadAllPress={handleDownloadAll}
+                  isDownloadingAll={isDownloadingAll}
+                  downloadAllProgress={downloadAllProgress}
+                  allDownloaded={allDownloaded}
                 />
               </View>
             </View>
@@ -1163,7 +1296,9 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                 const slug = reciter?.slug ?? currentReciterId;
                 shareUrl(
                   reciterShareUrl(slug),
-                  `Listen to ${reciter?.name ?? 'this reciter'} on ${branding.appName}`,
+                  `Listen to ${reciter?.name ?? 'this reciter'} on ${
+                    branding.appName
+                  }`,
                 );
               }}
             />
