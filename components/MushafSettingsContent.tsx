@@ -589,11 +589,13 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     wbwShowTranslation,
     wbwShowTransliteration,
     showThemes,
+    showCommunityReflections,
     toggleWBW,
     toggleWBWTranslation,
     toggleWBWTransliteration,
     toggleAllahNameHighlight,
     toggleThemes,
+    toggleCommunityReflections,
     lightThemeId,
     darkThemeId,
     rewayah,
@@ -614,8 +616,8 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
   const subscribedFontMgr = useMushafFontMgr();
   const fontMgr =
     mushafPreloadService.initialized && digitalKhattDataService.initialized
@@ -866,9 +868,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           <Text style={styles.settingRowLabel}>
             {themeMode === 'system'
               ? 'System'
-              : (getReadingThemeById(
+              : getReadingThemeById(
                   themeMode === 'light' ? lightThemeId : darkThemeId,
-                )?.name ?? 'System')}
+                )?.name ?? 'System'}
           </Text>
           <Feather
             name="chevron-right"
@@ -1075,6 +1077,28 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
         </Text>
       </View>
 
+      {/* RFC-018 — COMMUNITY REFLECTIONS toggle. Only rendered when a fork
+          supplies branding.communityReflectionsProvider, so Bayaan shows no
+          orphan toggle. */}
+      {branding.communityReflectionsProvider != null && (
+        <View style={styles.card}>
+          <View style={styles.optionRow}>
+            <Text style={styles.optionLabel}>Community Reflections</Text>
+            <Switch
+              trackColor={trackColor}
+              thumbColor="#FFFFFF"
+              ios_backgroundColor={trackColor.false}
+              onValueChange={toggleCommunityReflections}
+              value={showCommunityReflections}
+              style={styles.switchStyle}
+            />
+          </View>
+          <Text style={styles.helperText}>
+            Show community reflections under each ayah in list view
+          </Text>
+        </View>
+      )}
+
       {/* FONT Section */}
       <Text style={styles.sectionHeader}>FONT</Text>
       <View style={styles.card}>
@@ -1194,7 +1218,9 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
         ]}
         accessibilityRole="button"
         accessibilityState={{expanded, disabled}}
-        accessibilityLabel={`Rewayah: ${getLongLabel(selectedId)}. ${expanded ? 'Collapse' : 'Expand'} to change.`}
+        accessibilityLabel={`Rewayah: ${getLongLabel(selectedId)}. ${
+          expanded ? 'Collapse' : 'Expand'
+        } to change.`}
         disabled={disabled}
         onPress={() => setExpanded(e => !e)}>
         <View style={styles.radioTextContainer}>
@@ -1256,7 +1282,9 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
               <View
                 style={[styles.radioRow, styles.radioRowDisabled]}
                 accessibilityRole="text"
-                accessibilityLabel={`${getLongLabel(id)}, text preview not yet available`}>
+                accessibilityLabel={`${getLongLabel(
+                  id,
+                )}, text preview not yet available`}>
                 <View style={styles.radioCircle} />
                 <View style={styles.radioTextContainer}>
                   <Text style={[styles.radioLabel, styles.radioLabelDisabled]}>

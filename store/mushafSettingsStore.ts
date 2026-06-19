@@ -52,6 +52,11 @@ interface MushafSettingsState {
   showTajweed: boolean;
   showThemes: boolean;
 
+  // RFC-018 — inline community reflections under each ayah. Opt-in,
+  // default off. The toggle row only renders when a fork supplies
+  // `branding.communityReflectionsProvider`; inert for Bayaan.
+  showCommunityReflections: boolean;
+
   // Word-by-word settings
   showWBW: boolean;
   wbwShowTranslation: boolean;
@@ -100,6 +105,7 @@ interface MushafSettingsState {
   toggleTransliteration: () => void;
   toggleTajweed: () => void;
   toggleThemes: () => void;
+  toggleCommunityReflections: () => void;
   toggleWBW: () => void;
   toggleWBWTranslation: () => void;
   toggleWBWTransliteration: () => void;
@@ -133,6 +139,7 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
       showTransliteration: false,
       showTajweed: false,
       showThemes: false,
+      showCommunityReflections: false,
       showWBW: false,
       wbwShowTranslation: true,
       wbwShowTransliteration: false,
@@ -167,6 +174,10 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
             : {showTajweed: !state.showTajweed},
         ),
       toggleThemes: () => set(state => ({showThemes: !state.showThemes})),
+      toggleCommunityReflections: () =>
+        set(state => ({
+          showCommunityReflections: !state.showCommunityReflections,
+        })),
       toggleWBW: () => set(state => ({showWBW: !state.showWBW})),
       toggleWBWTranslation: () =>
         set(state => ({wbwShowTranslation: !state.wbwShowTranslation})),
@@ -189,8 +200,7 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
         set(state => ({
           mushafRenderer: renderer,
           arabicFontFamily: 'Uthmani',
-          showTajweed:
-            renderer === 'qcf_v2' ? false : state.showTajweed,
+          showTajweed: renderer === 'qcf_v2' ? false : state.showTajweed,
           rewayah: renderer === 'qcf_v2' ? 'hafs' : state.rewayah,
           showRewayahDiffs:
             renderer === 'qcf_v2' ? false : state.showRewayahDiffs,
@@ -198,8 +208,8 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
             renderer === 'dk_v1'
               ? 'v1'
               : renderer === 'dk_indopak'
-                ? 'v2'
-                : 'v2',
+              ? 'v2'
+              : 'v2',
         })),
       setPageLayout: (layout: MushafPageLayout) => set({pageLayout: layout}),
       setViewMode: (mode: MushafViewMode) => set({viewMode: mode}),
@@ -242,9 +252,7 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
             : {darkThemeId: themeId};
         }),
       setRewayah: (rewayah: RewayahId) =>
-        set(state =>
-          state.mushafRenderer === 'qcf_v2' ? state : {rewayah},
-        ),
+        set(state => (state.mushafRenderer === 'qcf_v2' ? state : {rewayah})),
       toggleRewayahDiffs: () =>
         set(state =>
           state.mushafRenderer === 'qcf_v2'
@@ -255,7 +263,7 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
     {
       name: 'mushaf-settings',
       storage: createJSONStorage(() => AsyncStorage),
-      version: 16,
+      version: 17,
       migrate: (persistedState: unknown, version: number) => {
         const state = persistedState as Record<string, unknown>;
         if (version === 0) {
@@ -337,6 +345,10 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
           state.showTajweed = false;
           state.rewayah = 'hafs';
           state.showRewayahDiffs = false;
+        }
+        if (version < 17) {
+          // RFC-018 — new opt-in inline community reflections, default off.
+          state.showCommunityReflections = false;
         }
         return state as unknown as MushafSettingsState;
       },
