@@ -183,7 +183,8 @@ const BrowseGrid = React.memo(
     prevProps.onReciterPress === nextProps.onReciterPress &&
     prevProps.reciters.length === nextProps.reciters.length &&
     prevProps.getRewayatIdForReciter === nextProps.getRewayatIdForReciter &&
-    prevProps.bottomInset === nextProps.bottomInset,
+    prevProps.bottomInset === nextProps.bottomInset &&
+    prevProps.keyboardShouldPersistTaps === nextProps.keyboardShouldPersistTaps,
 );
 
 BrowseGrid.displayName = 'BrowseGrid';
