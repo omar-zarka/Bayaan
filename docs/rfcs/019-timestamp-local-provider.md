@@ -1,4 +1,4 @@
-# RFC-019: Bundled timestamp provider seam (`branding.timestampLocalProvider`)
+# RFC-019: Bundled timestamp provider + coverage-list seam pair (`branding.timestampLocalProvider` + `timestampLocalSurahList`)
 
 **Status:** Draft (doc-first — the consumer touches the timestamp fetch
 hot-path in three methods, so the shape is worth confirming before code lands;
@@ -30,10 +30,13 @@ This RFC adds an optional **provider pair**:
   — returns the bundled timings for one surah, or `null`.
 - `branding.timestampLocalSurahList?: (rewayatId) => number[] | null` — the
   **explicit coverage signal**: the list of surahs the bundle covers for a
-  rewayat (`null` / empty → no local coverage). This mirrors the catalog's
-  existing `Rewayat.timestamps_surah_list?: number[]` exactly, so `hasSource` /
+  rewayat (`null` / empty → no local coverage). This mirrors the *shape* of the
+  catalog's existing `Rewayat.timestamps_surah_list?: number[]`, so `hasSource` /
   `hasSurah` can answer coverage questions **without** calling the data
-  provider or guessing from a sentinel surah.
+  provider or guessing from a sentinel surah. One semantic difference from the
+  R2 rule — the local list is an **exact allow-list** (empty means *no*
+  coverage, not "all"); see [Coverage
+  semantics](#coverage-semantics-local-is-an-exact-allow-list-not-empty-means-all).
 
 When set, the three consumer methods consult the pair before going to the
 network — `hasSource` / `hasSurah` gate on the coverage list, `fetchAndCache`
@@ -227,6 +230,39 @@ the RFC-015 review (PR #286); the local path reuses it verbatim — no new
 validator. Total upstream diff is two branding types + one private helper +
 three guarded early-outs in `TimestampFetchService` (plus a one-line import for
 `AyahTimestamp` in `branding.d.ts`). No new files, no new infrastructure.
+
+### Coverage semantics: local is an exact allow-list, not empty-means-all
+
+The local coverage signal and the existing R2 coverage rule are **not
+symmetric**, and the code PR must not paper over the difference. Calling it out
+explicitly (review, Issue: coverage asymmetry):
+
+- **Local path** — `timestampLocalSurahList(rewayatId)` is an **exact
+  allow-list**. `hasSurah` returns true only when
+  `localSurahs(rewayatId).includes(surahNumber)`. An **empty / `null`** list
+  means **no local coverage** (`hasSource` returns false for the local check) —
+  it does **not** mean "all surahs covered." There is no sentinel value for
+  "everything"; a fork that bundles all 114 surahs lists all 114.
+- **R2 path** — `has_timestamps && empty surah_list` is treated as **"all
+  surahs covered"** (`timestamps_surah_list` absent/empty + the `has_timestamps`
+  flag = the whole reciter is covered on the CDN). This is the existing
+  upstream rule and is unchanged by this RFC.
+
+So the two paths read an empty list **oppositely**: empty-on-R2 = "all", empty-on-local = "none". This asymmetry is intentional and arguably safer for bundled data (you can't accidentally claim coverage you didn't ship), but because the local signal *mirrors the shape* of `timestamps_surah_list`, it would be easy for the consumer PR to copy the R2 "empty ⇒ all" branch onto the local path by reflex. **Do not.** The local gate is `.includes(surah)` with empty ⇒ none, full stop.
+
+Two corollaries the consumer PR must preserve:
+
+1. **Local coverage bypasses `has_timestamps`.** The local checks in
+   `hasSource` / `hasSurah` short-circuit to `true` **before** the
+   `rw?.has_timestamps` read — a fork's bundled reciter need **not** carry the
+   `has_timestamps` catalog flag at all. The flag gates only the R2 path; local
+   coverage is authoritative on its own via the coverage list. (This is why the
+   sketch's `localSurahs(...).length > 0` / `.includes(...)` early-returns sit
+   above the `findRewayat` / `has_timestamps` lines.)
+2. **No "empty list ⇒ all surahs" sentinel for local, ever** — if a future fork
+   really wants "all surahs are local," it enumerates them (or a follow-up RFC
+   adds an explicit `'*'`-style sentinel deliberately). Empty stays "none" so
+   the default-off / partial-coverage cases are safe by construction.
 
 ---
 
