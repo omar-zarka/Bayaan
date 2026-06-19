@@ -37,6 +37,20 @@ function isAnalyticsEnabled(): boolean {
   return process.env.EXPO_PUBLIC_ANALYTICS_ENABLED !== 'false';
 }
 
+/**
+ * Whether the user currently consents to analytics.
+ *
+ * Fails CLOSED until the persisted consent store has hydrated: `zustand/persist`
+ * loads from AsyncStorage asynchronously, so on a cold launch the in-memory
+ * value is the default (`true`) until the stored choice arrives. Returning
+ * `false` while un-hydrated guarantees we never emit an event (or identify a
+ * person) before the user's saved opt-out is known.
+ */
+function isConsentGranted(): boolean {
+  if (!useAnalyticsConsentStore.persist.hasHydrated()) return false;
+  return useAnalyticsConsentStore.getState().analyticsEnabled;
+}
+
 class AnalyticsServiceImpl {
   private posthog: PostHog | null = null;
   private deviceId: string = '';
@@ -51,6 +65,13 @@ class AnalyticsServiceImpl {
         this.trackMeaningfulListen(props);
       },
     );
+    // Keep the live PostHog instance in lock-step with the consent flag so a
+    // caller can never desync the SDK from the store: any change to
+    // `analyticsEnabled` (e.g. the Settings → Privacy toggle) pushes straight
+    // through to optIn()/optOut().
+    useAnalyticsConsentStore.subscribe(state => {
+      this.applyConsent(state.analyticsEnabled);
+    });
   }
 
   async initialize(): Promise<void> {
@@ -65,8 +86,19 @@ class AnalyticsServiceImpl {
     if (!this.enabled) return;
     this.posthog = instance;
     instance.register({platform: 'mobile'});
-    // Honor the user's runtime opt-out choice on the fresh instance.
-    this.applyConsent(useAnalyticsConsentStore.getState().analyticsEnabled);
+    // Honor the user's runtime opt-out choice on the fresh instance — but only
+    // once the persisted choice has hydrated, so we don't optIn() on the
+    // default before a saved opt-out loads. If already hydrated, apply now;
+    // otherwise apply on hydration finish.
+    const persist = useAnalyticsConsentStore.persist;
+    if (persist.hasHydrated()) {
+      this.applyConsent(useAnalyticsConsentStore.getState().analyticsEnabled);
+    } else {
+      const unsub = persist.onFinishHydration(state => {
+        unsub();
+        this.applyConsent(state.analyticsEnabled);
+      });
+    }
   }
 
   /**
@@ -76,7 +108,12 @@ class AnalyticsServiceImpl {
    */
   applyConsent(enabled: boolean): void {
     if (!this.posthog) return;
-    void (enabled ? this.posthog.optIn() : this.posthog.optOut());
+    // Don't swallow rejections silently — failing to apply an opt-out is
+    // privacy-sensitive and should at least surface in logs.
+    const applied = enabled ? this.posthog.optIn() : this.posthog.optOut();
+    void applied.catch((error: unknown) => {
+      console.warn('[Analytics] Failed to apply consent choice:', error);
+    });
   }
 
   private capture(
@@ -84,8 +121,9 @@ class AnalyticsServiceImpl {
     properties: Record<string, string | number | boolean | null>,
   ): void {
     // Respect the user's runtime opt-out (Settings → Privacy) in addition to
-    // PostHog's own opt-out state — belt-and-suspenders.
-    if (!useAnalyticsConsentStore.getState().analyticsEnabled) return;
+    // PostHog's own opt-out state — belt-and-suspenders. Fails closed until the
+    // consent store has hydrated.
+    if (!isConsentGranted()) return;
     this.posthog?.capture(event, properties);
   }
 
@@ -253,6 +291,9 @@ class AnalyticsServiceImpl {
   // --- Identity ---
 
   identifyUser(userId: string): void {
+    // identify() creates a person profile server-side (more sensitive than a
+    // generic event), so it must honor the same opt-out / hydration gate.
+    if (!isConsentGranted()) return;
     this.posthog?.identify(userId);
   }
 

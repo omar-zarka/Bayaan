@@ -29,7 +29,6 @@ import {
 } from '@/components/Icons';
 import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {useAnalyticsConsentStore} from '@/store/analyticsConsentStore';
-import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {ThemePicker} from '@/components/settings/ThemePicker';
 import branding from '@/config/branding';
 
@@ -224,9 +223,10 @@ export default function SettingsScreen() {
   const {showFloatingDevMenu, toggleFloatingDevMenu} = useDevSettingsStore();
   const {analyticsEnabled, setAnalyticsEnabled} = useAnalyticsConsentStore();
 
-  const handleAnalyticsToggle = (value: boolean) => {
+  const handleAnalyticsToggle = (value: boolean): void => {
+    // The analytics service subscribes to this store and pushes the choice
+    // straight to the PostHog SDK, so flipping the flag is all we do here.
     setAnalyticsEnabled(value);
-    analyticsService.applyConsent(value);
   };
 
   const iconColor = theme.colors.text;
