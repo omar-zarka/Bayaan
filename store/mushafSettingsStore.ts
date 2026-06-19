@@ -200,7 +200,8 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
         set(state => ({
           mushafRenderer: renderer,
           arabicFontFamily: 'Uthmani',
-          showTajweed: renderer === 'qcf_v2' ? false : state.showTajweed,
+          showTajweed:
+            renderer === 'qcf_v2' ? false : state.showTajweed,
           rewayah: renderer === 'qcf_v2' ? 'hafs' : state.rewayah,
           showRewayahDiffs:
             renderer === 'qcf_v2' ? false : state.showRewayahDiffs,
@@ -208,8 +209,8 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
             renderer === 'dk_v1'
               ? 'v1'
               : renderer === 'dk_indopak'
-              ? 'v2'
-              : 'v2',
+                ? 'v2'
+                : 'v2',
         })),
       setPageLayout: (layout: MushafPageLayout) => set({pageLayout: layout}),
       setViewMode: (mode: MushafViewMode) => set({viewMode: mode}),
@@ -252,7 +253,9 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
             : {darkThemeId: themeId};
         }),
       setRewayah: (rewayah: RewayahId) =>
-        set(state => (state.mushafRenderer === 'qcf_v2' ? state : {rewayah})),
+        set(state =>
+          state.mushafRenderer === 'qcf_v2' ? state : {rewayah},
+        ),
       toggleRewayahDiffs: () =>
         set(state =>
           state.mushafRenderer === 'qcf_v2'
