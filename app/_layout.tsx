@@ -61,6 +61,11 @@ configureReanimatedLogger({
 // Cache for expo-navigation-bar module (Android only)
 let NavigationBarModule: any = null;
 
+// Cold-start budget: if prepare() blows past this, fire a one-shot
+// 'slow-cold-start' Sentry message naming the phase it stalled in. prepare()
+// is gated by initializationRef, so this fires at most once per process.
+const SLOW_BOOT_THRESHOLD_MS = 8000;
+
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {
   /* reloading the app might trigger some race conditions, ignore them */
@@ -74,6 +79,18 @@ SystemUI.setBackgroundColorAsync(
 
 const analyticsEnabled = process.env.EXPO_PUBLIC_ANALYTICS_ENABLED !== 'false';
 
+// Narrows the `any`-typed expoConfig.extra.version without an `as` cast.
+function isVersionInfo(
+  value: unknown,
+): value is {semanticVersion: string; buildNumber: string | number} {
+  if (value == null || typeof value !== 'object') return false;
+  const v = value as Record<string, unknown>;
+  return (
+    typeof v.semanticVersion === 'string' &&
+    (typeof v.buildNumber === 'string' || typeof v.buildNumber === 'number')
+  );
+}
+
 if (analyticsEnabled) {
   // Explicit release + dist tagging. Android events were landing with no
   // release (`release: None`), so crashes/ANRs couldn't be tied to a build.
@@ -82,14 +99,16 @@ if (analyticsEnabled) {
   // platforms, unlike Sentry's native auto-detection. `undefined` is a safe
   // no-op (Sentry falls back to auto-detect), so a missing manifest can't
   // regress the current behavior.
-  const versionInfo = Constants.expoConfig?.extra?.version as
-    | {semanticVersion?: string; buildNumber?: string | number}
-    | undefined;
+  const rawVersion: unknown = Constants.expoConfig?.extra?.version;
+  const versionInfo = isVersionInfo(rawVersion) ? rawVersion : undefined;
   const appId =
     Constants.expoConfig?.ios?.bundleIdentifier ??
     Constants.expoConfig?.android?.package;
+  // Require appId too — without it the template literal would stringify
+  // `undefined` into the release name (e.g. "undefined@2.2.1+935"). Falling
+  // back to an undefined release is the safe no-op (Sentry auto-detects).
   const sentryRelease =
-    versionInfo?.semanticVersion != null && versionInfo?.buildNumber != null
+    versionInfo != null && appId != null
       ? `${appId}@${versionInfo.semanticVersion}+${versionInfo.buildNumber}`
       : undefined;
   const sentryDist =
@@ -246,7 +265,7 @@ function RootLayout() {
           level: 'warning',
           tags: {scope: 'cold-start', boot_step: lastBootStep},
         });
-      }, 8000);
+      }, SLOW_BOOT_THRESHOLD_MS);
       try {
         markBoot('start');
         if (__DEV__)
