@@ -45,6 +45,13 @@ import {AVAILABLE_TAFASEER} from '@/data/availableTafaseer';
 type ActiveTab = 'Translations' | 'Tafaseer';
 const TAB_OPTIONS: ActiveTab[] = ['Translations', 'Tafaseer'];
 
+// Shared so the translation and tafseer download handlers stay in sync.
+const showDownloadInProgressAlert = () =>
+  Alert.alert(
+    'Download In Progress',
+    'Please wait until the current download completes before starting another.',
+  );
+
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   ar: 'Arabic',
@@ -194,16 +201,14 @@ export default function TranslationsContent() {
 
   const handleDownload = useCallback(
     async (editionId: string) => {
+      // Fire before the guard so a blocked tap still buzzes — acknowledge the tap.
       lightHaptics();
       // Guard on this download type's own in-flight state. translations and
       // tafaseer write separate DBs (no shared write path) so they can run
       // concurrently; the store already no-ops a double-tap — this Alert just
       // makes that refusal visible to the user.
       if (downloadingId) {
-        Alert.alert(
-          'Download in progress',
-          'Please wait until the current download completes before starting another.',
-        );
+        showDownloadInProgressAlert();
         return;
       }
       try {
@@ -252,14 +257,12 @@ export default function TranslationsContent() {
 
   const handleDownloadTafseer = useCallback(
     async (editionId: string) => {
+      // Fire before the guard so a blocked tap still buzzes — acknowledge the tap.
       lightHaptics();
       // Own-state guard (see handleDownload) — tafaseer.db is separate from
       // translations.db, so a running translation download must not block this.
       if (tafseerDownloadingId) {
-        Alert.alert(
-          'Download in progress',
-          'Please wait until the current download completes before starting another.',
-        );
+        showDownloadInProgressAlert();
         return;
       }
       try {
