@@ -72,7 +72,11 @@ Example (hypothetical search-filter RFC, RFC-012's `/v1/search-filters`):
 }
 ```
 
-The envelope is **`data`-wrapped**: `version`, `updated_at`, and the feature payload key all live under a single top-level `data` object. The client reads `body.data` and the payload key off that (e.g. `body.data.rows`); the natural ops read shape is `curl … | jq .data.rows`. This is the shape the shipped RFC-016 endpoint serves and `useRemoteHomeConfig.ts` consumes (`const next = body.data`), so the "conformant by construction" claim holds for the deployed code. See [Alternatives considered](#alternatives-considered) for why the wrapper is kept rather than flattened.
+The envelope is **`data`-wrapped**: `version`, `updated_at`, and the feature payload key all live under a single top-level `data` object. The client reads `body.data` and the payload key off that (e.g. `body.data.rows`); the natural ops read shape is `curl … | jq .data.rows`. This is the shape the shipped RFC-016 endpoint serves and `useRemoteHomeConfig.ts` consumes (`const next = body.data`), so the **RFC-016 hook** is conformant-by-construction. See [Alternatives considered](#alternatives-considered) for why the wrapper is kept rather than flattened.
+
+> **Conformance scope (review reconciliation).** The "conformant by construction" claim is scoped to the **RFC-016 `/v1/home-config` hook** (`useRemoteHomeConfig.ts`), which already reads `body.data` + runs the step-4 shape check. It does **not** hold verbatim for RFC-010: `services/catalogVersionPoll.ts:76-77` reads `body.version` directly — RFC-010's reference impl is **flat (un-wrapped), not `data`-wrapped**. RFC-010 is therefore **grandfathered**, not retroactively conformant: its flat `{version, url}` shape is a pre-envelope precedent and is fine to keep as-is until it next changes, at which point it should migrate to the `data` wrapper. New consumers MUST use the `data` wrapper from day one; only RFC-010 is exempt.
+>
+> Separately, **RFC-016's own doc disagrees with its shipped hook** and should be annotated/fixed: the merged RFC-016 doc shows a flat `{version, updated_at, rows}` shape and "no auth, public", but the shipped hook reads `body.data` **and sends a `Bearer` token**. The deployed code (this RFC's contract: `data`-wrapped + Bearer) is the source of truth; RFC-016's doc text is stale and should be reconciled to match (`body.data` + Bearer required), or annotated to point here.
 
 ### Endpoint conventions
 
@@ -89,17 +93,17 @@ The 404-on-missing-row behaviour is what the shipped backend does (`homeConfigSe
 
 ### Client-side polling contract
 
-Every envelope-consuming client (mobile / web / TV) MUST implement the following behaviour. The pattern is what RFC-010 (`services/catalogVersionPoll.ts`) and RFC-016 (`hooks/useRemoteHomeConfig.ts`) already implement.
+Every envelope-consuming client (mobile / web / TV) MUST implement the following behaviour. The pattern is what RFC-010 (`services/catalogVersionPoll.ts`) and RFC-016 (`hooks/useRemoteHomeConfig.ts`) already implement — with the one wire-shape caveat that RFC-010 reads the payload **flat** (`body.version`) rather than `data`-wrapped (see the conformance-scope note above); the polling *behaviour* below is identical across both.
 
 1. **Cold-start read order:** local cache → render → fetch → if `server.version > cache.version`, update cache + re-render.
-2. **Foreground refresh:** debounced. On `AppState 'active'` transition, fetch IFF more than 5 minutes since the last successful fetch.
+2. **Foreground refresh:** debounced. On `AppState 'active'` transition, fetch IFF more than 5 minutes since the last fetch **attempt**. (Both shipped impls debounce on the last *attempt*, not the last *successful* fetch — a failed fetch still resets the debounce timer, which is the correct behaviour: it prevents a retry storm against a flapping backend.)
 3. **Timeout:** 1500 ms on the network request. AbortController + timer.
 4. **Shape validation (do not skip):** after `res.json()`, unwrap `body.data` and validate it before trusting any field. Reject (treat as fail-open) if `data` is absent, `data.version` is not a `number`, or the feature payload is not the expected type (e.g. `Array.isArray(data.rows)` for the home-config seam). Never feed an unvalidated `res.json()` into the cache or the render path. This mirrors what `useRemoteHomeConfig.ts` does (`const next = body.data; if (!next || typeof next.version !== 'number' || !Array.isArray(next.rows)) return;`) and the validation requirement the RFC-015 review (PR #286) established for fork-facing payloads — the server is trusted-but-versioned, not infallible, and a malformed write must not poison the cache.
 5. **Fail-open:** any non-`2xx` response, network error, timeout, or shape-validation failure (step 4) → silently keep the cached (or bundled) value. No retry storm.
 6. **Version comparison:** `server.version > cache.version`. NOT `!==` (a backend rollback should not clobber a newer client cache for the rest of the session; the cache-control TTL bounds the staleness either way).
-7. **Bundled fallback:** every envelope MUST have a bundled-in-binary fallback (the constant that the seam originally replaced). Cache missing AND network down on first launch → use the bundled value. This is what makes RFC-016's offline-first claim load-bearing.
+7. **Bundled fallback:** every envelope MUST have a bundled-in-binary fallback (the constant that the seam originally replaced). Cache missing AND network down on first launch → use the bundled value. This is what makes RFC-016's offline-first claim load-bearing. Note this is a **two-level chain** for the home-config seam: `branding.homeRowConfig ?? DEFAULT_HOME_ROW_CONFIG`. The **guaranteed** layer is the upstream `DEFAULT_HOME_ROW_CONFIG` constant — `branding.homeRowConfig` is the per-fork override and may be `undefined` (it is on Bayaan), so the upstream default is the one that must always be present. A consumer that only checks the `branding` layer would render nothing on a fork that leaves the override unset; the contract is "fall through to the upstream default", not "fall through to the branding override".
 
-Reference implementations live at `services/catalogVersionPoll.ts` (RFC-010) and the shipped `hooks/useRemoteHomeConfig.ts` (RFC-016) — both unwrap `body.data` and run the step-4 shape check before touching the cache. New consumers should copy the structure, not refactor it into a generic hook factory — the per-seam types and cache key are clearer inline than abstracted.
+Reference implementations live at `services/catalogVersionPoll.ts` (RFC-010, **flat** `body.version` — grandfathered pre-envelope shape) and the shipped `hooks/useRemoteHomeConfig.ts` (RFC-016, **`data`-wrapped** — the conformant reference) — the RFC-016 hook unwraps `body.data` and runs the step-4 shape check before touching the cache. New consumers should copy the **RFC-016 hook's** structure (`data`-wrapped), not RFC-010's flat shape, and not refactor it into a generic hook factory — the per-seam types and cache key are clearer inline than abstracted.
 
 ### Platform-parity rule
 
@@ -175,7 +179,7 @@ Rejected per RFC-016 alternative C: home row order and the candidate future seam
 
 ## How we'll know it worked
 
-- The next server-driven config RFC (likely RFC-018 — Listen-tab top slot variant, or RFC-019 — search-filter dimensions) cites this RFC in its "Wire format" section and is ≤ 2 pages shorter as a result.
+- The next server-driven config RFC (e.g. a Listen-tab top slot variant, or search-filter dimensions) cites this RFC in its "Wire format" section and is ≤ 2 pages shorter as a result.
 - A cross-platform review of `services/catalogVersionPoll.ts` (mobile) and the web equivalent shows structurally identical timeout / debounce / fail-open code modulo platform primitives.
 - No future RFC reopens the `?platform=` debate without explicit reference to this RFC's [When to revisit](#platform-parity-rule) section.
 
