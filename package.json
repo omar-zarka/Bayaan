@@ -39,11 +39,7 @@
     "build:prod:ios": "eas build --profile production --platform ios"
   },
   "jest": {
-    "preset": "jest-expo",
-    "testPathIgnorePatterns": [
-      "/node_modules/",
-      "<rootDir>/utils/__tests__/storageAnalytics.test.ts"
-    ]
+    "preset": "jest-expo"
   },
   "dependencies": {
     "@babel/runtime": "^7.20.6",
