@@ -52,7 +52,16 @@ class TimestampFetchService {
    * "no local coverage", NOT "all surahs" — membership is exact.
    */
   private localSurahs(rewayatId: string): number[] {
-    return branding.timestampLocalSurahList?.(rewayatId) ?? [];
+    // Guard the fork-supplied provider exactly like the `timestampLocalProvider`
+    // data path below: a throwing `timestampLocalSurahList` must not propagate
+    // into the follow-along UI — guarding fork-supplied code is the whole point
+    // of the seam, and leaving the coverage path unguarded while the data path
+    // is wrapped is an inconsistent asymmetry.
+    try {
+      return branding.timestampLocalSurahList?.(rewayatId) ?? [];
+    } catch {
+      return [];
+    }
   }
 
   /**
@@ -83,7 +92,17 @@ class TimestampFetchService {
   hasSurah(rewayatId: string, surahNumber: number): boolean {
     // RFC-019 local coverage: exact allow-list, no `has_timestamps` gate.
     if (this.localSurahs(rewayatId).includes(surahNumber)) return true;
-    const rw = this.findRewayat(rewayatId);
+    return this.r2HasSurah(this.findRewayat(rewayatId), surahNumber);
+  }
+
+  /**
+   * R2-only surah coverage — the unchanged pre-RFC-019 behavior: gate on
+   * `has_timestamps`, treat an absent/empty `timestamps_surah_list` as "all
+   * surahs". Split out so `fetchAndCache` can evaluate the R2 path from an
+   * already-resolved local-coverage list without invoking the local provider a
+   * second time.
+   */
+  private r2HasSurah(rw: Rewayat | undefined, surahNumber: number): boolean {
     if (!rw?.has_timestamps) return false;
     if (!rw.timestamps_surah_list || rw.timestamps_surah_list.length === 0) {
       return true;
@@ -102,7 +121,11 @@ class TimestampFetchService {
     // TimestampService's SQLite step — no network. When unset, both `?? null`
     // coalesces short-circuit and this block is inert (byte-equivalent to
     // today).
-    if (this.localSurahs(rewayatId).includes(surahNumber)) {
+    // Resolve the fork's local coverage once; reused for both the local-wins
+    // branch and the R2 guard below so `timestampLocalSurahList` is invoked a
+    // single time per call (the provider is contracted side-effect-free).
+    const localList = this.localSurahs(rewayatId);
+    if (localList.includes(surahNumber)) {
       const local =
         branding.timestampLocalProvider?.(rewayatId, surahNumber) ?? null;
       // Same first-element shape probe the R2 path runs (added in the RFC-015
@@ -115,6 +138,10 @@ class TimestampFetchService {
         local.length > 0 &&
         isAyahTimestampShape(local[0])
       ) {
+        // NOTE (fork authors): a `'local'`-sourced surah is immutable once
+        // cached — `isSurahCached` keys on (rewayat, surah) and ignores
+        // `source`, so a subsequently shipped/updated bundle won't be picked up
+        // until the timestamp cache is reset.
         await timestampDatabaseService.writeTimestamps(
           rewayatId,
           surahNumber,
@@ -127,7 +154,16 @@ class TimestampFetchService {
       // path rather than caching garbage.
     }
 
-    if (!this.hasSurah(rewayatId, surahNumber)) return null;
+    // Proceed to R2 when the local list claimed this surah (retry after a
+    // malformed local payload) or R2 itself covers it. Reuses `localList` and
+    // the extracted R2 check instead of `hasSurah`, which would re-invoke the
+    // local provider.
+    if (
+      !localList.includes(surahNumber) &&
+      !this.r2HasSurah(this.findRewayat(rewayatId), surahNumber)
+    ) {
+      return null;
+    }
 
     const padded = String(surahNumber).padStart(3, '0');
     const url = `${R2_BASE}/${rewayatId}/${padded}.json`;
