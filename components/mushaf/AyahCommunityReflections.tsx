@@ -79,17 +79,41 @@ export function AyahCommunityReflections({
   surahNumber,
   ayahNumber,
 }: AyahCommunityReflectionsProps) {
+  // Static module constants only — NO hook. On Bayaan (neither the render slot
+  // nor the provider is wired) this returns before any Zustand subscription, so
+  // a recycling FlashList verse row pays nothing per render. Rules-of-hooks
+  // forbids reordering the toggle hook after this gate in-place, so the hook
+  // lives in the fork-only inner component below.
+  if (!branding.ayahCommunityReflectionsComponent) return null;
+  if (!branding.communityReflectionsProvider) return null;
+
+  return (
+    <AyahCommunityReflectionsSlot
+      surahNumber={surahNumber}
+      ayahNumber={ayahNumber}
+    />
+  );
+}
+
+AyahCommunityReflections.displayName = 'AyahCommunityReflections';
+
+/**
+ * Fork-only inner: reached solely when a fork has wired BOTH the render slot
+ * and the provider, so the opt-in toggle subscription here is paid only by
+ * forks that actually ship the feature — never by stock Bayaan.
+ */
+function AyahCommunityReflectionsSlot({
+  surahNumber,
+  ayahNumber,
+}: AyahCommunityReflectionsProps) {
   const showCommunityReflections = useMushafSettingsStore(
     s => s.showCommunityReflections,
   );
 
+  // The outer guard already proved this is defined; re-read for the typed
+  // render and narrow.
   const SlotComponent = branding.ayahCommunityReflectionsComponent;
-
-  // Bayaan default: no component wired → free no-op. Also gated on the
-  // provider being present (a fork could ship a component but no data) and
-  // the user's opt-in toggle.
   if (!SlotComponent) return null;
-  if (!branding.communityReflectionsProvider) return null;
   if (!showCommunityReflections) return null;
 
   return (
@@ -98,5 +122,3 @@ export function AyahCommunityReflections({
     </SilentReflectionsBoundary>
   );
 }
-
-AyahCommunityReflections.displayName = 'AyahCommunityReflections';

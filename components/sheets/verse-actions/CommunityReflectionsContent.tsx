@@ -39,7 +39,6 @@ import type {CommunityReflection} from '@/types/CommunityReflection';
 interface CommunityReflectionsContentProps {
   surahNumber: number;
   ayahNumber: number;
-  onBack: () => void;
 }
 
 type FetchState =
@@ -143,6 +142,9 @@ function ReflectionRow({reflection, styles, theme}: ReflectionRowProps) {
 
   return (
     <Pressable
+      accessibilityRole="link"
+      accessibilityLabel={`Open ${reflection.author.name}'s reflection on QuranReflect`}
+      disabled={!reflection.url}
       style={({pressed}) => [
         styles.reflectionCard,
         pressed && styles.reflectionCardPressed,
@@ -156,7 +158,7 @@ function ReflectionRow({reflection, styles, theme}: ReflectionRowProps) {
           <Feather
             name="check-circle"
             size={moderateScale(12)}
-            color={theme.colors.primary}
+            color={Color(theme.colors.text).alpha(0.6).toString()}
           />
         )}
       </View>

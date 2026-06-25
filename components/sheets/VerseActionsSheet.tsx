@@ -631,7 +631,6 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                   <CommunityReflectionsContent
                     surahNumber={surahNumber}
                     ayahNumber={ayahNumber}
-                    onBack={handleBack}
                   />
                 )}
               </View>
