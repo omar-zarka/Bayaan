@@ -68,7 +68,7 @@ import {moderateScale} from 'react-native-size-matters';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {HAFS_REWAYAT_NAME} from '@/data/rewayat';
 import {useNavigation} from 'expo-router';
-import {useHeaderHeight} from '@react-navigation/elements';
+import {useHeaderHeight} from 'expo-router/react-navigation';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {reciterShareUrl, shareUrl} from '@/utils/shareUtils';
 import branding from '@/config/branding';
@@ -1005,11 +1005,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   if (!reciter) {
     return (
       <SafeAreaView style={styles.container}>
-        <StatusBar
-          style={theme.isDarkMode ? 'light' : 'dark'}
-          translucent
-          backgroundColor="transparent"
-        />
+        <StatusBar style={theme.isDarkMode ? 'light' : 'dark'} />
         <LoadingIndicator />
       </SafeAreaView>
     );
@@ -1017,11 +1013,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        style={theme.isDarkMode ? 'light' : 'dark'}
-        translucent
-        backgroundColor="transparent"
-      />
+      <StatusBar style={theme.isDarkMode ? 'light' : 'dark'} />
       {/* Main content — always mounted to preserve pager scroll position */}
       <View style={{flex: 1}} pointerEvents={showSearch ? 'none' : 'auto'}>
         <>
