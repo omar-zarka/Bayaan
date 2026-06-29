@@ -41,7 +41,7 @@ import {useFavoriteReciters} from '@/hooks/useFavoriteReciters';
 import {
   useDownloadQueries,
   useDownloadActions,
-  useDownloads,
+  useAreAllSurahsDownloaded,
 } from '@/services/player/store/downloadSelectors';
 import {downloadSurah} from '@/services/downloadService';
 import {bulkDownloadSurahs} from '@/services/player/bulkDownloadSurahs';
@@ -357,10 +357,23 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   // @ai-start
   const {setDownloading, clearDownloading, addDownload, setDownloadProgress} =
     useDownloadActions();
-  const downloads = useDownloads();
   const [isDownloadingAll, setIsDownloadingAll] = useState(false);
   const [downloadAllProgress, setDownloadAllProgress] = useState(0);
   const downloadAllCancelledRef = useRef(false);
+  // Tracks mount state so a long batch's deferred setState/Alert never fire
+  // after the screen is gone; the in-flight ref also closes the same-frame
+  // double-tap window that React state alone leaves open.
+  const isMountedRef = useRef(true);
+  const downloadAllInFlightRef = useRef(false);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      // Signal any in-flight batch to stop when the user leaves the screen.
+      downloadAllCancelledRef.current = true;
+    };
+  }, []);
   // @ai-end
   const {startNewChain} = useRecentlyPlayedStore();
   const {reciterPreferences, setReciterPreference} = useSettings();
@@ -588,26 +601,27 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   ]);
 
   // @ai-start
-  // Derived from `downloads` (not the query selectors) so it recomputes as
-  // items complete; mirrors the store's isDownloadedWithRewayat semantics.
-  const allDownloaded = useMemo(() => {
-    if (!selectedRewayat || filteredSurahs.length === 0) return false;
-    return filteredSurahs.every(s =>
-      downloads.some(
-        d =>
-          d.reciterId === currentReciterId &&
-          d.surahId === s.id.toString() &&
-          d.rewayatId === selectedRewayat.id &&
-          d.status === 'completed',
-      ),
-    );
-  }, [filteredSurahs, selectedRewayat, currentReciterId, downloads]);
+  // Subscribe through a primitive-returning store selector so this (heavy)
+  // screen only re-renders when the boolean flips — not on every mutation of
+  // the downloads array (single-surah downloads, removals, each batch item).
+  const surahIdsForRewayat = useMemo(
+    () => filteredSurahs.map(s => s.id.toString()),
+    [filteredSurahs],
+  );
+  const allDownloaded = useAreAllSurahsDownloaded(
+    currentReciterId,
+    surahIdsForRewayat,
+    selectedRewayat?.id,
+  );
 
   const handleDownloadAll = useCallback(async () => {
     if (!reciter || !selectedRewayat) return;
 
-    // A second tap while a batch is running requests cancellation.
-    if (isDownloadingAll) {
+    // A tap while a batch is in flight requests cancellation. Read the ref
+    // (not `isDownloadingAll` state) so a rapid second tap in the same frame
+    // is caught before the setIsDownloadingAll(true) re-render lands, which
+    // otherwise lets two concurrent batches start.
+    if (downloadAllInFlightRef.current) {
       downloadAllCancelledRef.current = true;
       return;
     }
@@ -622,6 +636,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
       return;
     }
 
+    downloadAllInFlightRef.current = true;
     downloadAllCancelledRef.current = false;
     setIsDownloadingAll(true);
     setDownloadAllProgress(0);
@@ -647,11 +662,19 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
           setDownloadProgress,
         },
         {
-          onProgress: (completed, total) =>
-            setDownloadAllProgress(total > 0 ? completed / total : 1),
-          isCancelled: () => downloadAllCancelledRef.current,
+          onProgress: (completed, total) => {
+            // Skip progress writes once the screen is gone.
+            if (!isMountedRef.current) return;
+            setDownloadAllProgress(total > 0 ? completed / total : 1);
+          },
+          isCancelled: () =>
+            downloadAllCancelledRef.current || !isMountedRef.current,
         },
       );
+
+      // Don't surface result alerts on an unrelated screen if the user
+      // navigated away from the reciter profile mid-batch.
+      if (!isMountedRef.current) return;
 
       if (summary.cancelled) {
         Alert.alert(
@@ -671,17 +694,21 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
       }
     } catch (error) {
       console.error('Error downloading all surahs:', error);
-      Alert.alert('Download Error', 'Some downloads may have failed.');
+      if (isMountedRef.current) {
+        Alert.alert('Download Error', 'Some downloads may have failed.');
+      }
     } finally {
-      setIsDownloadingAll(false);
-      setDownloadAllProgress(0);
+      downloadAllInFlightRef.current = false;
       downloadAllCancelledRef.current = false;
+      if (isMountedRef.current) {
+        setIsDownloadingAll(false);
+        setDownloadAllProgress(0);
+      }
     }
   }, [
     reciter,
     selectedRewayat,
     filteredSurahs,
-    isDownloadingAll,
     allDownloaded,
     isDownloaded,
     isDownloadedWithRewayat,
