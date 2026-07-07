@@ -1,4 +1,4 @@
-# RFC-017: composable Search filter experience
+# RFC-020: composable Search filter experience
 
 | Field  | Value                                              |
 | ------ | -------------------------------------------------- |
@@ -50,7 +50,7 @@ This is recommended over a per-tenant component slot (RFC-012's Option B): a sha
 
 The Search tab does not open onto a wall of filter controls. It **rests on the curated browse page** and reveals the filter composer only on a deliberate action.
 
-![Search tab: resting vs composing](./assets/017-search-filter-states.svg)
+![Search tab: resting vs composing](./assets/020-search-filter-states.svg)
 
 **Resting state** (the Search tab's landing): the existing curated content — Collections plus a "Browse" grid of category cards (Country, Rewaya, Reciters, Surahs …) each showing a live count. No filter UI is visible; today's browse mental model is preserved.
 
@@ -66,7 +66,7 @@ In the compose state each active filter is a chip with a visible remove affordan
 | Question (RFC-012 open Q) | Decision |
 | --- | --- |
 | Single- vs multi-value per dimension (Q1) | **Single value per dimension** in v1. Multi-value (OR *within* a dimension) is a usage-gated follow-up. |
-| How dimensions combine | **AND across dimensions** (intersection): Country=Algeria *and* Rewaya=Hafs. *(Corrects RFC-012 Q1's "OR-across-dims" wording — composing different dimensions is naturally an intersection.)* |
+| How dimensions combine | **AND across dimensions** (intersection): Country=Algeria *and* Rewaya=Hafs — composing different dimensions narrows the set. Multi-value OR *within* a single dimension is a deferred follow-up (see Q1). |
 | Chip ordering (Q2) | **Declaration order** of `branding.searchFilters` — tenant-controlled. |
 | Reciter- vs recitation-result rows (Q3) | Result rows switch on `has-surah`: when active, rows are `(reciter, rewaya)` recitation tuples; otherwise reciter cards. |
 | Deeplink / URL behavior (Q4) | **URL-as-state via `router.setParams`** (in-place, not `push`) — deeplinks stay shareable; the back stack isn't polluted by chip edits. |
