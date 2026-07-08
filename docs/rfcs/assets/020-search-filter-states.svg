@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 470" font-family="Helvetica, Arial, sans-serif">
   <rect x="0" y="0" width="740" height="470" rx="10" fill="#f7f6f2"/>
 
-  <!-- ============ Panel A — Resting (curated browse) ============ -->
+  <!-- ============ Panel A — Resting (Browse chips + curated Collections) ============ -->
   <rect x="40" y="28" width="300" height="382" rx="26" fill="#ffffff" stroke="#d8d6cf" stroke-width="2"/>
   <text x="62" y="66" font-size="17" font-weight="700" fill="#2a2a2a">Search</text>
 
@@ -11,33 +11,36 @@
   <line x1="84" y1="101" x2="88" y2="105" stroke="#a8a69c" stroke-width="1.5"/>
   <text x="96" y="101" font-size="12" fill="#9a988f">Search reciters &amp; surahs</text>
 
-  <text x="62" y="140" font-size="11" font-weight="700" fill="#8a887f" letter-spacing="1">BROWSE</text>
-  <!-- 2x2 cards with counts -->
+  <!-- BROWSE — filter dimensions as horizontally-scrollable chips -->
+  <text x="62" y="144" font-size="11" font-weight="700" fill="#8a887f" letter-spacing="1">BROWSE</text>
+  <text x="318" y="144" font-size="10" fill="#a8a69c" text-anchor="end">filters · scroll ›</text>
   <g>
-    <rect x="62"  y="150" width="122" height="64" rx="12" fill="#f4f3ee" stroke="#e6e4dc"/>
-    <text x="74" y="176" font-size="12.5" font-weight="600" fill="#3a3a3a">Country</text>
-    <text x="74" y="198" font-size="15" font-weight="700" fill="#6a6862">27</text>
+    <rect x="62" y="154" width="86" height="30" rx="15" fill="#f0efe9" stroke="#e4e2da"/>
+    <text x="75" y="173" font-size="11.5"><tspan fill="#3a3a3a" font-weight="600">Country</tspan> <tspan fill="#9a988f" font-weight="700">27</tspan></text>
 
-    <rect x="196" y="150" width="122" height="64" rx="12" fill="#f4f3ee" stroke="#e6e4dc"/>
-    <text x="208" y="176" font-size="12.5" font-weight="600" fill="#3a3a3a">Rewaya</text>
-    <text x="208" y="198" font-size="15" font-weight="700" fill="#6a6862">13</text>
+    <rect x="156" y="154" width="80" height="30" rx="15" fill="#f0efe9" stroke="#e4e2da"/>
+    <text x="169" y="173" font-size="11.5"><tspan fill="#3a3a3a" font-weight="600">Rewaya</tspan> <tspan fill="#9a988f" font-weight="700">13</tspan></text>
 
-    <rect x="62"  y="224" width="122" height="64" rx="12" fill="#f4f3ee" stroke="#e6e4dc"/>
-    <text x="74" y="250" font-size="12.5" font-weight="600" fill="#3a3a3a">Reciters</text>
-    <text x="74" y="272" font-size="15" font-weight="700" fill="#6a6862">67</text>
-
-    <rect x="196" y="224" width="122" height="64" rx="12" fill="#f4f3ee" stroke="#e6e4dc"/>
-    <text x="208" y="250" font-size="12.5" font-weight="600" fill="#3a3a3a">Surahs</text>
-    <text x="208" y="272" font-size="15" font-weight="700" fill="#6a6862">114</text>
+    <rect x="244" y="154" width="88" height="30" rx="15" fill="#f0efe9" stroke="#e4e2da"/>
+    <text x="257" y="173" font-size="11.5"><tspan fill="#3a3a3a" font-weight="600">Paradise</tspan> <tspan fill="#9a988f" font-weight="700">8</tspan></text>
   </g>
 
-  <text x="62" y="312" font-size="11" font-weight="700" fill="#8a887f" letter-spacing="1">COLLECTIONS</text>
-  <rect x="62" y="320" width="256" height="26" rx="8" fill="#f4f3ee"/>
-  <text x="74" y="337" font-size="12" fill="#57554e">Morning reflections</text>
-  <rect x="62" y="352" width="256" height="26" rx="8" fill="#f4f3ee"/>
-  <text x="74" y="369" font-size="12" fill="#57554e">Stories of the prophets</text>
+  <!-- COLLECTIONS — curated, manual, static cards -->
+  <text x="62" y="222" font-size="11" font-weight="700" fill="#8a887f" letter-spacing="1">COLLECTIONS</text>
+  <text x="318" y="222" font-size="10" fill="#a8a69c" text-anchor="end">curated · manual</text>
+  <rect x="62" y="232" width="122" height="62" rx="12" fill="#f4f3ee" stroke="#e6e4dc"/>
+  <text x="74" y="258" font-size="11.5" font-weight="700" fill="#3a3a3a">Morning</text>
+  <text x="74" y="273" font-size="11.5" font-weight="700" fill="#3a3a3a">reflections</text>
+  <text x="74" y="288" font-size="10" fill="#9a988f">6 surahs</text>
 
-  <text x="190" y="436" font-size="11.5" fill="#6a6862" text-anchor="middle">Rests on curated browse — no filters shown</text>
+  <rect x="196" y="232" width="122" height="62" rx="12" fill="#f4f3ee" stroke="#e6e4dc"/>
+  <text x="208" y="258" font-size="11.5" font-weight="700" fill="#3a3a3a">Quick listen</text>
+  <text x="208" y="288" font-size="10" fill="#9a988f">6 surahs</text>
+
+  <text x="62" y="326" font-size="10.5" fill="#9a988f">Hand-picked &amp; static — not part</text>
+  <text x="62" y="341" font-size="10.5" fill="#9a988f">of the composable filters.</text>
+
+  <text x="190" y="436" font-size="11.5" fill="#6a6862" text-anchor="middle">Browse = filter chips · Collections = static</text>
 
   <!-- ============ Panel B — Composing (editable chips) ============ -->
   <rect x="400" y="28" width="300" height="382" rx="26" fill="#ffffff" stroke="#d8d6cf" stroke-width="2"/>
@@ -85,5 +88,5 @@
     <text x="644" y="336" font-size="11" fill="#6a6862" text-anchor="middle">Hafs</text>
   </g>
 
-  <text x="550" y="436" font-size="11.5" fill="#6a6862" text-anchor="middle">Reveals editable chips on search / browse-card tap</text>
+  <text x="550" y="436" font-size="11.5" fill="#6a6862" text-anchor="middle">Reveals editable chips on search / Browse-chip tap</text>
 </svg>

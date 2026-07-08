@@ -52,11 +52,16 @@ The Search tab does not open onto a wall of filter controls. It **rests on the c
 
 ![Search tab: resting vs composing](./assets/020-search-filter-states.svg)
 
-**Resting state** (the Search tab's landing): the existing curated content — Collections plus a "Browse" grid of category cards (Country, Rewaya, Reciters, Surahs …) each showing a live count. No filter UI is visible; today's browse mental model is preserved.
+**Resting state** (the Search tab's landing) has two deliberately distinct regions:
+
+- **Browse** — the filter *dimensions* themselves, surfaced as a horizontally-scrollable row of **chips** (Country, Rewaya, Reciters, Surahs, … each with a live count). A chip is the on-ramp into the composer for that dimension. This is the only region `searchFilters` governs.
+- **Collections** — curated, editorially-chosen lists (system playlists, themed sets). These are **manual and static**: tapping one opens its fixed list, unaffected by any filter. They deliberately sit **outside** the composable-filter model.
+
+No filter *controls* are open at rest, so today's browse mental model is preserved. The split matters: it keeps "compose a query" (Browse) and "open a hand-picked list" (Collections) as two separate mental models sharing one landing, rather than blurring editorial content into the filter system.
 
 **Compose state** (revealed, never the default): the chip composer + live results, opened by exactly one of:
 1. **Tapping the search bar** → empty composer, free-text + "Add a filter".
-2. **Tapping a Browse category card** → composer with that dimension's value picker open.
+2. **Tapping a Browse chip** → composer with that dimension's value picker open.
 3. **Arriving via a "Browse by X" deeplink** (`/(tabs)/(b.search)/reciter?country=algeria`) → composer with that filter **pre-applied and removable**.
 
 In the compose state each active filter is a chip with a visible remove affordance; an "Add a filter" control opens the dimension palette; results update live below. Re-entering the Search tab resets to the resting state, so a stale filter never persists across visits.
@@ -72,7 +77,7 @@ In the compose state each active filter is a chip with a visible remove affordan
 | Deeplink / URL behavior (Q4) | **URL-as-state via `router.setParams`** (in-place, not `push`) — deeplinks stay shareable; the back stack isn't polluted by chip edits. |
 | Chip ergonomics (Q5) | Active chips render **inline** (wrap is fine — count is bounded by the dim list); value **selection** happens in a sheet/modal. |
 
-**Live counts** on category cards and result headers; an empty combination shows an explicit empty state ("No reciters match Country: X + Rewaya: Y") rather than vanishing, so the user can see which filter to relax.
+**Live counts** on Browse chips and result headers; an empty combination shows an explicit empty state ("No reciters match Country: X + Rewaya: Y") rather than vanishing, so the user can see which filter to relax.
 
 ### 4. Browse-by-X becomes a deeplink, not a screen
 
@@ -89,6 +94,7 @@ The carousel/grid entry points stay; only their destination changes — from a f
 
 - `BrowseReciters.tsx` filtering predicates and grid/flat-list rendering.
 - Home/Listen-tab row gating (`branding.homeRowConfig`, RFC-007).
+- **Curated collections stay manual.** `searchFilters` governs the reciter *filter* dimensions only. Curated/editorial content — system playlists, themed collections — remains static and is never composed by chips. The two regions coexist on the Search landing but are separate systems; this RFC does not touch collections.
 - Bayaan with `searchFilters` undefined: byte-for-byte today's behavior.
 
 ## Alternatives considered
