@@ -94,7 +94,7 @@ export const PlayerSheet = () => {
 
   // Effect to handle sleep timer remaining time
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (settings.sleepTimerEnd) {
       interval = setInterval(() => {
         // Calculate remaining time based on the end timestamp
