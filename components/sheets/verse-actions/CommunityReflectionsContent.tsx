@@ -64,6 +64,9 @@ export const CommunityReflectionsContent: React.FC<
     }
     let cancelled = false;
     setState({kind: 'loading'});
+    // `locale` is intentionally omitted: stock Bayaan has no reliable BCP-47
+    // source (translation-edition ids don't map to language tags), so we lean
+    // on the contract's `undefined → provider's own default`.
     provider(surahNumber, ayahNumber)
       .then(data => {
         if (cancelled) return;
@@ -136,15 +139,18 @@ interface ReflectionRowProps {
 }
 
 function ReflectionRow({reflection, styles, theme}: ReflectionRowProps) {
+  // Community-authored URL supplied by a fork's provider — only web schemes
+  // may reach Linking.openURL (blocks intent://, javascript:, file:, …).
+  const isWebUrl = /^https?:\/\//i.test(reflection.url);
   const handleOpen = useCallback(() => {
-    if (reflection.url) Linking.openURL(reflection.url);
-  }, [reflection.url]);
+    if (isWebUrl) Linking.openURL(reflection.url);
+  }, [isWebUrl, reflection.url]);
 
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`Open ${reflection.author.name}'s reflection on QuranReflect`}
-      disabled={!reflection.url}
+      accessibilityLabel={`Open ${reflection.author.name}'s reflection`}
+      disabled={!isWebUrl}
       style={({pressed}) => [
         styles.reflectionCard,
         pressed && styles.reflectionCardPressed,
