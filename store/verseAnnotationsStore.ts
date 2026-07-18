@@ -4,12 +4,20 @@ import type {HighlightColor} from '@/types/verse-annotations';
 
 interface VerseAnnotationsState {
   loadedSurah: number | null;
+  /**
+   * Cache key for the loaded surah set (e.g. '1' or '112,113,114' — sorted,
+   * comma-joined). Multi-surah loads exist because a single mushaf page can
+   * span several surahs (the norm in Juz 'Amma); a per-surah cache would
+   * blind the page renderer to bookmarks in the page's later surahs. @ai
+   */
+  loadedKey: string | null;
   bookmarkedVerseKeys: Set<string>;
   notedVerseKeys: Set<string>;
   highlights: Record<string, HighlightColor>;
   loading: boolean;
 
   loadAnnotationsForSurah: (surahNumber: number) => Promise<void>;
+  loadAnnotationsForSurahs: (surahNumbers: number[]) => Promise<void>;
 
   // Optimistic mutations
   addBookmark: (verseKey: string) => void;
@@ -25,44 +33,84 @@ interface VerseAnnotationsState {
   getHighlightColor: (verseKey: string) => HighlightColor | null;
 }
 
+// @ai — serializes loads instead of dropping them. The old
+// `if (loading) return` guard silently discarded the second caller's surah
+// set when two surfaces raced (e.g. ContinuousMushafView's per-surah load vs
+// main.tsx's page-level multi-surah load), leaving the store on the wrong key.
+let inFlightLoad: Promise<void> | null = null;
+
 export const useVerseAnnotationsStore = create<VerseAnnotationsState>()(
   (set, get) => ({
     loadedSurah: null,
+    loadedKey: null,
     bookmarkedVerseKeys: new Set<string>(),
     notedVerseKeys: new Set<string>(),
     highlights: {},
     loading: false,
 
     loadAnnotationsForSurah: async (surahNumber: number) => {
-      const state = get();
-      if (state.loading || state.loadedSurah === surahNumber) return;
+      // Subset no-op: if this surah is already part of the loaded set (a
+      // page-level multi-surah load), don't narrow the store back down to
+      // one surah — that would unpaint sibling-surah bookmarks. @ai
+      const key = get().loadedKey;
+      if (key && key.split(',').some(s => Number(s) === surahNumber)) return;
+      await get().loadAnnotationsForSurahs([surahNumber]);
+    },
 
-      set({loading: true});
+    loadAnnotationsForSurahs: async (surahNumbers: number[]) => {
+      const surahs = [...new Set(surahNumbers)].sort((a, b) => a - b);
+      if (surahs.length === 0) return;
+      const key = surahs.join(',');
+      if (get().loadedKey === key) return;
 
+      // Wait out any in-flight load, then re-check — the load we waited on
+      // may have populated this exact key.
+      while (inFlightLoad) {
+        await inFlightLoad;
+      }
+      if (get().loadedKey === key) return;
+
+      const load = (async () => {
+        set({loading: true});
+
+        try {
+          const results = await Promise.all(
+            surahs.map(n => verseAnnotationService.getAnnotationsForSurah(n)),
+          );
+
+          const bookmarkedVerseKeys = new Set<string>();
+          const notedVerseKeys = new Set<string>();
+          const highlightsRecord: Record<string, HighlightColor> = {};
+          for (const {bookmarks, notes, highlights} of results) {
+            bookmarks.forEach(b => bookmarkedVerseKeys.add(b.verseKey));
+            notes.forEach(n => notedVerseKeys.add(n.verseKey));
+            highlights.forEach(h => {
+              highlightsRecord[h.verseKey] = h.color;
+            });
+          }
+
+          set({
+            loadedSurah: surahs[0],
+            loadedKey: key,
+            bookmarkedVerseKeys,
+            notedVerseKeys,
+            highlights: highlightsRecord,
+            loading: false,
+          });
+        } catch (error) {
+          console.error(
+            '[VerseAnnotationsStore] Failed to load annotations:',
+            error,
+          );
+          set({loading: false});
+        }
+      })();
+
+      inFlightLoad = load;
       try {
-        const {bookmarks, notes, highlights} =
-          await verseAnnotationService.getAnnotationsForSurah(surahNumber);
-
-        const bookmarkedVerseKeys = new Set(bookmarks.map(b => b.verseKey));
-        const notedVerseKeys = new Set(notes.map(n => n.verseKey));
-        const highlightsRecord: Record<string, HighlightColor> = {};
-        highlights.forEach(h => {
-          highlightsRecord[h.verseKey] = h.color;
-        });
-
-        set({
-          loadedSurah: surahNumber,
-          bookmarkedVerseKeys,
-          notedVerseKeys,
-          highlights: highlightsRecord,
-          loading: false,
-        });
-      } catch (error) {
-        console.error(
-          '[VerseAnnotationsStore] Failed to load annotations:',
-          error,
-        );
-        set({loading: false});
+        await load;
+      } finally {
+        if (inFlightLoad === load) inFlightLoad = null;
       }
     },
 
