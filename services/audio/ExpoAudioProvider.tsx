@@ -225,7 +225,18 @@ export function ExpoAudioProvider({children}: ExpoAudioProviderProps) {
     }
 
     const currentState = usePlayerStore.getState().playback.state;
-    if (currentState !== state && currentState !== 'loading') {
+    // 'stopped' is a deliberate terminal state set by playerStore.stop() when
+    // the user dismisses the mini-player. The native player is only paused there
+    // (not removed — it's the persistent useAudioPlayer instance), so status
+    // ticks keep arriving and would otherwise map 'paused' and clobber the reset
+    // back to a live position/duration. Treat 'stopped' like 'loading' and don't
+    // let a status tick overwrite it; the next updateQueue()/play() moves state
+    // off 'stopped' via a direct set(), so this can't wedge.
+    if (
+      currentState !== state &&
+      currentState !== 'loading' &&
+      currentState !== 'stopped'
+    ) {
       // When main player starts playing, coordinate with mushaf player
       if (state === 'playing' && currentState !== 'playing') {
         audioCoordinator.mainWillPlay();

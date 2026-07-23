@@ -1,6 +1,7 @@
 import React, {useCallback, useMemo, useRef} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {usePathname} from 'expo-router';
+import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import {moderateScale} from 'react-native-size-matters';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
@@ -23,7 +24,7 @@ import {useResponsive} from '@/hooks/useResponsive';
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
   const {theme} = useTheme();
   const glassColorScheme = useGlassColorScheme();
-  const {play, pause} = usePlayerActions();
+  const {play, pause, stop} = usePlayerActions();
   const playbackState = usePlayerStore(state => state.playback.state);
   const queueTracks = usePlayerStore(state => state.queue.tracks);
   const currentIndex = usePlayerStore(state => state.queue.currentIndex);
@@ -64,6 +65,10 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
     }
   }, [playbackState, pause, play]);
 
+  const handleDismiss = useCallback(() => {
+    stop();
+  }, [stop]);
+
   const containerStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -100,28 +105,39 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
       {...(USE_GLASS
         ? {glassEffectStyle: 'regular' as const, colorScheme: glassColorScheme}
         : {})}>
-      <Pressable
-        onPress={handlePress}
-        style={styles.content}
-        android_ripple={{color: 'rgba(0, 0, 0, 0.1)', borderless: false}}>
-        <ReciterImage
-          reciterName={currentTrack.reciterName}
-          style={styles.artwork}
-        />
-        <View style={styles.trackInfo}>
-          <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-            {currentTrack.title}
-          </Text>
-          <Text
-            style={[styles.subtitle, {color: subtitleColor}]}
-            numberOfLines={1}>
-            {currentTrack.artist}
-          </Text>
-        </View>
+      {/* a11y — the row is a plain View, not a grouping Pressable, so the
+          play/pause + close controls are INDIVIDUALLY focusable by TalkBack /
+          VoiceOver (a wrapping `accessible` Pressable would collapse the whole
+          row into one node). The expand action lives on the inner body only. */}
+      <View style={styles.content}>
+        <Pressable
+          onPress={handlePress}
+          style={styles.body}
+          android_ripple={{color: 'rgba(0, 0, 0, 0.1)', borderless: false}}
+          accessibilityRole="button"
+          accessibilityLabel={`${currentTrack.title}, ${currentTrack.artist}`}
+          accessibilityHint="Opens the full player">
+          <ReciterImage
+            reciterName={currentTrack.reciterName}
+            style={styles.artwork}
+          />
+          <View style={styles.trackInfo}>
+            <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
+              {currentTrack.title}
+            </Text>
+            <Text
+              style={[styles.subtitle, {color: subtitleColor}]}
+              numberOfLines={1}>
+              {currentTrack.artist}
+            </Text>
+          </View>
+        </Pressable>
         <Pressable
           onPress={handlePlayPause}
           style={styles.playButton}
-          hitSlop={10}>
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={playbackState === 'playing' ? 'Pause' : 'Play'}>
           {isLoadingNewTrack ? (
             <LoadingIndicator color={theme.colors.text} />
           ) : playbackState === 'playing' ? (
@@ -133,18 +149,44 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
             <PlayIcon color={theme.colors.text} size={moderateScale(20, 0.2)} />
           )}
         </Pressable>
-      </Pressable>
+
+        <Pressable
+          onPress={handleDismiss}
+          style={styles.closeButton}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel="Close player">
+          <Feather
+            name="x"
+            size={moderateScale(16, 0.2)}
+            color={subtitleColor}
+          />
+        </Pressable>
+      </View>
     </Container>
   );
 });
 
 const styles = StyleSheet.create({
   content: {
+    // Symmetric horizontal insets (was 14) + even 12px rhythm so the play/close
+    // cluster isn't cramped against the right edge. Vertical padding is already
+    // symmetric here (the Android pill is a normal component; its bottom
+    // clearance is handled by the container's safe-area inset).
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(14, 0.2),
+    paddingHorizontal: moderateScale(16, 0.2),
     paddingVertical: moderateScale(7, 0.2),
-    gap: moderateScale(10, 0.2),
+    gap: moderateScale(12, 0.2),
+  },
+  body: {
+    // a11y — the expand-to-full-player hit target (artwork + track info).
+    // A row inside `content`; keeps the artwork|trackInfo rhythm the old
+    // 4-child `content` row had, so the layout is visually unchanged.
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: moderateScale(12, 0.2),
   },
   artwork: {
     width: moderateScale(36, 0.2),
@@ -168,6 +210,13 @@ const styles = StyleSheet.create({
   },
   playButton: {
     width: moderateScale(34, 0.2),
+    height: moderateScale(34, 0.2),
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  closeButton: {
+    width: moderateScale(32, 0.2),
     height: moderateScale(34, 0.2),
     alignItems: 'center',
     justifyContent: 'center',

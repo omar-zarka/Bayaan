@@ -75,6 +75,23 @@ class LockScreenService {
     if (__DEV__) console.log('[LockScreenService] Cleaned up');
   }
 
+  /**
+   * Deactivate the MAIN player's lock-screen / media session immediately and
+   * reset track tracking, so the next play — even of the SAME track —
+   * re-activates it. Called by playerStore.stop() when the user dismisses the
+   * mini-player. Without this, subscribeToStore never reacts to the
+   * populated->empty queue transition (its guard requires a truthy
+   * currentTrack), so the session activated earlier via clearLockScreenControls
+   * would linger and let a remote Play/Seek command resume audio with no
+   * in-app control ("ghost playback"). Leaves mushaf state untouched.
+   */
+  clearMainPlayer(): void {
+    this.clearPlayer(expoAudioService.getPlayer());
+    this.lastTrackId = null;
+    if (__DEV__)
+      console.log('[LockScreenService] Main player lock screen cleared');
+  }
+
   // ========== PRIVATE ==========
 
   private clearPlayer(player: AudioPlayer | null): void {

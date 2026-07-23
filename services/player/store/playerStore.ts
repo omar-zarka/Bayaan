@@ -46,6 +46,7 @@ export interface PlayerStoreState extends Omit<UnifiedPlayerState, 'ui'> {
   // Playback Actions
   play: () => Promise<void>;
   pause: () => Promise<void>;
+  stop: () => Promise<void>;
   skipToNext: () => Promise<void>;
   skipToPrevious: () => Promise<void>;
   seekTo: (position: number) => Promise<void>;
@@ -78,20 +79,45 @@ export interface PlayerStoreState extends Omit<UnifiedPlayerState, 'ui'> {
   cleanup: () => Promise<void>;
 }
 
+// Monotonic id for the in-flight play operation. Every loadTrackAtIndex()
+// claims a fresh id at entry; stop()/cleanup() bump it via invalidatePlayOps().
+// Without this, a stop() fired while updateQueue() (or a skip) is awaiting the
+// network re-creates ghost playback: the load's play() lands AFTER stop()'s
+// pause (audible audio, empty queue, hidden mini-player, cleared lock screen)
+// and the caller's trailing set() clobbers the 'stopped' state. loadTrackAtIndex
+// re-checks the id after each await and returns false when superseded so callers
+// skip their trailing state writes.
+let playOpId = 0;
+
+/** Invalidate any in-flight loadTrackAtIndex (see playOpId above). */
+function invalidatePlayOps(): void {
+  playOpId++;
+}
+
 /**
- * Helper to load and optionally play a track from the queue
+ * Helper to load and optionally play a track from the queue.
+ *
+ * Returns `false` when the operation was superseded mid-flight (a stop(),
+ * cleanup(), or newer load won the race) — the caller MUST skip its trailing
+ * state write in that case so the superseding action's state stands.
  */
 async function loadTrackAtIndex(
   tracks: Track[],
   index: number,
   startPosition = 0,
   autoPlay = false,
-): Promise<void> {
+): Promise<boolean> {
   const track = tracks[index];
   if (!track?.url) {
     if (__DEV__) console.warn('[PlayerStore] No track at index:', index);
-    return;
+    // Not superseded — nothing was loaded, but the caller's op is still the
+    // current one, so let it finalize its loading flags as before.
+    return true;
   }
+
+  // Claim the op: any older load still awaiting the network is now stale
+  // (last legitimate operation wins — matches the optimistic-set ordering).
+  const opId = ++playOpId;
 
   if (__DEV__)
     console.log('[PlayerStore] Loading track:', {
@@ -103,6 +129,11 @@ async function loadTrackAtIndex(
     });
 
   await expoAudioService.loadTrack(track.url);
+  if (opId !== playOpId) {
+    // stop()/cleanup() or a newer load landed while we awaited the network —
+    // do NOT seek or play; the superseding action's state is authoritative.
+    return false;
+  }
 
   if (startPosition > 0) {
     if (__DEV__)
@@ -120,12 +151,17 @@ async function loadTrackAtIndex(
   }
 
   if (autoPlay) {
+    if (opId !== playOpId) {
+      // Superseded during the seek await — same contract as above.
+      return false;
+    }
     await expoAudioService.play();
     if (__DEV__ && startPosition > 0)
       console.log('[PlayerStore] POST-PLAY state:', {
         currentTime: expoAudioService.getCurrentTime(),
       });
   }
+  return true;
 }
 
 export const usePlayerStore = create<PlayerStoreState>()(
@@ -214,6 +250,78 @@ export const usePlayerStore = create<PlayerStoreState>()(
         }
       },
 
+      // Stop playback and dismiss the mini-player. There is no native "stop"
+      // distinct from pause — `expoAudioService.pause()` is what halts audio
+      // (same call `pause()` above makes) — so this pauses, deactivates the OS
+      // media session, then clears the queue. MiniPlayer/FloatingPlayer gate
+      // their visibility on `currentTrack` (`queue.tracks[currentIndex]`), so
+      // an emptied queue hides them; the player reappears the next time
+      // something is queued and played.
+      //
+      // Why NOT remove() the native player: the main AudioPlayer is a persistent
+      // `useAudioPlayer(null)` hook instance injected once via
+      // `expoAudioService.setPlayer()` on ExpoAudioProvider mount, and
+      // `loadTrack()` reuses it via `player.replace()`. There is no re-init path
+      // in `play()`/`updateQueue()`, so `remove()`ing it would break the NEXT
+      // play. Instead we pause it and deactivate its lock-screen controls — that
+      // leaves no live media session to resume from ("ghost playback"), and
+      // `replace()` on the next play re-arms it.
+      //
+      // Deliberately narrow: playback settings (repeat/shuffle/sleep timer) and
+      // other stores (e.g. recently-played history) are left untouched — this
+      // dismisses the current track, it doesn't reset preferences.
+      stop: async () => {
+        // Invalidate any in-flight loadTrackAtIndex FIRST (synchronously,
+        // before the pause await) so a load still waiting on the network can't
+        // play() after our pause or let its caller overwrite the 'stopped'
+        // state below (close-button vs in-flight-load race).
+        invalidatePlayOps();
+        try {
+          await expoAudioService.pause();
+        } catch (error) {
+          console.error('[PlayerStore] Stop failed to pause audio:', error);
+        }
+
+        // Deactivate the main player's lock-screen / media session so there's
+        // no remote Play/Seek control left once the queue is empty. Lazy require
+        // to dodge the playerStore<->LockScreenService import cycle
+        // (LockScreenService imports usePlayerStore).
+        try {
+          const {
+            lockScreenService,
+          } = require('@/services/audio/LockScreenService');
+          lockScreenService.clearMainPlayer();
+        } catch (error) {
+          if (__DEV__)
+            console.warn('[PlayerStore] Stop lock-screen clear failed:', error);
+        }
+
+        audioCoordinator.sourceDidStop('main');
+
+        set(state => ({
+          playback: {
+            ...state.playback,
+            state: 'stopped' as StorePlaybackState,
+            position: 0,
+            duration: 0,
+            buffering: false,
+          },
+          queue: {
+            ...state.queue,
+            tracks: [],
+            currentIndex: -1,
+            total: 0,
+            loading: false,
+            endReached: false,
+          },
+          loading: {
+            ...state.loading,
+            trackLoading: false,
+            queueLoading: false,
+          },
+        }));
+      },
+
       skipToNext: async () => {
         const state = get();
         const {tracks, currentIndex} = state.queue;
@@ -264,7 +372,13 @@ export const usePlayerStore = create<PlayerStoreState>()(
 
           // Load and play the next track
           audioCoordinator.mainWillPlay();
-          await loadTrackAtIndex(tracks, nextIndex, 0, true);
+          const stillCurrent = await loadTrackAtIndex(
+            tracks,
+            nextIndex,
+            0,
+            true,
+          );
+          if (!stillCurrent) return; // superseded by stop()/a newer load
 
           set(state => ({
             playback: {
@@ -350,7 +464,13 @@ export const usePlayerStore = create<PlayerStoreState>()(
 
           // Load and play the previous track
           audioCoordinator.mainWillPlay();
-          await loadTrackAtIndex(tracks, prevIndex, 0, true);
+          const stillCurrent = await loadTrackAtIndex(
+            tracks,
+            prevIndex,
+            0,
+            true,
+          );
+          if (!stillCurrent) return; // superseded by stop()/a newer load
 
           set(state => ({
             playback: {
@@ -462,7 +582,17 @@ export const usePlayerStore = create<PlayerStoreState>()(
             currentIndex < tracks.length
           ) {
             audioCoordinator.mainWillPlay();
-            await loadTrackAtIndex(tracks, currentIndex, startPosition, true);
+            const stillCurrent = await loadTrackAtIndex(
+              tracks,
+              currentIndex,
+              startPosition,
+              true,
+            );
+            // A stop() (mini-player ✕) or newer play landed while the load
+            // awaited the network — keep ITS state; writing 'ready' here would
+            // leave audio-less 'ready' (or worse, resurrect a playing state
+            // over an emptied queue = ghost playback).
+            if (!stillCurrent) return;
           }
 
           set(state => ({
@@ -555,12 +685,16 @@ export const usePlayerStore = create<PlayerStoreState>()(
                   newCurrentIndex = tracks.length - 1;
                 }
                 if (tracks.length > 0) {
-                  await loadTrackAtIndex(
+                  const stillCurrent = await loadTrackAtIndex(
                     tracks,
                     newCurrentIndex,
                     0,
                     state.playback.state === 'playing',
                   );
+                  // Superseded by stop()/a newer load — bail before the
+                  // trailing set() below re-writes queue.tracks (that would
+                  // resurrect a queue stop() just emptied).
+                  if (!stillCurrent) return;
                 }
               }
             }
@@ -781,6 +915,8 @@ export const usePlayerStore = create<PlayerStoreState>()(
 
       // Cleanup method
       cleanup: async () => {
+        // In-flight loads must not play()/write state into a cleaned service.
+        invalidatePlayOps();
         const state = get();
         if (
           typeof state.settings.sleepTimerInterval === 'object' &&
@@ -853,7 +989,13 @@ export const updateQueue = async (tracks: Track[], targetIndex: number) => {
 
     // Load the target track
     if (tracks.length > 0 && targetIndex >= 0 && targetIndex < tracks.length) {
-      await loadTrackAtIndex(tracks, targetIndex, 0, false);
+      const stillCurrent = await loadTrackAtIndex(
+        tracks,
+        targetIndex,
+        0,
+        false,
+      );
+      if (!stillCurrent) return; // superseded — its owner manages the flags
     }
 
     store.updateLoadingState({

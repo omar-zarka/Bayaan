@@ -1,5 +1,6 @@
 import React, {useCallback, useMemo, useRef} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
+import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -11,7 +12,7 @@ import Color from 'color';
 
 function MiniPlayerInner() {
   const {theme} = useTheme();
-  const {play, pause} = usePlayerActions();
+  const {play, pause, stop} = usePlayerActions();
   const playbackState = usePlayerStore(state => state.playback.state);
   const queueTracks = usePlayerStore(state => state.queue.tracks);
   const currentIndex = usePlayerStore(state => state.queue.currentIndex);
@@ -44,35 +45,51 @@ function MiniPlayerInner() {
     expandPlayerSheet();
   }, []);
 
+  const handleDismiss = useCallback(() => {
+    stop();
+  }, [stop]);
+
   if (stateRestoring || !currentTrack) return null;
 
   const textColor = theme.colors.text;
 
   return (
-    <Pressable onPress={handlePress} style={styles.row}>
-      <ReciterImage
-        reciterName={currentTrack.reciterName}
-        style={styles.artwork}
-      />
+    // a11y — plain View row (not a grouping Pressable) so the play/pause + close
+    // controls are INDIVIDUALLY focusable by VoiceOver; the expand action lives
+    // on the inner body only.
+    <View style={styles.row}>
+      <Pressable
+        onPress={handlePress}
+        style={styles.body}
+        accessibilityRole="button"
+        accessibilityLabel={`${currentTrack.title}, ${currentTrack.artist}`}
+        accessibilityHint="Opens the full player">
+        <ReciterImage
+          reciterName={currentTrack.reciterName}
+          style={styles.artwork}
+        />
 
-      <View style={styles.trackInfo}>
-        <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-          {currentTrack.title}
-        </Text>
-        <Text
-          style={[
-            styles.subtitle,
-            {color: Color(textColor).alpha(0.5).toString()},
-          ]}
-          numberOfLines={1}>
-          {currentTrack.artist}
-        </Text>
-      </View>
+        <View style={styles.trackInfo}>
+          <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
+            {currentTrack.title}
+          </Text>
+          <Text
+            style={[
+              styles.subtitle,
+              {color: Color(textColor).alpha(0.5).toString()},
+            ]}
+            numberOfLines={1}>
+            {currentTrack.artist}
+          </Text>
+        </View>
+      </Pressable>
 
       <Pressable
         onPress={handlePlayPause}
         style={styles.playButton}
-        hitSlop={10}>
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={playbackState === 'playing' ? 'Pause' : 'Play'}>
         {isLoadingNewTrack ? (
           <LoadingIndicator color={textColor} />
         ) : playbackState === 'playing' ? (
@@ -81,7 +98,20 @@ function MiniPlayerInner() {
           <PlayIcon color={textColor} size={22} />
         )}
       </Pressable>
-    </Pressable>
+
+      <Pressable
+        onPress={handleDismiss}
+        style={styles.closeButton}
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel="Close player">
+        <Feather
+          name="x"
+          size={18}
+          color={Color(textColor).alpha(0.5).toString()}
+        />
+      </Pressable>
+    </View>
   );
 }
 
@@ -89,12 +119,26 @@ export const MiniPlayer: React.FC = React.memo(MiniPlayerInner);
 
 const styles = StyleSheet.create({
   row: {
+    // Symmetric horizontal insets (was 14) so the artwork and the play/close
+    // cluster sit the same distance from each pill edge (the play control read
+    // cramped against the right edge), even 12px rhythm between every element,
+    // and balanced top/bottom padding (was 8/20) so the content is vertically
+    // centred in the native BottomAccessory instead of riding high — the
+    // accessory sizes to content, so a bottom-heavy pad off-centred the row.
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 20,
-    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    gap: 12,
+  },
+  body: {
+    // a11y — expand-to-full-player hit target (artwork + track info);
+    // preserves the artwork|trackInfo rhythm of the old grouping row.
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   artwork: {
     width: 36,
@@ -118,6 +162,13 @@ const styles = StyleSheet.create({
   },
   playButton: {
     width: 36,
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  closeButton: {
+    width: 32,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
