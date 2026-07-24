@@ -3,14 +3,19 @@ import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotati
 import type {HighlightColor} from '@/types/verse-annotations';
 
 interface VerseAnnotationsState {
-  loadedSurah: number | null;
   /**
-   * Cache key for the loaded surah set (e.g. '1' or '112,113,114' — sorted,
-   * comma-joined). Multi-surah loads exist because a single mushaf page can
-   * span several surahs (the norm in Juz 'Amma); a per-surah cache would
-   * blind the page renderer to bookmarks in the page's later surahs. @ai
+   * Surahs whose annotations are currently in the store — ACCUMULATED, never
+   * narrowed. Multi-surah loads exist because a single mushaf page can span
+   * several surahs (the norm in Juz 'Amma); a per-surah cache would blind the
+   * page renderer to bookmarks in the page's later surahs. @ai
+   *
+   * Accumulating (rather than keying the store on "the last loaded set") is
+   * what makes concurrent loads safe: a narrow per-surah load can no longer
+   * replace a wider page-level one and unpaint its siblings, and a neighbour
+   * page still mounted by `windowSize` keeps its tint when the current page
+   * changes.
    */
-  loadedKey: string | null;
+  loadedSurahs: Set<number>;
   bookmarkedVerseKeys: Set<string>;
   notedVerseKeys: Set<string>;
   highlights: Record<string, HighlightColor>;
@@ -36,51 +41,58 @@ interface VerseAnnotationsState {
 // @ai — serializes loads instead of dropping them. The old
 // `if (loading) return` guard silently discarded the second caller's surah
 // set when two surfaces raced (e.g. ContinuousMushafView's per-surah load vs
-// main.tsx's page-level multi-surah load), leaving the store on the wrong key.
+// main.tsx's page-level multi-surah load), leaving those surahs unloaded.
 let inFlightLoad: Promise<void> | null = null;
 
 export const useVerseAnnotationsStore = create<VerseAnnotationsState>()(
   (set, get) => ({
-    loadedSurah: null,
-    loadedKey: null,
+    loadedSurahs: new Set<number>(),
     bookmarkedVerseKeys: new Set<string>(),
     notedVerseKeys: new Set<string>(),
     highlights: {},
     loading: false,
 
     loadAnnotationsForSurah: async (surahNumber: number) => {
-      // Subset no-op: if this surah is already part of the loaded set (a
-      // page-level multi-surah load), don't narrow the store back down to
-      // one surah — that would unpaint sibling-surah bookmarks. @ai
-      const key = get().loadedKey;
-      if (key && key.split(',').some(s => Number(s) === surahNumber)) return;
+      // Already-loaded no-op. `loadedSurahs` accumulates, so this also covers
+      // "this surah arrived as part of a wider page-level load". @ai
+      if (get().loadedSurahs.has(surahNumber)) return;
       await get().loadAnnotationsForSurahs([surahNumber]);
     },
 
     loadAnnotationsForSurahs: async (surahNumbers: number[]) => {
-      const surahs = [...new Set(surahNumbers)].sort((a, b) => a - b);
-      if (surahs.length === 0) return;
-      const key = surahs.join(',');
-      if (get().loadedKey === key) return;
+      const wanted = [...new Set(surahNumbers)].sort((a, b) => a - b);
+      if (wanted.length === 0) return;
+      if (wanted.every(n => get().loadedSurahs.has(n))) return;
 
-      // Wait out any in-flight load, then re-check — the load we waited on
-      // may have populated this exact key.
+      // Wait out any in-flight load, THEN recompute what's still missing. The
+      // recheck is subset-aware on purpose: the load we waited on may have
+      // been a superset (e.g. we want [113] while [112,113,114] was in
+      // flight). An exact-key recheck would compare '112,113,114' === '113',
+      // decide it still had work to do, re-fetch 113 alone and REPLACE the
+      // store — wiping 112/114's bookmarks. @ai
       while (inFlightLoad) {
         await inFlightLoad;
       }
-      if (get().loadedKey === key) return;
+      const missing = wanted.filter(n => !get().loadedSurahs.has(n));
+      if (missing.length === 0) return;
 
       const load = (async () => {
         set({loading: true});
 
         try {
           const results = await Promise.all(
-            surahs.map(n => verseAnnotationService.getAnnotationsForSurah(n)),
+            missing.map(n => verseAnnotationService.getAnnotationsForSurah(n)),
           );
 
-          const bookmarkedVerseKeys = new Set<string>();
-          const notedVerseKeys = new Set<string>();
-          const highlightsRecord: Record<string, HighlightColor> = {};
+          // MERGE into whatever is in the store now (read at set-time, not a
+          // stale snapshot) — never replace. This is what keeps a narrow load
+          // from unpainting a wider one, and keeps still-mounted neighbour
+          // pages tinted across a page change. @ai
+          const bookmarkedVerseKeys = new Set(get().bookmarkedVerseKeys);
+          const notedVerseKeys = new Set(get().notedVerseKeys);
+          const highlightsRecord: Record<string, HighlightColor> = {
+            ...get().highlights,
+          };
           for (const {bookmarks, notes, highlights} of results) {
             bookmarks.forEach(b => bookmarkedVerseKeys.add(b.verseKey));
             notes.forEach(n => notedVerseKeys.add(n.verseKey));
@@ -88,10 +100,11 @@ export const useVerseAnnotationsStore = create<VerseAnnotationsState>()(
               highlightsRecord[h.verseKey] = h.color;
             });
           }
+          const loadedSurahs = new Set(get().loadedSurahs);
+          missing.forEach(n => loadedSurahs.add(n));
 
           set({
-            loadedSurah: surahs[0],
-            loadedKey: key,
+            loadedSurahs,
             bookmarkedVerseKeys,
             notedVerseKeys,
             highlights: highlightsRecord,

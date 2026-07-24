@@ -755,7 +755,6 @@ const SkiaPage: React.FC<SkiaPageProps> = ({
     textColor,
     rewayah,
     showRewayahDiffs,
-    pageNumber,
   ]);
 
   const pageStyle = {width: SCREEN_WIDTH, height: SCREEN_HEIGHT};
