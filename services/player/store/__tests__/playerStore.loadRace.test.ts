@@ -1,16 +1,17 @@
 /**
- * Regression tests for the mini-player close (✕) vs in-flight load race.
+ * Regression tests for the in-flight load race in playerStore.
  *
  * The race: updateQueue() optimistically writes the queue, then awaits
- * loadTrackAtIndex() → expoAudioService.loadTrack() (network-bound). The ✕
- * button is tappable during that window; stop() pauses, clears the lock
- * screen, and empties the queue — but without a guard the still-in-flight
- * load then fires play() (audio AFTER the pause) and updateQueue's trailing
- * set() clobbers 'stopped' with 'ready': audible audio, empty queue, hidden
- * mini-player, no lock-screen controls ("ghost playback").
+ * loadTrackAtIndex() → expoAudioService.loadTrack() (network-bound). Anything
+ * that lands during that window races the still-in-flight load — a second
+ * play/queue tap (rapid skip, re-queue) or a cleanup() teardown. Without a
+ * guard the stale load still fires play() and its caller's trailing set() then
+ * clobbers whatever the newer action wrote: audible audio that disagrees with
+ * the store (the older track playing over a queue that says the newer one, or
+ * playback resuming into a service that has already been torn down).
  *
  * The fix is a monotonic playOpId: loadTrackAtIndex claims an id at entry and
- * re-checks it after each await; stop()/cleanup() bump it; callers skip their
+ * re-checks it after each await; cleanup() bumps it; callers skip their
  * trailing state writes when the load reports it was superseded.
  */
 
@@ -49,14 +50,6 @@ jest.mock('@/services/audio/ExpoAudioService', () => ({
 jest.mock('@/services/audio/AudioCoordinator', () => ({
   audioCoordinator: {
     mainWillPlay: jest.fn(),
-    sourceDidStop: jest.fn(),
-  },
-}));
-
-// stop() lazy-requires LockScreenService — jest.mock covers require() too.
-jest.mock('@/services/audio/LockScreenService', () => ({
-  lockScreenService: {
-    clearMainPlayer: jest.fn(),
   },
 }));
 
@@ -70,7 +63,6 @@ jest.mock('@/services/analytics/AnalyticsService', () => ({
 
 import {usePlayerStore} from '../playerStore';
 import {expoAudioService} from '@/services/audio/ExpoAudioService';
-import {lockScreenService} from '@/services/audio/LockScreenService';
 import type {Track} from '@/types/audio';
 
 const mockedAudio = expoAudioService as unknown as {
@@ -79,6 +71,7 @@ const mockedAudio = expoAudioService as unknown as {
   pause: jest.Mock;
   seekTo: jest.Mock;
   getDuration: jest.Mock;
+  cleanup: jest.Mock;
 };
 
 function deferred(): {promise: Promise<void>; resolve: () => void} {
@@ -102,13 +95,13 @@ function makeTrack(id: string): Track {
 // Flush the microtask queue so awaited continuations run to completion.
 const flush = () => new Promise<void>(r => setTimeout(r, 0));
 
-describe('playerStore stop() vs in-flight load race', () => {
+describe('playerStore in-flight load race', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedAudio.loadTrack.mockImplementation(() => Promise.resolve());
   });
 
-  it("stop() during updateQueue()'s network load wins: no play(), state stays stopped, queue stays empty", async () => {
+  it("cleanup() during updateQueue()'s network load wins: no play(), state stays reset, queue stays empty", async () => {
     const load = deferred();
     mockedAudio.loadTrack.mockImplementation(() => load.promise);
 
@@ -118,28 +111,27 @@ describe('playerStore stop() vs in-flight load race', () => {
     await flush();
     expect(mockedAudio.loadTrack).toHaveBeenCalledTimes(1);
 
-    // User taps ✕ while the load is in flight.
-    await usePlayerStore.getState().stop();
-    expect(mockedAudio.pause).toHaveBeenCalled();
-    expect(lockScreenService.clearMainPlayer).toHaveBeenCalled();
+    // Teardown lands while the load is in flight.
+    await usePlayerStore.getState().cleanup();
+    expect(mockedAudio.cleanup).toHaveBeenCalled();
 
     // The network load now completes — too late.
     load.resolve();
     await updatePromise;
     await flush();
 
-    // The core of the ghost: play() must NOT fire after stop()'s pause…
+    // The core of the race: play() must NOT fire into a torn-down service…
     expect(mockedAudio.play).not.toHaveBeenCalled();
-    // …and updateQueue's trailing set() must not clobber stop()'s state.
+    // …and updateQueue's trailing set() must not clobber cleanup()'s reset.
     const state = usePlayerStore.getState();
-    expect(state.playback.state).toBe('stopped');
+    expect(state.playback.state).toBe('none');
     expect(state.queue.tracks).toHaveLength(0);
     expect(state.queue.currentIndex).toBe(-1);
     expect(state.loading.trackLoading).toBe(false);
     expect(state.loading.queueLoading).toBe(false);
   });
 
-  it('normal updateQueue() (no interleaved stop) still loads, plays, and finalizes', async () => {
+  it('a normal updateQueue() still loads, plays, and finalizes', async () => {
     const store = usePlayerStore.getState();
     await store.updateQueue([makeTrack('b')], 0);
     await flush();

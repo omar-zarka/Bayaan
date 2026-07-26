@@ -1,7 +1,6 @@
 import React, {useCallback, useMemo, useRef} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {usePathname} from 'expo-router';
-import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import {moderateScale} from 'react-native-size-matters';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
@@ -24,7 +23,7 @@ import {useResponsive} from '@/hooks/useResponsive';
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
   const {theme} = useTheme();
   const glassColorScheme = useGlassColorScheme();
-  const {play, pause, stop} = usePlayerActions();
+  const {play, pause} = usePlayerActions();
   const playbackState = usePlayerStore(state => state.playback.state);
   const queueTracks = usePlayerStore(state => state.queue.tracks);
   const currentIndex = usePlayerStore(state => state.queue.currentIndex);
@@ -65,10 +64,6 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
     }
   }, [playbackState, pause, play]);
 
-  const handleDismiss = useCallback(() => {
-    stop();
-  }, [stop]);
-
   const containerStyle = useMemo(
     () => ({
       position: 'absolute' as const,
@@ -106,9 +101,9 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
         ? {glassEffectStyle: 'regular' as const, colorScheme: glassColorScheme}
         : {})}>
       {/* a11y — the row is a plain View, not a grouping Pressable, so the
-          play/pause + close controls are INDIVIDUALLY focusable by TalkBack /
-          VoiceOver (a wrapping `accessible` Pressable would collapse the whole
-          row into one node). The expand action lives on the inner body only. */}
+          play/pause control is INDIVIDUALLY focusable by TalkBack / VoiceOver
+          (a wrapping `accessible` Pressable would collapse the whole row into
+          one node). The expand action lives on the inner body only. */}
       <View style={styles.content}>
         <Pressable
           onPress={handlePress}
@@ -149,19 +144,6 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
             <PlayIcon color={theme.colors.text} size={moderateScale(20, 0.2)} />
           )}
         </Pressable>
-
-        <Pressable
-          onPress={handleDismiss}
-          style={styles.closeButton}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel="Close player">
-          <Feather
-            name="x"
-            size={moderateScale(16, 0.2)}
-            color={subtitleColor}
-          />
-        </Pressable>
       </View>
     </Container>
   );
@@ -169,8 +151,8 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
 
 const styles = StyleSheet.create({
   content: {
-    // Symmetric horizontal insets (was 14) + even 12px rhythm so the play/close
-    // cluster isn't cramped against the right edge. Vertical padding is already
+    // Symmetric horizontal insets (was 14) + even 12px rhythm so the play
+    // control isn't cramped against the right edge. Vertical padding is already
     // symmetric here (the Android pill is a normal component; its bottom
     // clearance is handled by the container's safe-area inset).
     flexDirection: 'row',
@@ -182,7 +164,7 @@ const styles = StyleSheet.create({
   body: {
     // a11y — the expand-to-full-player hit target (artwork + track info).
     // A row inside `content`; keeps the artwork|trackInfo rhythm the old
-    // 4-child `content` row had, so the layout is visually unchanged.
+    // grouping `content` row had, so the layout is visually unchanged.
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -210,13 +192,6 @@ const styles = StyleSheet.create({
   },
   playButton: {
     width: moderateScale(34, 0.2),
-    height: moderateScale(34, 0.2),
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  closeButton: {
-    width: moderateScale(32, 0.2),
     height: moderateScale(34, 0.2),
     alignItems: 'center',
     justifyContent: 'center',

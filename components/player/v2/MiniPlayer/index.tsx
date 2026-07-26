@@ -1,6 +1,5 @@
 import React, {useCallback, useMemo, useRef} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
-import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -12,7 +11,7 @@ import Color from 'color';
 
 function MiniPlayerInner() {
   const {theme} = useTheme();
-  const {play, pause, stop} = usePlayerActions();
+  const {play, pause} = usePlayerActions();
   const playbackState = usePlayerStore(state => state.playback.state);
   const queueTracks = usePlayerStore(state => state.queue.tracks);
   const currentIndex = usePlayerStore(state => state.queue.currentIndex);
@@ -45,17 +44,13 @@ function MiniPlayerInner() {
     expandPlayerSheet();
   }, []);
 
-  const handleDismiss = useCallback(() => {
-    stop();
-  }, [stop]);
-
   if (stateRestoring || !currentTrack) return null;
 
   const textColor = theme.colors.text;
 
   return (
-    // a11y — plain View row (not a grouping Pressable) so the play/pause + close
-    // controls are INDIVIDUALLY focusable by VoiceOver; the expand action lives
+    // a11y — plain View row (not a grouping Pressable) so the play/pause
+    // control is INDIVIDUALLY focusable by VoiceOver; the expand action lives
     // on the inner body only.
     <View style={styles.row}>
       <Pressable
@@ -98,19 +93,6 @@ function MiniPlayerInner() {
           <PlayIcon color={textColor} size={22} />
         )}
       </Pressable>
-
-      <Pressable
-        onPress={handleDismiss}
-        style={styles.closeButton}
-        hitSlop={10}
-        accessibilityRole="button"
-        accessibilityLabel="Close player">
-        <Feather
-          name="x"
-          size={18}
-          color={Color(textColor).alpha(0.5).toString()}
-        />
-      </Pressable>
     </View>
   );
 }
@@ -119,10 +101,10 @@ export const MiniPlayer: React.FC = React.memo(MiniPlayerInner);
 
 const styles = StyleSheet.create({
   row: {
-    // Symmetric horizontal insets (was 14) so the artwork and the play/close
-    // cluster sit the same distance from each pill edge (the play control read
-    // cramped against the right edge), even 12px rhythm between every element,
-    // and balanced top/bottom padding (was 8/20) so the content is vertically
+    // Symmetric horizontal insets (was 14) so the artwork and the play control
+    // sit the same distance from each pill edge (the play control read cramped
+    // against the right edge), even 12px rhythm between every element, and
+    // balanced top/bottom padding (was 8/20) so the content is vertically
     // centred in the native BottomAccessory instead of riding high — the
     // accessory sizes to content, so a bottom-heavy pad off-centred the row.
     flexDirection: 'row',
@@ -162,13 +144,6 @@ const styles = StyleSheet.create({
   },
   playButton: {
     width: 36,
-    height: 36,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  closeButton: {
-    width: 32,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
