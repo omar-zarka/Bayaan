@@ -151,24 +151,21 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
 
 const styles = StyleSheet.create({
   content: {
-    // Symmetric horizontal insets (was 14) + even 12px rhythm so the play
-    // control isn't cramped against the right edge. Vertical padding is already
-    // symmetric here (the Android pill is a normal component; its bottom
-    // clearance is handled by the container's safe-area inset).
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: moderateScale(16, 0.2),
+    paddingHorizontal: moderateScale(14, 0.2),
     paddingVertical: moderateScale(7, 0.2),
-    gap: moderateScale(12, 0.2),
+    gap: moderateScale(10, 0.2),
   },
   body: {
-    // a11y — the expand-to-full-player hit target (artwork + track info).
-    // A row inside `content`; keeps the artwork|trackInfo rhythm the old
-    // grouping `content` row had, so the layout is visually unchanged.
+    // a11y — the expand-to-full-player hit target (artwork + track info). A row
+    // inside `content` carrying the SAME `gap` it was split out of, so the
+    // artwork|trackInfo rhythm is unchanged: this refactor is a11y-only, with
+    // no visual delta.
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(12, 0.2),
+    gap: moderateScale(10, 0.2),
   },
   artwork: {
     width: moderateScale(36, 0.2),

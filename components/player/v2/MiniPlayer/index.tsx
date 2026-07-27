@@ -101,26 +101,21 @@ export const MiniPlayer: React.FC = React.memo(MiniPlayerInner);
 
 const styles = StyleSheet.create({
   row: {
-    // Symmetric horizontal insets (was 14) so the artwork and the play control
-    // sit the same distance from each pill edge (the play control read cramped
-    // against the right edge), even 12px rhythm between every element, and
-    // balanced top/bottom padding (was 8/20) so the content is vertically
-    // centred in the native BottomAccessory instead of riding high — the
-    // accessory sizes to content, so a bottom-heavy pad off-centred the row.
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    gap: 12,
+    paddingHorizontal: 14,
+    paddingTop: 8,
+    paddingBottom: 20,
+    gap: 10,
   },
   body: {
-    // a11y — expand-to-full-player hit target (artwork + track info);
-    // preserves the artwork|trackInfo rhythm of the old grouping row.
+    // a11y — expand-to-full-player hit target (artwork + track info). Same
+    // `gap` as the row it was split out of, so the artwork|trackInfo rhythm is
+    // unchanged: this refactor is a11y-only, with no visual delta.
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
   },
   artwork: {
     width: 36,
