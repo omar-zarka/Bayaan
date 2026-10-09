@@ -13,11 +13,12 @@ import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {useFavoriteRecitersStore} from '@/services/player/store/favoriteRecitersStore';
 import {usePlaylistsStore} from '@/store/playlistsStore';
 import {useReciterStore} from '@/store/reciterStore';
+import {useUploadsStore} from '@/store/uploadsStore';
 import {PlaylistItem} from '@/services/database/DatabaseService';
 import {buildCarSnapshot} from '@/services/car/snapshot/buildCarSnapshot';
 import {CarArtwork} from '@/services/car/types';
 import {CarResolveContext} from '@/services/car/playback/resolveCarRequest';
-import {recentTracksKey} from '@/services/car/snapshotKeys';
+import {recentTracksKey, uploadsKey} from '@/services/car/snapshotKeys';
 
 const DEBOUNCE_MS = 2000;
 const MAX_WAIT_MS = 10_000;
@@ -92,6 +93,7 @@ export function getLastResolveContext(): CarResolveContext | null {
 export async function writeCarSnapshotNow(): Promise<void> {
   const seq = ++startedSeq;
   const playlistItems = await loadPlaylistItems();
+  const uploadsState = useUploadsStore.getState();
   const context: CarResolveContext = Object.freeze({
     // RECITERS is refilled in place when the catalog loads; copy so the
     // frozen context keeps the list this snapshot was built from.
@@ -102,6 +104,7 @@ export async function writeCarSnapshotNow(): Promise<void> {
     downloads: useDownloadStore.getState().downloads,
     systemPlaylists: getSystemPlaylists(),
     playlistItems,
+    uploads: uploadsState.recitations,
   });
   const snapshot = buildCarSnapshot({
     now: new Date(),
@@ -115,6 +118,8 @@ export async function writeCarSnapshotNow(): Promise<void> {
     userPlaylists: usePlaylistsStore.getState().playlists,
     playlistItems: context.playlistItems,
     systemPlaylists: context.systemPlaylists,
+    uploads: context.uploads,
+    customReciters: uploadsState.customReciters,
     surahToJuz: SURAH_TO_JUZ,
     resolveReciterArtwork,
     surahArtworkBase: branding.surahArtworkCdnBase,
@@ -183,10 +188,24 @@ export interface CarSnapshotService {
   ready: Promise<void>;
 }
 
+/**
+ * AppInitializer loads uploads before the car starts. If that service failed
+ * before loading, load them here; the store subscription rebuilds after.
+ */
+function ensureUploadsLoaded(): void {
+  const uploads = useUploadsStore.getState();
+  if (!uploads.loading || uploads.isLoading) return;
+  uploads
+    .loadRecitations()
+    .then(() => useUploadsStore.getState().loadCustomReciters())
+    .catch(() => undefined);
+}
+
 export function startCarSnapshotService(): CarSnapshotService {
   if (!BayaanCar.isAvailable) {
     return {stop: () => {}, ready: Promise.resolve()};
   }
+  ensureUploadsLoaded();
   const appStateSub = AppState.addEventListener('change', state => {
     if (state === 'active') schedule();
   });
@@ -199,6 +218,9 @@ export function startCarSnapshotService(): CarSnapshotService {
     scheduleOnChange(useFavoriteRecitersStore, s => s.favoriteReciterIds),
     scheduleOnChange(usePlaylistsStore, s => s.playlists),
     scheduleOnChange(useReciterStore, s => s.defaultReciter),
+    scheduleOnChange(useUploadsStore, s =>
+      uploadsKey(s.recitations, s.customReciters),
+    ),
     BayaanCar.addConnectionListener(connected => {
       if (refreshTimer) clearInterval(refreshTimer);
       refreshTimer = connected

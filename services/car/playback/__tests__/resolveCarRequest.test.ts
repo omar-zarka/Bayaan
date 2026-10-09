@@ -1,4 +1,9 @@
-import {resolveCarRequest, CarResolveContext} from '../resolveCarRequest';
+import {
+  resolveCarRequest,
+  CarQueuePlan,
+  CarResolveContext,
+  isUploadSpec,
+} from '../resolveCarRequest';
 import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
 import {
@@ -6,6 +11,40 @@ import {
   CarSnapshotInput,
 } from '@/services/car/snapshot/buildCarSnapshot';
 import {CarItem, CarList} from '@/services/car/types';
+import type {UploadedRecitation} from '@/types/uploads';
+import type {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
+
+function surahIds(plan: CarQueuePlan | null): (number | string)[] {
+  return (plan?.tracks ?? []).map(t =>
+    isUploadSpec(t) ? t.uploadId : t.surahId,
+  );
+}
+
+function upload(
+  id: string,
+  overrides: Partial<UploadedRecitation> = {},
+): UploadedRecitation {
+  return {
+    id,
+    filePath: `${id}.mp3`,
+    originalFilename: `${id}.mp3`,
+    duration: 60,
+    dateAdded: 1,
+    type: null,
+    surahNumber: null,
+    startVerse: null,
+    endVerse: null,
+    title: null,
+    category: null,
+    reciterId: null,
+    customReciterId: null,
+    isPersonal: false,
+    rewayah: null,
+    style: null,
+    recordingType: null,
+    ...overrides,
+  };
+}
 
 function rewayat(
   id: string,
@@ -59,6 +98,7 @@ function ctx(o: Partial<CarResolveContext> = {}): CarResolveContext {
     downloads: [],
     systemPlaylists: [],
     playlistItems: {},
+    uploads: [],
     ...o,
   };
 }
@@ -69,7 +109,7 @@ describe('resolveCarRequest', () => {
       {kind: 'surah', reciterId: 'r1', rewayatId: 'h', surahId: 3},
       ctx(),
     );
-    expect(plan?.tracks.map(t => t.surahId)).toEqual([3, 4, 1, 2]);
+    expect(surahIds(plan)).toEqual([3, 4, 1, 2]);
     expect(plan?.startIndex).toBe(0);
     expect(plan?.chain).toBe('new');
   });
@@ -139,6 +179,67 @@ describe('resolveCarRequest', () => {
     expect(plan?.recentIndex).toBe(1);
   });
 
+  it('resumes a recent upload on its own at its position', () => {
+    const uploadRecent: RecentlyPlayedTrack = {
+      reciter: r1,
+      surah: surah(2),
+      rewayatId: '',
+      progress: 0.5,
+      duration: 120,
+      timestamp: 2,
+      isUserUpload: true,
+      userRecitationId: 'u1',
+    };
+    const catalogRecent: RecentlyPlayedTrack = {
+      reciter: r1,
+      surah: surah(2),
+      rewayatId: 'h',
+      progress: 0.25,
+      duration: 400,
+      timestamp: 1,
+    };
+    const context = ctx({
+      recentTracks: [uploadRecent, catalogRecent],
+      uploads: [upload('u1')],
+    });
+    const bare = resolveCarRequest({kind: 'resume'}, context);
+    expect(bare?.tracks).toEqual([{uploadId: 'u1'}]);
+    expect(bare?.startPosition).toBe(60);
+    expect(bare?.chain).toBe('resume');
+    expect(bare?.recentIndex).toBe(0);
+    expect(
+      resolveCarRequest({kind: 'resume', recitationId: 'u1'}, context),
+    ).toEqual(bare);
+    expect(
+      resolveCarRequest({kind: 'resume', recitationId: 'gone'}, context),
+    ).toBeNull();
+
+    // A deleted upload is skipped, like Jump back in skips it.
+    const orphaned = resolveCarRequest(
+      {kind: 'resume'},
+      ctx({recentTracks: [uploadRecent, catalogRecent]}),
+    );
+    expect(orphaned?.recentIndex).toBe(1);
+    expect(orphaned?.tracks[0]).toEqual({
+      reciterId: 'r1',
+      rewayatId: 'h',
+      surahId: 2,
+    });
+  });
+
+  it('queues every upload in list order from the start index', () => {
+    const plan = resolveCarRequest(
+      {kind: 'uploads', startIndex: 1},
+      ctx({
+        uploads: [upload('a'), upload('b', {filePath: ''}), upload('c')],
+      }),
+    );
+    expect(plan?.tracks).toEqual([{uploadId: 'a'}, {uploadId: 'c'}]);
+    expect(plan?.startIndex).toBe(1);
+    expect(plan?.chain).toBe('new');
+    expect(resolveCarRequest({kind: 'uploads'}, ctx())).toBeNull();
+  });
+
   it('returns null for resume with no history', () => {
     expect(resolveCarRequest({kind: 'resume'}, ctx())).toBeNull();
   });
@@ -160,7 +261,7 @@ describe('resolveCarRequest', () => {
         ],
       }),
     );
-    expect(plan?.tracks.map(t => t.surahId)).toEqual([2, 1]);
+    expect(surahIds(plan)).toEqual([2, 1]);
     expect(plan?.startIndex).toBe(1);
     expect(plan?.shuffle).toBe(false);
   });
@@ -238,7 +339,7 @@ describe('resolveCarRequest', () => {
         },
       }),
     );
-    expect(plan?.tracks.map(t => t.surahId)).toEqual([1, 2]);
+    expect(surahIds(plan)).toEqual([1, 2]);
   });
 
   it('plays completed downloads only', () => {
@@ -267,7 +368,7 @@ describe('resolveCarRequest', () => {
         ],
       }),
     );
-    expect(plan?.tracks.map(t => t.surahId)).toEqual([1]);
+    expect(surahIds(plan)).toEqual([1]);
   });
 
   it('clamps an out-of-range start index', () => {
@@ -305,8 +406,15 @@ describe('resolveCarRequest index alignment with buildCarSnapshot', () => {
     image_url: null,
     rewayat: [rewayat('h2', 'r2', [1, 2, null, 18])],
   };
+  const uploads: UploadedRecitation[] = [
+    upload('u-new', {type: 'surah', surahNumber: 36, reciterId: 'r1'}),
+    upload('u-empty', {filePath: ''}),
+    upload('u-other', {type: 'other', title: 'Dua Qunoot'}),
+    upload('u-untagged'),
+  ];
   const resolveCtx: CarResolveContext = {
     reciters: [full, partial],
+    uploads,
     topReciterId: 'r2',
     recentTracks: [
       {
@@ -474,6 +582,8 @@ describe('resolveCarRequest index alignment with buildCarSnapshot', () => {
     ],
     playlistItems: resolveCtx.playlistItems,
     systemPlaylists: resolveCtx.systemPlaylists,
+    uploads,
+    customReciters: [],
     surahToJuz: {},
     resolveReciterArtwork: (): CarItem['artwork'] => ({
       kind: 'surah',
@@ -491,6 +601,7 @@ describe('resolveCarRequest index alignment with buildCarSnapshot', () => {
       expect(plan).not.toBeNull();
       expect(plan?.tracks).toHaveLength(items.length);
       const track = plan?.tracks[plan.startIndex];
+      if (!track || isUploadSpec(track)) throw new Error('expected a surah');
       const reciterName = resolveCtx.reciters.find(
         r => r.id === track?.reciterId,
       )?.name;
@@ -503,4 +614,20 @@ describe('resolveCarRequest index alignment with buildCarSnapshot', () => {
   it('downloads', () => assertAligned(snapshot.lists.downloads));
   it('user playlist', () => assertAligned(snapshot.lists['playlist:u1']));
   it('system playlist', () => assertAligned(snapshot.lists['system:sp']));
+  it('uploads', () => {
+    const items = snapshot.lists.uploads.items;
+    expect(items.map(i => i.title)).toEqual([
+      'S36',
+      'Dua Qunoot',
+      'u-untagged',
+    ]);
+    items.forEach(item => {
+      if (item.action.kind !== 'play') throw new Error('expected play item');
+      const plan = resolveCarRequest(item.action.request, resolveCtx);
+      expect(plan?.tracks).toHaveLength(items.length);
+      const track = plan?.tracks[plan.startIndex];
+      if (!track || !isUploadSpec(track)) throw new Error('expected an upload');
+      expect(item.id).toBe(`upload:${track.uploadId}`);
+    });
+  });
 });

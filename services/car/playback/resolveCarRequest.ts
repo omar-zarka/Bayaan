@@ -4,11 +4,17 @@ import {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
 import {LovedTrack} from '@/services/player/store/lovedStore';
 import {DownloadedSurah} from '@/services/player/store/downloadStore';
 import {PlaylistItem} from '@/services/database/DatabaseService';
+import type {UploadedRecitation} from '@/types/uploads';
 import {CarPlayRequest} from '@/services/car/types';
 import {
   availableSurahIds,
   findRewayat,
 } from '@/services/car/snapshot/buildCarSnapshot';
+import {
+  isCarRecent,
+  playableUploads,
+  uploadIdSet,
+} from '@/services/car/snapshot/uploads';
 
 export interface CarTrackSpec {
   reciterId: string;
@@ -16,8 +22,19 @@ export interface CarTrackSpec {
   surahId: number;
 }
 
+/** A user upload, by its id in ctx.uploads. */
+export interface CarUploadSpec {
+  uploadId: string;
+}
+
+export type CarPlanTrack = CarTrackSpec | CarUploadSpec;
+
+export function isUploadSpec(track: CarPlanTrack): track is CarUploadSpec {
+  return 'uploadId' in track;
+}
+
 export interface CarQueuePlan {
-  tracks: CarTrackSpec[];
+  tracks: CarPlanTrack[];
   startIndex: number;
   startPosition: number;
   shuffle: boolean;
@@ -34,6 +51,7 @@ export interface CarResolveContext {
   downloads: DownloadedSurah[];
   systemPlaylists: SystemPlaylist[];
   playlistItems: Record<string, PlaylistItem[]>;
+  uploads: UploadedRecitation[];
 }
 
 const SURAH_COUNT = 114;
@@ -96,7 +114,7 @@ function compact(specs: (CarTrackSpec | null)[]): CarTrackSpec[] {
 }
 
 function listPlan(
-  tracks: CarTrackSpec[],
+  tracks: CarPlanTrack[],
   startIndex: number | undefined,
   shuffle: boolean,
 ): CarQueuePlan | null {
@@ -151,9 +169,31 @@ export function resolveCarRequest(
         'new',
       );
     case 'resume': {
-      const recentIndex = ctx.recentTracks.findIndex(t => !t.isUserUpload);
+      // Same rule as Jump back in, so a bare resume plays its first row.
+      const uploadIds = uploadIdSet(ctx.uploads);
+      const recitationId = request.recitationId;
+      const recentIndex =
+        recitationId === undefined
+          ? ctx.recentTracks.findIndex(t => isCarRecent(t, uploadIds))
+          : ctx.recentTracks.findIndex(
+              t =>
+                t.isUserUpload === true &&
+                t.userRecitationId === recitationId &&
+                isCarRecent(t, uploadIds),
+            );
       const recent = ctx.recentTracks[recentIndex];
       if (!recent) return null;
+      if (recent.isUserUpload && recent.userRecitationId) {
+        // The phone resumes an upload on its own, at its saved position.
+        return {
+          tracks: [{uploadId: recent.userRecitationId}],
+          startIndex: 0,
+          startPosition: recent.progress * recent.duration,
+          shuffle: false,
+          chain: 'resume',
+          recentIndex,
+        };
+      }
       const plan = surahPlan(
         ctx,
         recent.reciter.id,
@@ -180,6 +220,13 @@ export function resolveCarRequest(
           .map(d => listSpec(ctx, d.reciterId, d.rewayatId, Number(d.surahId))),
       );
       return listPlan(tracks, request.startIndex, false);
+    }
+    case 'uploads': {
+      // The phone queues every upload in list order and starts a recent
+      // entry for the one played.
+      const tracks = playableUploads(ctx.uploads).map(u => ({uploadId: u.id}));
+      const plan = listPlan(tracks, request.startIndex, false);
+      return plan ? {...plan, chain: 'new'} : null;
     }
     case 'playlist': {
       if (request.system) {

@@ -38,6 +38,12 @@ jest.mock('@/store/playlistsStore', () => ({
     getState: () => ({playlists: [], getPlaylistItems: jest.fn()}),
   },
 }));
+const mockRecitations = [{id: 'u1'}];
+jest.mock('@/store/uploadsStore', () => ({
+  useUploadsStore: {
+    getState: () => ({recitations: mockRecitations, customReciters: []}),
+  },
+}));
 jest.mock('@/store/reciterStore', () => ({
   useReciterStore: {getState: () => ({defaultReciter: {id: ''}})},
 }));
@@ -84,5 +90,10 @@ describe('writeCarSnapshotNow', () => {
     const reciters = getLastResolveContext()?.reciters;
     expect(reciters).toEqual(mockReciters);
     expect(reciters).not.toBe(mockReciters);
+  });
+
+  it('freezes the uploads the snapshot was built from', async () => {
+    await writeCarSnapshotNow();
+    expect(getLastResolveContext()?.uploads).toBe(mockRecitations);
   });
 });

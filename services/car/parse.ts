@@ -59,8 +59,12 @@ export function parseCarPlayRequest(json: string): CarPlayRequest | null {
       };
     case 'downloads':
       return {kind: 'downloads', startIndex: index(v.startIndex)};
-    case 'resume':
-      return {kind: 'resume'};
+    case 'uploads':
+      return {kind: 'uploads', startIndex: index(v.startIndex)};
+    case 'resume': {
+      const recitationId = str(v.recitationId);
+      return recitationId ? {kind: 'resume', recitationId} : {kind: 'resume'};
+    }
     default:
       return null;
   }

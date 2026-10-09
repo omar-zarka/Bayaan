@@ -19,6 +19,27 @@ describe('parse', () => {
     expect(parseCarPlayRequest('{"kind":"x"}')).toBeNull();
     expect(parseCarPlayRequest('{"kind":"surah","reciterId":"r"}')).toBeNull();
   });
+  it('parses uploads and resume requests', () => {
+    expect(parseCarPlayRequest('{"kind":"uploads","startIndex":2}')).toEqual({
+      kind: 'uploads',
+      startIndex: 2,
+    });
+    expect(parseCarPlayRequest('{"kind":"uploads","startIndex":1.5}')).toEqual({
+      kind: 'uploads',
+      startIndex: undefined,
+    });
+    expect(parseCarPlayRequest('{"kind":"uploads","startIndex":"1"}')).toEqual({
+      kind: 'uploads',
+      startIndex: undefined,
+    });
+    expect(parseCarPlayRequest('{"kind":"resume"}')).toEqual({kind: 'resume'});
+    expect(
+      parseCarPlayRequest('{"kind":"resume","recitationId":"u1"}'),
+    ).toEqual({kind: 'resume', recitationId: 'u1'});
+    expect(parseCarPlayRequest('{"kind":"resume","recitationId":7}')).toEqual({
+      kind: 'resume',
+    });
+  });
   it('parses transports', () => {
     expect(parseCarTransport('{"kind":"next"}')).toEqual({kind: 'next'});
     expect(parseCarTransport('{"kind":"seek","position":12}')).toEqual({

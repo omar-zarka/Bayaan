@@ -3,7 +3,13 @@ import {RECITERS} from '@/data/reciterData';
 import {SURAHS} from '@/data/surahData';
 import {getSystemPlaylists} from '@/data/systemPlaylists';
 import {Track} from '@/types/audio';
-import {createTrack, shuffleTracks} from '@/utils/track';
+import {
+  addUploadToRecentlyPlayed,
+  createTrack,
+  createUserUploadTrack,
+  shuffleTracks,
+} from '@/utils/track';
+import type {UploadedRecitation} from '@/types/uploads';
 import {lockScreenService} from '@/services/audio/LockScreenService';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {
@@ -15,7 +21,8 @@ import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {PlayerState, RepeatMode} from '@/services/player/types/state';
 import {
   resolveCarRequest,
-  CarTrackSpec,
+  CarPlanTrack,
+  isUploadSpec,
 } from '@/services/car/playback/resolveCarRequest';
 import {
   getLastResolveContext,
@@ -125,7 +132,14 @@ export function carriedProgress(
   };
 }
 
-async function specToTrack(spec: CarTrackSpec): Promise<Track | null> {
+async function specToTrack(
+  spec: CarPlanTrack,
+  uploads: UploadedRecitation[],
+): Promise<Track | null> {
+  if (isUploadSpec(spec)) {
+    const upload = uploads.find(u => u.id === spec.uploadId);
+    return upload ? createUserUploadTrack(upload) : null;
+  }
   const reciter = RECITERS.find(r => r.id === spec.reciterId);
   const surah = SURAHS.find(s => s.id === spec.surahId);
   if (!reciter || !surah) return null;
@@ -146,7 +160,10 @@ export async function executeCarRequest(
   const plan = resolveCarRequest(request, ctx);
   if (!plan) return;
 
-  const built = await Promise.all(plan.tracks.map(specToTrack));
+  const uploads = ctx.uploads;
+  const built = await Promise.all(
+    plan.tracks.map(spec => specToTrack(spec, uploads)),
+  );
   const tracks = built.filter((t): t is Track => t !== null);
   if (tracks.length === 0) return;
 
@@ -166,7 +183,16 @@ export async function executeCarRequest(
   const first = ordered[startIndex];
   const reciter = RECITERS.find(r => r.id === first?.reciterId);
   const surah = SURAHS.find(s => String(s.id) === first?.surahId);
-  if (plan.chain === 'new' && first?.rewayatId && reciter && surah) {
+  const firstUpload = first?.isUserUpload
+    ? uploads.find(u => u.id === first.userRecitationId)
+    : undefined;
+  if (
+    plan.chain === 'new' &&
+    !first?.isUserUpload &&
+    first?.rewayatId &&
+    reciter &&
+    surah
+  ) {
     const carried = carriedProgress(
       ctx.recentTracks,
       reciter.id,
@@ -193,6 +219,10 @@ export async function executeCarRequest(
   const player = usePlayerStore.getState();
   await player.updateQueue(ordered, startIndex, plan.startPosition);
   await player.play();
+  // The phone's Uploads screen records the upload after it starts playing.
+  if (plan.chain === 'new' && firstUpload) {
+    addUploadToRecentlyPlayed(firstUpload);
+  }
 }
 
 function pushNowPlaying(): void {

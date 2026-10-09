@@ -5,6 +5,7 @@ import {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
 import {LovedTrack} from '@/services/player/store/lovedStore';
 import {DownloadedSurah} from '@/services/player/store/downloadStore';
 import {UserPlaylist, PlaylistItem} from '@/services/database/DatabaseService';
+import type {CustomReciter, UploadedRecitation} from '@/types/uploads';
 import {
   CarArtwork,
   CarItem,
@@ -15,6 +16,14 @@ import {
   downloadKey,
 } from '@/services/car/types';
 import {buildSituationalPicks, SituationalReciter} from './situational';
+import {
+  isCarRecent,
+  playableUploads,
+  uploadIdSet,
+  uploadSubtitle,
+  uploadSurah,
+  uploadTitle,
+} from './uploads';
 
 export interface CarSnapshotInput {
   now: Date;
@@ -28,6 +37,8 @@ export interface CarSnapshotInput {
   userPlaylists: UserPlaylist[];
   playlistItems: Record<string, PlaylistItem[]>;
   systemPlaylists: SystemPlaylist[];
+  uploads: UploadedRecitation[];
+  customReciters: CustomReciter[];
   surahToJuz: Record<number, number>;
   resolveReciterArtwork: (reciter: Reciter) => CarArtwork;
   surahArtworkBase?: string;
@@ -137,29 +148,78 @@ function surahItem(
   };
 }
 
+function uploadArtwork(
+  upload: UploadedRecitation,
+  input: CarSnapshotInput,
+): CarArtwork {
+  const surah = uploadSurah(upload, input.surahs);
+  return surah
+    ? {kind: 'surah', surahId: surah.id}
+    : {kind: 'icon', name: 'uploads'};
+}
+
+function uploadItem(
+  id: string,
+  upload: UploadedRecitation,
+  input: CarSnapshotInput,
+  extra: Partial<CarItem>,
+  request: CarItem['action'],
+): CarItem {
+  return {
+    id,
+    title: uploadTitle(upload, input.surahs),
+    subtitle: uploadSubtitle(upload, input.reciters, input.customReciters),
+    artwork: uploadArtwork(upload, input),
+    ...extra,
+    action: request,
+  };
+}
+
 function buildJumpBackIn(input: CarSnapshotInput): CarItem[] {
-  return input.recentTracks
-    .filter(t => !t.isUserUpload)
+  const uploadIds = uploadIdSet(input.uploads);
+  const items: CarItem[] = [];
+  input.recentTracks
+    .filter(t => isCarRecent(t, uploadIds))
     .slice(0, JUMP_BACK_IN_LIMIT)
-    .map(t => {
+    .forEach(t => {
+      if (t.isUserUpload) {
+        const upload = input.uploads.find(u => u.id === t.userRecitationId);
+        if (!upload) return;
+        items.push(
+          uploadItem(
+            `recent:upload:${upload.id}`,
+            upload,
+            input,
+            {progress: t.progress},
+            {
+              kind: 'play',
+              request: {kind: 'resume', recitationId: upload.id},
+            },
+          ),
+        );
+        return;
+      }
       const rewayatId = t.rewayatId || t.reciter.rewayat[0]?.id || '';
-      return surahItem(
-        `recent:${t.reciter.id}:${rewayatId}:${t.surah.id}`,
-        t.reciter,
-        t.surah,
-        {progress: t.progress},
-        {
-          kind: 'play',
-          request: {
-            kind: 'surah',
-            reciterId: t.reciter.id,
-            rewayatId,
-            surahId: t.surah.id,
-            startAt: t.progress * t.duration,
+      items.push(
+        surahItem(
+          `recent:${t.reciter.id}:${rewayatId}:${t.surah.id}`,
+          t.reciter,
+          t.surah,
+          {progress: t.progress},
+          {
+            kind: 'play',
+            request: {
+              kind: 'surah',
+              reciterId: t.reciter.id,
+              rewayatId,
+              surahId: t.surah.id,
+              startAt: t.progress * t.duration,
+            },
           },
-        },
+        ),
       );
     });
+  return items;
 }
 
 function buildLovedList(input: CarSnapshotInput): CarList {
@@ -209,6 +269,19 @@ function buildDownloadsList(input: CarSnapshotInput): CarList {
       );
     });
   return {id: 'downloads', title: 'Downloads', items};
+}
+
+function buildUploadsList(input: CarSnapshotInput): CarList {
+  const items = playableUploads(input.uploads).map((u, index) =>
+    uploadItem(
+      `upload:${u.id}`,
+      u,
+      input,
+      {},
+      {kind: 'play', request: {kind: 'uploads', startIndex: index}},
+    ),
+  );
+  return {id: 'uploads', title: 'Uploads', items};
 }
 
 function playlistEntries(
@@ -390,6 +463,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const jumpBackIn = buildJumpBackIn(input);
   const loved = buildLovedList(input);
   const downloads = buildDownloadsList(input);
+  const uploads = buildUploadsList(input);
   const playlists = playlistEntries(input, nonEmptyListIds);
 
   const quickStart: CarItem[] = [];
@@ -440,6 +514,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const lists: Record<string, CarList> = {
     loved,
     downloads,
+    uploads,
     playlists: {id: 'playlists', title: 'Playlists', items: playlists},
     'favorite-reciters': {
       id: 'favorite-reciters',
@@ -469,6 +544,12 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
       title: 'Downloads',
       artwork: {kind: 'icon', name: 'downloads'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'downloads'}},
+    },
+    {
+      id: 'lib:uploads',
+      title: 'Uploads',
+      artwork: {kind: 'icon', name: 'uploads'},
+      action: {kind: 'browse', target: {kind: 'list', listId: 'uploads'}},
     },
     {
       id: 'lib:favorite-reciters',

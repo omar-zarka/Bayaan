@@ -3,6 +3,7 @@ export type CarIconName =
   | 'loved'
   | 'playlists'
   | 'downloads'
+  | 'uploads'
   | 'reciters'
   | 'playlist';
 
@@ -25,7 +26,9 @@ export type CarPlayRequest =
   | {kind: 'playlist'; playlistId: string; system: boolean; startIndex?: number}
   | {kind: 'loved'; shuffle?: boolean; startIndex?: number}
   | {kind: 'downloads'; startIndex?: number}
-  | {kind: 'resume'};
+  | {kind: 'uploads'; startIndex?: number}
+  /** Without `recitationId`, the first Jump back in entry; with it, that upload's entry. */
+  | {kind: 'resume'; recitationId?: string};
 
 export type CarBrowseTarget =
   | {kind: 'list'; listId: string}

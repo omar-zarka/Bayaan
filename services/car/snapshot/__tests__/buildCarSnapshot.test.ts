@@ -9,6 +9,34 @@ import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
 import {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
 import {SystemPlaylist} from '@/data/systemPlaylists';
+import type {UploadedRecitation} from '@/types/uploads';
+import {resolveCarRequest} from '@/services/car/playback/resolveCarRequest';
+
+function upload(
+  id: string,
+  overrides: Partial<UploadedRecitation> = {},
+): UploadedRecitation {
+  return {
+    id,
+    filePath: `${id}.mp3`,
+    originalFilename: `${id}.m4a`,
+    duration: 60,
+    dateAdded: 1,
+    type: null,
+    surahNumber: null,
+    startVerse: null,
+    endVerse: null,
+    title: null,
+    category: null,
+    reciterId: null,
+    customReciterId: null,
+    isPersonal: false,
+    rewayah: null,
+    style: null,
+    recordingType: null,
+    ...overrides,
+  };
+}
 
 function rewayat(
   id: string,
@@ -84,6 +112,8 @@ function input(overrides: Partial<CarSnapshotInput> = {}): CarSnapshotInput {
     userPlaylists: [],
     playlistItems: {},
     systemPlaylists: [],
+    uploads: [],
+    customReciters: [],
     surahToJuz: {1: 1, 2: 1, 18: 15},
     resolveReciterArtwork: (r: Reciter) => ({
       kind: 'monogram',
@@ -146,6 +176,7 @@ describe('buildCarSnapshot', () => {
       'lib:loved',
       'lib:playlists',
       'lib:downloads',
+      'lib:uploads',
       'lib:favorite-reciters',
     ]);
   });
@@ -176,7 +207,7 @@ describe('buildCarSnapshot', () => {
     });
   });
 
-  it('skips user uploads in recents', () => {
+  it('skips recent uploads whose recitation is gone', () => {
     const upload: RecentlyPlayedTrack = {
       ...recent(sudais, 2, 0.5),
       isUserUpload: true,
@@ -240,6 +271,7 @@ describe('buildCarSnapshot', () => {
       {kind: 'icon', name: 'loved'},
       {kind: 'icon', name: 'playlists'},
       {kind: 'icon', name: 'downloads'},
+      {kind: 'icon', name: 'uploads'},
       {kind: 'icon', name: 'reciters'},
     ]);
     expect(
@@ -249,6 +281,145 @@ describe('buildCarSnapshot', () => {
       {kind: 'icon', name: 'playlist', hex: '#22C55E'},
       {kind: 'icon', name: 'playlist', hex: '#123456'},
     ]);
+  });
+
+  it('always lists Uploads in Library after Downloads, empty when there are none', () => {
+    const snap = buildCarSnapshot(input());
+    expect(snap.library.map(i => i.title)).toEqual([
+      'Loved',
+      'Playlists',
+      'Downloads',
+      'Uploads',
+      'Favorite reciters',
+    ]);
+    expect(snap.library[3].action).toEqual({
+      kind: 'browse',
+      target: {kind: 'list', listId: 'uploads'},
+    });
+    expect(snap.lists.uploads).toEqual({
+      id: 'uploads',
+      title: 'Uploads',
+      items: [],
+    });
+  });
+
+  it('lists uploads in store order with the phone titles and subtitles', () => {
+    const snap = buildCarSnapshot(
+      input({
+        uploads: [
+          upload('a', {type: 'surah', surahNumber: 18, reciterId: 'r1'}),
+          upload('b', {
+            type: 'other',
+            title: 'Dua Qunoot',
+            customReciterId: 'c1',
+          }),
+          upload('gone', {filePath: ''}),
+          upload('c'),
+          upload('d', {type: 'other', category: 'lecture'}),
+          upload('e', {type: 'surah', surahNumber: 2, reciterId: 'unknown'}),
+        ],
+        customReciters: [{id: 'c1', name: 'Dad', imageUri: null, createdAt: 1}],
+      }),
+    );
+    expect(
+      snap.lists.uploads.items.map(i => [
+        i.id,
+        i.title,
+        i.subtitle,
+        i.artwork,
+        i.action,
+      ]),
+    ).toEqual([
+      [
+        'upload:a',
+        'Surah 18',
+        'Mishary',
+        {kind: 'surah', surahId: 18},
+        {kind: 'play', request: {kind: 'uploads', startIndex: 0}},
+      ],
+      [
+        'upload:b',
+        'Dua Qunoot',
+        'Dad',
+        {kind: 'icon', name: 'uploads'},
+        {kind: 'play', request: {kind: 'uploads', startIndex: 1}},
+      ],
+      [
+        'upload:c',
+        'c',
+        'Untagged',
+        {kind: 'icon', name: 'uploads'},
+        {kind: 'play', request: {kind: 'uploads', startIndex: 2}},
+      ],
+      [
+        'upload:d',
+        'd',
+        'd',
+        {kind: 'icon', name: 'uploads'},
+        {kind: 'play', request: {kind: 'uploads', startIndex: 3}},
+      ],
+      [
+        'upload:e',
+        'Surah 2',
+        'e',
+        {kind: 'surah', surahId: 2},
+        {kind: 'play', request: {kind: 'uploads', startIndex: 4}},
+      ],
+    ]);
+  });
+
+  it('includes recent uploads in Jump back in and Resume, aligned with the resolver', () => {
+    const uploads = [
+      upload('u1', {type: 'surah', surahNumber: 36, reciterId: 'r2'}),
+    ];
+    const recentTracks: RecentlyPlayedTrack[] = [
+      {
+        ...recent(sudais, 36, 0.5),
+        rewayatId: '',
+        duration: 120,
+        isUserUpload: true,
+        userRecitationId: 'u1',
+      },
+      {
+        ...recent(sudais, 2, 0.5),
+        isUserUpload: true,
+        userRecitationId: 'deleted',
+      },
+      recent(mishary, 1, 0.1),
+    ];
+    const snap = buildCarSnapshot(input({uploads, recentTracks}));
+    const rows =
+      snap.home.sections.find(s => s.id === 'jump-back-in')?.items ?? [];
+    expect(rows.map(i => [i.id, i.title, i.subtitle, i.progress])).toEqual([
+      ['recent:upload:u1', 'Surah 36', 'Sudais', 0.5],
+      ['recent:r1:r1-hafs:1', 'Surah 1', 'Mishary', 0.1],
+    ]);
+    expect(rows[0].artwork).toEqual({kind: 'surah', surahId: 36});
+    expect(rows[0].action).toEqual({
+      kind: 'play',
+      request: {kind: 'resume', recitationId: 'u1'},
+    });
+    const resume = snap.home.quickStart.find(i => i.id === 'quick:resume');
+    expect(resume?.subtitle).toBe('Surah 36');
+
+    // The top reciter still ignores uploads.
+    expect(snap.topReciterId).toBe('r1');
+
+    const ctx = {
+      reciters: [mishary, sudais],
+      topReciterId: snap.topReciterId,
+      recentTracks,
+      lovedTracks: [],
+      downloads: [],
+      systemPlaylists: [],
+      playlistItems: {},
+      uploads,
+    };
+    if (rows[0].action.kind !== 'play') throw new Error('expected play');
+    if (resume?.action.kind !== 'play') throw new Error('expected play');
+    const fromRow = resolveCarRequest(rows[0].action.request, ctx);
+    expect(fromRow?.tracks).toEqual([{uploadId: 'u1'}]);
+    expect(resolveCarRequest(resume.action.request, ctx)).toEqual(fromRow);
   });
 
   it('orders favorites first in reciters and marks them', () => {

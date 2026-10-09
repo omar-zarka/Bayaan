@@ -1,4 +1,5 @@
-import {recentTracksKey} from '../snapshotKeys';
+import {recentTracksKey, uploadsKey} from '../snapshotKeys';
+import type {UploadedRecitation} from '@/types/uploads';
 import type {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
 
 function entry(
@@ -64,6 +65,80 @@ describe('recentTracksKey', () => {
     expect(recentTracksKey([entry('a', 1, 0)])).not.toBe(base);
     expect(
       recentTracksKey([entry('a', 1, 0, true), entry('b', 2, 0)]),
+    ).not.toBe(base);
+  });
+});
+
+describe('recentTracksKey with uploads', () => {
+  it('tells apart uploads that share the placeholder reciter and surah', () => {
+    const one = {...entry('__uploads__', 0, 0, true), userRecitationId: 'u1'};
+    const two = {...entry('__uploads__', 0, 0, true), userRecitationId: 'u2'};
+    expect(recentTracksKey([one, two])).not.toBe(recentTracksKey([two, one]));
+  });
+});
+
+function upload(
+  id: string,
+  overrides: Partial<UploadedRecitation> = {},
+): UploadedRecitation {
+  return {
+    id,
+    filePath: `${id}.mp3`,
+    originalFilename: `${id}.mp3`,
+    duration: 60,
+    dateAdded: 1,
+    type: null,
+    surahNumber: null,
+    startVerse: null,
+    endVerse: null,
+    title: null,
+    category: null,
+    reciterId: null,
+    customReciterId: null,
+    isPersonal: false,
+    rewayah: null,
+    style: null,
+    recordingType: null,
+    ...overrides,
+  };
+}
+
+describe('uploadsKey', () => {
+  it('ignores fields the car does not show and copies of the same rows', () => {
+    const base = uploadsKey([upload('a'), upload('b')], []);
+    expect(
+      uploadsKey(
+        [upload('a', {duration: 99, dateAdded: 5}), {...upload('b')}],
+        [],
+      ),
+    ).toBe(base);
+  });
+  it('changes with order, membership, shown tags and custom reciter names', () => {
+    const base = uploadsKey(
+      [upload('a', {customReciterId: 'c'}), upload('b')],
+      [{id: 'c', name: 'Me', imageUri: null, createdAt: 1}],
+    );
+    const custom = [{id: 'c', name: 'Me', imageUri: null, createdAt: 1}];
+    expect(
+      uploadsKey([upload('b'), upload('a', {customReciterId: 'c'})], custom),
+    ).not.toBe(base);
+    expect(uploadsKey([upload('a', {customReciterId: 'c'})], custom)).not.toBe(
+      base,
+    );
+    expect(
+      uploadsKey(
+        [
+          upload('a', {customReciterId: 'c', type: 'surah', surahNumber: 18}),
+          upload('b'),
+        ],
+        custom,
+      ),
+    ).not.toBe(base);
+    expect(
+      uploadsKey(
+        [upload('a', {customReciterId: 'c'}), upload('b')],
+        [{id: 'c', name: 'Renamed', imageUri: null, createdAt: 1}],
+      ),
     ).not.toBe(base);
   });
 });

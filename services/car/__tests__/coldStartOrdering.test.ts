@@ -76,9 +76,10 @@ jest.mock('@/services/car/playback/resolveCarRequest', () => ({
     shuffle: false,
     chain: 'none',
   }),
+  isUploadSpec: () => false,
 }));
 jest.mock('@/services/car/CarSnapshotService', () => ({
-  getLastResolveContext: () => ({}),
+  getLastResolveContext: () => ({uploads: []}),
   writeCarSnapshotNow: jest.fn(),
 }));
 
