@@ -234,7 +234,8 @@ private let previewFullSnapshotJSON = #"""
     },
     "isPlaying": true,
     "positionSec": 120.5,
-    "durationSec": 1800
+    "durationSec": 1800,
+    "rate": 1
   },
   "upNext": [
     {

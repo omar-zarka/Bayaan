@@ -12,6 +12,7 @@ class SnapshotModelsTest {
     val s = SnapshotModels.decode(fixture("snapshot.full.json"))
     assertNotNull(s)
     assertEquals(18, s!!.nowPlaying!!.track.surahId)
+    assertEquals(1.0, s.nowPlaying!!.rate, 0.0)
     assertEquals(15, s.lastRead!!.juz)
     assertEquals(12, s.tasbeeh["tasbeeh-subhanallah"]!!.count)
   }

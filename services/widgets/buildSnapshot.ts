@@ -26,6 +26,7 @@ export interface SnapshotInput {
   isPlaying: boolean;
   positionSec: number;
   durationSec: number;
+  rate: number;
   recentTracks: RecentlyPlayedTrack[];
   defaultReciter: Reciter | null;
   lastReadPage: number | null;
@@ -144,6 +145,7 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
           isPlaying: input.isPlaying,
           positionSec: input.positionSec,
           durationSec: input.durationSec,
+          rate: input.rate,
         }
       : null,
     upNext,

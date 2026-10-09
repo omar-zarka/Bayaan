@@ -37,6 +37,7 @@ function input(overrides: Partial<SnapshotInput> = {}): SnapshotInput {
     isPlaying: false,
     positionSec: 0,
     durationSec: 0,
+    rate: 1,
     recentTracks: [],
     defaultReciter: reciter,
     lastReadPage: null,
@@ -80,10 +81,12 @@ describe('buildSnapshot', () => {
         isPlaying: true,
         positionSec: 120,
         durationSec: 1800,
+        rate: 1.5,
       }),
     );
     expect(snap.nowPlaying?.track.surahId).toBe(18);
     expect(snap.nowPlaying?.isPlaying).toBe(true);
+    expect(snap.nowPlaying?.rate).toBe(1.5);
     expect(snap.upNext.map(t => t.surahId)).toEqual([36, 67, 55]);
     expect(snap.nowPlaying?.track.artworkFile).toBe('reciter-r1.jpg');
   });

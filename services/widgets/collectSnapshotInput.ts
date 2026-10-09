@@ -34,6 +34,7 @@ export function collectSnapshotInput(now: Date): SnapshotInput {
     isPlaying: player.playback.state === 'playing',
     positionSec: player.playback.position,
     durationSec: player.playback.duration,
+    rate: player.playback.rate,
     recentTracks: useRecentlyPlayedStore.getState().recentTracks,
     defaultReciter: reciter.id === '' ? null : reciter,
     lastReadPage: mushafSessionStore.getLastReadPage(),

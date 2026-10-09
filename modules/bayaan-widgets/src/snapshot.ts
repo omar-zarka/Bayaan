@@ -25,6 +25,7 @@ export interface WidgetNowPlaying {
   isPlaying: boolean;
   positionSec: number; // at generatedAt
   durationSec: number;
+  rate: number; // playback speed, 1 is normal
 }
 
 export interface WidgetLastRead {
@@ -86,7 +87,8 @@ function isNowPlaying(value: unknown): value is WidgetNowPlaying {
     isWidgetTrack(value.track) &&
     typeof value.isPlaying === 'boolean' &&
     typeof value.positionSec === 'number' &&
-    typeof value.durationSec === 'number'
+    typeof value.durationSec === 'number' &&
+    typeof value.rate === 'number'
   );
 }
 

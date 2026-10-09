@@ -16,6 +16,7 @@ struct WidgetNowPlaying: Codable, Hashable {
   let isPlaying: Bool
   let positionSec: Double
   let durationSec: Double
+  let rate: Double
 }
 
 struct WidgetReciter: Codable, Hashable {

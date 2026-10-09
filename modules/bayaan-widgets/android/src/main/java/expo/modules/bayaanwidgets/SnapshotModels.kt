@@ -8,6 +8,7 @@ data class WidgetTrack(
 )
 data class WidgetNowPlaying(
   val track: WidgetTrack, val isPlaying: Boolean, val positionSec: Double, val durationSec: Double,
+  val rate: Double,
 )
 data class WidgetReciter(val id: String, val name: String, val artworkFile: String?)
 data class WidgetLastRead(
@@ -44,7 +45,7 @@ object SnapshotModels {
     if (o.getInt("version") != VERSION) null else {
       val np = if (o.isNull("nowPlaying")) null else o.getJSONObject("nowPlaying").let {
         WidgetNowPlaying(track(it.getJSONObject("track")), it.getBoolean("isPlaying"),
-          it.getDouble("positionSec"), it.getDouble("durationSec"))
+          it.getDouble("positionSec"), it.getDouble("durationSec"), it.getDouble("rate"))
       }
       val dr = if (o.isNull("defaultReciter")) null else o.getJSONObject("defaultReciter").let {
         WidgetReciter(it.getString("id"), it.getString("name"), it.optStringOrNull("artworkFile"))
