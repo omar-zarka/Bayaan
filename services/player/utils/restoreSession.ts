@@ -67,11 +67,11 @@ export async function restoreSession(): Promise<void> {
     const persistedTrack =
       persistedState.queue.tracks[persistedState.queue.currentIndex];
 
-    // Upload tracks aren't tracked in recentlyPlayedStore, so restore from
-    // the persisted playerStore queue directly.
     // A car request (CarPlay / Android Auto) already replaced the queue.
     if (hasCarReplacedQueue()) return;
 
+    // Upload tracks aren't tracked in recentlyPlayedStore, so restore from
+    // the persisted playerStore queue directly.
     if (persistedTrack?.isUserUpload) {
       const startPosition =
         persistedState.playback.position > 0
@@ -111,7 +111,6 @@ export async function restoreSession(): Promise<void> {
       if (recitation) {
         const uploadTrack = createUserUploadTrack(recitation);
         const startPosition = recent.progress * recent.duration;
-        if (hasCarReplacedQueue()) return;
 
         const playerStore = usePlayerStore.getState();
         playerStore.updateQueueState({tracks: [uploadTrack], currentIndex: 0});
@@ -184,6 +183,7 @@ export async function restoreSession(): Promise<void> {
       ];
     }
 
+    // The await above gave a car request time to take over the queue.
     if (hasCarReplacedQueue()) return;
 
     // Phase 1: Populate store state (floating player renders immediately)
