@@ -190,12 +190,13 @@ function isStarting(state: PlayerState): boolean {
 
 async function setPlayback(playing: boolean, deps: CommandDeps): Promise<void> {
   if (!deps.hasCurrentTrack()) return;
-  const state = deps.playbackState();
   if (!playing) {
-    if (isStarting(state)) await deps.pause();
+    // Pause regardless of state: after updateQueue the store sits at 'ready'
+    // until the next status tick even though audio is playing.
+    await deps.pause();
     return;
   }
-  if (isStarting(state)) return;
+  if (isStarting(deps.playbackState())) return;
   if (!deps.isAudioLoaded()) {
     await deps.loadAndPlayCurrent();
     return;

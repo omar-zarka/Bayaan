@@ -109,10 +109,15 @@ describe('handleWidgetCommand', () => {
     expect(d2.calls).toEqual(['pause']);
   });
 
-  it('setPlayback is a no-op when already in the requested state', async () => {
-    const paused = deps();
-    await handleWidgetCommand({type: 'setPlayback', playing: false}, paused);
-    expect(paused.calls).toEqual([]);
+  it('setPlayback(false) pauses in any state, including ready', async () => {
+    for (const state of ['ready', 'paused', 'loading'] as const) {
+      const d = deps({playbackState: () => state});
+      await handleWidgetCommand({type: 'setPlayback', playing: false}, d);
+      expect(d.calls).toEqual(['pause']);
+    }
+  });
+
+  it('setPlayback(true) is a no-op when already playing', async () => {
     const playing = deps({playbackState: () => 'playing'});
     await handleWidgetCommand({type: 'setPlayback', playing: true}, playing);
     expect(playing.calls).toEqual([]);
