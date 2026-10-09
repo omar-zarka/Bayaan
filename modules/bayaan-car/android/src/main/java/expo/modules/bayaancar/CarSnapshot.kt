@@ -42,12 +42,15 @@ sealed class CarItemAction {
 
   companion object {
     fun parse(o: JSONObject): CarItemAction {
-      if (o.optString("kind") == "play") return Play(o.getJSONObject("request").toString())
+      val kind = o.getString("kind")
+      if (kind == "play") return Play(o.getJSONObject("request").toString())
+      require(kind == "browse") { "unknown action kind" }
       val t = o.getJSONObject("target")
       return when (t.optString("kind")) {
         "reciter" -> BrowseReciter(t.getString("reciterId"))
         "surahReciters" -> BrowseSurahReciters(t.getInt("surahId"))
-        else -> BrowseList(t.getString("listId"))
+        "list" -> BrowseList(t.getString("listId"))
+        else -> throw IllegalArgumentException("unknown target kind")
       }
     }
   }
@@ -121,7 +124,7 @@ data class CarSnapshot(
           runCatching {
             val l = listsObj.getJSONObject(key)
             key to CarList(l.getString("id"), l.getString("title"), l.getJSONArray("items").mapObjects(CarItem::parse))
-          }.getOrNull()
+          }.onFailure { CarLog.d("skipped malformed list $key: $it") }.getOrNull()
         }.toMap(),
         reciters = o.getJSONArray("reciters").mapObjects { r ->
           CarReciter(
@@ -158,11 +161,16 @@ data class CarNowPlaying(
   val receivedAtMs: Long,
 ) {
   companion object {
-    private fun JSONArray.mapQueue(): List<CarQueueEntry> = (0 until length()).mapNotNull { i ->
-      runCatching {
-        val e = getJSONObject(i)
-        CarQueueEntry(e.getString("title"), e.getString("subtitle"), if (e.isNull("surahId")) null else e.getInt("surahId"))
-      }.getOrNull()
+    private fun JSONArray.mapQueue(): List<CarQueueEntry> {
+      var skipped = 0
+      val out = (0 until length()).mapNotNull { i ->
+        runCatching {
+          val e = getJSONObject(i)
+          CarQueueEntry(e.getString("title"), e.getString("subtitle"), if (e.isNull("surahId")) null else e.getInt("surahId"))
+        }.getOrNull().also { if (it == null) skipped++ }
+      }
+      if (skipped > 0) CarLog.d("skipped $skipped malformed queue entr(ies)")
+      return out
     }
 
     fun parse(json: String): CarNowPlaying? = runCatching {
@@ -179,7 +187,11 @@ data class CarNowPlaying(
         rate = o.getDouble("rate"),
         repeatMode = o.getString("repeatMode"),
         isLoved = o.getBoolean("isLoved"),
-        artwork = if (o.has("artwork") && !o.isNull("artwork")) CarArtwork.parse(o.getJSONObject("artwork")) else null,
+        artwork = if (o.has("artwork") && !o.isNull("artwork")) {
+          runCatching { CarArtwork.parse(o.getJSONObject("artwork")) }
+            .onFailure { CarLog.d("dropped malformed nowPlaying artwork") }
+            .getOrNull()
+        } else null,
         queue = q.mapQueue(),
         currentIndex = o.getInt("currentIndex"),
         receivedAtMs = android.os.SystemClock.elapsedRealtime(),

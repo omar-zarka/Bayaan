@@ -19,7 +19,7 @@ final class CarBridge {
   private(set) var isConnected = false
 
   private var emit: ((String, [String: Any]) -> Void)?
-  private var owner: ObjectIdentifier?
+  private var owner: UUID?
   private var jsReady = false
   private var pending: [(String, [String: Any])] = []
 
@@ -42,8 +42,7 @@ final class CarBridge {
 
   /// A new module instance (new JS runtime) takes over. Not ready until it
   /// calls markJsReady.
-  func attach(owner: AnyObject, emit: @escaping (String, [String: Any]) -> Void) {
-    let id = ObjectIdentifier(owner)
+  func attach(owner id: UUID, emit: @escaping (String, [String: Any]) -> Void) {
     onMain {
       self.owner = id
       self.emit = emit
@@ -52,8 +51,7 @@ final class CarBridge {
   }
 
   /// Clears emitter state only if `owner` still owns it.
-  func detach(owner: AnyObject) {
-    let id = ObjectIdentifier(owner)
+  func detach(owner id: UUID) {
     onMain {
       guard self.owner == id else { return }
       self.owner = nil

@@ -96,15 +96,21 @@ enum CarItemAction: Decodable {
 
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: Keys.self)
-    if try c.decode(String.self, forKey: .kind) == "play" {
+    let kind = try c.decode(String.self, forKey: .kind)
+    if kind == "play" {
       self = .play(try c.decode(RawJSON.self, forKey: .request))
       return
+    }
+    guard kind == "browse" else {
+      throw DecodingError.dataCorruptedError(forKey: .kind, in: c, debugDescription: "unknown action kind")
     }
     let t = try c.nestedContainer(keyedBy: TargetKeys.self, forKey: .target)
     switch try t.decode(String.self, forKey: .kind) {
     case "reciter": self = .browseReciter(try t.decode(String.self, forKey: .reciterId))
     case "surahReciters": self = .browseSurahReciters(try t.decode(Int.self, forKey: .surahId))
-    default: self = .browseList(try t.decode(String.self, forKey: .listId))
+    case "list": self = .browseList(try t.decode(String.self, forKey: .listId))
+    default:
+      throw DecodingError.dataCorruptedError(forKey: .kind, in: t, debugDescription: "unknown target kind")
     }
   }
 }
