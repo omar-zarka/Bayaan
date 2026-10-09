@@ -1,20 +1,25 @@
 import Foundation
 
 /// Threading model: all mutable state (snapshot, nowPlaying, connection, the
-/// pending queue, jsReady, emit) is read and written on the main queue only.
-/// Entry points called from other threads (the Expo module on the JS thread)
-/// hop to main first. Disk IO and JSON decoding happen on the caller's thread.
+/// pending queue, jsReady, emit, owner) is read and written on the main queue
+/// only. Entry points called from other threads (the Expo module on the JS
+/// thread) hop to main first. Disk IO and JSON decoding happen off main.
+///
+/// The emitter is owned by one module instance (owner token). A late
+/// `detach` from an old instance after a reload cannot clear the new
+/// instance's emitter or ready flag.
 final class CarBridge {
   static let shared = CarBridge()
   static let snapshotDidChange = Notification.Name("BayaanCarSnapshotDidChange")
   static let nowPlayingDidChange = Notification.Name("BayaanCarNowPlayingDidChange")
+  private static let maxPending = 32
 
   private(set) var snapshot: CarSnapshot?
   private(set) var nowPlaying: CarNowPlaying?
   private(set) var isConnected = false
 
-  /// Set by BayaanCarModule. Only invoked once JS has called markJsReady.
-  var emit: ((String, [String: Any]) -> Void)?
+  private var emit: ((String, [String: Any]) -> Void)?
+  private var owner: ObjectIdentifier?
   private var jsReady = false
   private var pending: [(String, [String: Any])] = []
 
@@ -35,13 +40,48 @@ final class CarBridge {
     }
   }
 
+  /// A new module instance (new JS runtime) takes over. Not ready until it
+  /// calls markJsReady.
+  func attach(owner: AnyObject, emit: @escaping (String, [String: Any]) -> Void) {
+    let id = ObjectIdentifier(owner)
+    onMain {
+      self.owner = id
+      self.emit = emit
+      self.jsReady = false
+    }
+  }
+
+  /// Clears emitter state only if `owner` still owns it.
+  func detach(owner: AnyObject) {
+    let id = ObjectIdentifier(owner)
+    onMain {
+      guard self.owner == id else { return }
+      self.owner = nil
+      self.emit = nil
+      self.jsReady = false
+    }
+  }
+
   func writeSnapshot(json: String) {
-    guard let data = json.data(using: .utf8),
-          let decoded = try? JSONDecoder().decode(CarSnapshot.self, from: data),
-          decoded.version == 1 else { return }
+    guard let data = json.data(using: .utf8) else { return }
+    let decoded: CarSnapshot
+    do {
+      decoded = try JSONDecoder().decode(CarSnapshot.self, from: data)
+    } catch {
+      carDebugLog("snapshot decode failed: \(error)")
+      return
+    }
+    guard decoded.version == 1 else {
+      carDebugLog("snapshot version \(decoded.version) unsupported")
+      return
+    }
     let url = snapshotURL
-    try? FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
-    try? data.write(to: url, options: .atomic)
+    do {
+      try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+      try data.write(to: url, options: .atomic)
+    } catch {
+      carDebugLog("snapshot write failed: \(error)")
+    }
     onMain {
       self.snapshot = decoded
       NotificationCenter.default.post(name: CarBridge.snapshotDidChange, object: nil)
@@ -58,19 +98,13 @@ final class CarBridge {
 
   func markJsReady() {
     onMain {
+      // Never flush into a missing emitter: keep events queued.
+      guard let emit = self.emit else { return }
       self.jsReady = true
       let queued = self.pending
       self.pending.removeAll()
-      queued.forEach { self.emit?($0.0, $0.1) }
-      self.emit?("onCarConnectionChanged", ["connected": self.isConnected])
-    }
-  }
-
-  /// Called when the JS runtime goes away (dev reload). Later requests queue
-  /// until the new runtime calls markJsReady again.
-  func resetJsReady() {
-    onMain {
-      self.jsReady = false
+      queued.forEach { emit($0.0, $0.1) }
+      emit("onCarConnectionChanged", ["connected": self.isConnected])
     }
   }
 
@@ -100,16 +134,27 @@ final class CarBridge {
         emit(event, body)
         return
       }
-      // Only the latest play request matters; transports queue in order.
-      if event == "onPlayRequest" { self.pending.removeAll { $0.0 == "onPlayRequest" } }
+      // A new play request supersedes everything queued before it.
+      if event == "onPlayRequest" { self.pending.removeAll() }
       self.pending.append((event, body))
+      if self.pending.count > CarBridge.maxPending {
+        self.pending.removeFirst(self.pending.count - CarBridge.maxPending)
+      }
     }
   }
 
   private func loadSnapshotFromDisk() {
-    guard let data = try? Data(contentsOf: snapshotURL),
-          let decoded = try? JSONDecoder().decode(CarSnapshot.self, from: data),
-          decoded.version == 1 else { return }
-    snapshot = decoded
+    let url = snapshotURL
+    DispatchQueue.global(qos: .userInitiated).async {
+      guard let data = try? Data(contentsOf: url),
+            let decoded = try? JSONDecoder().decode(CarSnapshot.self, from: data),
+            decoded.version == 1 else { return }
+      DispatchQueue.main.async {
+        // A snapshot written by JS in the meantime is newer; keep it.
+        guard self.snapshot == nil else { return }
+        self.snapshot = decoded
+        NotificationCenter.default.post(name: CarBridge.snapshotDidChange, object: nil)
+      }
+    }
   }
 }

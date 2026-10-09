@@ -6,13 +6,13 @@ public class BayaanCarModule: Module {
     Events("onPlayRequest", "onTransport", "onCarConnectionChanged")
 
     OnCreate {
-      CarBridge.shared.emit = { [weak self] name, body in
+      CarBridge.shared.attach(owner: self) { [weak self] name, body in
         self?.sendEvent(name, body)
       }
     }
 
     OnDestroy {
-      CarBridge.shared.resetJsReady()
+      CarBridge.shared.detach(owner: self)
     }
 
     Function("writeSnapshot") { (json: String) in

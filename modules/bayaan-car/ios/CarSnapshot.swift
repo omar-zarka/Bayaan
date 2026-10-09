@@ -1,5 +1,40 @@
 import Foundation
 
+func carDebugLog(_ message: @autoclosure () -> String) {
+  #if DEBUG
+  NSLog("[BayaanCar] %@", message())
+  #endif
+}
+
+/// Decodes one array element without failing the whole array.
+private struct Failable<T: Decodable>: Decodable {
+  let value: T?
+  init(from decoder: Decoder) throws {
+    value = try? T(from: decoder)
+  }
+}
+
+extension KeyedDecodingContainer {
+  /// Decodes an array, skipping elements that fail to decode.
+  func decodeLossy<T: Decodable>(_ type: [T].Type, forKey key: Key) throws -> [T] {
+    let all = try decode([Failable<T>].self, forKey: key)
+    let kept = all.compactMap { $0.value }
+    if kept.count != all.count {
+      carDebugLog("skipped \(all.count - kept.count) malformed \(T.self) in \(key.stringValue)")
+    }
+    return kept
+  }
+
+  func decodeLossyDict<T: Decodable>(_ type: [String: T].Type, forKey key: Key) throws -> [String: T] {
+    let all = try decode([String: Failable<T>].self, forKey: key)
+    let kept = all.compactMapValues { $0.value }
+    if kept.count != all.count {
+      carDebugLog("skipped \(all.count - kept.count) malformed \(T.self) in \(key.stringValue)")
+    }
+    return kept
+  }
+}
+
 enum CarArtwork: Decodable {
   case surah(Int)
   case url(String)
@@ -17,8 +52,11 @@ enum CarArtwork: Decodable {
     case "asset": self = .asset(try c.decode(String.self, forKey: .uri))
     case "monogram":
       self = .monogram(label: try c.decode(String.self, forKey: .label), hex: try c.decode(String.self, forKey: .hex))
-    default:
+    case "color":
       self = .color(label: try c.decode(String.self, forKey: .label), hex: try c.decode(String.self, forKey: .hex))
+    default:
+      carDebugLog("unknown artwork kind, using neutral fallback")
+      self = .color(label: "", hex: "#333333")
     }
   }
 }
@@ -86,12 +124,29 @@ struct CarSection: Decodable {
   let title: String
   let style: String
   let items: [CarItem]
+
+  private enum Keys: String, CodingKey { case id, title, style, items }
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    id = try c.decode(String.self, forKey: .id)
+    title = try c.decode(String.self, forKey: .title)
+    style = try c.decode(String.self, forKey: .style)
+    items = try c.decodeLossy([CarItem].self, forKey: .items)
+  }
 }
 
 struct CarList: Decodable {
   let id: String
   let title: String
   let items: [CarItem]
+
+  private enum Keys: String, CodingKey { case id, title, items }
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    id = try c.decode(String.self, forKey: .id)
+    title = try c.decode(String.self, forKey: .title)
+    items = try c.decodeLossy([CarItem].self, forKey: .items)
+  }
 }
 
 struct CarRewayah: Decodable {
@@ -107,6 +162,16 @@ struct CarReciter: Decodable {
   let artwork: CarArtwork
   let isFavorite: Bool
   let rewayat: [CarRewayah]
+
+  private enum Keys: String, CodingKey { case id, name, artwork, isFavorite, rewayat }
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    id = try c.decode(String.self, forKey: .id)
+    name = try c.decode(String.self, forKey: .name)
+    artwork = try c.decode(CarArtwork.self, forKey: .artwork)
+    isFavorite = try c.decode(Bool.self, forKey: .isFavorite)
+    rewayat = try c.decodeLossy([CarRewayah].self, forKey: .rewayat)
+  }
 }
 
 struct CarSurah: Decodable {
@@ -120,6 +185,13 @@ struct CarSurah: Decodable {
 struct CarHome: Decodable {
   let quickStart: [CarItem]
   let sections: [CarSection]
+
+  private enum Keys: String, CodingKey { case quickStart, sections }
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    quickStart = try c.decodeLossy([CarItem].self, forKey: .quickStart)
+    sections = try c.decodeLossy([CarSection].self, forKey: .sections)
+  }
 }
 
 struct CarJuz: Decodable {
@@ -138,6 +210,23 @@ struct CarSnapshot: Decodable {
   let surahs: [CarSurah]
   let juz: [CarJuz]
   let downloadedKeys: [String]
+
+  private enum Keys: String, CodingKey {
+    case version, generatedAt, topReciterId, home, library, lists, reciters, surahs, juz, downloadedKeys
+  }
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    version = try c.decode(Int.self, forKey: .version)
+    generatedAt = try c.decodeIfPresent(String.self, forKey: .generatedAt)
+    topReciterId = try c.decodeIfPresent(String.self, forKey: .topReciterId)
+    home = try c.decode(CarHome.self, forKey: .home)
+    library = try c.decodeLossy([CarItem].self, forKey: .library)
+    lists = try c.decodeLossyDict([String: CarList].self, forKey: .lists)
+    reciters = try c.decodeLossy([CarReciter].self, forKey: .reciters)
+    surahs = try c.decodeLossy([CarSurah].self, forKey: .surahs)
+    juz = try c.decodeLossy([CarJuz].self, forKey: .juz)
+    downloadedKeys = try c.decode([String].self, forKey: .downloadedKeys)
+  }
 }
 
 struct CarQueueEntry: Decodable {
@@ -160,4 +249,24 @@ struct CarNowPlaying: Decodable {
   let artwork: CarArtwork?
   let queue: [CarQueueEntry]
   let currentIndex: Int
+
+  private enum Keys: String, CodingKey {
+    case title, subtitle, reciterId, surahId, isPlaying, position, duration, rate, repeatMode, isLoved, artwork, queue, currentIndex
+  }
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: Keys.self)
+    title = try c.decode(String.self, forKey: .title)
+    subtitle = try c.decode(String.self, forKey: .subtitle)
+    reciterId = try c.decodeIfPresent(String.self, forKey: .reciterId)
+    surahId = try c.decodeIfPresent(Int.self, forKey: .surahId)
+    isPlaying = try c.decode(Bool.self, forKey: .isPlaying)
+    position = try c.decode(Double.self, forKey: .position)
+    duration = try c.decode(Double.self, forKey: .duration)
+    rate = try c.decode(Double.self, forKey: .rate)
+    repeatMode = try c.decode(String.self, forKey: .repeatMode)
+    isLoved = try c.decode(Bool.self, forKey: .isLoved)
+    artwork = try? c.decodeIfPresent(CarArtwork.self, forKey: .artwork)
+    queue = try c.decodeLossy([CarQueueEntry].self, forKey: .queue)
+    currentIndex = try c.decode(Int.self, forKey: .currentIndex)
+  }
 }
