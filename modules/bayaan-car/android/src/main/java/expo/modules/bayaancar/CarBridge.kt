@@ -154,6 +154,8 @@ object CarBridge {
   fun setConnected(connected: Boolean) {
     main.post {
       isConnected = connected
+      // A fresh car connection starts without a stale "open on phone" error.
+      if (connected) setJsUnavailable(false)
       if (jsReady) emit?.invoke("onCarConnectionChanged", mapOf("connected" to connected))
     }
   }
@@ -171,6 +173,8 @@ object CarBridge {
       if (event == "onPlayRequest") {
         pending.clear()
         waitingSinceMs = now
+        // Show loading, not the previous error, while this request waits.
+        setJsUnavailable(false)
       } else if (waitingSinceMs == null) {
         waitingSinceMs = now
       }
