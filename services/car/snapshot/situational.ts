@@ -52,17 +52,20 @@ function isNight(now: Date): boolean {
   return hour >= 21 || hour < 4;
 }
 
+// Card titles stay short (the surah or playlist) and the subtitle gives the
+// reason; the reciter shows on Now Playing once the pick plays.
 function surahPick(
   id: string,
   reciter: SituationalReciter,
   surahId: number,
-  title: string,
+  reason: string,
+  ctx: SituationalContext,
 ): CarItem | null {
   if (!reciter.surahIds.includes(surahId)) return null;
   return {
     id,
-    title,
-    subtitle: reciter.name,
+    title: ctx.surahName(surahId),
+    subtitle: reason,
     artwork: {kind: 'surah', surahId},
     action: {
       kind: 'play',
@@ -80,12 +83,14 @@ function playlistPick(
   id: string,
   playlists: SituationalPlaylist[],
   playlistId: string,
+  reason: string,
 ): CarItem | null {
   const playlist = playlists.find(p => p.id === playlistId);
   if (!playlist) return null;
   return {
     id,
     title: playlist.title,
+    subtitle: reason,
     artwork: {kind: 'color', label: playlist.title, hex: playlist.color},
     action: {
       kind: 'play',
@@ -102,8 +107,8 @@ function upNextPick(ctx: SituationalContext): CarItem | null {
   if (next === undefined) return null;
   return {
     id: 'now:upnext',
-    title: `Up next: ${ctx.surahName(next)}`,
-    subtitle: last.reciterName,
+    title: ctx.surahName(next),
+    subtitle: 'Up next',
     artwork: {kind: 'surah', surahId: next},
     action: {
       kind: 'play',
@@ -122,28 +127,31 @@ export function buildSituationalPicks(ctx: SituationalContext): CarItem[] {
   const reciter = ctx.topReciter;
 
   if (isFridayWindow(ctx.now) && reciter) {
-    candidates.push(
-      surahPick('now:kahf', reciter, KAHF, `Friday: ${ctx.surahName(KAHF)}`),
-    );
+    candidates.push(surahPick('now:kahf', reciter, KAHF, 'Friday', ctx));
   }
   if (isMorning(ctx.now)) {
     candidates.push(
-      playlistPick('now:morning', ctx.systemPlaylists, 'morning-reflections'),
+      playlistPick(
+        'now:morning',
+        ctx.systemPlaylists,
+        'morning-reflections',
+        'Morning',
+      ),
     );
   }
   if (isNight(ctx.now)) {
     if (reciter) {
       candidates.push(
-        surahPick(
-          'now:mulk',
-          reciter,
-          MULK,
-          `Before sleep: ${ctx.surahName(MULK)}`,
-        ),
+        surahPick('now:mulk', reciter, MULK, 'Before sleep', ctx),
       );
     }
     candidates.push(
-      playlistPick('now:evening', ctx.systemPlaylists, 'evening-serenity'),
+      playlistPick(
+        'now:evening',
+        ctx.systemPlaylists,
+        'evening-serenity',
+        'Evening',
+      ),
     );
   }
   candidates.push(upNextPick(ctx));

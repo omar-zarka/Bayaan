@@ -66,6 +66,7 @@ Computed in TypeScript (one implementation, both platforms) by a pure function `
 
 - **Top reciter** = the most recently played reciter in `recentlyPlayedStore` (non-upload), else `useReciterStore.getState().defaultReciter`. `playCountStore` counts per surah, not per reciter, so it is not used.
 - Rules are ordered as listed; at most 4 picks; duplicates removed.
+- Card text stays short: the title is the surah or playlist name ("Al-Kahf", "Morning Reflections") and the subtitle is the reason ("Friday", "Morning", "Before sleep", "Evening", "Up next"). The reciter shows on Now Playing.
 - Time windows use the device's local clock. No prayer-time data exists in the app; these are fixed windows.
 
 ### Library

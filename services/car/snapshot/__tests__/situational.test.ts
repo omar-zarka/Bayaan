@@ -65,7 +65,8 @@ describe('buildSituationalPicks', () => {
       kind: 'play',
       request: {kind: 'surah', reciterId: 'r1', rewayatId: 'rw1', surahId: 18},
     });
-    expect(kahf?.subtitle).toBe('Mishary Alafasy');
+    expect(kahf?.title).toBe('Surah 18');
+    expect(kahf?.subtitle).toBe('Friday');
     expect(kahf?.artwork).toEqual({kind: 'surah', surahId: 18});
   });
 
@@ -91,6 +92,22 @@ describe('buildSituationalPicks', () => {
     expect(ids).toEqual(['now:mulk', 'now:evening']);
   });
 
+  it('titles each card by its surah or playlist and gives the reason below', () => {
+    const night = buildSituationalPicks(ctx(sat2200)).map(p => [
+      p.title,
+      p.subtitle,
+    ]);
+    expect(night).toEqual([
+      ['Surah 67', 'Before sleep'],
+      ['Evening Serenity', 'Evening'],
+    ]);
+    const morning = buildSituationalPicks(ctx(sat0800)).map(p => [
+      p.title,
+      p.subtitle,
+    ]);
+    expect(morning).toEqual([['Morning Reflections', 'Morning']]);
+  });
+
   it('offers the next surah after a completed one', () => {
     const c = ctx(sat1400, {
       lastPlayed: {
@@ -107,7 +124,8 @@ describe('buildSituationalPicks', () => {
       kind: 'play',
       request: {kind: 'surah', reciterId: 'r2', rewayatId: 'rw2', surahId: 3},
     });
-    expect(next?.title).toBe('Up next: Surah 3');
+    expect(next?.title).toBe('Surah 3');
+    expect(next?.subtitle).toBe('Up next');
   });
 
   it('skips up next when the last surah is the last available one', () => {
