@@ -212,16 +212,21 @@ struct MediumView: View {
 
   var body: some View {
     HStack(spacing: 14) {
+      // Fits the 130 pt content height: art and button share the top row.
       VStack(alignment: .leading, spacing: 6) {
-        Artwork(file: track.artworkFile, size: 64)
+        HStack(alignment: .top) {
+          Artwork(file: track.artworkFile, size: 56)
+          Spacer(minLength: 0)
+          HeroPlayButton(track: track, playback: playback)
+        }
         Spacer(minLength: 0)
         Text(track.surahName).font(.headline).lineLimit(1)
-        Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
-        HStack(spacing: 8) {
-          HeroPlayButton(track: track, playback: playback)
-          PlaybackProgress(playback: playback)
+        HStack(spacing: 4) {
+          Text(track.reciterName).lineLimit(1)
+          TimeLeft(playback: playback)
         }
-        TimeLeft(playback: playback).font(.caption2).opacity(0.75)
+        .font(.caption).opacity(0.75)
+        PlaybackProgress(playback: playback)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       VStack(alignment: .leading, spacing: 8) {
