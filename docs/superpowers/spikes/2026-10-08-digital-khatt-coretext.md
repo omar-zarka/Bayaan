@@ -2,7 +2,7 @@
 
 ## Verdict: PASS
 
-CoreText shaping of `DigitalKhattFont.otf` matches HarfBuzz (the engine Skia uses) on all 30 dense ayat. Plan 1b can render Quran text in iOS widgets with SwiftUI `Text` and the custom font.
+Glyph selection is identical on 30/30 verses (CoreText vs HarfBuzz, the engine Skia uses). Mark positions were compared numerically on one verse (112:1) and visually on three (112:1, 12:4, 24:35), with no differences seen. Plan 1b can render Quran text in iOS widgets with SwiftUI `Text` and the custom font.
 
 ## Method
 
@@ -17,7 +17,12 @@ CoreText shaping of `DigitalKhattFont.otf` matches HarfBuzz (the engine Skia use
 - Visual observations (images not committed):
   - 112:1: both engines show the same word shapes, fatha/damma stacks, small high letters and the ornamented ayah-number medallion in the same places.
   - 12:4: the long marks, shadda plus vowel stacks, small high alef and the end ornament match; only the canvas differs (CoreText wraps at 1400pt width and renders at 2x, HarfBuzz is one wide line).
+  - 24:35 (Ayat an-Nur, dense mark-heavy): CoreText wraps to three lines; HarfBuzz is one 3743px line, which I cropped to inspect (right end viewed). Compared on the first line: the waqf signs (small jeem after الأرض, small seen-lam-ya over المصباح and الزجاجة) sit at the same height above the same letters; shadda plus vowel stacks (الزّجاجة, كأنّها), small high alef and small hamza after نوره, and the leading ornament all match. The ayah-number medallion at the verse end and the left half of the HarfBuzz line were not examined at crop resolution.
   - Remaining pairs were checked through the glyph-sequence comparison rather than by eye; I did not eyeball all 30 pairs.
+
+## Export check against the app (1:1)
+
+`DigitalKhattDataService.getVerseText` builds a verse as `words.map(w => w.text).join(' ')` from `SELECT id, text, location FROM words`, with words sorted by position within the verse (`parseInt(location.split(':')[2])`). My export uses the same table, same `text` column, ordered by `word`, joined with a space. For 1:1 the export yields the five words (بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ ۝١) in locations 1:1:1 to 1:1:5, identical to what the service would produce. I did not run the RN app itself; this is a code and data comparison.
 
 ## Caveats for Plan 1b
 
