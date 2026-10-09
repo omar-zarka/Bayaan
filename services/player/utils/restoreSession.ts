@@ -11,6 +11,7 @@ import {expoAudioService} from '@/services/audio/ExpoAudioService';
 import {Track} from '@/types/audio';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {createUserUploadTrack} from '@/utils/track';
+import {hasCarReplacedQueue} from '@/services/car/sessionGate';
 
 /**
  * Waits for playerStore to finish hydrating from AsyncStorage.
@@ -68,6 +69,9 @@ export async function restoreSession(): Promise<void> {
 
     // Upload tracks aren't tracked in recentlyPlayedStore, so restore from
     // the persisted playerStore queue directly.
+    // A car request (CarPlay / Android Auto) already replaced the queue.
+    if (hasCarReplacedQueue()) return;
+
     if (persistedTrack?.isUserUpload) {
       const startPosition =
         persistedState.playback.position > 0
@@ -107,6 +111,7 @@ export async function restoreSession(): Promise<void> {
       if (recitation) {
         const uploadTrack = createUserUploadTrack(recitation);
         const startPosition = recent.progress * recent.duration;
+        if (hasCarReplacedQueue()) return;
 
         const playerStore = usePlayerStore.getState();
         playerStore.updateQueueState({tracks: [uploadTrack], currentIndex: 0});
@@ -179,6 +184,8 @@ export async function restoreSession(): Promise<void> {
       ];
     }
 
+    if (hasCarReplacedQueue()) return;
+
     // Phase 1: Populate store state (floating player renders immediately)
     const playerStore = usePlayerStore.getState();
     playerStore.updateQueueState({tracks, currentIndex: 0});
@@ -208,9 +215,10 @@ export async function restoreSession(): Promise<void> {
 function loadAudioInBackground(url: string, startPosition: number) {
   // Use setTimeout to defer off the critical startup path
   setTimeout(async () => {
+    if (hasCarReplacedQueue()) return;
     try {
       await expoAudioService.loadTrack(url);
-      if (startPosition > 0) {
+      if (startPosition > 0 && !hasCarReplacedQueue()) {
         await expoAudioService.seekTo(startPosition);
       }
       if (__DEV__) {

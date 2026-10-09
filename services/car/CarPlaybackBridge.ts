@@ -19,12 +19,18 @@ import {
   writeCarSnapshotNow,
 } from '@/services/car/CarSnapshotService';
 import {
+  markCarReplacedQueue,
+  waitForSessionRestored,
+} from '@/services/car/sessionGate';
+import {
   CarNowPlaying,
   CarPlayRequest,
   CarTransport,
 } from '@/services/car/types';
 
 const RATES = [1, 1.25, 1.5, 0.75];
+// A hung session restore must not block car requests forever.
+export const SESSION_RESTORE_TIMEOUT_MS = 5000;
 
 export function nextRate(current: number): number {
   const index = RATES.indexOf(current);
@@ -135,6 +141,9 @@ export async function executeCarRequest(
     useRecentlyPlayedStore.getState().resumeChain(plan.recentIndex ?? 0);
   }
 
+  // Tell restoreSession the car owns the queue now, so a late restore does
+  // not overwrite it or swap the audio under it.
+  markCarReplacedQueue();
   const player = usePlayerStore.getState();
   await player.updateQueue(ordered, startIndex, plan.startPosition);
   await player.play();
@@ -241,10 +250,18 @@ export function startCarPlaybackBridge(
   ];
   pushNowPlaying();
   // Listeners are attached; only now let native flush queued cold-start
-  // requests, and only after the first snapshot exists to resolve against.
-  const markReady = (): void => BayaanCar.markJsReady();
-  snapshotReady.then(markReady, markReady);
+  // requests, and only after the first snapshot exists to resolve against
+  // and the last session has been restored (or the restore timed out).
+  let disposed = false;
+  const markReady = (): void => {
+    if (!disposed) BayaanCar.markJsReady();
+  };
+  Promise.all([
+    snapshotReady.catch(() => undefined),
+    waitForSessionRestored(SESSION_RESTORE_TIMEOUT_MS),
+  ]).then(markReady, markReady);
   return () => {
+    disposed = true;
     unsubscribers.forEach(unsubscribe => unsubscribe());
     lockScreenService.setCarMode(false);
   };

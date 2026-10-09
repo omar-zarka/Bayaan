@@ -41,6 +41,7 @@ import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {ExpoAudioProvider} from '@/services/audio';
 import {expoAudioService} from '@/services/audio/ExpoAudioService';
 import {restoreSession} from '@/services/player/utils/restoreSession';
+import {markSessionRestored} from '@/services/car/sessionGate';
 import {getAllReciters} from '@/services/dataService';
 import {useShareIntent} from 'expo-share-intent';
 import {useUploadsStore} from '@/store/uploadsStore';
@@ -307,6 +308,8 @@ function RootLayout() {
         } catch (error) {
           console.debug('[App] Failed to restore session:', error);
         }
+        // Queued cold-start car requests wait for this before they run.
+        markSessionRestored();
 
         // Mark app as ready
         setIsPlayerReady(true);
