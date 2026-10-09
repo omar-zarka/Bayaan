@@ -2,6 +2,7 @@ import {
   handleWidgetCommand,
   ayahStartSecFrom,
   CommandDeps,
+  RecentMatch,
 } from '../handleWidgetCommand';
 import {createTrack} from '@/utils/track';
 import {getSurahById} from '@/services/dataService';
@@ -39,6 +40,9 @@ jest.mock('@/services/timestamps/TimestampService', () => ({
 }));
 jest.mock('@/services/audio/ExpoAudioService', () => ({
   expoAudioService: {},
+}));
+jest.mock('@/services/player/utils/resumeRecent', () => ({
+  resumeRecent: jest.fn(),
 }));
 
 const reciter: Reciter = {
@@ -78,6 +82,12 @@ function deps(
     playTracks: async (tracks: Track[], startSec: number) =>
       void calls.push(`playTracks:${tracks[0].surahId}@${startSec}`),
     lastSurahForReciter: () => 67,
+    upNextIndexOf: () => null,
+    playQueueIndex: async (index: number) =>
+      void calls.push(`playQueueIndex:${index}`),
+    findRecent: () => null,
+    resumeRecent: async (m: RecentMatch) =>
+      void calls.push(`resumeRecent:${m.surahId}@${m.startPosition}`),
     ayahStartSec: async (rewayatId: string) => {
       calls.push(`ayahStartSec:${rewayatId}`);
       return 42;
@@ -227,6 +237,61 @@ describe('handleWidgetCommand', () => {
       d,
     );
     expect(d.calls).toEqual([]);
+  });
+});
+
+describe('playTrack row taps', () => {
+  const row = {
+    type: 'playTrack' as const,
+    surahId: 36,
+    reciterId: 'r1',
+    rewayatId: 'rw1',
+    ayah: null,
+  };
+
+  it('jumps to a matching up next track instead of replacing the queue', async () => {
+    const keys: unknown[] = [];
+    const d = deps({
+      upNextIndexOf: key => {
+        keys.push(key);
+        return 3;
+      },
+    });
+    await handleWidgetCommand(row, d);
+    expect(keys).toEqual([{reciterId: 'r1', surahId: 36, rewayatId: 'rw1'}]);
+    expect(d.calls).toEqual(['playQueueIndex:3']);
+  });
+
+  it('resumes a matching recent entry at its saved position', async () => {
+    const d = deps({
+      findRecent: key => ({...key, startPosition: 321, recentIndex: 2}),
+    });
+    await handleWidgetCommand(row, d);
+    expect(d.calls).toEqual(['resumeRecent:36@321']);
+  });
+
+  it('prefers the queue over recents', async () => {
+    const d = deps({
+      upNextIndexOf: () => 1,
+      findRecent: key => ({...key, startPosition: 5, recentIndex: 0}),
+    });
+    await handleWidgetCommand(row, d);
+    expect(d.calls).toEqual(['playQueueIndex:1']);
+  });
+
+  it('starts fresh when nothing matches', async () => {
+    const d = deps();
+    await handleWidgetCommand(row, d);
+    expect(d.calls).toEqual(['playTracks:36@0']);
+  });
+
+  it('skips queue and recents when an ayah is given', async () => {
+    const d = deps({
+      upNextIndexOf: () => 1,
+      findRecent: key => ({...key, startPosition: 5, recentIndex: 0}),
+    });
+    await handleWidgetCommand({...row, ayah: 10}, d);
+    expect(d.calls).toEqual(['ayahStartSec:rw1', 'playTracks:36@42']);
   });
 });
 

@@ -10,8 +10,33 @@ import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStor
 import type {AyahTimestamp} from '@/types/timestamps';
 import {timestampService} from '@/services/timestamps/TimestampService';
 import {expoAudioService} from '@/services/audio/ExpoAudioService';
+import {resumeRecent} from '@/services/player/utils/resumeRecent';
 
 const DEFAULT_SURAH_FOR_RECITER = 1;
+
+export interface RecentMatch {
+  reciterId: string;
+  surahId: number;
+  rewayatId: string | null;
+  startPosition: number;
+  // Index into recentlyPlayedStore.recentTracks.
+  recentIndex: number;
+}
+
+export interface TrackKey {
+  reciterId: string;
+  surahId: number;
+  rewayatId: string | null;
+}
+
+function trackMatches(t: Track, key: TrackKey): boolean {
+  return (
+    !t.isUserUpload &&
+    t.reciterId === key.reciterId &&
+    t.surahId === String(key.surahId) &&
+    (t.rewayatId ?? null) === key.rewayatId
+  );
+}
 
 export interface CommandDeps {
   getReciter: (id: string) => Reciter | undefined;
@@ -26,6 +51,11 @@ export interface CommandDeps {
   pause: () => Promise<void>;
   playTracks: (tracks: Track[], startSec: number) => Promise<void>;
   lastSurahForReciter: (reciterId: string) => number | null;
+  // Index of a matching queued track after the current one.
+  upNextIndexOf: (key: TrackKey) => number | null;
+  playQueueIndex: (index: number) => Promise<void>;
+  findRecent: (key: TrackKey) => RecentMatch | null;
+  resumeRecent: (match: RecentMatch) => Promise<void>;
   ayahStartSec: (
     rewayatId: string,
     surahId: number,
@@ -75,6 +105,48 @@ export function defaultDeps(): CommandDeps {
         .recentTracks.find(r => r.reciter.id === reciterId);
       return hit ? hit.surah.id : null;
     },
+    upNextIndexOf: key => {
+      const {queue} = usePlayerStore.getState();
+      const i = queue.tracks.findIndex(
+        (t, idx) => idx > queue.currentIndex && trackMatches(t, key),
+      );
+      return i === -1 ? null : i;
+    },
+    playQueueIndex: index => {
+      const store = usePlayerStore.getState();
+      return store.updateQueue(store.queue.tracks, index);
+    },
+    findRecent: key => {
+      const recentTracks = useRecentlyPlayedStore.getState().recentTracks;
+      const recentIndex = recentTracks.findIndex(
+        r =>
+          !r.isUserUpload &&
+          r.reciter.id === key.reciterId &&
+          r.surah.id === key.surahId &&
+          (r.rewayatId || null) === key.rewayatId,
+      );
+      if (recentIndex === -1) return null;
+      const entry = recentTracks[recentIndex];
+      const {queue, playback} = usePlayerStore.getState();
+      const current = queue.tracks[queue.currentIndex];
+      // Same rule as RecentReciterCard: the live position wins for the
+      // current track, otherwise the saved progress.
+      const startPosition =
+        current && trackMatches(current, key) && playback.position >= 0
+          ? playback.position
+          : entry.progress * entry.duration;
+      return {...key, startPosition, recentIndex};
+    },
+    resumeRecent: match =>
+      resumeRecent({
+        reciterId: match.reciterId,
+        surahId: match.surahId,
+        rewayatId: match.rewayatId ?? undefined,
+        startPosition: match.startPosition,
+        recentIndex: match.recentIndex,
+        updateQueue: (tracks, index, start) =>
+          usePlayerStore.getState().updateQueue(tracks, index, start),
+      }),
     ayahStartSec: async (rewayatId, surahId, ayah) => {
       const list = await timestampService.getTimestampsForSurah(
         rewayatId,
@@ -136,6 +208,25 @@ export async function handleWidgetCommand(
         ? deps.getReciter(command.reciterId)
         : deps.getDefaultReciter();
       if (!reciter) return;
+      // A row tap continues instead of restarting: jump within the queue,
+      // or resume a recently played entry at its saved position.
+      if (command.ayah === null) {
+        const key: TrackKey = {
+          reciterId: reciter.id,
+          surahId: command.surahId,
+          rewayatId: command.rewayatId,
+        };
+        const queued = deps.upNextIndexOf(key);
+        if (queued !== null) {
+          await deps.playQueueIndex(queued);
+          return;
+        }
+        const recent = deps.findRecent(key);
+        if (recent) {
+          await deps.resumeRecent(recent);
+          return;
+        }
+      }
       await playSurah(
         reciter,
         command.surahId,
