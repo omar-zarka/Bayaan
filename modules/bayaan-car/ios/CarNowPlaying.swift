@@ -6,10 +6,15 @@ import UIKit
 /// album-artist (reciter) pushes, and the next/previous remote commands for
 /// the lifetime of one CarPlay connection.
 ///
-/// expo-audio never touches `nextTrackCommand` or `previousTrackCommand`; it
-/// only toggles play, pause, position and skip forward/backward. So our
-/// registrations are not undone by its metadata updates, and with the skip
-/// commands disabled (JS car mode) CarPlay shows next/previous instead.
+/// expo-audio never touches `nextTrackCommand`, `previousTrackCommand` or
+/// `changePlaybackRateCommand`; it only toggles play, pause, position and skip
+/// forward/backward. So our registrations are not undone by its metadata
+/// updates, and with the skip commands disabled (JS car mode) CarPlay shows
+/// next/previous instead.
+///
+/// The rate button's label comes from `MPRemoteCommandCenter`: CarPlay reads
+/// it through an enabled `changePlaybackRateCommand` with supported rates.
+/// Without that command the button reads "0x" and looks inert.
 final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
   private weak var interfaceController: CPInterfaceController?
   private let builder: CarTemplateBuilder
@@ -18,6 +23,9 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
   private var nextTarget: Any?
   private var previousTarget: Any?
   private var repeatTarget: Any?
+  private var rateTarget: Any?
+  /// The rates the car cycles through (JS `nextRate`), ascending.
+  private static let supportedRates: [NSNumber] = [0.75, 1, 1.25, 1.5]
   private var lovedShown: Bool?
   private var rateShown: Double?
   /// CarPlay audio apps may stack at most five templates (tab bar root included).
@@ -49,6 +57,13 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     // button's own handler sends cycleRepeat to JS.
     commands.changeRepeatModeCommand.isEnabled = true
     repeatTarget = commands.changeRepeatModeCommand.addTarget { _ in .success }
+    commands.changePlaybackRateCommand.supportedPlaybackRates = Self.supportedRates
+    commands.changePlaybackRateCommand.isEnabled = true
+    rateTarget = commands.changePlaybackRateCommand.addTarget { event in
+      guard let event = event as? MPChangePlaybackRateCommandEvent else { return .commandFailed }
+      CarBridge.shared.send(transport: ["kind": "rate", "value": Double(event.playbackRate)])
+      return .success
+    }
     observer = NotificationCenter.default.addObserver(
       forName: CarBridge.nowPlayingDidChange, object: nil, queue: .main
     ) { [weak self] _ in
@@ -63,6 +78,9 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     if let previousTarget { commands.previousTrackCommand.removeTarget(previousTarget) }
     if let repeatTarget { commands.changeRepeatModeCommand.removeTarget(repeatTarget) }
     commands.changeRepeatModeCommand.isEnabled = false
+    if let rateTarget { commands.changePlaybackRateCommand.removeTarget(rateTarget) }
+    commands.changePlaybackRateCommand.isEnabled = false
+    rateTarget = nil
     nextTarget = nil
     previousTarget = nil
     repeatTarget = nil
@@ -84,10 +102,13 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     case "queue": commands.changeRepeatModeCommand.currentRepeatType = .all
     default: commands.changeRepeatModeCommand.currentRepeatType = .off
     }
-    if let rate = np?.rate, rate != rateShown {
-      rateShown = rate
+    if let np, np.rate > 0, np.rate != rateShown {
+      rateShown = np.rate
       var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
-      info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = rate
+      info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = np.rate
+      // expo-audio rewrites the live rate on its next tick; set it now so the
+      // button label follows the tap without waiting for that tick.
+      if np.isPlaying { info[MPNowPlayingInfoPropertyPlaybackRate] = np.rate }
       MPNowPlayingInfoCenter.default().nowPlayingInfo = info
     }
     // Only a loved change needs new buttons; repeat follows currentRepeatType.
