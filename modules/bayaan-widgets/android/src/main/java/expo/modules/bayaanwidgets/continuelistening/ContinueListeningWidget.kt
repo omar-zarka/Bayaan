@@ -157,8 +157,10 @@ class ContinueListeningWidget : GlanceAppWidget() {
         PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis())
       }
       val isPlaying = playback?.isPlaying ?: false
-      // Static value, refreshed whenever state is pushed (spec 5.1).
-      val minutesLeft = playback?.takeIf { (s.nowPlaying?.durationSec ?: 0.0) > 0 }?.let { (it.remainingWallSec / 60).toInt() }
+      // Static value, refreshed whenever state is pushed (spec 5.1). Paused
+      // only: while playing it would go stale between pushes.
+      val minutesLeft = playback?.takeIf { !it.isPlaying && (s.nowPlaying?.durationSec ?: 0.0) > 0 }
+        ?.let { (it.remainingWallSec / 60).toInt() }
       // Drop the side list's first item when it is already the hero.
       val sideSource =
         if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0)
