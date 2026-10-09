@@ -99,11 +99,11 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Favo
 
 ## 3. Artwork
 
-- **Surahs:** R2 cards at `https://cdn.thebayaan.com/assets/og-images/surah/{id}.png` (dark) and `{id}-light.png` (light). Variant follows the car's interface style (CarPlay `traitCollection.userInterfaceStyle`; Android Auto: dark).
+- **Surahs:** R2 cards at `https://cdn.thebayaan.com/assets/og-images/surah/{id}.png` (dark) and `{id}-light.png` (light). Variant follows the car's interface style (CarPlay `traitCollection.userInterfaceStyle`; Android Auto: dark). The base comes from the snapshot's `surahArtworkBase` (set by `branding.surahArtworkCdnBase`, https only); natives fall back to the Bayaan CDN when it is absent.
 - **Reciters:** API `image_url` (https) first, then the bundled image from `utils/reciterImages.ts` (exported by JS into the snapshot as a local file URI), then a generated monogram tile (initials on a per-reciter color). Never transparent.
 - **Playlists:** system playlist color as a solid tile with the title; user playlists use the first item's reciter portrait.
 - **Android artwork provider:** a hardened `ContentProvider` serves artwork to Android Auto. It validates keys strictly, fetches only https URLs present in the snapshot, applies timeouts, size caps and decode bounds, caps the disk cache, and renders monogram/color tiles on demand.
-- **Native image cache:** source PNGs are about 700 KB each. Native downloads once, downscales to 256 px, stores in the app files directory (`bayaan-car/artwork/`), so artwork works offline after first fetch. Approx 7 MB for all surah variants. Cache is populated lazily and also prefetched for Home items when the snapshot changes.
+- **Native image cache:** source PNGs are about 700 KB each. Native downloads once, downscales to 256 px, stores in the app caches directory (iOS `Caches/bayaan-car/artwork/`, Android `cacheDir/bayaan-car/artwork/`), so artwork works offline after first fetch unless the OS purges caches. Approx 7 MB for all surah variants. Cache is populated lazily and also prefetched for Home items when the snapshot changes.
 
 ## 4. Architecture
 
@@ -141,10 +141,10 @@ ExpoAudioService (expo-audio)
 **`services/car/CarPlaybackBridge.ts`**
 - Listens to `onPlayRequest` and `onTransport` events from native.
 - Converts a `CarPlayRequest` into a queue via existing `createTrack` / `updateQueue` / `playerStore` actions (the same path the phone UI uses), then starts playback.
-- Pushes now-playing and queue summary to native via `BayaanCar.setNowPlaying(...)` and `BayaanCar.setQueue(...)` on `playerStore` changes.
+- Pushes now-playing, including the queue summary, to native via `BayaanCar.setNowPlaying(...)` on `playerStore` changes.
 
 **`modules/bayaan-car/`** (Expo module, iOS + Android)
-- JS API: `writeSnapshot(json)`, `setNowPlaying(info)`, `setQueue(items)`, `markJsReady()`, events `onPlayRequest`, `onTransport`, `onCarConnectionChanged`.
+- JS API: `writeSnapshot(json)`, `setNowPlaying(info)` (carries the queue), `markJsReady()`, events `onPlayRequest`, `onTransport`, `onCarConnectionChanged`.
 - Holds play requests that arrive before `markJsReady()` and delivers them in order after.
 - iOS: `CarPlaySceneDelegate`, `CarTemplateBuilder`, `CarArtworkCache`, remote command registration (next/previous) active only while a Bayaan track is loaded.
 - Android: `BayaanLibraryService` (`MediaLibraryService`), `CarBrowseTree`, `CarArtworkCache`, forwarding player (see 4.4).
@@ -176,6 +176,7 @@ interface CarSnapshot {
   surahs: CarSurah[];         // 114
   juz: { number: number; surahIds: number[] }[];
   searchIndex: { surahs: CarSearchSurah[]; reciters: CarSearchReciter[] };
+  surahArtworkBase?: string;  // https, ends in '/'; natives default to the Bayaan CDN
 }
 
 interface CarItem {
@@ -185,15 +186,14 @@ interface CarItem {
   artwork: CarArtwork;     // { kind: 'surah', surahId } | { kind: 'url', url } | { kind: 'file', uri } | { kind: 'color', hex, label }
   progress?: number;       // 0..1
   isDownloaded?: boolean;
-  badge?: 'new';
   action: { kind: 'play'; request: CarPlayRequest } | { kind: 'browse'; target: CarBrowseTarget };
 }
 
 type CarPlayRequest =
   | { kind: 'surah'; reciterId: string; rewayatId: string; surahId: number; startAt?: number }
-  | { kind: 'playlist'; playlistId: string; system: boolean; shuffle?: boolean }
-  | { kind: 'loved'; shuffle?: boolean }
-  | { kind: 'downloads' }
+  | { kind: 'playlist'; playlistId: string; system: boolean; startIndex?: number }
+  | { kind: 'loved'; shuffle?: boolean; startIndex?: number }
+  | { kind: 'downloads'; startIndex?: number }
   | { kind: 'resume' };
 ```
 
@@ -211,7 +211,7 @@ type CarPlayRequest =
 expo-audio runs its own `MediaSessionService` (`AudioControlsService`) with a session that removes next/previous commands. Android Auto connects to the service declared for media browsing, which will be ours.
 
 Plan:
-- `BayaanLibraryService` hosts a `MediaLibrarySession` around a forwarding player (`SimpleBasePlayer`) that mirrors state pushed from JS (`setNowPlaying`, `setQueue`) and forwards commands (play, pause, seek, next, previous, set rate) to JS as `onTransport` events.
+- `BayaanLibraryService` hosts a `MediaLibrarySession` around a forwarding player (`SimpleBasePlayer`) that mirrors state pushed from JS (`setNowPlaying`, whose payload includes the queue) and forwards commands (play, pause, seek, next, previous, set rate) to JS as `onTransport` events.
 - Only one notification: either expo-audio's or ours. Spike decides which (expo-audio's lock screen config is controlled from JS via `setActiveForLockScreen`).
 - Background playback must keep working with the phone screen off and with Android Auto disconnected mid-playback.
 
