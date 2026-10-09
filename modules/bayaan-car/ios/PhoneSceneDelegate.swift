@@ -22,8 +22,25 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
       ]
     }
 
-    NSLog("[DBGCAR] willConnect urls=%@ extra=%@", connectionOptions.urlContexts.map { $0.url.absoluteString }, String(describing: extra))
     let bridge = BayaanCarSceneBridge.shared
+
+    // iPad multi-window: React has one host window, so a second phone scene
+    // cannot adopt it while the first is still connected. Refuse the new
+    // session and hand its URL / activity to the running app instead.
+    if let existingScene = bridge.hostWindow?.windowScene,
+      existingScene !== windowScene,
+      existingScene.activationState != .unattached
+    {
+      UIApplication.shared.requestSceneSessionDestruction(session, options: nil, errorHandler: nil)
+      if let url = connectionOptions.urlContexts.first?.url {
+        forward(url: url)
+      }
+      if let activity = connectionOptions.userActivities.first {
+        forward(activity: activity)
+      }
+      return
+    }
+
     let hostWindow = bridge.ensureStarted(extraLaunchOptions: extra)
     hostWindow.windowScene = windowScene
     hostWindow.frame = windowScene.coordinateSpace.bounds
@@ -40,6 +57,16 @@ public final class PhoneSceneDelegate: UIResponder, UIWindowSceneDelegate {
     if let activity = connectionOptions.userActivities.first {
       forward(activity: activity)
     }
+  }
+
+  public func windowScene(
+    _ windowScene: UIWindowScene,
+    didUpdate previousCoordinateSpace: UICoordinateSpace,
+    interfaceOrientation previousInterfaceOrientation: UIInterfaceOrientation,
+    traitCollection previousTraitCollection: UITraitCollection
+  ) {
+    guard let hostWindow = window, hostWindow.windowScene === windowScene else { return }
+    hostWindow.frame = windowScene.coordinateSpace.bounds
   }
 
   public func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {

@@ -64,6 +64,11 @@ function withSceneAppDelegate(config) {
     }
     src = src.replace(ORIGINAL_WINDOW_BLOCK, BRIDGE_BLOCK);
     if (!src.includes('import BayaanCar')) {
+      if (!src.includes('import React\n')) {
+        throw new Error(
+          '[withBayaanCar] AppDelegate "import React" anchor not found. Update the import anchor for this Expo SDK.',
+        );
+      }
       src = src.replace(
         'import React\n',
         'import React\ninternal import BayaanCar\n',
@@ -74,9 +79,11 @@ function withSceneAppDelegate(config) {
   });
 }
 
-function withBayaanCar(config) {
+// Forks without Apple's CarPlay audio entitlement can pass {carPlayAudioEntitlement: false}.
+function withBayaanCar(config, props) {
+  const {carPlayAudioEntitlement = true} = props ?? {};
   config = withCarPlayInfoPlist(config);
-  config = withCarPlayEntitlement(config);
+  if (carPlayAudioEntitlement) config = withCarPlayEntitlement(config);
   config = withSceneAppDelegate(config);
   return config;
 }
