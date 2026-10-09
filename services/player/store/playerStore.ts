@@ -95,6 +95,15 @@ function invalidatePlayOps(): void {
 }
 
 /**
+ * Current play op id. Loads outside the store (restoreSession's background
+ * load) snapshot it and bail when it moves, so they never replace a source a
+ * newer play started.
+ */
+export function currentPlayOpId(): number {
+  return playOpId;
+}
+
+/**
  * Helper to load and optionally play a track from the queue.
  *
  * Returns `false` when the operation was superseded mid-flight (a cleanup() or

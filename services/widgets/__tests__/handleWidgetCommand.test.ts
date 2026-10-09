@@ -44,6 +44,9 @@ jest.mock('@/services/audio/ExpoAudioService', () => ({
 jest.mock('@/services/player/utils/resumeRecent', () => ({
   resumeRecent: jest.fn(),
 }));
+jest.mock('@/services/player/utils/restoreSession', () => ({
+  pendingRestoreLoad: () => Promise.resolve(),
+}));
 
 const reciter: Reciter = {
   id: 'r1',

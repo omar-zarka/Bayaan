@@ -11,6 +11,7 @@ import type {AyahTimestamp} from '@/types/timestamps';
 import {timestampService} from '@/services/timestamps/TimestampService';
 import {expoAudioService} from '@/services/audio/ExpoAudioService';
 import {resumeRecent} from '@/services/player/utils/resumeRecent';
+import {pendingRestoreLoad} from '@/services/player/utils/restoreSession';
 
 const DEFAULT_SURAH_FOR_RECITER = 1;
 
@@ -84,9 +85,16 @@ export function defaultDeps(): CommandDeps {
       return queue.tracks[queue.currentIndex] !== undefined;
     },
     isAudioLoaded: () => expoAudioService.getIsLoaded(),
-    loadAndPlayCurrent: () => {
+    loadAndPlayCurrent: async () => {
+      // Let restoreSession's background load settle first, so it cannot
+      // replace the source after we start playing.
+      await pendingRestoreLoad();
       const store = usePlayerStore.getState();
-      return store.updateQueue(
+      if (expoAudioService.getIsLoaded()) {
+        await store.play();
+        return;
+      }
+      await store.updateQueue(
         store.queue.tracks,
         store.queue.currentIndex,
         store.playback.position,
