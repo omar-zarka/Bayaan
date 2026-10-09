@@ -1,8 +1,9 @@
-export interface QuranLinkParams {
+// A type alias (not an interface) so it is assignable to expo-router params.
+export type QuranLinkParams = {
   surah: string;
   ayah?: string;
   page?: string;
-}
+};
 
 /**
  * Mushaf route params for a /quran/{surah}?ayah=N link. The reader resolves a
