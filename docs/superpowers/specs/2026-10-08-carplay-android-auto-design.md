@@ -1,7 +1,7 @@
 # CarPlay and Android Auto Design
 
 **Date:** 2026-10-08
-**Status:** Draft, awaiting review
+**Status:** Implemented, synced with the build (see section 8)
 **Branch:** `osmansaeday/carplay` (based on `origin/develop`, Expo SDK 56)
 **Supersedes:** `docs/features/carplay-android-auto.md` (Feb 2026 plan, never built)
 
@@ -47,8 +47,8 @@ Four root tabs on both platforms (Android Auto caps root children at 4; CarPlay 
   - Shuffle Loved (hidden if no loved tracks)
   - Situational slot 1 and 2 (from the rules below)
 - **For right now**: situational cards (CarPlay: `CPListImageRowItemCardElement`, iOS 26+; fallback image row).
-- **Jump back in**: recently played, with progress (iOS 27 `CPPlaybackConfiguration` progress bar; Android `COMPLETION_PERCENTAGE` extra).
-- **Your reciters**: favorite reciters, circular portraits (`CPListImageRowItemImageGridElement` circular, iOS 26+).
+- **Jump back in**: recently played, with progress (iOS `CPListItem.playbackProgress`; Android `COMPLETION_PERCENTAGE` extra). `CPPlaybackConfiguration` (iOS 26.4) is not used because the snapshot carries only a progress fraction, not elapsed time and duration.
+- **Your reciters**: favorite reciters, circular portraits (`CPListImageRowItemImageGridElement` circular, iOS 26+). The Library group is titled "Favorite reciters".
 - **Your playlists**: user playlists, then system playlists.
 
 Empty sections are omitted. A brand-new user sees Quick start (situational only), For right now, and system playlists.
@@ -61,10 +61,10 @@ Computed in TypeScript (one implementation, both platforms) by a pure function `
 |---|---|---|
 | Friday Kahf | Thursday 18:00 through Friday 19:00 local time (approximates the sunnah window, Maghrib Thursday to Maghrib Friday) | Surah 18 by top reciter |
 | Morning | 04:00 to 10:59 | System playlist `morning-reflections` |
-| Night | 21:00 to 03:59 | Surah 67 (Al-Mulk) by top reciter, then system "before sleep" playlist if one exists |
+| Night | 21:00 to 03:59 | Surah 67 (Al-Mulk) by top reciter, then system playlist `evening-serenity` (no "before sleep" playlist exists) |
 | Up next | Most recent recently-played item completed (progress >= 95%) and surah < 114 | Next surah, same reciter and rewayah |
 
-- **Top reciter** = highest count in `playCountStore`; ties and empty history fall back to the first favorite reciter, then to the app's default reciter.
+- **Top reciter** = the most recently played reciter in `recentlyPlayedStore` (non-upload), else `useReciterStore.getState().defaultReciter`. `playCountStore` counts per surah, not per reciter, so it is not used.
 - Rules are ordered as listed; at most 4 picks; duplicates removed.
 - Time windows use the device's local clock. No prayer-time data exists in the app; these are fixed windows.
 
@@ -76,13 +76,13 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Favo
 
 - A to Z, favorites first, circular portraits.
 - Reciter with one rewayah: opens its surah list. More than one: opens a rewayah picker first.
-- iOS 27: reciter surah list uses the details header (large reciter card above the list). Older iOS: plain list with the reciter as the first row.
+- iOS 26.4+: reciter surah list uses the details header (`CPListTemplateDetailsHeader`, large reciter card above the list). Older iOS: plain list with the reciter as the first row.
 - Surah lists respect `surah_list` for the rewayah (only available surahs shown).
 
 ### Surahs
 
 - All 114 surahs (surah artwork tiles), plus a Juz grouping.
-- Tapping a surah plays it with the top reciter. A secondary row "Choose reciter" lists favorites first, then all reciters that have that surah.
+- Tapping a surah opens a short list with "Play with <top reciter>" and "Choose reciter" (not direct play). "Choose reciter" lists favorites first, then all reciters that have that surah.
 
 ### Now Playing
 
@@ -102,6 +102,7 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Favo
 - **Surahs:** R2 cards at `https://cdn.thebayaan.com/assets/og-images/surah/{id}.png` (dark) and `{id}-light.png` (light). Variant follows the car's interface style (CarPlay `traitCollection.userInterfaceStyle`; Android Auto: dark).
 - **Reciters:** API `image_url` (https) first, then the bundled image from `utils/reciterImages.ts` (exported by JS into the snapshot as a local file URI), then a generated monogram tile (initials on a per-reciter color). Never transparent.
 - **Playlists:** system playlist color as a solid tile with the title; user playlists use the first item's reciter portrait.
+- **Android artwork provider:** a hardened `ContentProvider` serves artwork to Android Auto. It validates keys strictly, fetches only https URLs present in the snapshot, applies timeouts, size caps and decode bounds, caps the disk cache, and renders monogram/color tiles on demand.
 - **Native image cache:** source PNGs are about 700 KB each. Native downloads once, downscales to 256 px, stores in the app files directory (`bayaan-car/artwork/`), so artwork works offline after first fetch. Approx 7 MB for all surah variants. Cache is populated lazily and also prefetched for Home items when the snapshot changes.
 
 ## 4. Architecture
@@ -109,8 +110,8 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Favo
 ```
 JS (existing app)                        modules/bayaan-car (local Expo module)
 -----------------                        --------------------------------------
-recentlyPlayedStore, lovedStore,    -->  snapshot file (JSON, versioned)
-playlistsStore, downloadStore,           iOS: App Group container
+recentlyPlayedStore, lovedStore,    -->  snapshot file (JSON, versioned, app private storage)
+playlistsStore, downloadStore,           iOS: Application Support (app private storage, not the App Group)
 playCountStore, favoriteReciters,        Android: filesDir
 reciters (dataService)
    |  CarSnapshotService (debounced)     iOS: CarPlaySceneDelegate (Swift)
@@ -151,12 +152,14 @@ ExpoAudioService (expo-audio)
 **`plugins/withBayaanCar.js`** (config plugin; must survive `prebuild --clean`)
 - iOS:
   - Add `UIApplicationSceneManifest` with two scene configs: phone (`UIWindowSceneSessionRoleApplication`, `PhoneSceneDelegate`) and CarPlay (`CPTemplateApplicationSceneSessionRoleApplication`, `CarPlaySceneDelegate`).
-  - Move window creation from `AppDelegate` into `PhoneSceneDelegate`.
-  - Add `com.apple.developer.carplay-audio` to entitlements.
+  - Move window creation from `AppDelegate` into `BayaanCarSceneBridge`, adopted by `PhoneSceneDelegate`.
+  - `UIApplicationSupportsMultipleScenes` = true. A second phone scene (iPad) is refused: the new session is destroyed and the primary window is untouched.
+  - Add `com.apple.developer.carplay-audio` to entitlements. Option `carPlayAudioEntitlement` (default true) lets forks without the entitlement skip it.
 - Android:
   - `res/xml/automotive_app_desc.xml` with `<uses name="media"/>`.
   - `com.google.android.gms.car.application` meta-data.
-  - Service declaration for `BayaanLibraryService` with `androidx.media3.session.MediaLibraryService` and `android.media.browse.MediaBrowserService` intent filters, `foregroundServiceType="mediaPlayback"`.
+  - Service declaration for `BayaanLibraryService` with only the legacy `android.media.browse.MediaBrowserService` intent filter (the Media3 `MediaLibraryService` action is not exposed, which avoids a foreground-service crash on media button events), `foregroundServiceType="mediaPlayback"`. `onStartCommand` has a MEDIA_BUTTON safety net.
+  - Android Auto pagination is honoured, with a 500 item cap per page.
 
 ### 4.2 Snapshot schema (v1)
 
@@ -183,7 +186,7 @@ interface CarItem {
   progress?: number;       // 0..1
   isDownloaded?: boolean;
   badge?: 'new';
-  action: CarPlayRequest | { kind: 'browse'; target: CarBrowseTarget };
+  action: { kind: 'play'; request: CarPlayRequest } | { kind: 'browse'; target: CarBrowseTarget };
 }
 
 type CarPlayRequest =
@@ -200,7 +203,7 @@ type CarPlayRequest =
 
 ### 4.3 Cold start
 
-- **iOS:** CarPlay connecting launches the app process; `ExpoAppDelegate` starts React Native as usual, so JS runs. Templates render from the snapshot immediately; play requests queue until `markJsReady()`.
+- **iOS:** CarPlay connecting launches the app process. The AppDelegate no longer creates the window; `BayaanCarSceneBridge` starts React Native into a host window on whichever scene connects first (phone or CarPlay), so JS runs either way. Templates render from the snapshot immediately; play requests queue until `markJsReady()`.
 - **Android:** Android Auto binds `BayaanLibraryService` with no Activity. The service serves the browse tree from the snapshot immediately. On the first play request (or on connect), the service starts the React Native host (`ReactHost.start()` from the application's `ReactNativeHost`) so JS can run `CarPlaybackBridge`. Requests queue until `markJsReady()`.
 
 ### 4.4 Android media session coexistence (risk)
@@ -244,7 +247,17 @@ If either spike fails, stop and revisit the design with the project owner before
 
 ## 7. Open items to resolve during implementation
 
-- Exact iOS 27 API names for card overlays, details header and playback configuration (confirm against SDK headers).
-- Whether a "before sleep" system playlist exists; if not, the Night rule plays Al-Mulk only.
 - Juz grouping: a juz spans partial surahs; v1 lists the surahs that start in each juz (`data/juzData.ts`).
-- Update `docs/features/carplay-android-auto.md` to point to this spec.
+- Done: `docs/features/carplay-android-auto.md` points to this spec.
+
+## 8. Deviations from the original draft
+
+1. Top reciter comes from `recentlyPlayedStore`, not `playCountStore`.
+2. The Night rule uses `evening-serenity`.
+3. The snapshot lives in app private storage, not the App Group.
+4. iOS React start goes through `BayaanCarSceneBridge`.
+5. Item actions are wrapped (`play` or `browse`).
+6. Surah tap opens "Play with <top reciter>" plus "Choose reciter".
+7. The details header and `CPPlaybackConfiguration` are iOS 26.4 in the SDK, not 27. `CPPlaybackConfiguration` is skipped.
+8. iOS uses multiple scenes; a second phone scene on iPad is refused.
+9. Android: legacy browser service action only, hardened artwork provider, pagination with a 500 cap.
