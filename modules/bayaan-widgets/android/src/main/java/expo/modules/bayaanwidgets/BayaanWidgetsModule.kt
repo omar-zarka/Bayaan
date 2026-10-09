@@ -1,6 +1,11 @@
 package expo.modules.bayaanwidgets
 
 import android.content.Context
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import androidx.glance.appwidget.updateAll
+import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -20,6 +25,7 @@ class BayaanWidgetsModule : Module() {
     Function("reloadWidgets") { kinds: List<String> ->
       for (kind in kinds) {
         when (kind) {
+          "ContinueListening" -> updateContinueListening()
           else -> Unit // widget kinds register here as they are added
         }
       }
@@ -34,6 +40,13 @@ class BayaanWidgetsModule : Module() {
 
     AsyncFunction("cacheArtwork") { sourceUrl: String, fileName: String ->
       ArtworkStore.cache(context, sourceUrl, fileName)
+    }
+  }
+
+  private fun updateContinueListening() {
+    val ctx = context
+    CoroutineScope(Dispatchers.Default).launch {
+      ContinueListeningWidget().updateAll(ctx)
     }
   }
 }
