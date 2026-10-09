@@ -37,6 +37,9 @@ jest.mock('@/services/player/store/recentlyPlayedStore', () => ({
 jest.mock('@/services/timestamps/TimestampService', () => ({
   timestampService: {},
 }));
+jest.mock('@/services/audio/ExpoAudioService', () => ({
+  expoAudioService: {},
+}));
 
 const reciter: Reciter = {
   id: 'r1',
@@ -66,8 +69,10 @@ function deps(
     calls,
     getReciter: id => (id === 'r1' ? reciter : undefined),
     getDefaultReciter: () => reciter,
-    isPlaying: () => false,
+    playbackState: () => 'paused',
     hasCurrentTrack: () => true,
+    isAudioLoaded: () => true,
+    loadAndPlayCurrent: async () => void calls.push('loadAndPlayCurrent'),
     play: async () => void calls.push('play'),
     pause: async () => void calls.push('pause'),
     playTracks: async (tracks: Track[], startSec: number) =>
@@ -82,13 +87,36 @@ function deps(
 }
 
 describe('handleWidgetCommand', () => {
-  it('toggles play and pause', async () => {
+  it('setPlayback plays when paused and pauses when playing', async () => {
     const d = deps();
-    await handleWidgetCommand({type: 'togglePlayback'}, d);
+    await handleWidgetCommand({type: 'setPlayback', playing: true}, d);
     expect(d.calls).toEqual(['play']);
-    const d2 = deps({isPlaying: () => true});
-    await handleWidgetCommand({type: 'togglePlayback'}, d2);
+    const d2 = deps({playbackState: () => 'playing'});
+    await handleWidgetCommand({type: 'setPlayback', playing: false}, d2);
     expect(d2.calls).toEqual(['pause']);
+  });
+
+  it('setPlayback is a no-op when already in the requested state', async () => {
+    const paused = deps();
+    await handleWidgetCommand({type: 'setPlayback', playing: false}, paused);
+    expect(paused.calls).toEqual([]);
+    const playing = deps({playbackState: () => 'playing'});
+    await handleWidgetCommand({type: 'setPlayback', playing: true}, playing);
+    expect(playing.calls).toEqual([]);
+  });
+
+  it('treats loading and buffering as already starting', async () => {
+    for (const state of ['loading', 'buffering'] as const) {
+      const d = deps({playbackState: () => state});
+      await handleWidgetCommand({type: 'setPlayback', playing: true}, d);
+      expect(d.calls).toEqual([]);
+    }
+  });
+
+  it('loads and autoplays the restored track on a cold start', async () => {
+    const d = deps({isAudioLoaded: () => false, playbackState: () => 'none'});
+    await handleWidgetCommand({type: 'setPlayback', playing: true}, d);
+    expect(d.calls).toEqual(['loadAndPlayCurrent']);
   });
 
   it('plays a surah with the default reciter from an ayah', async () => {
@@ -133,9 +161,9 @@ describe('handleWidgetCommand', () => {
     expect(d.calls).toEqual(['playTracks:67@0']);
   });
 
-  it('togglePlayback with nothing loaded does nothing', async () => {
+  it('setPlayback with nothing queued does nothing', async () => {
     const d = deps({hasCurrentTrack: () => false});
-    await handleWidgetCommand({type: 'togglePlayback'}, d);
+    await handleWidgetCommand({type: 'setPlayback', playing: true}, d);
     expect(d.calls).toEqual([]);
   });
 

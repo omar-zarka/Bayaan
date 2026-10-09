@@ -7,47 +7,81 @@ import android.content.Context
 import android.content.Intent
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import com.google.common.util.concurrent.MoreExecutors
+import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
+import kotlin.coroutines.resume
+import kotlin.coroutines.resumeWithException
 
 class CommandReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {
     val raw = intent.getStringExtra(EXTRA_COMMAND) ?: return
     val command = try { JSONObject(raw) } catch (e: Exception) { return }
     val pending = goAsync()
-    // Set when the MediaController listener takes over finishing `pending`.
-    var handedOff = false
     try {
-      if (command.optString("type") == "togglePlayback" && WidgetStorage.onCommandQueued == null) {
-        // JS is not listening; try the live media session directly.
-        val token = SessionToken(context, ComponentName(context, AUDIO_SERVICE))
-        val future = MediaController.Builder(context, token).buildAsync()
-        future.addListener({
-          try {
-            var controller: MediaController? = null
-            try {
-              controller = future.get()
-              if (controller.currentMediaItem != null) {
-                if (controller.isPlaying) controller.pause() else controller.play()
-                return@addListener
-              }
-            } catch (e: Exception) {
-              // fall through to queue + launch
-            } finally {
-              controller?.let { runCatching { it.release() } }
-            }
-            queueAndLaunch(context, command)
-          } finally {
-            pending.finish()
-          }
-        }, MoreExecutors.directExecutor())
-        handedOff = true
-        return
+      // MediaController must be used on the main looper.
+      CoroutineScope(SupervisorJob() + Dispatchers.Main).launch {
+        try {
+          handle(context, command)
+        } catch (e: Exception) {
+          // nothing else to do; the widget re-renders on the next snapshot
+        } finally {
+          pending.finish()
+        }
       }
-      queueAndLaunch(context, command)
-    } finally {
-      if (!handedOff) pending.finish()
+    } catch (e: Exception) {
+      pending.finish()
     }
+  }
+
+  private suspend fun handle(context: Context, command: JSONObject) {
+    if (command.optString("type") != "setPlayback") {
+      queueAndLaunch(context, command)
+      return
+    }
+    val playing = command.optBoolean("playing")
+    // Optimistic render before anything slow.
+    WidgetStorage.writePlaybackOverride(context, PlaybackOverride(playing, System.currentTimeMillis()))
+    runCatching { ContinueListeningWidget.pushState(context) }
+    // JS is not listening; try the live media session directly.
+    if (WidgetStorage.onCommandQueued == null && controlSession(context, playing)) return
+    queueAndLaunch(context, command)
+  }
+
+  /** Returns true when a live session with a loaded item took the command. */
+  private suspend fun controlSession(context: Context, playing: Boolean): Boolean {
+    var controller: MediaController? = null
+    try {
+      val token = SessionToken(context, ComponentName(context, AUDIO_SERVICE))
+      controller = withTimeoutOrNull(CONTROLLER_TIMEOUT_MS) {
+        MediaController.Builder(context, token).buildAsync().await()
+      } ?: return false
+      if (controller.currentMediaItem == null) return false
+      if (playing) controller.play() else controller.pause()
+      return true
+    } catch (e: Exception) {
+      return false // fall through to queue + launch
+    } finally {
+      controller?.let { runCatching { it.release() } }
+    }
+  }
+
+  private suspend fun <T> ListenableFuture<T>.await(): T = suspendCancellableCoroutine { cont ->
+    addListener({
+      try {
+        cont.resume(get())
+      } catch (e: Exception) {
+        cont.resumeWithException(e)
+      }
+    }, MoreExecutors.directExecutor())
+    cont.invokeOnCancellation { cancel(false) }
   }
 
   private fun queueAndLaunch(context: Context, command: JSONObject) {
@@ -62,6 +96,7 @@ class CommandReceiver : BroadcastReceiver() {
   companion object {
     const val EXTRA_COMMAND = "command"
     private const val AUDIO_SERVICE = "expo.modules.audio.service.AudioControlsService"
+    private const val CONTROLLER_TIMEOUT_MS = 3_000L
 
     fun intent(context: Context, command: JSONObject): Intent =
       Intent(context, CommandReceiver::class.java).putExtra(EXTRA_COMMAND, command.toString())

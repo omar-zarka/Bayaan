@@ -9,6 +9,43 @@ private let deepLinkPlayer = URL(string: "bayaan://player")!
 // white foreground always has contrast.
 private let fallbackBackground = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
 
+/// Playback as the widget should render it at `now`: prefers a tap override
+/// newer than the snapshot, and treats playback as stopped past the end
+/// (anchor + remaining / rate). Mirrors PlaybackState.kt on Android.
+struct EffectivePlayback {
+  let isPlaying: Bool
+  let positionSec: Double
+  let durationSec: Double
+  let rate: Double
+  let end: Date
+
+  /// Virtual start time such that start...end spans the whole track at rate.
+  var trackStart: Date { end.addingTimeInterval(-durationSec / rate) }
+  var remainingWallSec: Double { max(0, (durationSec - positionSec) / rate) }
+
+  init(nowPlaying np: WidgetNowPlaying, generatedAt: Double, override: PlaybackOverride?, now: Date) {
+    let rate = np.rate > 0 && np.rate.isFinite ? np.rate : 1
+    let duration = max(0, np.durationSec)
+    func clamp(_ v: Double) -> Double { min(max(v, 0), duration) }
+    func positionAt(_ ms: Double) -> Double {
+      np.isPlaying ? clamp(np.positionSec + (ms - generatedAt) / 1000 * rate) : clamp(np.positionSec)
+    }
+    let applied = override.flatMap { $0.at > generatedAt ? $0 : nil }
+    let playing = applied?.isPlaying ?? np.isPlaying
+    let anchorMs = applied?.at ?? generatedAt
+    let anchorPos = applied.map { positionAt($0.at) } ?? clamp(np.positionSec)
+    let end = Date(timeIntervalSince1970: anchorMs / 1000 + (duration - anchorPos) / rate)
+    let nowMs = now.timeIntervalSince1970 * 1000
+    let ended = playing && now >= end
+    self.isPlaying = playing && !ended
+    self.positionSec = ended ? duration
+      : playing ? clamp(anchorPos + max(0, nowMs - anchorMs) / 1000 * rate) : anchorPos
+    self.durationSec = duration
+    self.rate = rate
+    self.end = end
+  }
+}
+
 struct ContinueListeningView: View {
   @Environment(\.widgetFamily) private var family
   let entry: ContinueListeningEntry
@@ -22,15 +59,11 @@ struct ContinueListeningView: View {
       if let track = current {
         switch family {
         case .systemSmall:
-          SmallView(track: track, nowPlaying: entry.snapshot?.nowPlaying,
-                    generatedAt: entry.snapshot?.generatedAt ?? 0)
+          SmallView(track: track, playback: entry.playback)
         case .systemMedium:
-          MediumView(track: track, nowPlaying: entry.snapshot?.nowPlaying,
-                     generatedAt: entry.snapshot?.generatedAt ?? 0,
-                     side: sideList(limit: 3))
+          MediumView(track: track, playback: entry.playback, side: sideList(limit: 3))
         default:
-          LargeView(track: track, nowPlaying: entry.snapshot?.nowPlaying,
-                    rows: sideList(limit: 6))
+          LargeView(track: track, playback: entry.playback, rows: sideList(limit: 6))
         }
       } else {
         EmptyStateView()
@@ -75,7 +108,7 @@ struct Artwork: View {
 struct PlayPauseButton: View {
   let isPlaying: Bool
   var body: some View {
-    Button(intent: TogglePlaybackIntent()) {
+    Button(intent: SetPlaybackIntent(playing: !isPlaying)) {
       Image(systemName: isPlaying ? "pause.fill" : "play.fill")
         .font(.system(size: 16, weight: .bold))
         .foregroundStyle(.white)
@@ -87,18 +120,15 @@ struct PlayPauseButton: View {
 }
 
 struct TimeLeft: View {
-  let nowPlaying: WidgetNowPlaying?
-  let generatedAt: Double
+  let playback: EffectivePlayback?
 
   var body: some View {
-    if let np = nowPlaying, np.durationSec > 0 {
-      let start = Date(timeIntervalSince1970: generatedAt / 1000)
-      let end = start.addingTimeInterval(np.durationSec - np.positionSec)
-      if np.isPlaying {
-        Text(timerInterval: Date.now...max(end, .now), countsDown: true)
+    if let p = playback, p.durationSec > 0 {
+      if p.isPlaying {
+        Text(timerInterval: Date.now...max(p.end, .now), countsDown: true)
           .monospacedDigit()
       } else {
-        Text("\(Int((np.durationSec - np.positionSec) / 60)) min left")
+        Text("\(Int(p.remainingWallSec / 60)) min left")
       }
     }
   }
@@ -106,21 +136,20 @@ struct TimeLeft: View {
 
 struct SmallView: View {
   let track: WidgetTrack
-  let nowPlaying: WidgetNowPlaying?
-  let generatedAt: Double
+  let playback: EffectivePlayback?
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
       HStack(alignment: .top) {
         Artwork(file: track.artworkFile, size: 58)
         Spacer()
-        PlayPauseButton(isPlaying: nowPlaying?.isPlaying ?? false)
+        PlayPauseButton(isPlaying: playback?.isPlaying ?? false)
       }
       Spacer(minLength: 0)
       Text(track.surahName).font(.headline).lineLimit(1)
       HStack(spacing: 4) {
         Text(track.reciterName).lineLimit(1)
-        TimeLeft(nowPlaying: nowPlaying, generatedAt: generatedAt)
+        TimeLeft(playback: playback)
       }
       .font(.caption).opacity(0.75)
     }
@@ -131,8 +160,7 @@ struct SmallView: View {
 
 struct MediumView: View {
   let track: WidgetTrack
-  let nowPlaying: WidgetNowPlaying?
-  let generatedAt: Double
+  let playback: EffectivePlayback?
   let side: [WidgetTrack]
 
   var body: some View {
@@ -143,8 +171,8 @@ struct MediumView: View {
         Text(track.surahName).font(.headline).lineLimit(1)
         Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
         HStack {
-          PlayPauseButton(isPlaying: nowPlaying?.isPlaying ?? false)
-          TimeLeft(nowPlaying: nowPlaying, generatedAt: generatedAt).font(.caption2).opacity(0.75)
+          PlayPauseButton(isPlaying: playback?.isPlaying ?? false)
+          TimeLeft(playback: playback).font(.caption2).opacity(0.75)
         }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -161,7 +189,7 @@ struct MediumView: View {
 
 struct LargeView: View {
   let track: WidgetTrack
-  let nowPlaying: WidgetNowPlaying?
+  let playback: EffectivePlayback?
   let rows: [WidgetTrack]
 
   var body: some View {
@@ -173,7 +201,7 @@ struct LargeView: View {
           Text(track.reciterName).font(.subheadline).opacity(0.75).lineLimit(1)
         }
         Spacer()
-        PlayPauseButton(isPlaying: nowPlaying?.isPlaying ?? false)
+        PlayPauseButton(isPlaying: playback?.isPlaying ?? false)
       }
       Divider().overlay(.white.opacity(0.2))
       ForEach(rows, id: \.self) { t in TrackRow(track: t, artSize: 36) }

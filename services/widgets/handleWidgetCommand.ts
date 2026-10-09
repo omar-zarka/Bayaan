@@ -1,6 +1,7 @@
 import type {WidgetCommand} from 'bayaan-widgets';
 import type {Reciter} from '@/data/reciterData';
 import type {Track} from '@/types/audio';
+import type {PlayerState} from '@/services/player/types/state';
 import {createTrack} from '@/utils/track';
 import {getReciterByIdSync, getSurahById} from '@/services/dataService';
 import {useReciterStore} from '@/store/reciterStore';
@@ -8,14 +9,19 @@ import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import type {AyahTimestamp} from '@/types/timestamps';
 import {timestampService} from '@/services/timestamps/TimestampService';
+import {expoAudioService} from '@/services/audio/ExpoAudioService';
 
 const DEFAULT_SURAH_FOR_RECITER = 1;
 
 export interface CommandDeps {
   getReciter: (id: string) => Reciter | undefined;
   getDefaultReciter: () => Reciter | null;
-  isPlaying: () => boolean;
+  playbackState: () => PlayerState;
   hasCurrentTrack: () => boolean;
+  // False on a cold start until restoreSession has loaded the track.
+  isAudioLoaded: () => boolean;
+  // Loads the current queue item at the saved position and autoplays.
+  loadAndPlayCurrent: () => Promise<void>;
   play: () => Promise<void>;
   pause: () => Promise<void>;
   playTracks: (tracks: Track[], startSec: number) => Promise<void>;
@@ -42,10 +48,19 @@ export function defaultDeps(): CommandDeps {
       const r = useReciterStore.getState().defaultReciter;
       return r.id === '' ? null : r;
     },
-    isPlaying: () => usePlayerStore.getState().playback.state === 'playing',
+    playbackState: () => usePlayerStore.getState().playback.state,
     hasCurrentTrack: () => {
       const {queue} = usePlayerStore.getState();
       return queue.tracks[queue.currentIndex] !== undefined;
+    },
+    isAudioLoaded: () => expoAudioService.getIsLoaded(),
+    loadAndPlayCurrent: () => {
+      const store = usePlayerStore.getState();
+      return store.updateQueue(
+        store.queue.tracks,
+        store.queue.currentIndex,
+        store.playback.position,
+      );
     },
     play: () => usePlayerStore.getState().play(),
     pause: () => usePlayerStore.getState().pause(),
@@ -88,20 +103,34 @@ async function playSurah(
   await deps.playTracks([track], startSec);
 }
 
+// States where audio is playing or about to: a play request is a no-op.
+function isStarting(state: PlayerState): boolean {
+  return state === 'playing' || state === 'loading' || state === 'buffering';
+}
+
+async function setPlayback(playing: boolean, deps: CommandDeps): Promise<void> {
+  if (!deps.hasCurrentTrack()) return;
+  const state = deps.playbackState();
+  if (!playing) {
+    if (isStarting(state)) await deps.pause();
+    return;
+  }
+  if (isStarting(state)) return;
+  if (!deps.isAudioLoaded()) {
+    await deps.loadAndPlayCurrent();
+    return;
+  }
+  await deps.play();
+}
+
 export async function handleWidgetCommand(
   command: WidgetCommand,
   deps: CommandDeps = defaultDeps(),
 ): Promise<void> {
   switch (command.type) {
-    case 'togglePlayback': {
-      if (!deps.hasCurrentTrack()) return;
-      if (deps.isPlaying()) {
-        await deps.pause();
-        return;
-      }
-      await deps.play();
+    case 'setPlayback':
+      await setPlayback(command.playing, deps);
       return;
-    }
     case 'playTrack': {
       const reciter = command.reciterId
         ? deps.getReciter(command.reciterId)

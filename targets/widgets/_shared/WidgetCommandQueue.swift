@@ -39,3 +39,27 @@ enum WidgetCommandQueue {
     NotificationCenter.default.post(name: notification, object: nil)
   }
 }
+
+/// Written on a widget tap so widgets render the expected state before the
+/// app confirms it. `at` is epoch milliseconds.
+struct PlaybackOverride: Codable, Hashable {
+  let isPlaying: Bool
+  let at: Double
+}
+
+enum PlaybackOverrideStore {
+  static let key = "widgets.playbackOverride"
+
+  static func write(isPlaying: Bool) {
+    let value = PlaybackOverride(isPlaying: isPlaying, at: Date().timeIntervalSince1970 * 1000)
+    guard let defaults = BayaanAppGroup.defaults,
+          let data = try? JSONEncoder().encode(value),
+          let json = String(data: data, encoding: .utf8) else { return }
+    defaults.set(json, forKey: key)
+  }
+
+  static func read() -> PlaybackOverride? {
+    guard let data = BayaanAppGroup.defaults?.string(forKey: key)?.data(using: .utf8) else { return nil }
+    return try? JSONDecoder().decode(PlaybackOverride.self, from: data)
+  }
+}

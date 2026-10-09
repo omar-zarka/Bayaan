@@ -1,18 +1,32 @@
 // targets/widgets/_shared/PlaybackIntents.swift
 import AppIntents
 import Foundation
+import WidgetKit
 
 // AudioPlaybackIntent runs in the app process, so the queue notification
 // reaches the JS module when the app is alive, and the app launches in the
 // background when it is not.
 // AudioPlaybackIntent is iOS 17+, and _shared also compiles into the iOS 16.4 app.
+// Sends an absolute target state (the opposite of what the widget rendered),
+// so repeated taps converge instead of toggling past each other.
 @available(iOS 17.0, *)
-struct TogglePlaybackIntent: AudioPlaybackIntent {
+struct SetPlaybackIntent: AudioPlaybackIntent {
   static var title: LocalizedStringResource = "Play or Pause"
   static var isDiscoverable = false
 
+  @Parameter(title: "Playing") var playing: Bool
+
+  init() {}
+
+  init(playing: Bool) {
+    self.playing = playing
+  }
+
   func perform() async throws -> some IntentResult {
-    WidgetCommandQueue.enqueue(["type": "togglePlayback"])
+    // Optimistic render first, then hand the command to the app.
+    PlaybackOverrideStore.write(isPlaying: playing)
+    WidgetCenter.shared.reloadTimelines(ofKind: "ContinueListening")
+    WidgetCommandQueue.enqueue(["type": "setPlayback", "playing": playing])
     return .result()
   }
 }

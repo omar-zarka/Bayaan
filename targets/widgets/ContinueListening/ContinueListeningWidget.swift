@@ -5,6 +5,13 @@ import WidgetKit
 struct ContinueListeningEntry: TimelineEntry {
   let date: Date
   let snapshot: WidgetSnapshot?
+  var override: PlaybackOverride? = nil
+
+  /// Playback as of this entry's date, after the override and end checks.
+  var playback: EffectivePlayback? {
+    guard let s = snapshot, let np = s.nowPlaying else { return nil }
+    return EffectivePlayback(nowPlaying: np, generatedAt: s.generatedAt, override: override, now: date)
+  }
 }
 
 struct ContinueListeningProvider: TimelineProvider {
@@ -13,13 +20,22 @@ struct ContinueListeningProvider: TimelineProvider {
   }
 
   func getSnapshot(in context: Context, completion: @escaping (ContinueListeningEntry) -> Void) {
-    completion(ContinueListeningEntry(date: .now, snapshot: SnapshotStore.load()))
+    completion(ContinueListeningEntry(date: .now, snapshot: SnapshotStore.load(),
+                                      override: PlaybackOverrideStore.read()))
   }
 
   func getTimeline(in context: Context, completion: @escaping (Timeline<ContinueListeningEntry>) -> Void) {
-    // App pushes reloads on change; no polling.
-    completion(Timeline(entries: [ContinueListeningEntry(date: .now, snapshot: SnapshotStore.load())],
-                        policy: .never))
+    // App pushes reloads on change; no polling. While playing, a second entry
+    // at the computed end renders the stopped state if no reload arrives.
+    let now = Date.now
+    let first = ContinueListeningEntry(date: now, snapshot: SnapshotStore.load(),
+                                       override: PlaybackOverrideStore.read())
+    var entries = [first]
+    if let playback = first.playback, playback.isPlaying, playback.end > now {
+      entries.append(ContinueListeningEntry(date: playback.end, snapshot: first.snapshot,
+                                            override: first.override))
+    }
+    completion(Timeline(entries: entries, policy: .never))
   }
 }
 

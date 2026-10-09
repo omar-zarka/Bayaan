@@ -77,7 +77,7 @@ function queued(command: WidgetCommand): QueuedWidgetCommand {
   return {command, enqueuedAt: Date.now()};
 }
 
-const toggle: WidgetCommand = {type: 'togglePlayback'};
+const toggle: WidgetCommand = {type: 'setPlayback', playing: true};
 const playReciter: WidgetCommand = {type: 'playReciter', reciterId: 'r1'};
 
 function flush(): Promise<void> {
@@ -126,8 +126,8 @@ describe('drainWidgetCommands', () => {
     mockHandleWidgetCommand.mockReset();
     mockTakeQueuedCommands.mockReset();
     mockTakeQueuedCommands.mockReturnValueOnce([
-      queued(toggle),
       queued(playReciter),
+      queued(toggle),
     ]);
     mockTakeQueuedCommands.mockReturnValue([]);
     mockHandleWidgetCommand
@@ -135,7 +135,7 @@ describe('drainWidgetCommands', () => {
       .mockResolvedValue(undefined);
     await sync.drainWidgetCommands();
     expect(mockHandleWidgetCommand).toHaveBeenCalledTimes(2);
-    expect(mockHandleWidgetCommand).toHaveBeenLastCalledWith(playReciter);
+    expect(mockHandleWidgetCommand).toHaveBeenLastCalledWith(toggle);
     expect(console.error).toHaveBeenCalled();
   });
 

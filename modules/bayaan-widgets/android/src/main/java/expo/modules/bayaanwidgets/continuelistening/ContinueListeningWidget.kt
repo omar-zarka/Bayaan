@@ -157,7 +157,8 @@ class ContinueListeningWidget : GlanceAppWidget() {
 
   @Composable
   private fun PlayPause(context: Context, isPlaying: Boolean) {
-    val cmd = JSONObject().put("type", "togglePlayback")
+    // Absolute target: the opposite of what is rendered.
+    val cmd = JSONObject().put("type", "setPlayback").put("playing", !isPlaying)
     Image(
       ImageProvider(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
       contentDescription = if (isPlaying) "Pause" else "Play",
