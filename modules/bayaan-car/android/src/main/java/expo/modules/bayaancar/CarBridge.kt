@@ -22,9 +22,9 @@ object CarBridge {
 
   @Volatile private var file: File? = null
 
-  var snapshot: CarSnapshot? = null
+  @Volatile var snapshot: CarSnapshot? = null
     private set
-  var nowPlaying: CarNowPlaying? = null
+  @Volatile var nowPlaying: CarNowPlaying? = null
     private set
   var isConnected = false
     private set
