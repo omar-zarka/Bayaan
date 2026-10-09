@@ -142,7 +142,11 @@ class BayaanLibraryService : MediaLibraryService() {
 
   private inner class Callback : MediaLibrarySession.Callback {
     override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
-      if (session.isCar(controller)) {
+      val isCar = session.isCar(controller)
+      if (!CarControllerPolicy.isAllowed(controller.packageName, packageName, isCar, controller.isTrusted)) {
+        return MediaSession.ConnectionResult.reject()
+      }
+      if (isCar) {
         carControllers.add(controller)
         CarBridge.setConnected(true)
         ensureJs()
