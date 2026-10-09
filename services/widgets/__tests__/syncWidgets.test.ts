@@ -3,33 +3,69 @@ import type {QueuedWidgetCommand, WidgetCommand} from 'bayaan-widgets';
 const mockTakeQueuedCommands = jest.fn<QueuedWidgetCommand[], []>();
 const mockHandleWidgetCommand = jest.fn<Promise<void>, [WidgetCommand]>();
 
+const mockCachedFiles = new Set<string>();
+const mockWriteSnapshot = jest.fn();
+const mockReloadWidgets = jest.fn();
+const mockCacheArtwork = jest.fn<Promise<boolean>, [string, string]>();
+const mockChangedKinds = jest.fn<string[], []>();
+const mockBuildSnapshot = jest.fn();
+const mockCollect = jest.fn();
+const mockReciterById = jest.fn();
+const mockCommandRemove = jest.fn();
+const mockAppStateRemove = jest.fn();
+const mockUnsubs: jest.Mock[] = [];
+const mockCallbacks: Array<() => void> = [];
+const mockSubscribe = jest.fn((cb: () => void) => {
+  mockCallbacks.push(cb);
+  const unsub = jest.fn();
+  mockUnsubs.push(unsub);
+  return unsub;
+});
+
 jest.mock('bayaan-widgets', () => ({
-  changedWidgetKinds: jest.fn(() => []),
+  changedWidgetKinds: () => mockChangedKinds(),
   isWidgetsAvailable: jest.fn(() => true),
-  reloadWidgets: jest.fn(),
-  writeSnapshot: jest.fn(),
-  cacheArtwork: jest.fn(),
-  hasArtwork: jest.fn(() => false),
-  addWidgetCommandListener: jest.fn(() => ({remove: jest.fn()})),
+  reloadWidgets: (k: unknown) => mockReloadWidgets(k),
+  writeSnapshot: (s: unknown) => mockWriteSnapshot(s),
+  cacheArtwork: (u: string, f: string) => mockCacheArtwork(u, f),
+  hasArtwork: (f: string) => mockCachedFiles.has(f),
+  addWidgetCommandListener: jest.fn(() => ({remove: mockCommandRemove})),
   takeQueuedCommands: () => mockTakeQueuedCommands(),
   selectFreshCommands: (queued: QueuedWidgetCommand[]) =>
     queued.map(q => q.command),
 }));
+jest.mock('react-native', () => {
+  const actual = jest.requireActual('react-native');
+  jest.spyOn(actual.AppState, 'addEventListener').mockImplementation(() => ({
+    remove: mockAppStateRemove,
+  }));
+  return actual;
+});
 jest.mock('@/services/player/store/playerStore', () => ({
-  usePlayerStore: {},
+  usePlayerStore: {subscribe: (cb: () => void) => mockSubscribe(cb)},
 }));
 jest.mock('@/services/player/store/recentlyPlayedStore', () => ({
-  useRecentlyPlayedStore: {},
+  useRecentlyPlayedStore: {subscribe: (cb: () => void) => mockSubscribe(cb)},
 }));
-jest.mock('@/store/reciterStore', () => ({useReciterStore: {}}));
-jest.mock('@/store/themeStore', () => ({useThemeStore: {}}));
-jest.mock('@/services/dataService', () => ({getReciterByIdSync: jest.fn()}));
-jest.mock('@/utils/artworkUtils', () => ({getReciterArtwork: jest.fn()}));
+jest.mock('@/store/reciterStore', () => ({
+  useReciterStore: {subscribe: (cb: () => void) => mockSubscribe(cb)},
+}));
+jest.mock('@/store/themeStore', () => ({
+  useThemeStore: {subscribe: (cb: () => void) => mockSubscribe(cb)},
+}));
+jest.mock('@/services/dataService', () => ({
+  getReciterByIdSync: (id: string) => mockReciterById(id),
+}));
+jest.mock('@/utils/artworkUtils', () => ({
+  getReciterArtwork: (r: {id: string}) => `https://x/${r.id}.jpg`,
+}));
 jest.mock('../buildSnapshot', () => ({
-  buildSnapshot: jest.fn(),
-  artworkFileName: jest.fn(),
+  buildSnapshot: () => mockBuildSnapshot(),
+  artworkFileName: (id: string) => `reciter-${id}.jpg`,
 }));
-jest.mock('../collectSnapshotInput', () => ({collectSnapshotInput: jest.fn()}));
+jest.mock('../collectSnapshotInput', () => ({
+  collectSnapshotInput: () => mockCollect(),
+}));
 jest.mock('../handleWidgetCommand', () => ({
   handleWidgetCommand: (command: WidgetCommand) =>
     mockHandleWidgetCommand(command),
@@ -139,5 +175,111 @@ describe('drainWidgetCommands', () => {
     expect(mockHandleWidgetCommand).toHaveBeenCalledTimes(2);
     expect(mockHandleWidgetCommand).toHaveBeenLastCalledWith(playReciter);
     expect(maxActive).toBe(1);
+  });
+});
+
+function snapshotWithReciters(ids: string[]): unknown {
+  return {
+    nowPlaying: null,
+    upNext: [],
+    recent: ids.map(id => ({reciterId: id, isUserUpload: false})),
+    defaultReciter: null,
+  };
+}
+
+describe('widget snapshot flush', () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    mockWriteSnapshot.mockReset();
+    mockReloadWidgets.mockReset();
+    mockCacheArtwork.mockReset();
+    mockCachedFiles.clear();
+    mockChangedKinds.mockReset();
+    mockChangedKinds.mockReturnValue(['ContinueListening']);
+    mockBuildSnapshot.mockReset();
+    mockBuildSnapshot.mockReturnValue(snapshotWithReciters([]));
+    mockCollect.mockReset();
+    mockReciterById.mockReset();
+    mockSubscribe.mockClear();
+    mockUnsubs.length = 0;
+    mockCallbacks.length = 0;
+    mockCommandRemove.mockClear();
+    mockAppStateRemove.mockClear();
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    jest.mocked(console.error).mockClear();
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it('writes a snapshot after the debounce', () => {
+    const sync = loadModule();
+    const stop = sync.startWidgetSync();
+    expect(mockWriteSnapshot).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1000);
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+    expect(mockReloadWidgets).toHaveBeenCalledWith(['ContinueListening']);
+    stop();
+  });
+
+  it('flushes within the max wait under continuous updates', () => {
+    const sync = loadModule();
+    const stop = sync.startWidgetSync();
+    jest.advanceTimersByTime(1000);
+    mockWriteSnapshot.mockClear();
+    const tick = mockCallbacks[0];
+    if (!tick) throw new Error('no subscriber');
+    // A store update every 400 ms must not starve the flush.
+    for (let elapsed = 0; elapsed < 1000; elapsed += 400) {
+      tick();
+      jest.advanceTimersByTime(400);
+    }
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it('does not throw when buildSnapshot or writeSnapshot throws', () => {
+    const sync = loadModule();
+    mockBuildSnapshot.mockImplementation(() => {
+      throw new Error('build');
+    });
+    expect(() => sync.flushWidgetSnapshot()).not.toThrow();
+    mockBuildSnapshot.mockReturnValue(snapshotWithReciters([]));
+    mockWriteSnapshot.mockImplementation(() => {
+      throw new Error('write');
+    });
+    expect(() => sync.flushWidgetSnapshot()).not.toThrow();
+    expect(console.error).toHaveBeenCalledTimes(2);
+  });
+
+  it('still caches reciter B when reciter A artwork rejects', async () => {
+    const sync = loadModule();
+    mockBuildSnapshot.mockReturnValue(snapshotWithReciters(['a', 'b']));
+    mockReciterById.mockImplementation((id: string) => ({id}));
+    mockCacheArtwork.mockImplementation(async (_url, file) => {
+      if (file.includes('a')) throw new Error('net');
+      mockCachedFiles.add(file);
+      return true;
+    });
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockCacheArtwork).toHaveBeenCalledWith(
+      'https://x/b.jpg',
+      'reciter-b.jpg',
+    );
+    // Artwork added for B triggers a second flush.
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it('cleanup removes listeners and clears the pending timer', () => {
+    const sync = loadModule();
+    const stop = sync.startWidgetSync();
+    stop();
+    expect(mockUnsubs).toHaveLength(4);
+    mockUnsubs.forEach(u => expect(u).toHaveBeenCalled());
+    expect(mockAppStateRemove).toHaveBeenCalled();
+    expect(mockCommandRemove).toHaveBeenCalled();
+    jest.advanceTimersByTime(5000);
+    expect(mockWriteSnapshot).not.toHaveBeenCalled();
   });
 });

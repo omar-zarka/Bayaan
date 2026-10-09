@@ -47,7 +47,11 @@ async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
     if (!reciter) continue;
     const url = getReciterArtwork(reciter);
     if (url.startsWith('data:')) continue;
-    added = (await cacheArtwork(url, file)) || added;
+    try {
+      added = (await cacheArtwork(url, file)) || added;
+    } catch (error) {
+      console.error('[WidgetSync] Failed to cache artwork:', error);
+    }
   }
   return added;
 }
@@ -55,23 +59,32 @@ async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
 export function flushWidgetSnapshot(): void {
   if (timer) clearTimeout(timer);
   timer = null;
-  const next = buildSnapshot(collectSnapshotInput(new Date()));
-  const kinds = changedWidgetKinds(lastSnapshot, next);
-  if (kinds.length === 0) return;
-  writeSnapshot(next);
-  reloadWidgets(kinds);
-  lastSnapshot = next;
-  // Artwork arrives async; rebuild once so snapshot references the files.
-  void ensureArtwork(next).then(added => {
-    if (added) {
-      lastSnapshot = null;
-      flushWidgetSnapshot();
-    }
-  });
+  try {
+    const next = buildSnapshot(collectSnapshotInput(new Date()));
+    const kinds = changedWidgetKinds(lastSnapshot, next);
+    if (kinds.length === 0) return;
+    writeSnapshot(next);
+    reloadWidgets(kinds);
+    lastSnapshot = next;
+    // Artwork arrives async; rebuild once so the snapshot references the
+    // files. The diff against lastSnapshot picks up the new artworkFile.
+    ensureArtwork(next)
+      .then(added => {
+        if (added) flushWidgetSnapshot();
+      })
+      .catch(error => {
+        console.error('[WidgetSync] Artwork sync failed:', error);
+      });
+  } catch (error) {
+    console.error('[WidgetSync] Failed to flush snapshot:', error);
+  }
 }
 
+// Trailing throttle: the first change starts the timer and later changes do
+// not reset it, so continuous updates (playback ticks) still flush every
+// DEBOUNCE_MS.
 function schedule(): void {
-  if (timer) clearTimeout(timer);
+  if (timer) return;
   timer = setTimeout(flushWidgetSnapshot, DEBOUNCE_MS);
 }
 
@@ -128,5 +141,6 @@ export function startWidgetSync(): () => void {
     appState.remove();
     commands.remove();
     if (timer) clearTimeout(timer);
+    timer = null;
   };
 }
