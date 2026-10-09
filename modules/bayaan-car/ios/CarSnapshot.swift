@@ -37,7 +37,7 @@ extension KeyedDecodingContainer {
 
 /// Bundled icon tiles. Only these names ever reach the resource lookup.
 enum CarIconName: String {
-  case loved, playlists, downloads, reciters, playlist
+  case loved, playlists, downloads, uploads, reciters, playlist
 }
 
 enum CarArtwork: Decodable {

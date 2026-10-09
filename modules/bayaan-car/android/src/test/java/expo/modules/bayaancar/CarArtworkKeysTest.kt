@@ -31,21 +31,24 @@ class CarArtworkKeysTest {
   @Test fun iconKeysAllowOnlyTheBundledTiles() {
     assertEquals(ArtworkKey.Icon("loved", null), CarArtworkKeys.parseKey("icon-loved"))
     assertEquals(ArtworkKey.Icon("reciters", null), CarArtworkKeys.parseKey("icon-reciters"))
+    assertEquals(ArtworkKey.Icon("uploads", null), CarArtworkKeys.parseKey("icon-uploads"))
     assertEquals(ArtworkKey.Icon("playlist", null), CarArtworkKeys.parseKey("icon-playlist"))
     assertEquals(ArtworkKey.Icon("playlist", "22C55E"), CarArtworkKeys.parseKey("icon-playlist-22C55E"))
     listOf(
       "icon-", "icon-launcher", "icon-loved-22C55E", "icon-playlist-22C55", "icon-playlist-22C55EE",
       "icon-playlist-GGGGGG", "icon-../loved", "icon-car_icon_loved", "icon-Loved",
+      "icon-uploads-8B5CF6", "icon-upload", "icon-Uploads",
     ).forEach { assertNull(it, CarArtworkKeys.parseKey(it)) }
   }
 
   @Test fun iconKeysCarryOnlyAValidPlaylistColour() {
     assertEquals("icon-loved", CarArtworkKeys.iconKey("loved", "#FF0000"))
+    assertEquals("icon-uploads", CarArtworkKeys.iconKey("uploads", "#8B5CF6"))
     assertEquals("icon-playlist-22C55E", CarArtworkKeys.iconKey("playlist", "#22c55e"))
     assertEquals("icon-playlist", CarArtworkKeys.iconKey("playlist", "red"))
     assertEquals("icon-playlist", CarArtworkKeys.iconKey("playlist", null))
     assertNull(CarArtworkKeys.iconKey("launcher", null))
-    listOf("loved", "playlists", "downloads", "reciters", "playlist").forEach { name ->
+    listOf("loved", "playlists", "downloads", "uploads", "reciters", "playlist").forEach { name ->
       assertNotNull(name, CarArtworkKeys.parseKey(CarArtworkKeys.iconKey(name, "#123456")))
     }
   }
@@ -165,5 +168,24 @@ class CarArtworkKeysTest {
       "https://cdn.fork.example/surah/",
       CarSnapshot.parse("$base,\"surahArtworkBase\":\"https://cdn.fork.example/surah/\"}")!!.surahArtworkBase,
     )
+  }
+
+  @Test fun snapshotDecodesTheUploadsLibraryEntryAndList() {
+    val json = """{"version":1,"topReciterId":null,"home":{"quickStart":[],"sections":[]},
+      "library":[{"id":"lib:uploads","title":"Uploads","artwork":{"kind":"icon","name":"uploads"},
+        "action":{"kind":"browse","target":{"kind":"list","listId":"uploads"}}}],
+      "lists":{"uploads":{"id":"uploads","title":"Uploads","items":[{"id":"upload:u1","title":"Al-Kahf",
+        "subtitle":"Mishary","artwork":{"kind":"surah","surahId":18},
+        "action":{"kind":"play","request":{"kind":"uploads","startIndex":0}}}]}},
+      "reciters":[],"surahs":[],"juz":[],"downloadedKeys":[]}"""
+    val snap = CarSnapshot.parse(json)!!
+    val entry = snap.library.single()
+    assertEquals(CarArtwork.Icon("uploads", null), entry.artwork)
+    assertEquals(CarItemAction.BrowseList("uploads"), entry.action)
+    assertEquals("icon-uploads", CarArtworkKeys.iconKey("uploads", null))
+    val row = snap.lists.getValue("uploads").items.single()
+    val request = org.json.JSONObject((row.action as CarItemAction.Play).requestJson)
+    assertEquals("uploads", request.getString("kind"))
+    assertEquals(0, request.getInt("startIndex"))
   }
 }

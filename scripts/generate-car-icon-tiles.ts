@@ -1,8 +1,8 @@
 /**
  * Generates the CarPlay / Android Auto icon tiles: the Collection screen's
- * category icons (Playlists, Reciters, Downloads, Loved) on the same tinted
- * rounded square, plus a white playlist glyph that the natives draw over a
- * playlist's own colour at runtime.
+ * category icons (Playlists, Reciters, Downloads, Uploads, Loved) on the same
+ * tinted rounded square, plus a white playlist glyph that the natives draw
+ * over a playlist's own colour at runtime.
  *
  * Usage:
  *   npx tsx scripts/generate-car-icon-tiles.ts [--sheet <dir>]
@@ -12,7 +12,8 @@
  * also writes every tile and a contact sheet to <dir>.
  *
  * The SVG paths are copied verbatim from components/Icons.tsx (PlaylistIcon,
- * ProfileIcon filled, DownloadIcon, HeartIcon filled). Keep them in sync.
+ * ProfileIcon filled, DownloadIcon, MicrophoneIcon, HeartIcon filled). Keep
+ * them in sync.
  */
 
 import * as fs from 'fs';
@@ -41,11 +42,16 @@ const PROFILE_BODY_PATH =
   'M4 18C4 15.7908 5.79086 14 8 14H16C18.2091 14 20 15.7908 20 18V18C20 19.1045 19.1046 20 18 20H6C4.89543 20 4 19.1045 4 18V18Z';
 const DOWNLOAD_PATH =
   'M8 12L12 16M12 16L16 12M12 16V8M22 12C22 17.5228 17.5228 22 12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12Z';
+const MICROPHONE_PATHS = [
+  'M12 1C10.34 1 9 2.34 9 4V12C9 13.66 10.34 15 12 15C13.66 15 15 13.66 15 12V4C15 2.34 13.66 1 12 1Z',
+  'M19 10V12C19 15.866 15.866 19 12 19C8.13401 19 5 15.866 5 12V10',
+  'M12 19V23M8 23H16',
+];
 const HEART_PATH =
   'M12 5.95q0.06 0 0.07-0.01c1.75-2.18 5.25-3.94 7.46-1.13 0.97 1.24 0.83 2.98 0.3 4.42-1.19 3.24-4.22 6.13-7.34 7.52q-0.17 0.08-0.48 0.08t-0.48-0.08c-3.12-1.38-6.15-4.28-7.34-7.52c-0.53-1.44-0.67-3.18 0.3-4.42 2.21-2.81 5.71-1.05 7.46 1.13q0.01 0.01 0.07 0.01z';
 
 interface IconSpec {
-  name: 'loved' | 'playlists' | 'downloads' | 'reciters';
+  name: 'loved' | 'playlists' | 'downloads' | 'uploads' | 'reciters';
   color: string;
   svg: (color: string) => string;
 }
@@ -71,6 +77,15 @@ const ICONS: IconSpec[] = [
     color: '#10AC84',
     svg: color =>
       `<path d="${DOWNLOAD_PATH}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+  },
+  {
+    name: 'uploads',
+    color: '#8B5CF6',
+    svg: color =>
+      MICROPHONE_PATHS.map(
+        d =>
+          `<path d="${d}" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>`,
+      ).join(''),
   },
   {
     name: 'loved',

@@ -194,6 +194,7 @@ class CarArtworkProvider : ContentProvider() {
     "loved" -> R.drawable.car_icon_loved
     "playlists" -> R.drawable.car_icon_playlists
     "downloads" -> R.drawable.car_icon_downloads
+    "uploads" -> R.drawable.car_icon_uploads
     "reciters" -> R.drawable.car_icon_reciters
     CarArtworkKeys.PLAYLIST -> R.drawable.car_icon_playlist_glyph
     else -> null
