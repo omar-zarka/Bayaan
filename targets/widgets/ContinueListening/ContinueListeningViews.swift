@@ -105,17 +105,36 @@ struct Artwork: View {
   }
 }
 
-struct PlayPauseButton: View {
+struct PlayPauseGlyph: View {
   let isPlaying: Bool
   var body: some View {
-    Button(intent: SetPlaybackIntent(playing: !isPlaying)) {
-      Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-        .font(.system(size: 16, weight: .bold))
-        .foregroundStyle(.white)
-        .frame(width: 34, height: 34)
-        .background(.white.opacity(0.18), in: Circle())
+    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+      .font(.system(size: 16, weight: .bold))
+      .foregroundStyle(.white)
+      .frame(width: 34, height: 34)
+      .background(.white.opacity(0.18), in: Circle())
+  }
+}
+
+/// Play/pause for the current item. With nothing loaded (the hero is a recent
+/// item or the surah of the day), it starts that track instead.
+struct HeroPlayButton: View {
+  let track: WidgetTrack
+  let playback: EffectivePlayback?
+
+  var body: some View {
+    if let playback {
+      Button(intent: SetPlaybackIntent(playing: !playback.isPlaying)) {
+        PlayPauseGlyph(isPlaying: playback.isPlaying)
+      }
+      .buttonStyle(.plain)
+    } else if !track.isUserUpload && track.surahId != 0 {
+      Button(intent: PlayTrackIntent(surahId: track.surahId, reciterId: track.reciterId,
+                                     rewayatId: track.rewayatId)) {
+        PlayPauseGlyph(isPlaying: false)
+      }
+      .buttonStyle(.plain)
     }
-    .buttonStyle(.plain)
   }
 }
 
@@ -143,7 +162,7 @@ struct SmallView: View {
       HStack(alignment: .top) {
         Artwork(file: track.artworkFile, size: 58)
         Spacer()
-        PlayPauseButton(isPlaying: playback?.isPlaying ?? false)
+        HeroPlayButton(track: track, playback: playback)
       }
       Spacer(minLength: 0)
       Text(track.surahName).font(.headline).lineLimit(1)
@@ -171,7 +190,7 @@ struct MediumView: View {
         Text(track.surahName).font(.headline).lineLimit(1)
         Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
         HStack {
-          PlayPauseButton(isPlaying: playback?.isPlaying ?? false)
+          HeroPlayButton(track: track, playback: playback)
           TimeLeft(playback: playback).font(.caption2).opacity(0.75)
         }
       }
@@ -201,7 +220,7 @@ struct LargeView: View {
           Text(track.reciterName).font(.subheadline).opacity(0.75).lineLimit(1)
         }
         Spacer()
-        PlayPauseButton(isPlaying: playback?.isPlaying ?? false)
+        HeroPlayButton(track: track, playback: playback)
       }
       Divider().overlay(.white.opacity(0.2))
       ForEach(rows, id: \.self) { t in TrackRow(track: t, artSize: 36) }

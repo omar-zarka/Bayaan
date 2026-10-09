@@ -133,9 +133,9 @@ class ContinueListeningWidget : GlanceAppWidget() {
         if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0) else s.upNext
       val side = sideSource.take(if (size.height >= LARGE.height) 6 else 3)
       when {
-        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, track, isPlaying, side)
-        size.width >= MEDIUM.width -> Medium(context, track, isPlaying, side)
-        else -> Small(context, track, isPlaying)
+        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, track, s.nowPlaying != null, isPlaying, side)
+        size.width >= MEDIUM.width -> Medium(context, track, s.nowPlaying != null, isPlaying, side)
+        else -> Small(context, track, s.nowPlaying != null, isPlaying)
       }
     }
   }
@@ -155,15 +155,28 @@ class ContinueListeningWidget : GlanceAppWidget() {
     }
   }
 
+  /**
+   * Play/pause for the current item. With nothing loaded (the hero is a recent
+   * item or the surah of the day), it starts that track instead.
+   */
   @Composable
-  private fun PlayPause(context: Context, isPlaying: Boolean) {
-    // Absolute target: the opposite of what is rendered.
-    val cmd = JSONObject().put("type", "setPlayback").put("playing", !isPlaying)
+  private fun PlayPause(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean) {
+    val cmd = when {
+      // Absolute target: the opposite of what is rendered.
+      hasNowPlaying -> JSONObject().put("type", "setPlayback").put("playing", !isPlaying)
+      track.isUserUpload || track.surahId == 0 -> return
+      else -> playTrackCommand(track)
+    }
     Image(
       ImageProvider(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
       contentDescription = if (isPlaying) "Pause" else "Play",
       modifier = GlanceModifier.size(34.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(17.dp)
-        .padding(7.dp).clickable(actionSendBroadcast(CommandReceiver.intent(context, cmd))),
+        .padding(7.dp).clickable(
+          actionSendBroadcast(
+            CommandReceiver.intent(context, cmd)
+              .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
+          ),
+        ),
     )
   }
 
@@ -175,12 +188,12 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Small(context: Context, track: WidgetTrack, isPlaying: Boolean) {
+  private fun Small(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean) {
     Column(GlanceModifier.fillMaxSize()) {
       Row(GlanceModifier.fillMaxWidth()) {
         Art(context, track.artworkFile, 56)
         Spacer(GlanceModifier.defaultWeight())
-        PlayPause(context, isPlaying)
+        PlayPause(context, track, hasNowPlaying, isPlaying)
       }
       Spacer(GlanceModifier.defaultWeight())
       Titles(track, 15)
@@ -188,14 +201,14 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Medium(context: Context, track: WidgetTrack, isPlaying: Boolean, side: List<WidgetTrack>) {
+  private fun Medium(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean, side: List<WidgetTrack>) {
     Row(GlanceModifier.fillMaxSize()) {
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
         Art(context, track.artworkFile, 60)
         Spacer(GlanceModifier.defaultWeight())
         Titles(track, 15)
         Spacer(GlanceModifier.height(6.dp))
-        PlayPause(context, isPlaying)
+        PlayPause(context, track, hasNowPlaying, isPlaying)
       }
       Spacer(GlanceModifier.width(12.dp))
       Column(GlanceModifier.defaultWeight()) { side.forEach { t -> TrackRow(context, t, 30) } }
@@ -203,23 +216,26 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Large(context: Context, track: WidgetTrack, isPlaying: Boolean, rows: List<WidgetTrack>) {
+  private fun Large(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean, rows: List<WidgetTrack>) {
     Column(GlanceModifier.fillMaxSize()) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Art(context, track.artworkFile, 72)
         Spacer(GlanceModifier.width(12.dp))
         Column(GlanceModifier.defaultWeight()) { Titles(track, 18) }
-        PlayPause(context, isPlaying)
+        PlayPause(context, track, hasNowPlaying, isPlaying)
       }
       Spacer(GlanceModifier.height(12.dp))
       rows.forEach { t -> TrackRow(context, t, 36) }
     }
   }
 
+  private fun playTrackCommand(t: WidgetTrack): JSONObject =
+    JSONObject().put("type", "playTrack").put("surahId", t.surahId)
+      .put("reciterId", t.reciterId).put("rewayatId", t.rewayatId ?: JSONObject.NULL).put("ayah", JSONObject.NULL)
+
   @Composable
   private fun TrackRow(context: Context, t: WidgetTrack, art: Int) {
-    val cmd = JSONObject().put("type", "playTrack").put("surahId", t.surahId)
-      .put("reciterId", t.reciterId).put("rewayatId", t.rewayatId ?: JSONObject.NULL).put("ayah", JSONObject.NULL)
+    val cmd = playTrackCommand(t)
     val base = if (t.isUserUpload || t.surahId == 0) GlanceModifier else GlanceModifier.clickable(
       actionSendBroadcast(
         CommandReceiver.intent(context, cmd)
