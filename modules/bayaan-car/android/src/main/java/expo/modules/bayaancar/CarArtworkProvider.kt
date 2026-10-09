@@ -114,7 +114,12 @@ class CarArtworkProvider : ContentProvider() {
     val key = CarArtworkKeys.parseKey(keyString) ?: return null
     if (key is ArtworkKey.Tile || key is ArtworkKey.Icon) return openTile(key)
     val dir = cacheDir() ?: return null
-    val name = CarArtworkKeys.fileNameFor(keyString)
+    // Surah files are keyed by base too, so a new artwork base never serves stale cards.
+    val name = if (key is ArtworkKey.Surah) {
+      CarArtworkKeys.fileNameFor("$keyString|${CarArtworkKeys.surahUrl(currentSnapshot(context ?: return null)?.surahArtworkBase, key.surahId)}")
+    } else {
+      CarArtworkKeys.fileNameFor(keyString)
+    }
     val file = File(dir, name)
     val lock = lockFor(name)
     synchronized(lock) {

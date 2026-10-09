@@ -34,7 +34,7 @@ export interface CarSnapshotInput {
 }
 
 export const DEFAULT_SURAH_ARTWORK_BASE =
-  'https://cdn.thebayaan.com/assets/og-images/surah/';
+  'https://cdn.thebayaan.com/assets/car/surah/';
 
 /**
  * Normalizes a fork-supplied surah artwork base to an https URL ending in '/'.

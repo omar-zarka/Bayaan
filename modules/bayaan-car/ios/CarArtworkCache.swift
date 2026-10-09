@@ -21,7 +21,7 @@ final class CarArtworkCache {
   private let lock = NSLock()
   private var inFlight: [String: [(UIImage) -> Void]] = [:]
   private var failedAt: [String: Date] = [:]
-  private static let defaultSurahBase = "https://cdn.thebayaan.com/assets/og-images/surah/"
+  private static let defaultSurahBase = "https://cdn.thebayaan.com/assets/car/surah/"
 
   /// The snapshot's surah base when it is an https URL ending in "/", else Bayaan's CDN.
   /// Mirrors the JS normalizer and the Android provider. Main thread only.
@@ -123,7 +123,7 @@ final class CarArtworkCache {
     case .surah(let id):
       let suffix = style == .light ? "-light" : ""
       return .remote(
-        key: "surah-\(id)\(suffix)", url: URL(string: "\(surahBase)\(id)\(suffix).png"),
+        key: "surah-\(Self.digest(surahBase))-\(id)\(suffix)", url: URL(string: "\(surahBase)\(id)\(suffix).png"),
         placeholder: Placeholder(label: "\(id)", hex: "#1F2937"))
     case .url(let string):
       return .remote(key: "url-\(Self.digest(string))", url: URL(string: string), placeholder: neutral)

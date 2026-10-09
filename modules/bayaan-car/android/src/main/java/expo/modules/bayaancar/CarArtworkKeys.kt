@@ -99,7 +99,7 @@ object CarArtworkKeys {
 
   fun isHttps(url: String): Boolean = url.startsWith("https://") && url.length > "https://".length
 
-  const val DEFAULT_SURAH_BASE = "https://cdn.thebayaan.com/assets/og-images/surah/"
+  const val DEFAULT_SURAH_BASE = "https://cdn.thebayaan.com/assets/car/surah/"
   private val surahBasePattern = Regex("https://[^\\s?#\\\\]+/")
 
   /** The snapshot's surah base when it is an https URL ending in '/', else the default CDN. */
