@@ -291,4 +291,18 @@ describe('buildCarSnapshot', () => {
     expect(snap.lists.playlists.items).toEqual([]);
     expect(snap.home.sections.map(s => s.id)).toEqual([]);
   });
+
+  it('skips a situational playlist pick that resolves to no items', () => {
+    const snap = buildCarSnapshot(
+      input({
+        now: new Date(2026, 9, 7, 8, 0), // Wednesday morning
+        recentTracks: [recent(sudais, 1, 0.1)],
+        systemPlaylists: [
+          systemPlaylist('morning-reflections', [{surahId: 3}]),
+        ],
+      }),
+    );
+    const ids = snap.home.sections.flatMap(s => s.items.map(i => i.id));
+    expect(ids).not.toContain('now:morning');
+  });
 });

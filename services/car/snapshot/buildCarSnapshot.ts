@@ -319,6 +319,10 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const lastRewayat = lastRecent
     ? findRewayat(lastRecent.reciter, lastRecent.rewayatId)
     : undefined;
+  const playlistListsAll = playlistLists(input, top);
+  const nonEmptyLists = playlistListsAll.filter(list => list.items.length > 0);
+  const nonEmptyListIds = new Set(nonEmptyLists.map(list => list.id));
+
   const situational = buildSituationalPicks({
     now: input.now,
     topReciter: top,
@@ -333,11 +337,13 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
             surahIds: availableSurahIds(lastRewayat),
           }
         : null,
-    systemPlaylists: input.systemPlaylists.map(p => ({
-      id: p.id,
-      title: p.title,
-      color: p.backgroundColor,
-    })),
+    systemPlaylists: input.systemPlaylists
+      .filter(p => nonEmptyListIds.has(`system:${p.id}`))
+      .map(p => ({
+        id: p.id,
+        title: p.title,
+        color: p.backgroundColor,
+      })),
     surahName: (id: number): string =>
       input.surahs.find(s => s.id === id)?.name ?? `Surah ${id}`,
   });
@@ -345,12 +351,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const jumpBackIn = buildJumpBackIn(input);
   const loved = buildLovedList(input);
   const downloads = buildDownloadsList(input);
-  const playlistListsAll = playlistLists(input, top);
-  const nonEmptyLists = playlistListsAll.filter(list => list.items.length > 0);
-  const playlists = playlistEntries(
-    input,
-    new Set(nonEmptyLists.map(list => list.id)),
-  );
+  const playlists = playlistEntries(input, nonEmptyListIds);
 
   const quickStart: CarItem[] = [];
   if (jumpBackIn.length > 0) {
