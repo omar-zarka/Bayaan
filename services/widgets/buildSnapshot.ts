@@ -12,7 +12,7 @@ import {
   WidgetTasbeehEntry,
   WidgetThemeMode,
   WidgetTrack,
-} from 'bayaan-widgets/src/snapshot';
+} from 'bayaan-widgets';
 
 const UP_NEXT_LIMIT = 3;
 const RECENT_LIMIT = 6;

@@ -1,4 +1,6 @@
 PODS:
+  - BayaanWidgets (0.1.0):
+    - ExpoModulesCore
   - Burnt (0.13.0):
     - ExpoModulesCore
     - SPAlert (~> 4.2)
@@ -2695,6 +2697,7 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - BayaanWidgets (from `../modules/bayaan-widgets/ios`)
   - Burnt (from `../node_modules/burnt/ios`)
   - EASClient (from `../node_modules/expo-eas-client/ios`)
   - EXApplication (from `../node_modules/expo-application/ios`)
@@ -2846,6 +2849,8 @@ SPEC REPOS:
     - SPIndicator
 
 EXTERNAL SOURCES:
+  BayaanWidgets:
+    :path: "../modules/bayaan-widgets/ios"
   Burnt:
     :path: "../node_modules/burnt/ios"
   EASClient:
@@ -3129,6 +3134,7 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  BayaanWidgets: 393454ec6630b0903957462f90e8bd6e42df19f6
   Burnt: 0616363a206ed96ba9af3e2eb0e184dc97be1458
   EASClient: 2321f8d99fa86c710a6f68e017f3b54366baed9f
   EXApplication: e6040c92edc5522accd62852342e6b14742d42c0

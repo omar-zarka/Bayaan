@@ -1,6 +1,6 @@
 // services/widgets/__tests__/buildSnapshot.test.ts
 import {buildSnapshot, artworkFileName, SnapshotInput} from '../buildSnapshot';
-import {isWidgetSnapshot} from 'bayaan-widgets/src/snapshot';
+import {isWidgetSnapshot} from 'bayaan-widgets';
 import type {Track} from '@/types/audio';
 import type {Reciter} from '@/data/reciterData';
 import type {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';

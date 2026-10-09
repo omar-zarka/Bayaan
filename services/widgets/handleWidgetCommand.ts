@@ -1,4 +1,4 @@
-import type {WidgetCommand} from 'bayaan-widgets/src/commands';
+import type {WidgetCommand} from 'bayaan-widgets';
 import type {Reciter} from '@/data/reciterData';
 import type {Track} from '@/types/audio';
 import {createTrack} from '@/utils/track';
