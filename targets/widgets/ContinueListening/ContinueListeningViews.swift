@@ -5,6 +5,10 @@ import WidgetKit
 
 private let deepLinkPlayer = URL(string: "bayaan://player")!
 
+// Dark neutral used when there is no artwork tint, in both appearances, so the
+// white foreground always has contrast.
+private let fallbackBackground = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
+
 struct ContinueListeningView: View {
   @Environment(\.widgetFamily) private var family
   let entry: ContinueListeningEntry
@@ -33,7 +37,7 @@ struct ContinueListeningView: View {
       }
     }
     .containerBackground(for: .widget) {
-      (ArtworkTint.color(for: current?.artworkFile) ?? Color("$widgetBackground"))
+      (ArtworkTint.color(for: current?.artworkFile) ?? fallbackBackground)
     }
     .widgetURL(deepLinkPlayer)
   }
@@ -206,7 +210,7 @@ struct EmptyStateView: View {
       Image(systemName: "headphones").font(.title2)
       Text("Start listening").font(.caption.weight(.semibold))
     }
-    .foregroundStyle(Color("$accent"))
+    .foregroundStyle(.white)
   }
 }
 

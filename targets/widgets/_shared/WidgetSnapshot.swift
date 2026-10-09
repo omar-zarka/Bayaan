@@ -38,11 +38,15 @@ struct WidgetTasbeehEntry: Codable, Hashable {
   let day: String
 }
 
+enum WidgetTheme: String, Codable {
+  case light, dark, system
+}
+
 struct WidgetSnapshot: Codable {
   static let supportedVersion = 1
   let version: Int
   let generatedAt: Double
-  let theme: String
+  let theme: WidgetTheme
   let nowPlaying: WidgetNowPlaying?
   let upNext: [WidgetTrack]
   let recent: [WidgetTrack]
