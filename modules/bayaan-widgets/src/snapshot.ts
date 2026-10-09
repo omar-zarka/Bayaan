@@ -1,3 +1,5 @@
+import {isNullableString, isRecord} from './guards';
+
 export const WIDGET_SNAPSHOT_VERSION = 1;
 
 export type WidgetThemeMode = 'light' | 'dark' | 'system';
@@ -50,14 +52,6 @@ export interface WidgetSnapshot {
   reciterRecents: Record<string, WidgetTrack[]>;
   lastRead: WidgetLastRead | null;
   tasbeeh: Record<string, WidgetTasbeehEntry>;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function isNullableString(value: unknown): value is string | null {
-  return value === null || typeof value === 'string';
 }
 
 export function isWidgetTrack(value: unknown): value is WidgetTrack {
