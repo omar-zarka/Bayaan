@@ -8,6 +8,9 @@ final class CarTemplateBuilder {
   private let style: () -> UIUserInterfaceStyle
   private let displayScale: () -> CGFloat
   private var builtStyle: UIUserInterfaceStyle?
+  /// Identity of the Quick start header buttons currently set (ids, titles,
+  /// artwork, style), so unrelated snapshot changes do not reset them.
+  private var quickStartSignature: String?
   /// Artwork loads registered while building, started only for items that
   /// survive `clamp`, then cleared.
   private var loaders: [ObjectIdentifier: () -> Void] = [:]
@@ -62,11 +65,21 @@ final class CarTemplateBuilder {
       [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].forEach {
         $0.updateSections([emptyState(Self.emptyCopy)])
       }
-      if #available(iOS 26.0, *) { homeTemplate.headerGridButtons = nil }
+      if #available(iOS 26.0, *) {
+        homeTemplate.headerGridButtons = nil
+        quickStartSignature = nil
+      }
       return
     }
     homeTemplate.updateSections(clamp(homeSections(snapshot)))
-    if #available(iOS 26.0, *) { homeTemplate.headerGridButtons = quickStartButtons(snapshot.home.quickStart) }
+    if #available(iOS 26.0, *) {
+      let signature = snapshot.home.quickStart.map { "\($0.id)|\($0.title)|\($0.artwork)" }.joined(separator: "\n")
+        + "|\(currentStyle.rawValue)"
+      if signature != quickStartSignature {
+        quickStartSignature = signature
+        homeTemplate.headerGridButtons = quickStartButtons(snapshot.home.quickStart)
+      }
+    }
     libraryTemplate.updateSections(clamp(librarySections(snapshot)))
     recitersTemplate.updateSections(clamp(reciterSections(snapshot)))
     surahsTemplate.updateSections(clamp(surahSections(snapshot)))
@@ -150,10 +163,16 @@ final class CarTemplateBuilder {
         sections.append(CPListSection(items: section.items.map(listItem), header: section.title, sectionIndexTitle: nil))
       }
     }
-    if sections.isEmpty {
+    let hasHeaderButtons = Self.usesElementRows && !s.home.quickStart.isEmpty
+    if sections.isEmpty, !hasHeaderButtons {
       sections.append(emptyState(Self.nothingYet))
     }
     return sections
+  }
+
+  private static var hasDetailsHeader: Bool {
+    if #available(iOS 26.4, *) { return true }
+    return false
   }
 
   private static var usesElementRows: Bool {
@@ -194,10 +213,24 @@ final class CarTemplateBuilder {
     }
     let (scale, style) = (self.scale, currentStyle)
     loaders[ObjectIdentifier(row)] = { [weak row] in
+      var pending: [Int: UIImage] = [:]
+      var flushScheduled = false
       for (index, item) in limited.enumerated() {
         CarArtworkCache.shared.load(for: item.artwork, size: size, scale: scale, style: style) { image in
-          guard let row, row.elements.indices.contains(index) else { return }
-          row.elements[index].image = image
+          guard let row else { return }
+          pending[index] = image
+          guard !flushScheduled else { return }
+          flushScheduled = true
+          // Elements have no update hook, so the array is reassigned (one
+          // reassignment per run-loop turn) to make the row repaint.
+          DispatchQueue.main.async { [weak row] in
+            flushScheduled = false
+            guard let row else { return }
+            let elements = row.elements
+            for (i, img) in pending where elements.indices.contains(i) { elements[i].image = img }
+            pending.removeAll()
+            row.elements = elements
+          }
         }
       }
     }
@@ -381,16 +414,28 @@ final class CarTemplateBuilder {
       }
       return item
     }
-    let shown = items.isEmpty ? [CPListItem(text: Self.nothingYet, detailText: nil)] : items
+    var rows = items
+    if !rows.isEmpty, !Self.hasDetailsHeader {
+      // No details header before iOS 26.4: show the reciter as an inert first row.
+      let card = CPListItem(text: reciter.name, detailText: rewayah.name, image: nil)
+      setArtwork(card, reciter.artwork)
+      card.handler = { _, completion in completion() }
+      rows.insert(card, at: 0)
+    }
+    let shown = rows.isEmpty ? [CPListItem(text: Self.nothingYet, detailText: nil)] : rows
     let template = listTemplate(title: reciter.name, sections: [CPListSection(items: shown)])
-    if #available(iOS 26.4, *) { template.listHeader = reciterHeader(reciter, rewayah) }
+    if #available(iOS 26.4, *) { template.listHeader = reciterHeader(reciter, rewayah, template: template) }
     push(template, completion: completion)
   }
 
   /// iOS 26.4+ large reciter card above the surah list. The thumbnail image is
   /// assigned in place when the artwork arrives.
   @available(iOS 26.4, *)
-  private func reciterHeader(_ reciter: CarReciter, _ rewayah: CarRewayah) -> CPListTemplateDetailsHeader {
+  private func reciterHeader(
+    _ reciter: CarReciter, _ rewayah: CarRewayah, template: CPListTemplate
+  ) -> CPListTemplateDetailsHeader {
+    // Before iOS 27 no API reports the thumbnail size, so the card element
+    // size is an approximation.
     let size: CGFloat
     if #available(iOS 27.0, *) {
       size = CPThumbnailImage.maximumImageSize(forAspectRatio: 1).width
@@ -401,8 +446,11 @@ final class CarTemplateBuilder {
     let header = CPListTemplateDetailsHeader(
       thumbnail: thumbnail, title: reciter.name, subtitle: rewayah.name, actionButtons: [])
     CarArtworkCache.shared.load(for: reciter.artwork, size: size, scale: scale, style: currentStyle) {
-      [weak thumbnail] image in
-      thumbnail?.image = image
+      [weak template, weak header] image in
+      guard let template, let header else { return }
+      // The header has no update hook; reassigning it is the live update path.
+      header.thumbnail = CPThumbnailImage(image: image)
+      template.listHeader = header
     }
     return header
   }
