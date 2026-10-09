@@ -64,7 +64,7 @@ describe('parseQueuedCommands', () => {
 });
 
 describe('selectFreshCommands', () => {
-  it('drops commands older than 60s and orders oldest first', () => {
+  it('orders by enqueue time and keeps only the last play command', () => {
     const queued: QueuedWidgetCommand[] = [
       {command: {type: 'playReciter', reciterId: 'b'}, enqueuedAt: NOW - 1_000},
       {command: {type: 'togglePlayback'}, enqueuedAt: NOW - 61_000},
@@ -72,6 +72,53 @@ describe('selectFreshCommands', () => {
     ];
     expect(selectFreshCommands(queued, NOW)).toEqual([
       {type: 'playReciter', reciterId: 'b'},
+    ]);
+  });
+
+  it('drops a stale togglePlayback so a fresh one stands alone', () => {
+    const queued: QueuedWidgetCommand[] = [
+      {command: {type: 'togglePlayback'}, enqueuedAt: NOW - 61_000},
+      {command: {type: 'togglePlayback'}, enqueuedAt: NOW - 1_000},
+    ];
+    expect(selectFreshCommands(queued, NOW)).toEqual([
+      {type: 'togglePlayback'},
+    ]);
+  });
+
+  it('drops a lone stale play command', () => {
+    const queued: QueuedWidgetCommand[] = [
+      {
+        command: {type: 'playReciter', reciterId: 'a'},
+        enqueuedAt: NOW - 61_000,
+      },
+    ];
+    expect(selectFreshCommands(queued, NOW)).toEqual([]);
+  });
+
+  it('honours a custom maxAgeMs', () => {
+    const stale: QueuedWidgetCommand[] = [
+      {
+        command: {type: 'playReciter', reciterId: 'a'},
+        enqueuedAt: NOW - 11_000,
+      },
+    ];
+    const fresh: QueuedWidgetCommand[] = [
+      {command: {type: 'playReciter', reciterId: 'a'}, enqueuedAt: NOW - 9_000},
+    ];
+    expect(selectFreshCommands(stale, NOW, 10_000)).toEqual([]);
+    expect(selectFreshCommands(fresh, NOW, 10_000)).toEqual([
+      {type: 'playReciter', reciterId: 'a'},
+    ]);
+  });
+
+  it('an odd number of fresh togglePlayback commands collapses to one toggle', () => {
+    const queued: QueuedWidgetCommand[] = [
+      {command: {type: 'togglePlayback'}, enqueuedAt: NOW - 3_000},
+      {command: {type: 'togglePlayback'}, enqueuedAt: NOW - 2_000},
+      {command: {type: 'togglePlayback'}, enqueuedAt: NOW - 1_000},
+    ];
+    expect(selectFreshCommands(queued, NOW)).toEqual([
+      {type: 'togglePlayback'},
     ]);
   });
 
