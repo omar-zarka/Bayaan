@@ -86,8 +86,10 @@ function deps(
       void calls.push(`playTracks:${tracks[0].surahId}@${startSec}`),
     lastSurahForReciter: () => 67,
     upNextIndexOf: () => null,
-    playQueueIndex: async (index: number) =>
-      void calls.push(`playQueueIndex:${index}`),
+    playQueueIndex: async (index: number, startSec?: number) =>
+      void calls.push(`playQueueIndex:${index}@${startSec ?? 0}`),
+    resumeChain: (recentIndex: number) =>
+      void calls.push(`resumeChain:${recentIndex}`),
     findRecent: () => null,
     resumeRecent: async (m: RecentMatch) =>
       void calls.push(`resumeRecent:${m.surahId}@${m.startPosition}`),
@@ -267,7 +269,7 @@ describe('playTrack row taps', () => {
     });
     await handleWidgetCommand(row, d);
     expect(keys).toEqual([{reciterId: 'r1', surahId: 36, rewayatId: 'rw1'}]);
-    expect(d.calls).toEqual(['playQueueIndex:3']);
+    expect(d.calls).toEqual(['playQueueIndex:3@0']);
   });
 
   it('resumes a matching recent entry at its saved position', async () => {
@@ -278,13 +280,13 @@ describe('playTrack row taps', () => {
     expect(d.calls).toEqual(['resumeRecent:36@321']);
   });
 
-  it('prefers the queue over recents', async () => {
+  it('keeps the queue but resumes at the recent position when both match', async () => {
     const d = deps({
       upNextIndexOf: () => 1,
-      findRecent: key => ({...key, startPosition: 5, recentIndex: 0}),
+      findRecent: key => ({...key, startPosition: 5, recentIndex: 2}),
     });
     await handleWidgetCommand(row, d);
-    expect(d.calls).toEqual(['playQueueIndex:1']);
+    expect(d.calls).toEqual(['playQueueIndex:1@5', 'resumeChain:2']);
   });
 
   it('starts fresh when nothing matches', async () => {

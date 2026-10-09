@@ -54,9 +54,10 @@ export interface CommandDeps {
   lastSurahForReciter: (reciterId: string) => number | null;
   // Index of a matching queued track after the current one.
   upNextIndexOf: (key: TrackKey) => number | null;
-  playQueueIndex: (index: number) => Promise<void>;
+  playQueueIndex: (index: number, startSec?: number) => Promise<void>;
   findRecent: (key: TrackKey) => RecentMatch | null;
   resumeRecent: (match: RecentMatch) => Promise<void>;
+  resumeChain: (recentIndex: number) => void;
   ayahStartSec: (
     rewayatId: string,
     surahId: number,
@@ -120,10 +121,12 @@ export function defaultDeps(): CommandDeps {
       );
       return i === -1 ? null : i;
     },
-    playQueueIndex: index => {
+    playQueueIndex: (index, startSec = 0) => {
       const store = usePlayerStore.getState();
-      return store.updateQueue(store.queue.tracks, index);
+      return store.updateQueue(store.queue.tracks, index, startSec);
     },
+    resumeChain: recentIndex =>
+      useRecentlyPlayedStore.getState().resumeChain(recentIndex),
     findRecent: key => {
       const recentTracks = useRecentlyPlayedStore.getState().recentTracks;
       const recentIndex = recentTracks.findIndex(
@@ -226,11 +229,17 @@ export async function handleWidgetCommand(
           rewayatId: command.rewayatId,
         };
         const queued = deps.upNextIndexOf(key);
+        const recent = deps.findRecent(key);
+        if (queued !== null && recent) {
+          // Keep the queue but resume at the saved position.
+          await deps.playQueueIndex(queued, recent.startPosition);
+          deps.resumeChain(recent.recentIndex);
+          return;
+        }
         if (queued !== null) {
           await deps.playQueueIndex(queued);
           return;
         }
-        const recent = deps.findRecent(key);
         if (recent) {
           await deps.resumeRecent(recent);
           return;
