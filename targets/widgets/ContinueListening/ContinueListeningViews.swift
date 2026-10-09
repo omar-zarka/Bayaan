@@ -10,7 +10,7 @@ private let deepLinkPlayer = URL(string: "bayaan://player")!
 private let fallbackBackground = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
 
 /// Playback as the widget should render it at `now`: prefers a tap override
-/// newer than the snapshot, and treats playback as stopped past the end
+/// newer than the snapshot and younger than the TTL, and treats playback as stopped past the end
 /// (anchor + remaining / rate). Mirrors PlaybackState.kt on Android.
 struct EffectivePlayback {
   let isPlaying: Bool
@@ -30,12 +30,14 @@ struct EffectivePlayback {
     func positionAt(_ ms: Double) -> Double {
       np.isPlaying ? clamp(np.positionSec + (ms - generatedAt) / 1000 * rate) : clamp(np.positionSec)
     }
-    let applied = override.flatMap { $0.at > generatedAt ? $0 : nil }
+    let nowMs = now.timeIntervalSince1970 * 1000
+    let applied = override.flatMap {
+      $0.at > generatedAt && nowMs - $0.at <= PlaybackOverrideStore.ttlMs ? $0 : nil
+    }
     let playing = applied?.isPlaying ?? np.isPlaying
     let anchorMs = applied?.at ?? generatedAt
     let anchorPos = applied.map { positionAt($0.at) } ?? clamp(np.positionSec)
     let end = Date(timeIntervalSince1970: anchorMs / 1000 + (duration - anchorPos) / rate)
-    let nowMs = now.timeIntervalSince1970 * 1000
     let ended = playing && now >= end
     self.isPlaying = playing && !ended
     self.positionSec = ended ? duration

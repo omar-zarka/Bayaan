@@ -24,6 +24,13 @@ class PlaybackStateTest {
     assertTrue(PlaybackState.effective(np(true), gen, o, gen + 1_000).isPlaying)
   }
 
+  @Test fun overrideExpiresAfterTtl() {
+    val o = PlaybackOverride(isPlaying = false, at = gen + 500)
+    val ttl = PlaybackState.OVERRIDE_TTL_MS
+    assertFalse(PlaybackState.effective(np(true), gen, o, o.at + ttl).isPlaying)
+    assertTrue(PlaybackState.effective(np(true), gen, o, o.at + ttl + 1).isPlaying)
+  }
+
   @Test fun stopsPlayingPastTheEndAtRate() {
     // 900 s left at 2x is 450 s of wall time.
     assertTrue(PlaybackState.effective(np(true, rate = 2.0), gen, null, gen + 449_000).isPlaying)

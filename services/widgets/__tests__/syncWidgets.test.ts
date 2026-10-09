@@ -99,7 +99,34 @@ describe('drainWidgetCommands', () => {
     mockTakeQueuedCommands.mockReturnValue([]);
     mockHandleWidgetCommand.mockReset();
     mockHandleWidgetCommand.mockResolvedValue(undefined);
+    mockWriteSnapshot.mockReset();
+    mockReloadWidgets.mockReset();
+    mockChangedKinds.mockReset();
+    mockChangedKinds.mockReturnValue([]);
+    mockBuildSnapshot.mockReset();
+    mockBuildSnapshot.mockReturnValue(snapshotWithReciters([]));
     jest.spyOn(console, 'error').mockImplementation(() => undefined);
+  });
+
+  it('forces a Continue Listening write after handling a command', async () => {
+    const sync = loadModule();
+    sync.markPlayerReadyForWidgets();
+    await flush();
+    mockWriteSnapshot.mockClear();
+    mockReloadWidgets.mockClear();
+    mockTakeQueuedCommands.mockReturnValueOnce([queued(toggle)]);
+    mockTakeQueuedCommands.mockReturnValue([]);
+    await sync.drainWidgetCommands();
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+    expect(mockReloadWidgets).toHaveBeenCalledWith(['ContinueListening']);
+  });
+
+  it('does not write a snapshot when no command was handled', async () => {
+    const sync = loadModule();
+    sync.markPlayerReadyForWidgets();
+    await flush();
+    await sync.drainWidgetCommands();
+    expect(mockWriteSnapshot).not.toHaveBeenCalled();
   });
 
   it('does nothing before the player is ready', async () => {

@@ -73,12 +73,19 @@ async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
   return added;
 }
 
-export function flushWidgetSnapshot(): void {
+// forceContinueListening writes and reloads Continue Listening even when
+// nothing changed, so a fresh generatedAt supersedes a widget's optimistic
+// playback override after a command that turned out to be a no-op.
+export function flushWidgetSnapshot(forceContinueListening = false): void {
   if (timer) clearTimeout(timer);
   timer = null;
   try {
     const next = buildSnapshot(collectSnapshotInput(new Date()));
-    const kinds = changedWidgetKinds(lastSnapshot, next);
+    const changed = changedWidgetKinds(lastSnapshot, next);
+    const kinds =
+      forceContinueListening && !changed.includes('ContinueListening')
+        ? [...changed, 'ContinueListening' as const]
+        : changed;
     if (kinds.length === 0) return;
     writeSnapshot(next);
     reloadWidgets(kinds);
@@ -115,6 +122,7 @@ export async function drainWidgetCommands(): Promise<void> {
     return;
   }
   draining = true;
+  let handled = 0;
   try {
     do {
       redrainRequested = false;
@@ -122,6 +130,7 @@ export async function drainWidgetCommands(): Promise<void> {
         takeQueuedCommands(),
         Date.now(),
       )) {
+        handled += 1;
         try {
           await handleWidgetCommand(command);
         } catch (error) {
@@ -132,6 +141,7 @@ export async function drainWidgetCommands(): Promise<void> {
   } finally {
     draining = false;
   }
+  if (handled > 0) flushWidgetSnapshot(true);
 }
 
 export function markPlayerReadyForWidgets(): void {

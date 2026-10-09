@@ -30,12 +30,19 @@ struct ContinueListeningProvider: TimelineProvider {
     let now = Date.now
     let first = ContinueListeningEntry(date: now, snapshot: SnapshotStore.load(),
                                        override: PlaybackOverrideStore.read())
-    var entries = [first]
+    var dates: [Date] = []
     if let playback = first.playback, playback.isPlaying, playback.end > now {
-      entries.append(ContinueListeningEntry(date: playback.end, snapshot: first.snapshot,
-                                            override: first.override))
+      dates.append(playback.end)
     }
-    completion(Timeline(entries: entries, policy: .never))
+    // An active override stops applying after its TTL; render that moment too.
+    if let o = first.override, let s = first.snapshot, o.at > s.generatedAt {
+      let expiry = Date(timeIntervalSince1970: (o.at + PlaybackOverrideStore.ttlMs) / 1000)
+      if expiry > now { dates.append(expiry.addingTimeInterval(1)) }
+    }
+    let later = dates.sorted().map {
+      ContinueListeningEntry(date: $0, snapshot: first.snapshot, override: first.override)
+    }
+    completion(Timeline(entries: [first] + later, policy: .never))
   }
 }
 

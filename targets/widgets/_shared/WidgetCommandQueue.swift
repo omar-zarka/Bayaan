@@ -71,6 +71,8 @@ struct PlaybackOverride: Codable, Hashable {
 
 enum PlaybackOverrideStore {
   static let key = "widgets.playbackOverride"
+  /// Matches the 60 s max age of queued commands.
+  static let ttlMs: Double = 60_000
 
   static func write(isPlaying: Bool) {
     let value = PlaybackOverride(isPlaying: isPlaying, at: Date().timeIntervalSince1970 * 1000)

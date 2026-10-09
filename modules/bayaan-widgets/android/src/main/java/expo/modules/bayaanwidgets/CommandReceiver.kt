@@ -50,6 +50,7 @@ class CommandReceiver : BroadcastReceiver() {
     // Optimistic render before anything slow.
     WidgetStorage.writePlaybackOverride(context, PlaybackOverride(playing, System.currentTimeMillis()))
     runCatching { ContinueListeningWidget.pushState(context) }
+    runCatching { OverrideExpiryWorker.schedule(context) }
     // JS is not listening; try the live media session directly.
     if (WidgetStorage.onCommandQueued == null && controlSession(context, playing)) return
     queueAndLaunch(context, command)

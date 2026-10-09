@@ -9,6 +9,9 @@ data class PlaybackOverride(val isPlaying: Boolean, val at: Long)
 data class EffectivePlayback(val isPlaying: Boolean, val remainingWallSec: Double)
 
 object PlaybackState {
+  /** Matches the 60 s max age of queued commands. */
+  const val OVERRIDE_TTL_MS = 60_000L
+
   fun encodeOverride(o: PlaybackOverride): String =
     JSONObject().put("isPlaying", o.isPlaying).put("at", o.at).toString()
 
@@ -19,7 +22,8 @@ object PlaybackState {
   private fun safeRate(rate: Double): Double = if (rate > 0 && rate.isFinite()) rate else 1.0
 
   /**
-   * Prefers the override when it is newer than the snapshot. Treats playback as
+   * Prefers the override when it is newer than the snapshot and younger than
+   * OVERRIDE_TTL_MS, so a command that never lands cannot pin it. Treats playback as
    * stopped once now is past the computed end (anchor + remaining / rate).
    */
   fun effective(
@@ -31,7 +35,7 @@ object PlaybackState {
       val advanced = if (np.isPlaying) np.positionSec + (t - generatedAt) / 1000.0 * rate else np.positionSec
       return advanced.coerceIn(0.0, duration)
     }
-    val applied = override?.takeIf { it.at > generatedAt }
+    val applied = override?.takeIf { it.at > generatedAt && nowMs - it.at <= OVERRIDE_TTL_MS }
     val playing = applied?.isPlaying ?: np.isPlaying
     val anchorMs = applied?.at ?: generatedAt
     val anchorPos = if (applied != null) positionAt(applied.at) else np.positionSec.coerceIn(0.0, duration)
