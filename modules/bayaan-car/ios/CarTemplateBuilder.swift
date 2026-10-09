@@ -62,9 +62,11 @@ final class CarTemplateBuilder {
       [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].forEach {
         $0.updateSections([emptyState(Self.emptyCopy)])
       }
+      if #available(iOS 26.0, *) { homeTemplate.headerGridButtons = nil }
       return
     }
     homeTemplate.updateSections(clamp(homeSections(snapshot)))
+    if #available(iOS 26.0, *) { homeTemplate.headerGridButtons = quickStartButtons(snapshot.home.quickStart) }
     libraryTemplate.updateSections(clamp(librarySections(snapshot)))
     recitersTemplate.updateSections(clamp(reciterSections(snapshot)))
     surahsTemplate.updateSections(clamp(surahSections(snapshot)))
@@ -136,13 +138,14 @@ final class CarTemplateBuilder {
 
   private func homeSections(_ s: CarSnapshot) -> [CPListSection] {
     var sections: [CPListSection] = []
-    if !s.home.quickStart.isEmpty {
+    // On iOS 26+ Quick start is shown as header grid buttons instead of a row.
+    if !s.home.quickStart.isEmpty, !Self.usesElementRows {
       sections.append(CPListSection(items: [imageRow(title: "Quick start", items: s.home.quickStart)]))
     }
     for section in s.home.sections where !section.items.isEmpty {
       switch section.style {
       case "circles", "cards":
-        sections.append(CPListSection(items: [imageRow(title: section.title, items: section.items)]))
+        sections.append(CPListSection(items: [homeImageRow(section)]))
       default:
         sections.append(CPListSection(items: section.items.map(listItem), header: section.title, sectionIndexTitle: nil))
       }
@@ -151,6 +154,78 @@ final class CarTemplateBuilder {
       sections.append(emptyState(Self.nothingYet))
     }
     return sections
+  }
+
+  private static var usesElementRows: Bool {
+    if #available(iOS 26.0, *) { return true }
+    return false
+  }
+
+  private func homeImageRow(_ section: CarSection) -> CPListImageRowItem {
+    if #available(iOS 26.0, *) {
+      return elementImageRow(title: section.title, items: section.items, circular: section.style == "circles")
+    }
+    return imageRow(title: section.title, items: section.items)
+  }
+
+  /// iOS 26+ element based row. Each element's `image` is assigned in place when
+  /// the real artwork arrives (`updateImages:` is unsupported on iOS 26).
+  @available(iOS 26.0, *)
+  private func elementImageRow(title: String, items: [CarItem], circular: Bool) -> CPListImageRowItem {
+    let limited = Array(items.prefix(CPMaximumNumberOfGridImages))
+    let size =
+      circular
+      ? CPListImageRowItemImageGridElement.maximumImageSize.width
+      : CPListImageRowItemCardElement.maximumImageSize.width
+    let row: CPListImageRowItem
+    if circular {
+      let elements = limited.map {
+        CPListImageRowItemImageGridElement(
+          image: peek($0.artwork, size: size), imageShape: .circular, title: $0.title, accessorySymbolName: nil)
+      }
+      row = CPListImageRowItem(text: title, imageGridElements: elements, allowsMultipleLines: false)
+    } else {
+      let elements = limited.map {
+        CPListImageRowItemCardElement(
+          image: peek($0.artwork, size: size), showsImageFullHeight: false, title: $0.title, subtitle: $0.subtitle,
+          tintColor: nil)
+      }
+      row = CPListImageRowItem(text: title, cardElements: elements, allowsMultipleLines: false)
+    }
+    let (scale, style) = (self.scale, currentStyle)
+    loaders[ObjectIdentifier(row)] = { [weak row] in
+      for (index, item) in limited.enumerated() {
+        CarArtworkCache.shared.load(for: item.artwork, size: size, scale: scale, style: style) { image in
+          guard let row, row.elements.indices.contains(index) else { return }
+          row.elements[index].image = image
+        }
+      }
+    }
+    row.listImageRowHandler = { [weak self] _, index, completion in
+      if limited.indices.contains(index) { self?.perform(limited[index]) }
+      completion()
+    }
+    row.handler = { _, completion in completion() }
+    return row
+  }
+
+  /// iOS 26+ Quick start header buttons. `CPGridButton.updateImage` updates in
+  /// place, so late artwork never rebuilds the template.
+  @available(iOS 26.0, *)
+  private func quickStartButtons(_ items: [CarItem]) -> [CPGridButton]? {
+    let limited = Array(items.prefix(CPListTemplate.maximumHeaderGridButtonCount))
+    guard !limited.isEmpty else { return nil }
+    let size = CPListTemplate.maximumGridButtonImageSize.width
+    let (scale, style) = (self.scale, currentStyle)
+    return limited.map { item in
+      let button = CPGridButton(titleVariants: [item.title], image: peek(item.artwork, size: size)) { [weak self] _ in
+        self?.perform(item)
+      }
+      CarArtworkCache.shared.load(for: item.artwork, size: size, scale: scale, style: style) { [weak button] image in
+        button?.updateImage(image)
+      }
+      return button
+    }
   }
 
   private func imageRow(title: String, items: [CarItem]) -> CPListImageRowItem {
@@ -307,7 +382,29 @@ final class CarTemplateBuilder {
       return item
     }
     let shown = items.isEmpty ? [CPListItem(text: Self.nothingYet, detailText: nil)] : items
-    push(listTemplate(title: reciter.name, sections: [CPListSection(items: shown)]), completion: completion)
+    let template = listTemplate(title: reciter.name, sections: [CPListSection(items: shown)])
+    if #available(iOS 26.4, *) { template.listHeader = reciterHeader(reciter, rewayah) }
+    push(template, completion: completion)
+  }
+
+  /// iOS 26.4+ large reciter card above the surah list. The thumbnail image is
+  /// assigned in place when the artwork arrives.
+  @available(iOS 26.4, *)
+  private func reciterHeader(_ reciter: CarReciter, _ rewayah: CarRewayah) -> CPListTemplateDetailsHeader {
+    let size: CGFloat
+    if #available(iOS 27.0, *) {
+      size = CPThumbnailImage.maximumImageSize(forAspectRatio: 1).width
+    } else {
+      size = CPListImageRowItemCardElement.maximumImageSize.width
+    }
+    let thumbnail = CPThumbnailImage(image: peek(reciter.artwork, size: size))
+    let header = CPListTemplateDetailsHeader(
+      thumbnail: thumbnail, title: reciter.name, subtitle: rewayah.name, actionButtons: [])
+    CarArtworkCache.shared.load(for: reciter.artwork, size: size, scale: scale, style: currentStyle) {
+      [weak thumbnail] image in
+      thumbnail?.image = image
+    }
+    return header
   }
 
   // MARK: Surahs
