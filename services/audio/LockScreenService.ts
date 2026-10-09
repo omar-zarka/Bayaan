@@ -21,6 +21,7 @@ class LockScreenService {
   private lastTrackId: string | null = null;
   private isMushafActive = false;
   private lastMushafVerseKey: string | null = null;
+  private carMode = false;
 
   private constructor() {}
 
@@ -75,6 +76,20 @@ class LockScreenService {
     if (__DEV__) console.log('[LockScreenService] Cleaned up');
   }
 
+  /**
+   * While a car is connected, hide the 10s skip buttons so CarPlay shows
+   * previous / next surah instead. Restored on disconnect. On Android this
+   * only affects the phone notification.
+   */
+  setCarMode(enabled: boolean): void {
+    if (this.carMode === enabled) return;
+    this.carMode = enabled;
+    if (this.isMushafActive) return;
+    const {queue} = usePlayerStore.getState();
+    const track = queue.tracks[queue.currentIndex];
+    if (track) this.activateMainPlayer(track);
+  }
+
   // ========== PRIVATE ==========
 
   private clearPlayer(player: AudioPlayer | null): void {
@@ -113,8 +128,8 @@ class LockScreenService {
 
     try {
       player.setActiveForLockScreen(true, metadata, {
-        showSeekForward: true,
-        showSeekBackward: true,
+        showSeekForward: !this.carMode,
+        showSeekBackward: !this.carMode,
       });
     } catch (error) {
       if (__DEV__)

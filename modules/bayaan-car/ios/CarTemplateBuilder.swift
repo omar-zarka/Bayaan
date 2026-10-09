@@ -111,7 +111,7 @@ final class CarTemplateBuilder {
     return result
   }
 
-  private func listTemplate(title: String, sections: [CPListSection]) -> CPListTemplate {
+  func listTemplate(title: String, sections: [CPListSection]) -> CPListTemplate {
     CPListTemplate(title: title, sections: clamp(sections))
   }
 
@@ -121,7 +121,7 @@ final class CarTemplateBuilder {
 
   /// Gives `item` a placeholder (or cached image) now and updates that same
   /// item in place when the real image arrives. Never rebuilds templates.
-  private func setArtwork(_ item: CPListItem, _ art: CarArtwork) {
+  func setArtwork(_ item: CPListItem, _ art: CarArtwork) {
     let size = CPListItem.maximumImageSize.width
     item.setImage(peek(art, size: size))
     let (scale, style) = (self.scale, currentStyle)
@@ -253,10 +253,15 @@ final class CarTemplateBuilder {
     return item
   }
 
-  private func pushReciter(_ id: String) {
-    guard let reciter = CarBridge.shared.snapshot?.reciters.first(where: { $0.id == id }) else { return }
+  /// `completion` runs once the template is on screen, or immediately when
+  /// nothing could be pushed.
+  func pushReciter(_ id: String, completion: (() -> Void)? = nil) {
+    guard let reciter = CarBridge.shared.snapshot?.reciters.first(where: { $0.id == id }) else {
+      completion?()
+      return
+    }
     if reciter.rewayat.count == 1, let only = reciter.rewayat.first {
-      pushRewayah(reciter, only)
+      pushRewayah(reciter, only, completion: completion)
       return
     }
     let items = reciter.rewayat.map { w -> CPListItem in
@@ -269,12 +274,22 @@ final class CarTemplateBuilder {
       return item
     }
     let shown = items.isEmpty ? [CPListItem(text: Self.nothingYet, detailText: nil)] : items
-    interfaceController?.pushTemplate(
-      listTemplate(title: reciter.name, sections: [CPListSection(items: shown)]), animated: true, completion: nil)
+    push(listTemplate(title: reciter.name, sections: [CPListSection(items: shown)]), completion: completion)
   }
 
-  private func pushRewayah(_ reciter: CarReciter, _ rewayah: CarRewayah) {
-    guard let s = CarBridge.shared.snapshot else { return }
+  private func push(_ template: CPTemplate, completion: (() -> Void)?) {
+    guard let ic = interfaceController else {
+      completion?()
+      return
+    }
+    ic.pushTemplate(template, animated: true) { _, _ in completion?() }
+  }
+
+  private func pushRewayah(_ reciter: CarReciter, _ rewayah: CarRewayah, completion: (() -> Void)? = nil) {
+    guard let s = CarBridge.shared.snapshot else {
+      completion?()
+      return
+    }
     let downloaded = Set(s.downloadedKeys)
     let byId = Dictionary(s.surahs.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     let items = rewayah.surahIds.compactMap { sid -> CPListItem? in
@@ -292,8 +307,7 @@ final class CarTemplateBuilder {
       return item
     }
     let shown = items.isEmpty ? [CPListItem(text: Self.nothingYet, detailText: nil)] : items
-    interfaceController?.pushTemplate(
-      listTemplate(title: reciter.name, sections: [CPListSection(items: shown)]), animated: true, completion: nil)
+    push(listTemplate(title: reciter.name, sections: [CPListSection(items: shown)]), completion: completion)
   }
 
   // MARK: Surahs

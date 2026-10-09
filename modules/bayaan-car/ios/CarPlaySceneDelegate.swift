@@ -23,7 +23,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
       },
       displayScale: { [weak interfaceController] in interfaceController?.carTraitCollection.displayScale ?? 2 })
     self.builder = builder
-    nowPlaying = CarNowPlayingController(interfaceController: interfaceController)
+    nowPlaying = CarNowPlayingController(interfaceController: interfaceController, builder: builder)
     let tabBar = CPTabBarTemplate(templates: builder.tabTemplates())
     interfaceController.setRootTemplate(tabBar, animated: false, completion: nil)
     observers.append(

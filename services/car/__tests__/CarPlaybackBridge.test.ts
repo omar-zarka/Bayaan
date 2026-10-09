@@ -1,6 +1,9 @@
 // The helpers under test are pure; stub the store and service graph so the
 // native-backed modules (expo-audio, MMKV) are never loaded.
 jest.mock('@/modules/bayaan-car', () => ({BayaanCar: {isAvailable: false}}));
+jest.mock('@/services/audio/LockScreenService', () => ({
+  lockScreenService: {setCarMode: jest.fn()},
+}));
 jest.mock('@/utils/track', () => ({
   createTrack: jest.fn(),
   shuffleTracks: jest.fn(),

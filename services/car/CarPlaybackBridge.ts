@@ -4,6 +4,7 @@ import {SURAHS} from '@/data/surahData';
 import {getSystemPlaylists} from '@/data/systemPlaylists';
 import {Track} from '@/types/audio';
 import {createTrack, shuffleTracks} from '@/utils/track';
+import {lockScreenService} from '@/services/audio/LockScreenService';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import {useLovedStore} from '@/services/player/store/lovedStore';
@@ -234,11 +235,17 @@ export function startCarPlaybackBridge(
       pushNowPlaying();
     }),
     useLovedStore.subscribe(pushNowPlaying),
+    BayaanCar.addConnectionListener(connected =>
+      lockScreenService.setCarMode(connected),
+    ),
   ];
   pushNowPlaying();
   // Listeners are attached; only now let native flush queued cold-start
   // requests, and only after the first snapshot exists to resolve against.
   const markReady = (): void => BayaanCar.markJsReady();
   snapshotReady.then(markReady, markReady);
-  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+  return () => {
+    unsubscribers.forEach(unsubscribe => unsubscribe());
+    lockScreenService.setCarMode(false);
+  };
 }
