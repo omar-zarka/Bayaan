@@ -11,6 +11,7 @@
  * Must be mounted at the app root level for audio to work.
  */
 
+import {markPlayerReadyForWidgets} from '@/services/widgets/syncWidgets';
 import React, {useEffect, useRef, useCallback} from 'react';
 import {AppState, Platform} from 'react-native';
 import {useAudioPlayer, useAudioPlayerStatus} from 'expo-audio';
@@ -128,6 +129,8 @@ export function ExpoAudioProvider({children}: ExpoAudioProviderProps) {
 
         // Start lock screen sync after player is connected
         await lockScreenService.startSync();
+
+        markPlayerReadyForWidgets();
 
         if (__DEV__)
           console.log('[ExpoAudioProvider] Player connected to service');

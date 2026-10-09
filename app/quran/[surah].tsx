@@ -1,9 +1,13 @@
+// app/quran/[surah].tsx
 import React from 'react';
-import {Redirect} from 'expo-router';
+import {Redirect, useLocalSearchParams} from 'expo-router';
 
-// Stub: canonical /quran/{surah} URL. No standalone Quran reader in-app yet,
-// so deep links fall through to the home tab. Exists for Android App Link
-// autoverification on the /quran path prefix.
-export default function QuranSurahStub(): React.ReactElement {
-  return <Redirect href="/(tabs)/(a.home)" />;
+// Canonical /quran/{surah}?ayah=N URL (widgets, App Links). Hands off to the reader.
+export default function QuranSurahLink(): React.ReactElement {
+  const {surah, ayah} = useLocalSearchParams<{surah: string; ayah?: string}>();
+  return (
+    <Redirect
+      href={{pathname: '/mushaf', params: ayah ? {surah, ayah} : {surah}}}
+    />
+  );
 }
