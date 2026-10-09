@@ -6,7 +6,10 @@ import {Track} from '@/types/audio';
 import {createTrack, shuffleTracks} from '@/utils/track';
 import {lockScreenService} from '@/services/audio/LockScreenService';
 import {usePlayerStore} from '@/services/player/store/playerStore';
-import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+import {
+  RecentlyPlayedTrack,
+  useRecentlyPlayedStore,
+} from '@/services/player/store/recentlyPlayedStore';
 import {useLovedStore} from '@/services/player/store/lovedStore';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {PlayerState, RepeatMode} from '@/services/player/types/state';
@@ -91,6 +94,37 @@ export function toNowPlaying(
   };
 }
 
+export interface ChainProgress {
+  progress: number;
+  duration: number;
+}
+
+/**
+ * Progress for a new recent entry. A request that resumes mid-surah (a Jump
+ * back in row) keeps the recent entry's progress, so the car's progress bar
+ * does not reset to empty until the next playback tick rebuilds the snapshot.
+ */
+export function carriedProgress(
+  recentTracks: RecentlyPlayedTrack[],
+  reciterId: string,
+  surahId: number,
+  startPosition: number,
+): ChainProgress {
+  if (!(startPosition > 0)) return {progress: 0, duration: 0};
+  const recent = recentTracks.find(
+    t =>
+      !t.isUserUpload &&
+      t.reciter.id === reciterId &&
+      t.surah.id === surahId &&
+      t.duration > 0,
+  );
+  if (!recent) return {progress: 0, duration: 0};
+  return {
+    progress: Math.min(1, startPosition / recent.duration),
+    duration: recent.duration,
+  };
+}
+
 async function specToTrack(spec: CarTrackSpec): Promise<Track | null> {
   const reciter = RECITERS.find(r => r.id === spec.reciterId);
   const surah = SURAHS.find(s => s.id === spec.surahId);
@@ -133,9 +167,21 @@ export async function executeCarRequest(
   const reciter = RECITERS.find(r => r.id === first?.reciterId);
   const surah = SURAHS.find(s => String(s.id) === first?.surahId);
   if (plan.chain === 'new' && first?.rewayatId && reciter && surah) {
+    const carried = carriedProgress(
+      ctx.recentTracks,
+      reciter.id,
+      surah.id,
+      plan.startPosition,
+    );
     useRecentlyPlayedStore
       .getState()
-      .startNewChain(reciter, surah, 0, 0, first.rewayatId);
+      .startNewChain(
+        reciter,
+        surah,
+        carried.progress,
+        carried.duration,
+        first.rewayatId,
+      );
   }
   if (plan.chain === 'resume') {
     useRecentlyPlayedStore.getState().resumeChain(plan.recentIndex ?? 0);

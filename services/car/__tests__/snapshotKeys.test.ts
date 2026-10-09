@@ -35,9 +35,25 @@ function entry(
 }
 
 describe('recentTracksKey', () => {
-  it('ignores progress changes', () => {
-    expect(recentTracksKey([entry('a', 1, 0.1)])).toBe(
+  it('ignores progress ticks within the same tenth', () => {
+    expect(recentTracksKey([entry('a', 1, 0.41)])).toBe(
+      recentTracksKey([entry('a', 1, 0.49)]),
+    );
+  });
+  it('changes when progress crosses a tenth, so bars stay current', () => {
+    expect(recentTracksKey([entry('a', 1, 0.1)])).not.toBe(
       recentTracksKey([entry('a', 1, 0.9)]),
+    );
+    expect(recentTracksKey([entry('a', 1, 0.39)])).not.toBe(
+      recentTracksKey([entry('a', 1, 0.4)]),
+    );
+  });
+  it('treats out of range progress as its bound', () => {
+    expect(recentTracksKey([entry('a', 1, Number.NaN)])).toBe(
+      recentTracksKey([entry('a', 1, 0)]),
+    );
+    expect(recentTracksKey([entry('a', 1, 3)])).toBe(
+      recentTracksKey([entry('a', 1, 1)]),
     );
   });
   it('changes with order, membership and upload flag', () => {

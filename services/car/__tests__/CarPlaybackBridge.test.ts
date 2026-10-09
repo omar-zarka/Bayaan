@@ -21,7 +21,13 @@ jest.mock('@/services/car/CarSnapshotService', () => ({
   getLastTopReciterId: jest.fn(),
 }));
 
-import {toNowPlaying, nextRate, nextRepeat} from '../CarPlaybackBridge';
+import type {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
+import {
+  carriedProgress,
+  toNowPlaying,
+  nextRate,
+  nextRepeat,
+} from '../CarPlaybackBridge';
 
 describe('CarPlaybackBridge helpers', () => {
   it('cycles playback rates 1, 1.25, 1.5, 0.75', () => {
@@ -83,5 +89,59 @@ describe('CarPlaybackBridge helpers', () => {
       artwork: {kind: 'surah', surahId: 18},
       currentIndex: 0,
     });
+  });
+});
+
+describe('carriedProgress', () => {
+  function recentEntry(
+    reciterId: string,
+    surahId: number,
+    duration: number,
+    isUserUpload?: boolean,
+  ): RecentlyPlayedTrack {
+    return {
+      reciter: {
+        id: reciterId,
+        name: reciterId,
+        date: null,
+        image_url: null,
+        rewayat: [],
+      },
+      surah: {
+        id: surahId,
+        name: 's',
+        revelation_place: 'Makkah',
+        revelation_order: 1,
+        bismillah_pre: false,
+        name_arabic: 's',
+        verses_count: 1,
+        pages: '1',
+        translated_name_english: 's',
+      },
+      rewayatId: 'w',
+      progress: 0.4,
+      duration,
+      timestamp: 1,
+      isUserUpload,
+    };
+  }
+  const recent = [recentEntry('r1', 18, 200), recentEntry('r2', 18, 100, true)];
+
+  it('keeps the resumed position as progress', () => {
+    expect(carriedProgress(recent, 'r1', 18, 80)).toEqual({
+      progress: 0.4,
+      duration: 200,
+    });
+  });
+
+  it('starts from zero for a fresh play or an unknown entry', () => {
+    const zero = {progress: 0, duration: 0};
+    expect(carriedProgress(recent, 'r1', 18, 0)).toEqual(zero);
+    expect(carriedProgress(recent, 'r1', 2, 50)).toEqual(zero);
+    expect(carriedProgress(recent, 'r2', 18, 50)).toEqual(zero);
+  });
+
+  it('caps progress at 1', () => {
+    expect(carriedProgress(recent, 'r1', 18, 500).progress).toBe(1);
   });
 });

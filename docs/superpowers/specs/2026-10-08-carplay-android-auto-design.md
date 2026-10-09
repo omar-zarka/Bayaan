@@ -136,6 +136,7 @@ ExpoAudioService (expo-audio)
 **`services/car/CarSnapshotService.ts`**
 - Subscribes to the relevant stores; on change, rebuilds and calls `BayaanCar.writeSnapshot(json)`.
 - Debounced 2 s; also runs once on app start and when the app returns to foreground.
+- Recently played changes count only when an entry's identity, order or progress tenth changes, so Jump back in bars follow playback without a rebuild per tick. A car request that resumes mid-surah keeps the entry's progress instead of resetting it to 0.
 - Situational picks depend on time, so it also rebuilds on a 15-minute timer while the car is connected (`BayaanCar.onCarConnectionChanged`).
 
 **`services/car/CarPlaybackBridge.ts`**
