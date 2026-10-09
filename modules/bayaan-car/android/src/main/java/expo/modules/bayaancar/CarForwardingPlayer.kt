@@ -4,6 +4,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.SimpleBasePlayer
@@ -30,10 +31,12 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
 
   init {
     CarBridge.onNowPlayingChanged.add(listener)
+    CarBridge.onJsUnavailableChanged.add(listener)
   }
 
   fun detach() {
     CarBridge.onNowPlayingChanged.remove(listener)
+    CarBridge.onJsUnavailableChanged.remove(listener)
   }
 
   fun notePlayRequestSent() {
@@ -60,6 +63,14 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
       Player.COMMAND_GET_METADATA,
       Player.COMMAND_SET_MEDIA_ITEM,
     ).build()
+    // Android Auto shows a player error on its Now Playing screen.
+    if (CarBridge.jsUnavailable) {
+      return State.Builder()
+        .setAvailableCommands(commands)
+        .setPlaybackState(Player.STATE_IDLE)
+        .setPlayerError(PlaybackException(CarRequestGate.UNAVAILABLE_MESSAGE, null, PlaybackException.ERROR_CODE_UNSPECIFIED))
+        .build()
+    }
     if (np == null || np.queue.isEmpty()) {
       return State.Builder().setAvailableCommands(commands).setPlaybackState(Player.STATE_IDLE).build()
     }

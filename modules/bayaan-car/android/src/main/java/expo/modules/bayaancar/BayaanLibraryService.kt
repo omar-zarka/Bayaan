@@ -15,8 +15,8 @@ import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
 import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionError
 import androidx.media3.session.SessionResult
-import com.facebook.react.ReactApplication
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
@@ -53,6 +53,13 @@ class BayaanLibraryService : MediaLibraryService() {
     }
   }
 
+  // Besides the forwarding player's error state, send a documented non-fatal session error.
+  private val jsUnavailableListener: () -> Unit = {
+    if (CarBridge.jsUnavailable) {
+      session?.sendError(SessionError(SessionError.ERROR_SESSION_SETUP_REQUIRED, CarRequestGate.UNAVAILABLE_MESSAGE))
+    }
+  }
+
   override fun onCreate() {
     super.onCreate()
     CarBridge.init(applicationContext)
@@ -65,6 +72,7 @@ class BayaanLibraryService : MediaLibraryService() {
       .build()
     CarBridge.onSnapshotChanged.add(snapshotListener)
     CarBridge.onNowPlayingChanged.add(nowPlayingListener)
+    CarBridge.onJsUnavailableChanged.add(jsUnavailableListener)
   }
 
   private fun buttons(): ImmutableList<CommandButton> {
@@ -121,6 +129,7 @@ class BayaanLibraryService : MediaLibraryService() {
   override fun onDestroy() {
     CarBridge.onSnapshotChanged.remove(snapshotListener)
     CarBridge.onNowPlayingChanged.remove(nowPlayingListener)
+    CarBridge.onJsUnavailableChanged.remove(jsUnavailableListener)
     carControllers.clear()
     CarBridge.setConnected(false)
     subscriptions.clear()
@@ -130,10 +139,6 @@ class BayaanLibraryService : MediaLibraryService() {
     session = null
     player = null
     super.onDestroy()
-  }
-
-  private fun ensureJs() {
-    (application as? ReactApplication)?.reactHost?.start()
   }
 
   private fun MediaSession.isCar(controller: MediaSession.ControllerInfo): Boolean =
@@ -149,7 +154,10 @@ class BayaanLibraryService : MediaLibraryService() {
       if (isCar) {
         carControllers.add(controller)
         CarBridge.setConnected(true)
-        ensureJs()
+        // No headless JS boot here: ReactHost.start() loads the bundle but mounts no React
+        // tree, so there is no player or car bridge. Play requests wait a short grace period
+        // and then show "Open Bayaan on your phone" (CarRequestGate). Follow-up: a player
+        // outside the React tree.
       }
       val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
         .add(rateCommand)
@@ -227,7 +235,6 @@ class BayaanLibraryService : MediaLibraryService() {
       startIndex: Int,
       startPositionMs: Long,
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-      ensureJs()
       val chosen = mediaItems.getOrNull(maxOf(startIndex, 0)) ?: mediaItems.firstOrNull()
       val request = chosen?.let { requestFor(it) }
         ?: return Futures.immediateFailedFuture(UnsupportedOperationException("no playable request"))
@@ -245,7 +252,6 @@ class BayaanLibraryService : MediaLibraryService() {
       isForPlayback: Boolean,
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
       if (isForPlayback && player?.hasRecentPlayRequest() != true) {
-        ensureJs()
         player?.notePlayRequestSent()
         CarBridge.sendPlay(RESUME_REQUEST)
       }

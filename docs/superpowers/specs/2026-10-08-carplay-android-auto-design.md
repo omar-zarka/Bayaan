@@ -204,7 +204,7 @@ type CarPlayRequest =
 ### 4.3 Cold start
 
 - **iOS:** CarPlay connecting launches the app process. The AppDelegate no longer creates the window; `BayaanCarSceneBridge` starts React Native into a host window on whichever scene connects first (phone or CarPlay), so JS runs either way. Templates render from the snapshot immediately; play requests queue until `markJsReady()`.
-- **Android:** Android Auto binds `BayaanLibraryService` with no Activity. The service serves the browse tree from the snapshot immediately. On the first play request (or on connect), the service starts the React Native host (`ReactHost.start()` from the application's `ReactNativeHost`) so JS can run `CarPlaybackBridge`. Requests queue until `markJsReady()`.
+- **Android:** Android Auto binds `BayaanLibraryService` with no Activity. The service serves the browse tree from the snapshot immediately. Playback needs the phone app's React tree (the player and `CarPlaybackBridge` live there), so a play request or transport waits a short grace period (3 s, 10 s if a JS runtime is already booting) for `markJsReady()`. If JS is still not ready, the request is dropped and Android Auto shows "Open Bayaan on your phone to get started" as a player error (plus a `SessionError`). See deviation 10.
 
 ### 4.4 Android media session coexistence (risk)
 
@@ -261,3 +261,4 @@ If either spike fails, stop and revisit the design with the project owner before
 7. The details header and `CPPlaybackConfiguration` are iOS 26.4 in the SDK, not 27. `CPPlaybackConfiguration` is skipped.
 8. iOS uses multiple scenes; a second phone scene on iPad is refused.
 9. Android: legacy browser service action only, hardened artwork provider, pagination with a 500 cap.
+10. Android Auto cold start without the phone app cannot play in v1. `ReactHost.start()` loads the bundle but mounts no React tree, so there is no player and no car bridge listeners. The headless boot was removed. Browsing still works from the persisted snapshot; play requests and transports fail after the grace period with "Open Bayaan on your phone to get started" instead of staying queued. Follow-up: a player outside the React tree.

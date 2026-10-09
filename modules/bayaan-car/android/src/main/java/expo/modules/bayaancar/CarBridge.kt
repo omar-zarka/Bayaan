@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import java.io.File
 
 /**
@@ -29,6 +30,15 @@ object CarBridge {
   var isConnected = false
     private set
 
+  /**
+   * True after a request waited out its grace period with no ready JS (see CarRequestGate).
+   * The forwarding player shows it as a player error. Cleared by markJsReady or a non-null
+   * now playing update.
+   */
+  var jsUnavailable = false
+    private set
+  val onJsUnavailableChanged = mutableListOf<() -> Unit>()
+
   val onSnapshotChanged = mutableListOf<() -> Unit>()
   val onNowPlayingChanged = mutableListOf<() -> Unit>()
 
@@ -36,6 +46,8 @@ object CarBridge {
   private var owner: Any? = null
   private var jsReady = false
   private val pending = mutableListOf<Pair<String, Map<String, Any>>>()
+  private var waitingSinceMs: Long? = null
+  private val graceCheck = Runnable { checkGrace() }
 
   private fun onMain(block: () -> Unit) {
     if (Looper.myLooper() == Looper.getMainLooper()) block() else main.post(block)
@@ -116,6 +128,7 @@ object CarBridge {
     val parsed = json?.let { CarNowPlaying.parse(it) }
     main.post {
       nowPlaying = parsed
+      if (parsed != null) setJsUnavailable(false)
       onNowPlayingChanged.forEach { it() }
     }
   }
@@ -125,6 +138,9 @@ object CarBridge {
       // Never flush into a missing emitter: keep events queued.
       val e = emit ?: return@post
       jsReady = true
+      main.removeCallbacks(graceCheck)
+      waitingSinceMs = null
+      setJsUnavailable(false)
       val queued = pending.toList()
       pending.clear()
       queued.forEach { (name, body) -> e(name, body) }
@@ -150,10 +166,48 @@ object CarBridge {
         e(event, body)
         return@post
       }
-      // A new play request supersedes everything queued before it.
-      if (event == "onPlayRequest") pending.clear()
+      val now = SystemClock.elapsedRealtime()
+      // A new play request supersedes everything queued before it and gets a fresh grace period.
+      if (event == "onPlayRequest") {
+        pending.clear()
+        waitingSinceMs = now
+      } else if (waitingSinceMs == null) {
+        waitingSinceMs = now
+      }
       pending.add(event to body)
       while (pending.size > MAX_PENDING) pending.removeAt(0)
+      scheduleGraceCheck(now)
     }
+  }
+
+  // Main only. Requests only succeed once the phone app's React tree runs (see
+  // BayaanLibraryService). Follow-up: a player outside the React tree.
+  private fun scheduleGraceCheck(now: Long) {
+    val since = waitingSinceMs ?: return
+    main.removeCallbacks(graceCheck)
+    val delay = since + CarRequestGate.graceMs(emit != null) - now
+    main.postDelayed(graceCheck, delay.coerceAtLeast(0L))
+  }
+
+  private fun checkGrace() {
+    val now = SystemClock.elapsedRealtime()
+    when (CarRequestGate.decide(jsReady && emit != null, emit != null, waitingSinceMs, now)) {
+      GateDecision.DELIVER -> Unit
+      GateDecision.WAIT -> scheduleGraceCheck(now)
+      GateDecision.FAIL -> {
+        CarLog.d("JS not ready after grace; dropping ${pending.size} queued car event(s)")
+        pending.clear()
+        waitingSinceMs = null
+        // Notify even when already unavailable, so every failed tap surfaces the error again.
+        jsUnavailable = true
+        onJsUnavailableChanged.forEach { it() }
+      }
+    }
+  }
+
+  private fun setJsUnavailable(value: Boolean) {
+    if (jsUnavailable == value) return
+    jsUnavailable = value
+    onJsUnavailableChanged.forEach { it() }
   }
 }

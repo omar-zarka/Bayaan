@@ -15,7 +15,6 @@ android {
 }
 
 dependencies {
-  compileOnly "com.facebook.react:react-android"
   def androidxMedia3Version = "1.9.0"
   implementation "androidx.media3:media3-session:$androidxMedia3Version"
   implementation "androidx.media3:media3-common:$androidxMedia3Version"
