@@ -203,6 +203,62 @@ describe('handleWidgetCommand', () => {
     expect(d.calls).toEqual(['ayahStartSec:rw2', 'playTracks:18@42']);
   });
 
+  it('picks a rewayah that has the surah when rewayatId is null', async () => {
+    const partial = {
+      ...reciter.rewayat[0],
+      id: 'rwPartial',
+      surah_total: 6,
+      surah_list: [1, 2, 3],
+    };
+    const full = {
+      ...reciter.rewayat[0],
+      id: 'rwFull',
+      surah_total: 114,
+      surah_list: [1, 2, 3, 55],
+    };
+    const multi: Reciter = {...reciter, rewayat: [partial, full]};
+    const d = deps({getReciter: () => multi});
+    await handleWidgetCommand(
+      {
+        type: 'playTrack',
+        surahId: 55,
+        reciterId: 'r1',
+        rewayatId: null,
+        ayah: null,
+      },
+      d,
+    );
+    expect(createTrack).toHaveBeenLastCalledWith(multi, {id: 55}, 'rwFull');
+  });
+
+  it('prefers the fuller rewayah when several have the surah', async () => {
+    const partial = {
+      ...reciter.rewayat[0],
+      id: 'rwPartial',
+      surah_total: 6,
+      surah_list: [1, 2],
+    };
+    const full = {
+      ...reciter.rewayat[0],
+      id: 'rwFull',
+      surah_total: 114,
+      surah_list: [1, 2],
+    };
+    const multi: Reciter = {...reciter, rewayat: [partial, full]};
+    const d = deps({getReciter: () => multi});
+    await handleWidgetCommand(
+      {
+        type: 'playTrack',
+        surahId: 2,
+        reciterId: 'r1',
+        rewayatId: null,
+        ayah: null,
+      },
+      d,
+    );
+    expect(createTrack).toHaveBeenLastCalledWith(multi, {id: 2}, 'rwFull');
+  });
+
   it('does nothing when the default reciter is a placeholder', async () => {
     const d = deps({getDefaultReciter: () => null});
     await handleWidgetCommand(

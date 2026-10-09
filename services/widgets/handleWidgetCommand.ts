@@ -168,6 +168,19 @@ export function defaultDeps(): CommandDeps {
   };
 }
 
+// Widgets send rewayatId null for the default reciter. rewayat[0] may not have
+// the surah (Mishary's first rewayah has 6), so pick the fullest one that does.
+function rewayatForSurah(
+  reciter: Reciter,
+  surahId: number,
+): string | undefined {
+  const withSurah = reciter.rewayat.filter(r => r.surah_list.includes(surahId));
+  if (withSurah.length === 0) return undefined;
+  return withSurah.reduce((best, r) =>
+    r.surah_total > best.surah_total ? r : best,
+  ).id;
+}
+
 async function playSurah(
   reciter: Reciter,
   surahId: number,
@@ -177,7 +190,11 @@ async function playSurah(
 ): Promise<void> {
   const surah = getSurahById(surahId);
   if (!surah) return;
-  const track = await createTrack(reciter, surah, rewayatId ?? undefined);
+  const track = await createTrack(
+    reciter,
+    surah,
+    rewayatId ?? rewayatForSurah(reciter, surahId),
+  );
   const resolvedRewayat = track.rewayatId ?? reciter.rewayat[0]?.id;
   const startSec =
     ayah !== null && resolvedRewayat
