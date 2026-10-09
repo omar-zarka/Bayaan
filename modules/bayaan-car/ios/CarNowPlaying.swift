@@ -17,7 +17,11 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
   private var observer: NSObjectProtocol?
   private var nextTarget: Any?
   private var previousTarget: Any?
-  private var buttonsKey: String?
+  private var repeatTarget: Any?
+  private var lovedShown: Bool?
+  private var rateShown: Double?
+  /// CarPlay audio apps may stack at most five templates (tab bar root included).
+  private static let maxTemplateDepth = 5
   private var upNextTemplate: CPListTemplate?
   private var isPushing = false
 
@@ -40,6 +44,11 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
       CarBridge.shared.send(transport: ["kind": "previous"])
       return .success
     }
+    // The repeat button's state comes from currentRepeatType; the command is
+    // enabled with a no-op target so CarPlay treats it as available. The
+    // button's own handler sends cycleRepeat to JS.
+    commands.changeRepeatModeCommand.isEnabled = true
+    repeatTarget = commands.changeRepeatModeCommand.addTarget { _ in .success }
     observer = NotificationCenter.default.addObserver(
       forName: CarBridge.nowPlayingDidChange, object: nil, queue: .main
     ) { [weak self] _ in
@@ -52,8 +61,11 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     CPNowPlayingTemplate.shared.remove(self)
     if let nextTarget { commands.nextTrackCommand.removeTarget(nextTarget) }
     if let previousTarget { commands.previousTrackCommand.removeTarget(previousTarget) }
+    if let repeatTarget { commands.changeRepeatModeCommand.removeTarget(repeatTarget) }
+    commands.changeRepeatModeCommand.isEnabled = false
     nextTarget = nil
     previousTarget = nil
+    repeatTarget = nil
     commands.nextTrackCommand.isEnabled = false
     commands.previousTrackCommand.isEnabled = false
     if let observer { NotificationCenter.default.removeObserver(observer) }
@@ -72,10 +84,15 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     case "queue": commands.changeRepeatModeCommand.currentRepeatType = .all
     default: commands.changeRepeatModeCommand.currentRepeatType = .off
     }
-    // Position ticks are not pushed here; only rebuild when a button changes.
-    let key = "\(loved)|\(repeatMode)"
-    guard key != buttonsKey else { return }
-    buttonsKey = key
+    if let rate = np?.rate, rate != rateShown {
+      rateShown = rate
+      var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
+      info[MPNowPlayingInfoPropertyDefaultPlaybackRate] = rate
+      MPNowPlayingInfoCenter.default().nowPlayingInfo = info
+    }
+    // Only a loved change needs new buttons; repeat follows currentRepeatType.
+    guard loved != lovedShown else { return }
+    lovedShown = loved
     let rate = CPNowPlayingPlaybackRateButton { _ in
       CarBridge.shared.send(transport: ["kind": "cycleRate"])
     }
@@ -131,13 +148,27 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
   }
 
   func nowPlayingTemplateAlbumArtistButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {
-    guard canPush(), let reciterId = CarBridge.shared.nowPlaying?.reciterId else { return }
-    isPushing = true
+    guard let ic = interfaceController, canPush(), let reciterId = CarBridge.shared.nowPlaying?.reciterId,
+      let reciter = CarBridge.shared.snapshot?.reciters.first(where: { $0.id == reciterId })
+    else { return }
+    // The reciter's picker or list is already in the stack: go back to it.
+    if let existing = ic.templates.first(where: { ($0 as? CPListTemplate)?.title == reciter.name }) {
+      ic.pop(to: existing, animated: true, completion: nil)
+      return
+    }
     // Reuses the Reciters tab flow: rewayah picker for multi-rewayah reciters,
     // surah list otherwise. Playing a surah pops back to Now Playing.
-    builder.pushReciter(reciterId) { [weak self] in
-      self?.isPushing = false
+    let needed = reciter.rewayat.count > 1 ? 2 : 1
+    isPushing = true
+    let push: () -> Void = { [weak self] in
+      guard let self else { return }
+      self.builder.pushReciter(reciterId) { [weak self] in self?.isPushing = false }
     }
+    if ic.templates.count + needed > Self.maxTemplateDepth {
+      ic.popToRootTemplate(animated: false) { _, _ in push() }
+      return
+    }
+    push()
   }
 
   private func popToNowPlaying() {

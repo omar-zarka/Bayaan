@@ -3,20 +3,23 @@ const mockPlayer = {
   setActiveForLockScreen: mockSetActive,
   clearLockScreenControls: jest.fn(),
 };
+const mockTrack = {id: 't1', title: 'Al-Fatihah', artist: 'Reciter'};
+let mockTracks: unknown[] = [mockTrack];
+let mockMushafListener: ((state: unknown) => void) | null = null;
 
 jest.mock('@/services/player/store/playerStore', () => ({
   usePlayerStore: {
-    getState: () => ({
-      queue: {
-        tracks: [{id: 't1', title: 'Al-Fatihah', artist: 'Reciter'}],
-        currentIndex: 0,
-      },
-    }),
+    getState: () => ({queue: {tracks: mockTracks, currentIndex: 0}}),
     subscribe: jest.fn(),
   },
 }));
 jest.mock('@/store/mushafPlayerStore', () => ({
-  useMushafPlayerStore: {subscribe: jest.fn()},
+  useMushafPlayerStore: {
+    subscribe: (fn: (state: unknown) => void) => {
+      mockMushafListener = fn;
+      return jest.fn();
+    },
+  },
 }));
 jest.mock('../ExpoAudioService', () => ({
   expoAudioService: {getPlayer: () => mockPlayer},
@@ -29,7 +32,12 @@ jest.mock('../AudioCoordinator', () => ({audioCoordinator: {}}));
 import {lockScreenService} from '../LockScreenService';
 
 describe('LockScreenService car mode', () => {
-  beforeEach(() => mockSetActive.mockClear());
+  beforeEach(() => {
+    lockScreenService.stopSync();
+    lockScreenService.setCarMode(false);
+    mockTracks = [mockTrack];
+    mockSetActive.mockClear();
+  });
 
   it('hides the skip buttons while a car is connected and restores them', () => {
     lockScreenService.setCarMode(true);
@@ -47,6 +55,36 @@ describe('LockScreenService car mode', () => {
 
   it('does nothing when the mode is unchanged', () => {
     lockScreenService.setCarMode(false);
+    expect(mockSetActive).not.toHaveBeenCalled();
+  });
+
+  it('does not activate the player when there is no track', () => {
+    mockTracks = [];
+    lockScreenService.setCarMode(true);
+    expect(mockSetActive).not.toHaveBeenCalled();
+  });
+
+  it('applies the flag to the next activation after a trackless toggle', async () => {
+    mockTracks = [];
+    lockScreenService.setCarMode(true);
+    mockTracks = [mockTrack];
+    await lockScreenService.startSync();
+    expect(mockSetActive).toHaveBeenLastCalledWith(true, expect.anything(), {
+      showSeekForward: false,
+      showSeekBackward: false,
+    });
+  });
+
+  it('does not re-activate the main player while mushaf is active', async () => {
+    await lockScreenService.startSync();
+    mockMushafListener?.({
+      playbackState: 'playing',
+      currentVerseKey: null,
+      reciterName: '',
+      currentSurah: 0,
+    });
+    mockSetActive.mockClear();
+    lockScreenService.setCarMode(true);
     expect(mockSetActive).not.toHaveBeenCalled();
   });
 });
