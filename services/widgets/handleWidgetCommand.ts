@@ -6,6 +6,7 @@ import {getReciterByIdSync, getSurahById} from '@/services/dataService';
 import {useReciterStore} from '@/store/reciterStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+import type {AyahTimestamp} from '@/types/timestamps';
 import {timestampService} from '@/services/timestamps/TimestampService';
 
 const DEFAULT_SURAH_FOR_RECITER = 1;
@@ -26,7 +27,15 @@ export interface CommandDeps {
   ) => Promise<number | null>;
 }
 
-function defaultDeps(): CommandDeps {
+export function ayahStartSecFrom(
+  list: AyahTimestamp[] | null,
+  ayah: number,
+): number | null {
+  const hit = list?.find(t => t.ayahNumber === ayah);
+  return hit ? hit.timestampFrom / 1000 : null;
+}
+
+export function defaultDeps(): CommandDeps {
   return {
     getReciter: id => getReciterByIdSync(id),
     getDefaultReciter: () => {
@@ -56,8 +65,7 @@ function defaultDeps(): CommandDeps {
         rewayatId,
         surahId,
       );
-      const hit = list?.find(t => t.ayahNumber === ayah);
-      return hit ? hit.timestampFrom / 1000 : null;
+      return ayahStartSecFrom(list, ayah);
     },
   };
 }
