@@ -14,8 +14,8 @@ import {
   CarTrackSpec,
 } from '@/services/car/playback/resolveCarRequest';
 import {
-  getCachedPlaylistItems,
-  getLastTopReciterId,
+  getLastResolveContext,
+  writeCarSnapshotNow,
 } from '@/services/car/CarSnapshotService';
 import {
   CarNowPlaying,
@@ -94,17 +94,15 @@ async function specToTrack(spec: CarTrackSpec): Promise<Track | null> {
 export async function executeCarRequest(
   request: CarPlayRequest,
 ): Promise<void> {
-  // Must receive the same data the last snapshot was built from, so that
-  // startIndex stays aligned with the list the car is showing.
-  const plan = resolveCarRequest(request, {
-    reciters: RECITERS,
-    topReciterId: getLastTopReciterId(),
-    recentTracks: useRecentlyPlayedStore.getState().recentTracks,
-    lovedTracks: useLovedStore.getState().tracks,
-    downloads: useDownloadStore.getState().downloads,
-    systemPlaylists: getSystemPlaylists(),
-    playlistItems: getCachedPlaylistItems(),
-  });
+  // Resolve against the data the last snapshot was built from, so startIndex
+  // stays aligned with the list the car is showing.
+  let ctx = getLastResolveContext();
+  if (!ctx) {
+    await writeCarSnapshotNow();
+    ctx = getLastResolveContext();
+  }
+  if (!ctx) return;
+  const plan = resolveCarRequest(request, ctx);
   if (!plan) return;
 
   const built = await Promise.all(plan.tracks.map(specToTrack));
@@ -123,16 +121,17 @@ export async function executeCarRequest(
   const ordered = plan.shuffle ? shuffleTracks(tracks) : tracks;
   const startIndex = plan.shuffle ? 0 : alignedStart;
 
-  const first = plan.tracks[plan.startIndex];
+  // The track that will actually play first.
+  const first = ordered[startIndex];
   const reciter = RECITERS.find(r => r.id === first?.reciterId);
-  const surah = SURAHS.find(s => s.id === first?.surahId);
-  if (plan.chain === 'new' && first && reciter && surah) {
+  const surah = SURAHS.find(s => String(s.id) === first?.surahId);
+  if (plan.chain === 'new' && first?.rewayatId && reciter && surah) {
     useRecentlyPlayedStore
       .getState()
       .startNewChain(reciter, surah, 0, 0, first.rewayatId);
   }
   if (plan.chain === 'resume') {
-    useRecentlyPlayedStore.getState().resumeChain(0);
+    useRecentlyPlayedStore.getState().resumeChain(plan.recentIndex ?? 0);
   }
 
   const player = usePlayerStore.getState();
@@ -183,6 +182,7 @@ async function handleTransport(transport: CarTransport): Promise<void> {
       player.setRepeatMode(nextRepeat(player.settings.repeatMode));
       return;
     case 'jumpTo':
+      if (transport.index >= player.queue.tracks.length) return;
       return player.updateQueue(player.queue.tracks, transport.index);
     case 'toggleLove': {
       const track = player.queue.tracks[player.queue.currentIndex];
@@ -195,9 +195,13 @@ async function handleTransport(transport: CarTransport): Promise<void> {
   }
 }
 
-export function startCarPlaybackBridge(): () => void {
+export function startCarPlaybackBridge(
+  snapshotReady: Promise<void>,
+): () => void {
   if (!BayaanCar.isAvailable) return () => {};
   let lastKey = '';
+  let lastTracks: Track[] | null = null;
+  let tracksKey = '';
   const unsubscribers = [
     BayaanCar.addPlayRequestListener(request => {
       executeCarRequest(request).catch(error => {
@@ -213,9 +217,13 @@ export function startCarPlaybackBridge(): () => void {
     }),
     usePlayerStore.subscribe(state => {
       // Position ticks are extrapolated natively; only push on meaningful changes.
+      if (state.queue.tracks !== lastTracks) {
+        lastTracks = state.queue.tracks;
+        tracksKey = state.queue.tracks.map(t => t.id).join(',');
+      }
       const key = [
         state.queue.currentIndex,
-        state.queue.tracks.length,
+        tracksKey,
         state.playback.state,
         state.playback.rate,
         state.settings.repeatMode,
@@ -228,6 +236,9 @@ export function startCarPlaybackBridge(): () => void {
     useLovedStore.subscribe(pushNowPlaying),
   ];
   pushNowPlaying();
-  BayaanCar.markJsReady();
+  // Listeners are attached; only now let native flush queued cold-start
+  // requests, and only after the first snapshot exists to resolve against.
+  const markReady = (): void => BayaanCar.markJsReady();
+  snapshotReady.then(markReady, markReady);
   return () => unsubscribers.forEach(unsubscribe => unsubscribe());
 }

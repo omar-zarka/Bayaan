@@ -27,4 +27,22 @@ describe('parse', () => {
     });
     expect(parseCarTransport('{"kind":"seek"}')).toBeNull();
   });
+  it('requires non-negative integer indices', () => {
+    expect(parseCarTransport('{"kind":"jumpTo","index":1.5}')).toBeNull();
+    expect(parseCarTransport('{"kind":"jumpTo","index":-1}')).toBeNull();
+    expect(parseCarTransport('{"kind":"jumpTo","index":2}')).toEqual({
+      kind: 'jumpTo',
+      index: 2,
+    });
+    expect(
+      parseCarPlayRequest('{"kind":"loved","startIndex":-1}'),
+    ).toMatchObject({kind: 'loved', startIndex: undefined});
+    expect(
+      parseCarPlayRequest('{"kind":"downloads","startIndex":0.5}'),
+    ).toMatchObject({kind: 'downloads', startIndex: undefined});
+    expect(parseCarPlayRequest('{"kind":"downloads","startIndex":3}')).toEqual({
+      kind: 'downloads',
+      startIndex: 3,
+    });
+  });
 });

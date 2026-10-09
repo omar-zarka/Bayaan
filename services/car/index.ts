@@ -2,10 +2,10 @@ import {startCarSnapshotService} from './CarSnapshotService';
 import {startCarPlaybackBridge} from './CarPlaybackBridge';
 
 export function startCarIntegration(): () => void {
-  const stopSnapshot = startCarSnapshotService();
-  const stopBridge = startCarPlaybackBridge();
+  const snapshot = startCarSnapshotService();
+  const stopBridge = startCarPlaybackBridge(snapshot.ready);
   return () => {
     stopBridge();
-    stopSnapshot();
+    snapshot.stop();
   };
 }

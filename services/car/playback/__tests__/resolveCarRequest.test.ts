@@ -136,6 +136,7 @@ describe('resolveCarRequest', () => {
     });
     expect(plan?.startPosition).toBe(100);
     expect(plan?.chain).toBe('resume');
+    expect(plan?.recentIndex).toBe(1);
   });
 
   it('returns null for resume with no history', () => {

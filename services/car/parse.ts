@@ -12,6 +12,10 @@ function num(v: unknown): number | undefined {
   return typeof v === 'number' && Number.isFinite(v) ? v : undefined;
 }
 
+function index(v: unknown): number | undefined {
+  return typeof v === 'number' && Number.isInteger(v) && v >= 0 ? v : undefined;
+}
+
 function safeJson(json: string): unknown {
   try {
     return JSON.parse(json);
@@ -44,17 +48,17 @@ export function parseCarPlayRequest(json: string): CarPlayRequest | null {
         kind: 'playlist',
         playlistId,
         system: v.system === true,
-        startIndex: num(v.startIndex),
+        startIndex: index(v.startIndex),
       };
     }
     case 'loved':
       return {
         kind: 'loved',
         shuffle: v.shuffle === true,
-        startIndex: num(v.startIndex),
+        startIndex: index(v.startIndex),
       };
     case 'downloads':
-      return {kind: 'downloads', startIndex: num(v.startIndex)};
+      return {kind: 'downloads', startIndex: index(v.startIndex)};
     case 'resume':
       return {kind: 'resume'};
     default:
@@ -83,8 +87,8 @@ export function parseCarTransport(json: string): CarTransport | null {
       return value === undefined ? null : {kind: 'rate', value};
     }
     case 'jumpTo': {
-      const index = num(v.index);
-      return index === undefined ? null : {kind: 'jumpTo', index};
+      const at = index(v.index);
+      return at === undefined ? null : {kind: 'jumpTo', index: at};
     }
     default:
       return null;

@@ -15,8 +15,11 @@ import {useReciterStore} from '@/store/reciterStore';
 import {PlaylistItem} from '@/services/database/DatabaseService';
 import {buildCarSnapshot} from '@/services/car/snapshot/buildCarSnapshot';
 import {CarArtwork} from '@/services/car/types';
+import {CarResolveContext} from '@/services/car/playback/resolveCarRequest';
+import {recentTracksKey} from '@/services/car/snapshotKeys';
 
 const DEBOUNCE_MS = 2000;
+const MAX_WAIT_MS = 10_000;
 const CONNECTED_REFRESH_MS = 15 * 60 * 1000;
 const MONOGRAM_COLORS = [
   '#0F766E',
@@ -72,62 +75,120 @@ async function loadPlaylistItems(): Promise<Record<string, PlaylistItem[]>> {
 }
 
 let timer: ReturnType<typeof setTimeout> | null = null;
+let pendingSince: number | null = null;
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
-let cachedPlaylistItems: Record<string, PlaylistItem[]> = {};
-let lastTopReciterId: string | null = null;
+let lastContext: CarResolveContext | null = null;
+let startedSeq = 0;
+let committedSeq = 0;
 
-export function getCachedPlaylistItems(): Record<string, PlaylistItem[]> {
-  return cachedPlaylistItems;
-}
-
-export function getLastTopReciterId(): string | null {
-  return lastTopReciterId;
+// The exact data the last written snapshot was built from. The resolver must
+// use this, not live stores, so startIndex matches the list the car shows.
+export function getLastResolveContext(): CarResolveContext | null {
+  return lastContext;
 }
 
 export async function writeCarSnapshotNow(): Promise<void> {
+  const seq = ++startedSeq;
   const playlistItems = await loadPlaylistItems();
-  const snapshot = buildCarSnapshot({
-    now: new Date(),
+  const context: CarResolveContext = Object.freeze({
     reciters: RECITERS,
-    surahs: SURAHS,
-    favoriteReciterIds: useFavoriteRecitersStore.getState().favoriteReciterIds,
-    defaultReciterId: useReciterStore.getState().defaultReciter.id || null,
+    topReciterId: null,
     recentTracks: useRecentlyPlayedStore.getState().recentTracks,
     lovedTracks: useLovedStore.getState().tracks,
     downloads: useDownloadStore.getState().downloads,
-    userPlaylists: usePlaylistsStore.getState().playlists,
-    playlistItems,
     systemPlaylists: getSystemPlaylists(),
+    playlistItems,
+  });
+  const snapshot = buildCarSnapshot({
+    now: new Date(),
+    reciters: context.reciters,
+    surahs: SURAHS,
+    favoriteReciterIds: useFavoriteRecitersStore.getState().favoriteReciterIds,
+    defaultReciterId: useReciterStore.getState().defaultReciter.id || null,
+    recentTracks: context.recentTracks,
+    lovedTracks: context.lovedTracks,
+    downloads: context.downloads,
+    userPlaylists: usePlaylistsStore.getState().playlists,
+    playlistItems: context.playlistItems,
+    systemPlaylists: context.systemPlaylists,
     surahToJuz: SURAH_TO_JUZ,
     resolveReciterArtwork,
   });
-  cachedPlaylistItems = playlistItems;
-  lastTopReciterId = snapshot.topReciterId;
+  // An older concurrent write must not overwrite a newer one.
+  if (seq < committedSeq) return;
+  committedSeq = seq;
+  lastContext = Object.freeze({
+    ...context,
+    topReciterId: snapshot.topReciterId,
+  });
   BayaanCar.writeSnapshot(JSON.stringify(snapshot));
 }
 
+function clearDebounce(): void {
+  if (timer) clearTimeout(timer);
+  timer = null;
+  pendingSince = null;
+}
+
 function schedule(): void {
+  const now = Date.now();
+  if (pendingSince === null) pendingSince = now;
+  // maxWait: continuous changes cannot starve the write.
+  const delay = Math.min(
+    DEBOUNCE_MS,
+    Math.max(0, pendingSince + MAX_WAIT_MS - now),
+  );
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
-    timer = null;
+    clearDebounce();
     writeCarSnapshotNow().catch(error => {
       if (__DEV__) console.warn('[CarSnapshotService] write failed', error);
     });
-  }, DEBOUNCE_MS);
+  }, delay);
 }
 
-export function startCarSnapshotService(): () => void {
-  if (!BayaanCar.isAvailable) return () => {};
+interface SelectableStore<S> {
+  getState: () => S;
+  subscribe: (listener: (state: S) => void) => () => void;
+}
+
+// Schedules only when the selected slice changes, so high-frequency fields
+// (progress, download percentages) do not trigger rebuilds.
+function scheduleOnChange<S, V>(
+  store: SelectableStore<S>,
+  select: (state: S) => V,
+): () => void {
+  let previous = select(store.getState());
+  return store.subscribe(state => {
+    const next = select(state);
+    if (Object.is(next, previous)) return;
+    previous = next;
+    schedule();
+  });
+}
+
+export interface CarSnapshotService {
+  stop: () => void;
+  /** Settles (never rejects) once the initial snapshot write has finished or failed. */
+  ready: Promise<void>;
+}
+
+export function startCarSnapshotService(): CarSnapshotService {
+  if (!BayaanCar.isAvailable) {
+    return {stop: () => {}, ready: Promise.resolve()};
+  }
   const appStateSub = AppState.addEventListener('change', state => {
     if (state === 'active') schedule();
   });
   const unsubscribers = [
-    useRecentlyPlayedStore.subscribe(schedule),
-    useLovedStore.subscribe(schedule),
-    useDownloadStore.subscribe(schedule),
-    useFavoriteRecitersStore.subscribe(schedule),
-    usePlaylistsStore.subscribe(schedule),
-    useReciterStore.subscribe(schedule),
+    scheduleOnChange(useRecentlyPlayedStore, s =>
+      recentTracksKey(s.recentTracks),
+    ),
+    scheduleOnChange(useLovedStore, s => s.tracks),
+    scheduleOnChange(useDownloadStore, s => s.downloads),
+    scheduleOnChange(useFavoriteRecitersStore, s => s.favoriteReciterIds),
+    scheduleOnChange(usePlaylistsStore, s => s.playlists),
+    scheduleOnChange(useReciterStore, s => s.defaultReciter),
     BayaanCar.addConnectionListener(connected => {
       if (refreshTimer) clearInterval(refreshTimer);
       refreshTimer = connected
@@ -137,10 +198,14 @@ export function startCarSnapshotService(): () => void {
     }),
     () => appStateSub.remove(),
   ];
-  writeCarSnapshotNow().catch(() => schedule());
-  return () => {
-    unsubscribers.forEach(unsubscribe => unsubscribe());
-    if (timer) clearTimeout(timer);
-    if (refreshTimer) clearInterval(refreshTimer);
+  const ready = writeCarSnapshotNow().catch(() => schedule());
+  return {
+    ready,
+    stop: () => {
+      unsubscribers.forEach(unsubscribe => unsubscribe());
+      clearDebounce();
+      if (refreshTimer) clearInterval(refreshTimer);
+      refreshTimer = null;
+    },
   };
 }

@@ -19,6 +19,8 @@ export interface CarQueuePlan {
   startPosition: number;
   shuffle: boolean;
   chain: 'new' | 'resume' | 'none';
+  /** For chain 'resume': index of the matched entry in ctx.recentTracks. */
+  recentIndex?: number;
 }
 
 export interface CarResolveContext {
@@ -153,9 +155,10 @@ export function resolveCarRequest(
         'new',
       );
     case 'resume': {
-      const recent = ctx.recentTracks.find(t => !t.isUserUpload);
+      const recentIndex = ctx.recentTracks.findIndex(t => !t.isUserUpload);
+      const recent = ctx.recentTracks[recentIndex];
       if (!recent) return null;
-      return surahPlan(
+      const plan = surahPlan(
         ctx,
         recent.reciter.id,
         recent.rewayatId,
@@ -163,6 +166,7 @@ export function resolveCarRequest(
         recent.progress * recent.duration,
         'resume',
       );
+      return plan ? {...plan, recentIndex} : null;
     }
     case 'loved': {
       const tracks = compact(
