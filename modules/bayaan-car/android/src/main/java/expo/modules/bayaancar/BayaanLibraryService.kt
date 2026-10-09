@@ -3,54 +3,144 @@ package expo.modules.bayaancar
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
-import androidx.media3.common.Player
-import androidx.media3.common.SimpleBasePlayer
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.session.CommandButton
 import androidx.media3.session.LibraryResult
 import androidx.media3.session.MediaLibraryService
 import androidx.media3.session.MediaSession
+import androidx.media3.session.SessionCommand
+import androidx.media3.session.SessionResult
 import com.facebook.react.ReactApplication
 import com.google.common.collect.ImmutableList
 import com.google.common.util.concurrent.Futures
 import com.google.common.util.concurrent.ListenableFuture
+import org.json.JSONObject
 
+@UnstableApi
 class BayaanLibraryService : MediaLibraryService() {
   private var session: MediaLibrarySession? = null
+  private var player: CarForwardingPlayer? = null
+  private val rateCommand = SessionCommand("bayaan.cycleRate", Bundle.EMPTY)
+  private val loveCommand = SessionCommand("bayaan.toggleLove", Bundle.EMPTY)
+  private val repeatCommand = SessionCommand("bayaan.cycleRepeat", Bundle.EMPTY)
+
+  // Every connected car controller counts. Android Auto opens several connections.
+  private val carControllers = mutableSetOf<MediaSession.ControllerInfo>()
+  private var lastButtonKey: Pair<Boolean, String?>? = null
+
+  private val snapshotListener: () -> Unit = {
+    val s = session
+    if (s != null) {
+      s.notifyChildrenChanged("root", CarBrowseTree.tabs.size, null)
+      CarBrowseTree.tabs.forEach { (id, _) -> s.notifyChildrenChanged(id, CarBrowseTree.children(id).size, null) }
+    }
+  }
+  private val nowPlayingListener: () -> Unit = {
+    val np = CarBridge.nowPlaying
+    val key = Pair(np?.isLoved == true, np?.repeatMode)
+    if (key != lastButtonKey) {
+      lastButtonKey = key
+      session?.setMediaButtonPreferences(buttons())
+    }
+  }
 
   override fun onCreate() {
     super.onCreate()
-    val player = object : SimpleBasePlayer(mainLooper) {
-      override fun getState(): State = State.Builder()
-        .setAvailableCommands(Player.Commands.Builder().add(Player.COMMAND_PLAY_PAUSE).build())
-        .build()
-    }
-    session = MediaLibrarySession.Builder(this, player, HelloCallback())
+    CarBridge.init(applicationContext)
+    val p = CarForwardingPlayer(mainLooper)
+    player = p
+    lastButtonKey = CarBridge.nowPlaying?.let { it.isLoved to it.repeatMode }
+    session = MediaLibrarySession.Builder(this, p, Callback())
       .setId("bayaan-car")
+      .setMediaButtonPreferences(buttons())
       .build()
+    CarBridge.onSnapshotChanged.add(snapshotListener)
+    CarBridge.onNowPlayingChanged.add(nowPlayingListener)
+  }
+
+  private fun buttons(): ImmutableList<CommandButton> {
+    val loved = CarBridge.nowPlaying?.isLoved == true
+    val repeatIcon = when (CarBridge.nowPlaying?.repeatMode) {
+      "track" -> CommandButton.ICON_REPEAT_ONE
+      "queue" -> CommandButton.ICON_REPEAT_ALL
+      else -> CommandButton.ICON_REPEAT_OFF
+    }
+    return ImmutableList.of(
+      CommandButton.Builder(CommandButton.ICON_PLAYBACK_SPEED).setDisplayName("Speed").setSessionCommand(rateCommand).build(),
+      CommandButton.Builder(repeatIcon).setDisplayName("Repeat").setSessionCommand(repeatCommand).build(),
+      CommandButton.Builder(if (loved) CommandButton.ICON_HEART_FILLED else CommandButton.ICON_HEART_UNFILLED)
+        .setDisplayName("Love").setSessionCommand(loveCommand).build(),
+    )
   }
 
   override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
-  // expo-audio's AudioControlsService owns the phone notification and the
-  // foreground state. Ours must never post a second notification.
+  // expo-audio's AudioControlsService owns the phone notification and foreground state.
+  // Media3 only starts a foreground service from the notification manager, which this
+  // no-op bypasses, so this service is never foreground-required.
   override fun onUpdateNotification(session: MediaSession, startInForegroundRequired: Boolean) = Unit
 
   override fun onDestroy() {
-    session?.run { player.release(); release() }
+    CarBridge.onSnapshotChanged.remove(snapshotListener)
+    CarBridge.onNowPlayingChanged.remove(nowPlayingListener)
+    carControllers.clear()
+    CarBridge.setConnected(false)
+    player?.detach()
+    session?.release()
     session = null
+    player = null
     super.onDestroy()
   }
 
-  private inner class HelloCallback : MediaLibrarySession.Callback {
+  private fun ensureJs() {
+    (application as? ReactApplication)?.reactHost?.start()
+  }
+
+  private fun MediaSession.isCar(controller: MediaSession.ControllerInfo): Boolean =
+    isAutoCompanionController(controller) || isAutomotiveController(controller) ||
+      controller.packageName == GEARHEAD_PACKAGE
+
+  private inner class Callback : MediaLibrarySession.Callback {
+    override fun onConnect(session: MediaSession, controller: MediaSession.ControllerInfo): MediaSession.ConnectionResult {
+      if (session.isCar(controller)) {
+        carControllers.add(controller)
+        CarBridge.setConnected(true)
+        ensureJs()
+      }
+      val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
+        .add(rateCommand)
+        .add(loveCommand)
+        .add(repeatCommand)
+        .build()
+      return MediaSession.ConnectionResult.AcceptedResultBuilder(session).setAvailableSessionCommands(commands).build()
+    }
+
+    override fun onDisconnected(session: MediaSession, controller: MediaSession.ControllerInfo) {
+      if (carControllers.remove(controller) && carControllers.isEmpty()) {
+        CarBridge.setConnected(false)
+      }
+    }
+
+    override fun onCustomCommand(
+      session: MediaSession,
+      controller: MediaSession.ControllerInfo,
+      customCommand: SessionCommand,
+      args: Bundle,
+    ): ListenableFuture<SessionResult> {
+      when (customCommand.customAction) {
+        rateCommand.customAction -> CarBridge.sendTransport("{\"kind\":\"cycleRate\"}")
+        loveCommand.customAction -> CarBridge.sendTransport("{\"kind\":\"toggleLove\"}")
+        repeatCommand.customAction -> CarBridge.sendTransport("{\"kind\":\"cycleRepeat\"}")
+      }
+      return Futures.immediateFuture(SessionResult(SessionResult.RESULT_SUCCESS))
+    }
+
     override fun onGetLibraryRoot(
       session: MediaLibrarySession,
       browser: MediaSession.ControllerInfo,
       params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<MediaItem>> {
-      val root = MediaItem.Builder().setMediaId("root").setMediaMetadata(
-        MediaMetadata.Builder().setIsBrowsable(true).setIsPlayable(false).build(),
-      ).build()
-      return Futures.immediateFuture(LibraryResult.ofItem(root, params))
-    }
+    ): ListenableFuture<LibraryResult<MediaItem>> =
+      Futures.immediateFuture(LibraryResult.ofItem(CarBrowseTree.root(), params))
 
     override fun onGetChildren(
       session: MediaLibrarySession,
@@ -59,13 +149,87 @@ class BayaanLibraryService : MediaLibraryService() {
       page: Int,
       pageSize: Int,
       params: LibraryParams?,
-    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-      // Boot JS headlessly the first time the car browses.
-      (application as? ReactApplication)?.reactHost?.start()
-      val item = MediaItem.Builder().setMediaId("hello").setMediaMetadata(
-        MediaMetadata.Builder().setTitle("Bayaan is connected").setIsBrowsable(false).setIsPlayable(true).build(),
-      ).build()
-      return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.of(item), params))
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
+      Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(CarBrowseTree.children(parentId)), params))
+
+    override fun onSetMediaItems(
+      mediaSession: MediaSession,
+      controller: MediaSession.ControllerInfo,
+      mediaItems: MutableList<MediaItem>,
+      startIndex: Int,
+      startPositionMs: Long,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+      ensureJs()
+      val chosen = mediaItems.getOrNull(maxOf(startIndex, 0)) ?: mediaItems.firstOrNull()
+      val request = chosen?.let { requestFor(it) }
+      if (request != null) {
+        player?.notePlayRequestSent()
+        CarBridge.sendPlay(request)
+      }
+      // Keep the forwarding player's own playlist; JS will push the real queue.
+      return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(ImmutableList.of(), 0, 0))
     }
+
+    // A system resume (media button, restore) asks for the last session. JS owns that
+    // state, so forward a resume request and fail the future, which Media3 handles.
+    override fun onPlaybackResumption(
+      mediaSession: MediaSession,
+      controller: MediaSession.ControllerInfo,
+      isForPlayback: Boolean,
+    ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
+      if (isForPlayback) {
+        ensureJs()
+        player?.notePlayRequestSent()
+        CarBridge.sendPlay(RESUME_REQUEST)
+      }
+      return Futures.immediateFailedFuture(UnsupportedOperationException("playback resumption is handled by JS"))
+    }
+
+    override fun onSearch(
+      session: MediaLibrarySession,
+      browser: MediaSession.ControllerInfo,
+      query: String,
+      params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<Void>> {
+      session.notifySearchResultChanged(browser, query, CarSearch.search(query).size, params)
+      return Futures.immediateFuture(LibraryResult.ofVoid())
+    }
+
+    override fun onGetSearchResult(
+      session: MediaLibrarySession,
+      browser: MediaSession.ControllerInfo,
+      query: String,
+      page: Int,
+      pageSize: Int,
+      params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
+      val s = CarBridge.snapshot
+      val items = CarSearch.search(s, query).mapNotNull { json ->
+        val o = JSONObject(json)
+        val surah = s?.surahs?.firstOrNull { it.id == o.getInt("surahId") } ?: return@mapNotNull null
+        val reciter = s.reciters.firstOrNull { it.id == o.getString("reciterId") } ?: return@mapNotNull null
+        MediaItem.Builder().setMediaId(CarBrowseTree.playId(json)).setMediaMetadata(
+          MediaMetadata.Builder()
+            .setTitle(surah.name).setSubtitle(reciter.name)
+            .setIsBrowsable(false).setIsPlayable(true)
+            .setArtworkUri(CarArtworkProvider.uriFor(CarArtwork.Surah(surah.id)))
+            .build(),
+        ).build()
+      }
+      return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(items), params))
+    }
+  }
+
+  /** The play request for a tapped item or a voice query. A blank query ("play something") resumes. */
+  private fun requestFor(item: MediaItem): String? {
+    CarBrowseTree.requestFromPlayId(item.mediaId)?.let { return it }
+    val query = item.requestMetadata.searchQuery ?: return null
+    if (query.isBlank()) return RESUME_REQUEST
+    return CarSearch.search(query).firstOrNull()
+  }
+
+  private companion object {
+    const val GEARHEAD_PACKAGE = "com.google.android.projection.gearhead"
+    const val RESUME_REQUEST = "{\"kind\":\"resume\"}"
   }
 }
