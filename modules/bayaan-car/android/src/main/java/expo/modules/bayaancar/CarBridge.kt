@@ -141,10 +141,12 @@ object CarBridge {
       main.removeCallbacks(graceCheck)
       waitingSinceMs = null
       setJsUnavailable(false)
+      // Connection first: JS must apply car mode before a queued play request
+      // loads a track and re-activates the media session controls.
+      e("onCarConnectionChanged", mapOf("connected" to isConnected))
       val queued = pending.toList()
       pending.clear()
       queued.forEach { (name, body) -> e(name, body) }
-      e("onCarConnectionChanged", mapOf("connected" to isConnected))
     }
   }
 

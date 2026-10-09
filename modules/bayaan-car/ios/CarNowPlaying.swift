@@ -64,6 +64,7 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
       CarBridge.shared.send(transport: ["kind": "rate", "value": Double(event.playbackRate)])
       return .success
     }
+    disableSkipCommands()
     observer = NotificationCenter.default.addObserver(
       forName: CarBridge.nowPlayingDidChange, object: nil, queue: .main
     ) { [weak self] _ in
@@ -102,6 +103,9 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     case "queue": commands.changeRepeatModeCommand.currentRepeatType = .all
     default: commands.changeRepeatModeCommand.currentRepeatType = .off
     }
+    // Any lock screen activation that slipped in before JS car mode must not
+    // leave the 10s skip buttons in place of next/previous.
+    disableSkipCommands()
     if let np, np.rate > 0, np.rate != rateShown {
       rateShown = np.rate
       var info = MPNowPlayingInfoCenter.default().nowPlayingInfo ?? [:]
@@ -126,6 +130,13 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
       CarBridge.shared.send(transport: ["kind": "toggleLove"])
     }
     CPNowPlayingTemplate.shared.updateNowPlayingButtons([rate, repeatButton, love])
+  }
+
+  /// JS car mode keeps these off on every lock screen activation; this covers
+  /// the gap between the car connecting and JS applying car mode.
+  private func disableSkipCommands() {
+    if commands.skipForwardCommand.isEnabled { commands.skipForwardCommand.isEnabled = false }
+    if commands.skipBackwardCommand.isEnabled { commands.skipBackwardCommand.isEnabled = false }
   }
 
   // MARK: Pushes

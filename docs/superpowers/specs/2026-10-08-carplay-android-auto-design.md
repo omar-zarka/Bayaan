@@ -145,7 +145,7 @@ ExpoAudioService (expo-audio)
 
 **`modules/bayaan-car/`** (Expo module, iOS + Android)
 - JS API: `writeSnapshot(json)`, `setNowPlaying(info)` (carries the queue), `markJsReady()`, events `onPlayRequest`, `onTransport`, `onCarConnectionChanged`.
-- Holds play requests that arrive before `markJsReady()` and delivers them in order after.
+- Holds play requests that arrive before `markJsReady()` and delivers them in order after. `markJsReady()` reports the connection state first, so JS applies car mode before a queued request loads a track.
 - iOS: `CarPlaySceneDelegate`, `CarTemplateBuilder`, `CarArtworkCache`, remote command registration (next/previous) active only while a Bayaan track is loaded.
 - Android: `BayaanLibraryService` (`MediaLibraryService`), `CarBrowseTree`, `CarArtworkCache`, forwarding player (see 4.4).
 

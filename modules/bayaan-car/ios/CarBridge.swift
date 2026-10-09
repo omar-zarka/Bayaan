@@ -99,10 +99,12 @@ final class CarBridge {
       // Never flush into a missing emitter: keep events queued.
       guard let emit = self.emit else { return }
       self.jsReady = true
+      // Connection first: JS must apply car mode (skip buttons off) before a
+      // queued play request loads a track and re-activates the lock screen.
+      emit("onCarConnectionChanged", ["connected": self.isConnected])
       let queued = self.pending
       self.pending.removeAll()
       queued.forEach { emit($0.0, $0.1) }
-      emit("onCarConnectionChanged", ["connected": self.isConnected])
     }
   }
 

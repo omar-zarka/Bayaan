@@ -12,8 +12,11 @@ interface FakeQueue {
 
 const mockQueuedRequests: CarPlayRequest[] = [];
 const mockPlayListeners: ((request: CarPlayRequest) => void)[] = [];
+const mockConnectionListeners: ((connected: boolean) => void)[] = [];
 const mockMarkJsReady = jest.fn((): void => {
-  // Mirrors native: flush queued cold-start requests once JS is ready.
+  // Mirrors native: report the connection first, then flush queued
+  // cold-start requests once JS is ready.
+  mockConnectionListeners.forEach(fn => fn(true));
   mockQueuedRequests
     .splice(0)
     .forEach(request => mockPlayListeners.forEach(fn => fn(request)));
@@ -29,11 +32,17 @@ jest.mock('@/modules/bayaan-car', () => ({
       return jest.fn();
     },
     addTransportListener: () => jest.fn(),
-    addConnectionListener: () => jest.fn(),
+    addConnectionListener: (fn: (connected: boolean) => void) => {
+      mockConnectionListeners.push(fn);
+      return jest.fn();
+    },
   },
 }));
+const mockSetCarMode = jest.fn();
 jest.mock('@/services/audio/LockScreenService', () => ({
-  lockScreenService: {setCarMode: jest.fn()},
+  lockScreenService: {
+    setCarMode: (enabled: boolean) => mockSetCarMode(enabled),
+  },
 }));
 jest.mock('@/data/reciterData', () => ({
   RECITERS: [{id: 'car-reciter', name: 'Car Reciter'}],
@@ -181,6 +190,7 @@ describe('cold-start car request vs restoreSession', () => {
     jest.clearAllMocks();
     mockQueuedRequests.length = 0;
     mockPlayListeners.length = 0;
+    mockConnectionListeners.length = 0;
     mockQueue.tracks = [];
     mockQueue.currentIndex = 0;
   });
@@ -257,5 +267,21 @@ describe('cold-start car request vs restoreSession', () => {
     expect(mockUpdateQueueState).not.toHaveBeenCalled();
     expect(mockLoadTrack).not.toHaveBeenCalled();
     expect(mockQueue.tracks[0]?.id).toBe('car-reciter:18');
+  });
+
+  it('applies car mode before a queued request loads its track', async () => {
+    const {bridge, gate} = loadModules();
+    mockQueuedRequests.push(surahRequest);
+    bridge.startCarPlaybackBridge(Promise.resolve());
+    gate.markSessionRestored();
+    await jest.advanceTimersByTimeAsync(0);
+
+    expect(mockUpdateQueue).toHaveBeenCalledTimes(1);
+    expect(mockSetCarMode).toHaveBeenCalledWith(true);
+    // Car mode must already hide the skip buttons when the car's track
+    // activates the lock screen, or the first forward tap seeks 10s.
+    expect(mockSetCarMode.mock.invocationCallOrder[0]).toBeLessThan(
+      mockUpdateQueue.mock.invocationCallOrder[0],
+    );
   });
 });
