@@ -11,4 +11,6 @@ Pod::Spec.new do |s|
   s.dependency 'ExpoModulesCore'
   s.frameworks     = 'CarPlay', 'MediaPlayer'
   s.source_files   = '**/*.swift'
+  # Icon tiles from scripts/generate-car-icon-tiles.ts.
+  s.resource_bundles = { 'BayaanCarIcons' => ['icons/*.png'] }
 end

@@ -221,7 +221,7 @@ function playlistEntries(
       id: `playlist:${p.id}`,
       title: p.name,
       subtitle: `${p.itemCount} surahs`,
-      artwork: {kind: 'color', label: p.name, hex: p.color},
+      artwork: {kind: 'icon', name: 'playlist', hex: p.color},
       action: {
         kind: 'browse',
         target: {kind: 'list', listId: `playlist:${p.id}`},
@@ -234,7 +234,7 @@ function playlistEntries(
       id: `system:${p.id}`,
       title: p.title,
       subtitle: p.subtitle,
-      artwork: {kind: 'color', label: p.title, hex: p.backgroundColor},
+      artwork: {kind: 'icon', name: 'playlist', hex: p.backgroundColor},
       action: {
         kind: 'browse',
         target: {kind: 'list', listId: `system:${p.id}`},
@@ -406,7 +406,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
     quickStart.push({
       id: 'quick:shuffle-loved',
       title: 'Shuffle Loved',
-      artwork: {kind: 'color', label: 'Loved', hex: '#BE123C'},
+      artwork: {kind: 'icon', name: 'loved'},
       action: {kind: 'play', request: {kind: 'loved', shuffle: true}},
     });
   }
@@ -455,25 +455,25 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
     {
       id: 'lib:loved',
       title: 'Loved',
-      artwork: {kind: 'color', label: 'Loved', hex: '#BE123C'},
+      artwork: {kind: 'icon', name: 'loved'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'loved'}},
     },
     {
       id: 'lib:playlists',
       title: 'Playlists',
-      artwork: {kind: 'color', label: 'Playlists', hex: '#0F766E'},
+      artwork: {kind: 'icon', name: 'playlists'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'playlists'}},
     },
     {
       id: 'lib:downloads',
       title: 'Downloads',
-      artwork: {kind: 'color', label: 'Downloads', hex: '#1D4ED8'},
+      artwork: {kind: 'icon', name: 'downloads'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'downloads'}},
     },
     {
       id: 'lib:favorite-reciters',
       title: 'Favorite reciters',
-      artwork: {kind: 'color', label: 'Reciters', hex: '#7C3AED'},
+      artwork: {kind: 'icon', name: 'reciters'},
       action: {
         kind: 'browse',
         target: {kind: 'list', listId: 'favorite-reciters'},

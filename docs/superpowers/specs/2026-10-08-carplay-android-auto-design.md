@@ -102,8 +102,8 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Favo
 
 - **Surahs:** R2 cards at `https://cdn.thebayaan.com/assets/og-images/surah/{id}.png` (dark) and `{id}-light.png` (light). Variant follows the car's interface style (CarPlay `traitCollection.userInterfaceStyle`; Android Auto: dark). The base comes from the snapshot's `surahArtworkBase` (set by `branding.surahArtworkCdnBase`, https only); natives fall back to the Bayaan CDN when it is absent.
 - **Reciters:** API `image_url` (https) first, then the bundled image from `utils/reciterImages.ts` (exported by JS into the snapshot as a local file URI), then a generated monogram tile (initials on a per-reciter color). Never transparent.
-- **Playlists:** system playlist color as a solid tile with the title; user playlists use the first item's reciter portrait.
-- **Android artwork provider:** a hardened `ContentProvider` serves artwork to Android Auto. It validates keys strictly, fetches only https URLs present in the snapshot, applies timeouts, size caps and decode bounds, caps the disk cache, and renders monogram/color tiles on demand.
+- **Library, Shuffle Loved and playlists:** `{ kind: 'icon', name, hex? }` tiles that match the app's Collection screen (Playlists, Reciters, Downloads, Loved icons on a 15% tint of their colour, rounded square). `scripts/generate-car-icon-tiles.ts` renders them from the exact SVG paths in `components/Icons.tsx` into the iOS resource bundle `BayaanCarIcons` (`modules/bayaan-car/ios/icons`, light and dark variants) and Android `res/drawable-nodpi` (dark). A playlist (`name: 'playlist'`) is drawn on device: the white playlist glyph over the playlist's own colour. Icon names are allowlisted on both platforms.
+- **Android artwork provider:** a hardened `ContentProvider` serves artwork to Android Auto. It validates keys strictly, fetches only https URLs present in the snapshot, applies timeouts, size caps and decode bounds, caps the disk cache, and renders monogram/color/icon tiles on demand (icon tiles come only from the allowlisted bundled drawables).
 - **Native image cache:** source PNGs are about 700 KB each. Native downloads once, downscales to 256 px, stores in the app caches directory (iOS `Caches/bayaan-car/artwork/`, Android `cacheDir/bayaan-car/artwork/`), so artwork works offline after first fetch unless the OS purges caches. Approx 7 MB for all surah variants. Cache is populated lazily and also prefetched for Home items when the snapshot changes.
 
 ## 4. Architecture
@@ -187,7 +187,7 @@ interface CarItem {
   id: string;              // stable, used as media id
   title: string;
   subtitle?: string;
-  artwork: CarArtwork;     // { kind: 'surah', surahId } | { kind: 'url', url } | { kind: 'file', uri } | { kind: 'color', hex, label }
+  artwork: CarArtwork;     // { kind: 'surah', surahId } | { kind: 'url', url } | { kind: 'file', uri } | { kind: 'color', hex, label } | { kind: 'icon', name, hex? }
   progress?: number;       // 0..1
   isDownloaded?: boolean;
   action: { kind: 'play'; request: CarPlayRequest } | { kind: 'browse'; target: CarBrowseTarget };

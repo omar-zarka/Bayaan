@@ -28,6 +28,28 @@ class CarArtworkKeysTest {
     assertNull(CarArtworkKeys.parseKey("url-" + "a".repeat(2049)))
   }
 
+  @Test fun iconKeysAllowOnlyTheBundledTiles() {
+    assertEquals(ArtworkKey.Icon("loved", null), CarArtworkKeys.parseKey("icon-loved"))
+    assertEquals(ArtworkKey.Icon("reciters", null), CarArtworkKeys.parseKey("icon-reciters"))
+    assertEquals(ArtworkKey.Icon("playlist", null), CarArtworkKeys.parseKey("icon-playlist"))
+    assertEquals(ArtworkKey.Icon("playlist", "22C55E"), CarArtworkKeys.parseKey("icon-playlist-22C55E"))
+    listOf(
+      "icon-", "icon-launcher", "icon-loved-22C55E", "icon-playlist-22C55", "icon-playlist-22C55EE",
+      "icon-playlist-GGGGGG", "icon-../loved", "icon-car_icon_loved", "icon-Loved",
+    ).forEach { assertNull(it, CarArtworkKeys.parseKey(it)) }
+  }
+
+  @Test fun iconKeysCarryOnlyAValidPlaylistColour() {
+    assertEquals("icon-loved", CarArtworkKeys.iconKey("loved", "#FF0000"))
+    assertEquals("icon-playlist-22C55E", CarArtworkKeys.iconKey("playlist", "#22c55e"))
+    assertEquals("icon-playlist", CarArtworkKeys.iconKey("playlist", "red"))
+    assertEquals("icon-playlist", CarArtworkKeys.iconKey("playlist", null))
+    assertNull(CarArtworkKeys.iconKey("launcher", null))
+    listOf("loved", "playlists", "downloads", "reciters", "playlist").forEach { name ->
+      assertNotNull(name, CarArtworkKeys.parseKey(CarArtworkKeys.iconKey(name, "#123456")))
+    }
+  }
+
   @Test fun fileNameIsHashedAndStable() {
     val name = CarArtworkKeys.fileNameFor("surah-18")
     assertTrue(Regex("[0-9a-f]{64}\\.png").matches(name))

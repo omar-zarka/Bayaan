@@ -106,6 +106,11 @@ describe('buildSituationalPicks', () => {
       p.subtitle,
     ]);
     expect(morning).toEqual([['Morning Reflections', 'Morning']]);
+    expect(buildSituationalPicks(ctx(sat0800))[0].artwork).toEqual({
+      kind: 'icon',
+      name: 'playlist',
+      hex: '#F59E0B',
+    });
   });
 
   it('offers the next surah after a completed one', () => {

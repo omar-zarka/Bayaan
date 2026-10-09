@@ -50,6 +50,8 @@ final class CarArtworkCache {
     switch source(for: artwork, style: style) {
     case .tile(let label, let hex):
       return tile(label: label, hex: hex, size: size, scale: scale)
+    case .icon(let name, let hex, let light):
+      return icon(name, hex: hex, light: light, size: size, scale: scale)
     case .remote(let key, _, let placeholder), .local(let key, _, let placeholder):
       if let hit = memory.object(forKey: Self.cacheKey(key, size, scale)) { return hit }
       return tile(label: placeholder.label, hex: placeholder.hex, size: size, scale: scale)
@@ -63,7 +65,7 @@ final class CarArtworkCache {
     completion: @escaping (UIImage) -> Void
   ) {
     switch source(for: artwork, style: style) {
-    case .tile:
+    case .tile, .icon:
       return
     case .remote(let key, let url, _):
       guard let url else { return }
@@ -106,6 +108,7 @@ final class CarArtworkCache {
 
   private enum Source {
     case tile(label: String, hex: String)
+    case icon(CarIconName, hex: String?, light: Bool)
     case remote(key: String, url: URL?, placeholder: Placeholder)
     case local(key: String, path: String, placeholder: Placeholder)
   }
@@ -115,6 +118,8 @@ final class CarArtworkCache {
     switch artwork {
     case .monogram(let label, let hex), .color(let label, let hex):
       return .tile(label: label, hex: hex)
+    case .icon(let name, let hex):
+      return .icon(name, hex: hex, light: style == .light)
     case .surah(let id):
       let suffix = style == .light ? "-light" : ""
       return .remote(
@@ -241,6 +246,60 @@ final class CarArtworkCache {
       let textSize = (text as NSString).size(withAttributes: attrs)
       (text as NSString).draw(
         at: CGPoint(x: (size - textSize.width) / 2, y: (size - textSize.height) / 2), withAttributes: attrs)
+    }
+    memory.setObject(image, forKey: key)
+    return image
+  }
+
+  // MARK: Icon tiles
+
+  /// Collection screen tile: 12pt corners on a 46pt square.
+  private static let iconCornerRatio: CGFloat = 12 / 46
+  /// Used when a playlist colour is missing or malformed (the app's playlist colour).
+  private static let defaultPlaylistHex = "#6366F1"
+  private static let hexPattern = try? NSRegularExpression(pattern: "^#[0-9A-Fa-f]{6}$")
+
+  /// The resource bundle the podspec builds from `icons/`. With a static
+  /// framework it is copied into the app bundle.
+  private static let iconBundle: Bundle? = {
+    for candidate in [Bundle(for: CarArtworkCache.self), Bundle.main] {
+      if let url = candidate.url(forResource: "BayaanCarIcons", withExtension: "bundle"), let bundle = Bundle(url: url) {
+        return bundle
+      }
+    }
+    return nil
+  }()
+
+  private static func validHex(_ hex: String?) -> String {
+    guard let hex, let pattern = hexPattern,
+      pattern.firstMatch(in: hex, range: NSRange(hex.startIndex..., in: hex)) != nil
+    else { return defaultPlaylistHex }
+    return hex
+  }
+
+  /// Bundled tiles are drawn as is (light or dark variant). A playlist tile is
+  /// its own colour with the white playlist glyph on top. Falls back to a
+  /// plain tile when the bundle is missing.
+  private func icon(_ name: CarIconName, hex: String?, light: Bool, size: CGFloat, scale: CGFloat) -> UIImage {
+    let color = name == .playlist ? Self.validHex(hex) : ""
+    let variant = name == .playlist ? color : (light ? "light" : "dark")
+    let key = "icon-\(name.rawValue)-\(variant)@\(Int(size))x\(Int(scale))" as NSString
+    if let hit = memory.object(forKey: key) { return hit }
+    let resource = name == .playlist ? "car_icon_playlist_glyph" : "car_icon_\(name.rawValue)\(light ? "_light" : "")"
+    guard let source = UIImage(named: resource, in: Self.iconBundle, compatibleWith: nil) else {
+      carDebugLog("missing icon tile \(resource)")
+      return tile(label: "", hex: name == .playlist ? color : "#374151", size: size, scale: scale)
+    }
+    let format = UIGraphicsImageRendererFormat()
+    format.scale = scale
+    format.opaque = false
+    let rect = CGRect(x: 0, y: 0, width: size, height: size)
+    let image = UIGraphicsImageRenderer(size: rect.size, format: format).image { _ in
+      if name == .playlist {
+        UIColor(hex: color).setFill()
+        UIBezierPath(roundedRect: rect, cornerRadius: size * Self.iconCornerRatio).fill()
+      }
+      source.draw(in: rect)
     }
     memory.setObject(image, forKey: key)
     return image

@@ -205,6 +205,52 @@ describe('buildCarSnapshot', () => {
     ]);
   });
 
+  it('draws Library, Shuffle Loved and playlists with the Collection icon tiles', () => {
+    const snap = buildCarSnapshot(
+      input({
+        lovedTracks: [
+          {reciterId: 'r1', surahId: '1', rewayatId: 'r1-hafs', timestamp: 1},
+        ],
+        userPlaylists: [
+          {
+            id: 'p1',
+            name: 'Commute',
+            color: '#22C55E',
+            createdAt: 1,
+            updatedAt: 1,
+            itemCount: 1,
+          },
+        ],
+        playlistItems: {
+          p1: [
+            {
+              id: 'i1',
+              playlistId: 'p1',
+              surahId: '1',
+              reciterId: 'r1',
+              orderIndex: 0,
+              addedAt: 1,
+            },
+          ],
+        },
+        systemPlaylists: [systemPlaylist('juz-amma', [{surahId: 1}])],
+      }),
+    );
+    expect(snap.library.map(i => i.artwork)).toEqual([
+      {kind: 'icon', name: 'loved'},
+      {kind: 'icon', name: 'playlists'},
+      {kind: 'icon', name: 'downloads'},
+      {kind: 'icon', name: 'reciters'},
+    ]);
+    expect(
+      snap.home.quickStart.find(i => i.id === 'quick:shuffle-loved')?.artwork,
+    ).toEqual({kind: 'icon', name: 'loved'});
+    expect(snap.lists.playlists.items.map(i => i.artwork)).toEqual([
+      {kind: 'icon', name: 'playlist', hex: '#22C55E'},
+      {kind: 'icon', name: 'playlist', hex: '#123456'},
+    ]);
+  });
+
   it('orders favorites first in reciters and marks them', () => {
     const snap = buildCarSnapshot(input({favoriteReciterIds: ['r2']}));
     expect(snap.reciters.map(r => r.id)).toEqual(['r2', 'r1']);

@@ -8,6 +8,8 @@ sealed class ArtworkKey {
   data class Url(val encoded: String) : ArtworkKey()
   data class Asset(val encoded: String) : ArtworkKey()
   data class Tile(val encoded: String) : ArtworkKey()
+  /** [name] is one of [CarArtworkKeys.ICON_NAMES]; [hex] (RRGGBB) only for "playlist". */
+  data class Icon(val name: String, val hex: String?) : ArtworkKey()
 }
 
 object CarArtworkKeys {
@@ -19,10 +21,38 @@ object CarArtworkKeys {
   private val payload = Regex("[A-Za-z0-9_-]{1,2048}")
   private val surahKey = Regex("surah-([0-9]{1,3})")
   private val drawableName = Regex("[A-Za-z0-9_]{1,128}")
+  private val iconKeyPattern = Regex("icon-(loved|playlists|downloads|reciters|playlist)(?:-([0-9A-Fa-f]{6}))?")
+  private val hex6 = Regex("#?([0-9A-Fa-f]{6})")
+
+  /** The bundled icon tiles; nothing else ever reaches a resource lookup. */
+  val ICON_NAMES = setOf("loved", "playlists", "downloads", "reciters", "playlist")
+  const val PLAYLIST = "playlist"
+  /** Used when a playlist colour is missing or malformed (the app's playlist colour). */
+  const val DEFAULT_PLAYLIST_HEX = "6366F1"
+  /** Collection screen tile: 12dp corners on a 46dp square. */
+  const val ICON_CORNER_RATIO = 12f / 46f
+
+  /**
+   * Content key for an icon tile. Only "playlist" carries a colour (RRGGBB); a
+   * malformed colour is dropped so the tile falls back to the default.
+   */
+  fun iconKey(name: String, hex: String?): String? {
+    if (name !in ICON_NAMES) return null
+    if (name != PLAYLIST) return "icon-$name"
+    val color = hex?.let { hex6.matchEntire(it)?.groupValues?.get(1) } ?: return "icon-$name"
+    return "icon-$name-${color.uppercase()}"
+  }
 
   /** Strictly validates a URI path segment. Returns null for anything unexpected. */
   fun parseKey(key: String?): ArtworkKey? {
     if (key.isNullOrEmpty()) return null
+    iconKeyPattern.matchEntire(key)?.let { m ->
+      val name = m.groupValues[1]
+      val hex = m.groupValues[2].ifEmpty { null }
+      // Only a playlist tile takes a colour.
+      if (hex != null && name != PLAYLIST) return null
+      return ArtworkKey.Icon(name, hex)
+    }
     surahKey.matchEntire(key)?.let { m ->
       val id = m.groupValues[1].toInt()
       return if (id in 1..114 && m.groupValues[1] == id.toString()) ArtworkKey.Surah(id) else null

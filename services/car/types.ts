@@ -1,5 +1,14 @@
+/** Bundled icon tiles (the app's Collection icons). 'playlist' is drawn on `hex`. */
+export type CarIconName =
+  | 'loved'
+  | 'playlists'
+  | 'downloads'
+  | 'reciters'
+  | 'playlist';
+
 export type CarArtwork =
   | {kind: 'surah'; surahId: number}
+  | {kind: 'icon'; name: CarIconName; hex?: string}
   | {kind: 'url'; url: string}
   | {kind: 'asset'; uri: string}
   | {kind: 'monogram'; label: string; hex: string}

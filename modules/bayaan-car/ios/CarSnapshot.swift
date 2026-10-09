@@ -35,14 +35,20 @@ extension KeyedDecodingContainer {
   }
 }
 
+/// Bundled icon tiles. Only these names ever reach the resource lookup.
+enum CarIconName: String {
+  case loved, playlists, downloads, reciters, playlist
+}
+
 enum CarArtwork: Decodable {
   case surah(Int)
   case url(String)
   case asset(String)
   case monogram(label: String, hex: String)
   case color(label: String, hex: String)
+  case icon(CarIconName, hex: String?)
 
-  private enum Keys: String, CodingKey { case kind, surahId, url, uri, label, hex }
+  private enum Keys: String, CodingKey { case kind, surahId, url, uri, label, hex, name }
 
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: Keys.self)
@@ -54,6 +60,13 @@ enum CarArtwork: Decodable {
       self = .monogram(label: try c.decode(String.self, forKey: .label), hex: try c.decode(String.self, forKey: .hex))
     case "color":
       self = .color(label: try c.decode(String.self, forKey: .label), hex: try c.decode(String.self, forKey: .hex))
+    case "icon":
+      guard let name = CarIconName(rawValue: try c.decode(String.self, forKey: .name)) else {
+        carDebugLog("unknown icon name, using neutral fallback")
+        self = .color(label: "", hex: "#333333")
+        return
+      }
+      self = .icon(name, hex: try? c.decodeIfPresent(String.self, forKey: .hex))
     default:
       carDebugLog("unknown artwork kind, using neutral fallback")
       self = .color(label: "", hex: "#333333")

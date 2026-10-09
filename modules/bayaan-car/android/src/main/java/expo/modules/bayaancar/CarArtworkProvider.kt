@@ -9,6 +9,7 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.RectF
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
@@ -55,6 +56,7 @@ class CarArtworkProvider : ContentProvider() {
     fun uriFor(artwork: CarArtwork): Uri? {
       val auth = authority ?: return null
       val key = when (artwork) {
+        is CarArtwork.Icon -> CarArtworkKeys.iconKey(artwork.name, artwork.hex) ?: return null
         is CarArtwork.Surah -> "surah-${artwork.surahId}"
         is CarArtwork.Url -> "url-" + encode(artwork.url)
         is CarArtwork.Asset -> "asset-" + encode(artwork.uri)
@@ -110,7 +112,7 @@ class CarArtworkProvider : ContentProvider() {
     if (mode != "r") return null
     val keyString = uri.pathSegments.singleOrNull() ?: return null
     val key = CarArtworkKeys.parseKey(keyString) ?: return null
-    if (key is ArtworkKey.Tile) return openTile(key)
+    if (key is ArtworkKey.Tile || key is ArtworkKey.Icon) return openTile(key)
     val dir = cacheDir() ?: return null
     val name = CarArtworkKeys.fileNameFor(keyString)
     val file = File(dir, name)
@@ -127,8 +129,8 @@ class CarArtworkProvider : ContentProvider() {
     }
   }
 
-  /** Tiles are cheap to draw, so they are streamed through a pipe and never cached on disk. */
-  private fun openTile(key: ArtworkKey.Tile): ParcelFileDescriptor? {
+  /** Tiles and icons are cheap to draw, so they are streamed through a pipe and never cached on disk. */
+  private fun openTile(key: ArtworkKey): ParcelFileDescriptor? {
     val bitmap = render(key) ?: return null
     val pipe = runCatching { ParcelFileDescriptor.createPipe() }.getOrNull() ?: return null
     val submitted = runCatching {
@@ -179,6 +181,36 @@ class CarArtworkProvider : ContentProvider() {
       val (label, hex) = CarArtworkKeys.parseTile(d)
       tile(label, hex)
     }
+    is ArtworkKey.Icon -> icon(key)
+  }
+
+  /** Android Auto is dark, so the dark tile variants are used. */
+  private fun iconDrawable(name: String): Int? = when (name) {
+    "loved" -> R.drawable.car_icon_loved
+    "playlists" -> R.drawable.car_icon_playlists
+    "downloads" -> R.drawable.car_icon_downloads
+    "reciters" -> R.drawable.car_icon_reciters
+    CarArtworkKeys.PLAYLIST -> R.drawable.car_icon_playlist_glyph
+    else -> null
+  }
+
+  /** A bundled tile, or for a playlist its colour with the white glyph on top. */
+  private fun icon(key: ArtworkKey.Icon): Bitmap? {
+    val ctx = context ?: return null
+    val id = iconDrawable(key.name) ?: return null
+    val decoded = BitmapFactory.decodeResource(ctx.resources, id) ?: return null
+    val size = CarArtworkKeys.SIZE
+    val glyph = if (decoded.width == size && decoded.height == size) decoded else Bitmap.createScaledBitmap(decoded, size, size, true)
+    if (key.name != CarArtworkKeys.PLAYLIST) return glyph
+    val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
+    val canvas = Canvas(bitmap)
+    val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+      color = Color.parseColor("#" + (key.hex ?: CarArtworkKeys.DEFAULT_PLAYLIST_HEX))
+    }
+    val radius = size * CarArtworkKeys.ICON_CORNER_RATIO
+    canvas.drawRoundRect(RectF(0f, 0f, size.toFloat(), size.toFloat()), radius, radius, paint)
+    canvas.drawBitmap(glyph, 0f, 0f, null)
+    return bitmap
   }
 
   private fun fetchIfAllowed(url: String): Bitmap? {

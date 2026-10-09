@@ -18,6 +18,8 @@ sealed class CarArtwork {
   data class Asset(val uri: String) : CarArtwork()
   data class Monogram(val label: String, val hex: String) : CarArtwork()
   data class Color(val label: String, val hex: String) : CarArtwork()
+  /** A bundled icon tile; [name] is always one of [CarArtworkKeys.ICON_NAMES]. */
+  data class Icon(val name: String, val hex: String?) : CarArtwork()
 
   companion object {
     fun parse(o: JSONObject): CarArtwork = when (o.optString("kind")) {
@@ -26,6 +28,14 @@ sealed class CarArtwork {
       "asset" -> Asset(o.getString("uri"))
       "monogram" -> Monogram(o.getString("label"), o.getString("hex"))
       "color" -> Color(o.optString("label"), o.optString("hex", "#333333"))
+      "icon" -> o.optString("name").let { name ->
+        if (name in CarArtworkKeys.ICON_NAMES) {
+          Icon(name, if (o.has("hex") && !o.isNull("hex")) o.optString("hex") else null)
+        } else {
+          CarLog.d("unknown icon name, using neutral fallback")
+          Color("", "#333333")
+        }
+      }
       else -> {
         CarLog.d("unknown artwork kind, using neutral fallback")
         Color("", "#333333")

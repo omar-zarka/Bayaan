@@ -91,7 +91,7 @@ function playlistPick(
     id,
     title: playlist.title,
     subtitle: reason,
-    artwork: {kind: 'color', label: playlist.title, hex: playlist.color},
+    artwork: {kind: 'icon', name: 'playlist', hex: playlist.color},
     action: {
       kind: 'play',
       request: {kind: 'playlist', playlistId, system: true},
