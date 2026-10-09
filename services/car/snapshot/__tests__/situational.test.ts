@@ -145,18 +145,34 @@ describe('buildSituationalPicks', () => {
     expect(ids).toEqual(['now:evening']);
   });
 
-  it('caps at 4 picks', () => {
-    // Friday 03:00 is Friday window + night.
-    const c = ctx(new Date(2026, 9, 9, 3, 0), {
-      lastPlayed: {
-        reciterId: 'r2',
-        rewayatId: 'rw2',
-        reciterName: 'S',
-        surahId: 2,
-        completed: true,
-        surahIds: [1, 2, 3],
-      },
-    });
-    expect(buildSituationalPicks(c).length).toBeLessThanOrEqual(4);
+  it('treats 03:59 as night and 04:00 as morning', () => {
+    const at0359 = new Date(2026, 9, 10, 3, 59);
+    const at0400 = new Date(2026, 9, 10, 4, 0);
+    expect(buildSituationalPicks(ctx(at0359)).map(p => p.id)).toEqual([
+      'now:mulk',
+      'now:evening',
+    ]);
+    expect(buildSituationalPicks(ctx(at0400)).map(p => p.id)).toEqual([
+      'now:morning',
+    ]);
+  });
+
+  it('treats 10:59 as morning and 11:00 as outside morning', () => {
+    const at1059 = new Date(2026, 9, 10, 10, 59);
+    const at1100 = new Date(2026, 9, 10, 11, 0);
+    expect(buildSituationalPicks(ctx(at1059)).map(p => p.id)).toEqual([
+      'now:morning',
+    ]);
+    expect(buildSituationalPicks(ctx(at1100)).map(p => p.id)).toEqual([]);
+  });
+
+  it('treats 20:59 as outside night and 21:00 as night', () => {
+    const at2059 = new Date(2026, 9, 10, 20, 59);
+    const at2100 = new Date(2026, 9, 10, 21, 0);
+    expect(buildSituationalPicks(ctx(at2059)).map(p => p.id)).toEqual([]);
+    expect(buildSituationalPicks(ctx(at2100)).map(p => p.id)).toEqual([
+      'now:mulk',
+      'now:evening',
+    ]);
   });
 });

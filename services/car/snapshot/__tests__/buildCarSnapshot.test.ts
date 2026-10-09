@@ -6,6 +6,7 @@ import {
 import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
 import {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
+import {SystemPlaylist} from '@/data/systemPlaylists';
 
 function rewayat(
   id: string,
@@ -99,6 +100,23 @@ describe('availableSurahIds', () => {
     expect(availableSurahIds(rewayat('x', 'y', [])).length).toBe(114);
   });
 });
+
+function systemPlaylist(
+  id: string,
+  items: SystemPlaylist['items'],
+): SystemPlaylist {
+  return {
+    id,
+    title: `Playlist ${id}`,
+    description: '',
+    backgroundColor: '#123456',
+    type: 'surah-only',
+    items,
+    heightMultiplier: 1,
+    column: 'left',
+    order: 1,
+  };
+}
 
 describe('buildCarSnapshot', () => {
   it('handles empty stores without throwing and keeps Home non-empty when system playlists exist', () => {
@@ -235,5 +253,42 @@ describe('buildCarSnapshot', () => {
   it('groups surahs by starting juz', () => {
     const snap = buildCarSnapshot(input());
     expect(snap.juz.find(j => j.number === 1)?.surahIds).toEqual([1, 2]);
+  });
+
+  it('offers Up next only from 95 percent progress', () => {
+    const almost = buildCarSnapshot(
+      input({recentTracks: [recent(sudais, 1, 0.949)]}),
+    );
+    const done = buildCarSnapshot(
+      input({recentTracks: [recent(sudais, 1, 0.95)]}),
+    );
+    expect(almost.home.quickStart.map(i => i.id)).toEqual(['quick:resume']);
+    expect(done.home.quickStart.map(i => i.id)).toEqual([
+      'quick:resume',
+      'now:upnext',
+    ]);
+  });
+
+  it('excludes system playlist items the top reciter lacks', () => {
+    const snap = buildCarSnapshot(
+      input({
+        recentTracks: [recent(sudais, 1, 0.1)],
+        systemPlaylists: [systemPlaylist('p1', [{surahId: 3}, {surahId: 18}])],
+      }),
+    );
+    expect(snap.lists['system:p1'].items.map(i => i.id)).toEqual(['sys:p1:18']);
+  });
+
+  it('leaves out playlists that resolve to no items', () => {
+    const snap = buildCarSnapshot(
+      input({
+        systemPlaylists: [
+          systemPlaylist('p1', [{surahId: 3, reciterId: 'gone'}]),
+        ],
+      }),
+    );
+    expect(snap.lists['system:p1']).toBeUndefined();
+    expect(snap.lists.playlists.items).toEqual([]);
+    expect(snap.home.sections.map(s => s.id)).toEqual([]);
   });
 });

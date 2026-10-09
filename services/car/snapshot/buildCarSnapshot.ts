@@ -37,7 +37,7 @@ const JUMP_BACK_IN_LIMIT = 10;
 const QUICK_START_LIMIT = 4;
 
 export function availableSurahIds(rewayat: Rewayat | undefined): number[] {
-  if (!rewayat || rewayat.surah_list.length === 0) return ALL_SURAH_IDS;
+  if (!rewayat || rewayat.surah_list.length === 0) return [...ALL_SURAH_IDS];
   return rewayat.surah_list
     .filter((id): id is number => id !== null)
     .sort((a, b) => a - b);
@@ -84,7 +84,6 @@ function pickTopReciter(input: CarSnapshotInput): SituationalReciter | null {
 function surahItem(
   id: string,
   reciter: Reciter,
-  rewayatId: string,
   surah: Surah,
   extra: Partial<CarItem>,
   request: CarItem['action'],
@@ -108,7 +107,6 @@ function buildJumpBackIn(input: CarSnapshotInput): CarItem[] {
       return surahItem(
         `recent:${t.reciter.id}:${rewayatId}:${t.surah.id}`,
         t.reciter,
-        rewayatId,
         t.surah,
         {progress: t.progress},
         {
@@ -138,7 +136,6 @@ function buildLovedList(input: CarSnapshotInput): CarList {
       surahItem(
         `loved:${t.reciterId}:${t.rewayatId}:${t.surahId}`,
         reciter,
-        t.rewayatId,
         surah,
         {},
         {
@@ -163,7 +160,6 @@ function buildDownloadsList(input: CarSnapshotInput): CarList {
         surahItem(
           `download:${d.reciterId}:${d.rewayatId}:${d.surahId}`,
           reciter,
-          d.rewayatId,
           surah,
           {isDownloaded: true},
           {
@@ -176,18 +172,24 @@ function buildDownloadsList(input: CarSnapshotInput): CarList {
   return {id: 'downloads', title: 'Downloads', items};
 }
 
-function playlistEntries(input: CarSnapshotInput): CarItem[] {
-  const user: CarItem[] = input.userPlaylists.map(p => ({
-    id: `playlist:${p.id}`,
-    title: p.name,
-    subtitle: `${p.itemCount} surahs`,
-    artwork: {kind: 'color', label: p.name, hex: p.color},
-    action: {
-      kind: 'browse',
-      target: {kind: 'list', listId: `playlist:${p.id}`},
-    },
-  }));
+function playlistEntries(
+  input: CarSnapshotInput,
+  nonEmptyListIds: Set<string>,
+): CarItem[] {
+  const user: CarItem[] = input.userPlaylists
+    .filter(p => nonEmptyListIds.has(`playlist:${p.id}`))
+    .map(p => ({
+      id: `playlist:${p.id}`,
+      title: p.name,
+      subtitle: `${p.itemCount} surahs`,
+      artwork: {kind: 'color', label: p.name, hex: p.color},
+      action: {
+        kind: 'browse',
+        target: {kind: 'list', listId: `playlist:${p.id}`},
+      },
+    }));
   const system: CarItem[] = [...input.systemPlaylists]
+    .filter(p => nonEmptyListIds.has(`system:${p.id}`))
     .sort((a, b) => a.order - b.order)
     .map(p => ({
       id: `system:${p.id}`,
@@ -216,12 +218,10 @@ function playlistLists(
         const reciter = input.reciters.find(r => r.id === i.reciterId);
         const surah = input.surahs.find(s => s.id === Number(i.surahId));
         if (!reciter || !surah) return;
-        const rewayatId = i.rewayatId ?? reciter.rewayat[0]?.id ?? '';
         items.push(
           surahItem(
             `pl:${p.id}:${i.id}`,
             reciter,
-            rewayatId,
             surah,
             {},
             {
@@ -245,13 +245,12 @@ function playlistLists(
       const reciter = input.reciters.find(r => r.id === reciterId);
       const surah = input.surahs.find(s => s.id === i.surahId);
       if (!reciter || !surah) return;
-      const rewayatId =
-        i.rewayatId ?? findRewayat(reciter, top?.rewayatId)?.id ?? '';
+      const usesTopReciter = i.reciterId === undefined;
+      if (usesTopReciter && !top?.surahIds.includes(i.surahId)) return;
       items.push(
         surahItem(
           `sys:${p.id}:${i.surahId}`,
           reciter,
-          rewayatId,
           surah,
           {},
           {
@@ -346,7 +345,12 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const jumpBackIn = buildJumpBackIn(input);
   const loved = buildLovedList(input);
   const downloads = buildDownloadsList(input);
-  const playlists = playlistEntries(input);
+  const playlistListsAll = playlistLists(input, top);
+  const nonEmptyLists = playlistListsAll.filter(list => list.items.length > 0);
+  const playlists = playlistEntries(
+    input,
+    new Set(nonEmptyLists.map(list => list.id)),
+  );
 
   const quickStart: CarItem[] = [];
   if (jumpBackIn.length > 0) {
@@ -403,7 +407,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
       items: favoriteReciters,
     },
   };
-  playlistLists(input, top).forEach(list => {
+  nonEmptyLists.forEach(list => {
     lists[list.id] = list;
   });
 
