@@ -21,6 +21,40 @@ describe('changedWidgetKinds', () => {
     expect(changedWidgetKinds(prev, next)).toEqual([]);
   });
 
+  it('ignores generatedAt jitter of a second during continuous play', () => {
+    const prev = base();
+    for (const jitterMs of [1_000, -1_000]) {
+      const next = base();
+      next.generatedAt += 10_000 + jitterMs;
+      if (next.nowPlaying) next.nowPlaying.positionSec += 10;
+      expect(changedWidgetKinds(prev, next)).toEqual([]);
+    }
+  });
+
+  it('reloads Continue Listening on a 30 second seek while playing', () => {
+    const prev = base();
+    const next = base();
+    next.generatedAt += 1_000;
+    if (next.nowPlaying) next.nowPlaying.positionSec += 31;
+    expect(changedWidgetKinds(prev, next)).toEqual(['ContinueListening']);
+  });
+
+  it('reloads Continue Listening on a rate change', () => {
+    const prev = base();
+    const next = base();
+    if (next.nowPlaying) next.nowPlaying.rate = 1.5;
+    expect(changedWidgetKinds(prev, next)).toEqual(['ContinueListening']);
+  });
+
+  it('accounts for rate when advancing the anchor', () => {
+    const prev = base();
+    if (prev.nowPlaying) prev.nowPlaying.rate = 2;
+    const next = structuredClone(prev);
+    next.generatedAt += 10_000;
+    if (next.nowPlaying) next.nowPlaying.positionSec += 20;
+    expect(changedWidgetKinds(prev, next)).toEqual([]);
+  });
+
   it('reloads Continue Listening on pause', () => {
     const prev = base();
     const next = base();
