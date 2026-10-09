@@ -24,7 +24,8 @@
     "fetch-reciters": "tsx scripts/fetchReciterData.ts",
     "verify-catalog-urls": "tsx scripts/verify-catalog-urls.ts",
     "resize-splash-images": "node scripts/resize-splash-images.js",
-    "prebuild": "LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo prebuild --clean",
+    "sync:widget-fonts": "node scripts/sync-widget-fonts.js",
+    "prebuild": "node scripts/sync-widget-fonts.js && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 expo prebuild --clean",
     "version:patch": "node scripts/version-bump.js patch",
     "version:minor": "node scripts/version-bump.js minor",
     "version:major": "node scripts/version-bump.js major",
@@ -136,6 +137,7 @@
   "devDependencies": {
     "@aws-sdk/client-s3": "^3.1053.0",
     "@babel/eslint-parser": "^7.25.1",
+    "@bacons/apple-targets": "5.0.0",
     "@react-native-community/eslint-config": "^3.2.0",
     "@react-native/jest-preset": "0.85.3",
     "@resvg/resvg-js": "^2.6.2",

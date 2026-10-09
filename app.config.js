@@ -41,6 +41,7 @@ module.exports = {
         usesNonExemptEncryption: false,
       },
       teamId: APPLE_TEAM_ID,
+      appleTeamId: APPLE_TEAM_ID,
       ...(ASSOCIATED_DOMAIN
         ? {associatedDomains: [`applinks:${ASSOCIATED_DOMAIN}`]}
         : {}),
@@ -168,6 +169,7 @@ module.exports = {
       : {enabled: false},
     plugins: [
       'expo-router',
+      '@bacons/apple-targets',
       ['expo-audio', {enableBackgroundPlayback: true}],
       'expo-sqlite',
       [

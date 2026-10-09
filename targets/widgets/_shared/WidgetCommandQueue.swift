@@ -1,0 +1,41 @@
+// targets/widgets/_shared/WidgetCommandQueue.swift
+import Foundation
+
+enum BayaanAppGroup {
+  // apple-targets names the widget extension `<main bundle id>.widget`.
+  static let extensionSuffix = ".widget"
+
+  static var id: String {
+    if let v = Bundle.main.object(forInfoDictionaryKey: "BayaanAppGroup") as? String { return v }
+    var bundle = Bundle.main.bundleIdentifier ?? "com.bayaan.app"
+    if bundle.hasSuffix(extensionSuffix) { bundle = String(bundle.dropLast(extensionSuffix.count)) }
+    return "group.\(bundle)"
+  }
+
+  static var defaults: UserDefaults? { UserDefaults(suiteName: id) }
+
+  static var widgetsDir: URL? {
+    FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: id)?
+      .appendingPathComponent("widgets", isDirectory: true)
+  }
+}
+
+enum WidgetCommandQueue {
+  static let key = "widgets.commandQueue"
+  static let notification = Notification.Name("BayaanWidgetCommandQueued")
+
+  static func enqueue(_ command: [String: Any]) {
+    guard let defaults = BayaanAppGroup.defaults else { return }
+    var queue: [[String: Any]] = []
+    if let raw = defaults.string(forKey: key)?.data(using: .utf8),
+       let parsed = try? JSONSerialization.jsonObject(with: raw) as? [[String: Any]] {
+      queue = parsed
+    }
+    queue.append(["command": command, "enqueuedAt": Date().timeIntervalSince1970 * 1000])
+    if let data = try? JSONSerialization.data(withJSONObject: queue),
+       let json = String(data: data, encoding: .utf8) {
+      defaults.set(json, forKey: key)
+    }
+    NotificationCenter.default.post(name: notification, object: nil)
+  }
+}
