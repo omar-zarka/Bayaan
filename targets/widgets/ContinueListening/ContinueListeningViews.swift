@@ -77,7 +77,10 @@ struct ContinueListeningView: View {
 
   private func sideList(limit: Int) -> [WidgetTrack] {
     guard let s = entry.snapshot else { return [] }
-    let source = s.upNext.isEmpty ? s.recent.dropFirst(s.nowPlaying == nil ? 1 : 0).map { $0 } : s.upNext
+    // Drop the side list's first item when it is already the hero.
+    let source = s.upNext.isEmpty
+      ? Array(s.recent.dropFirst(s.nowPlaying == nil ? 1 : 0))
+      : Array(s.upNext.dropFirst(s.nowPlaying == nil && s.recent.isEmpty ? 1 : 0))
     return Array(source.prefix(limit))
   }
 }
@@ -153,6 +156,29 @@ struct TimeLeft: View {
   }
 }
 
+/// Animates from the snapshot while playing, so no timeline reloads are needed.
+struct PlaybackProgress: View {
+  let playback: EffectivePlayback?
+
+  var body: some View {
+    if let p = playback, p.durationSec > 0 {
+      Group {
+        if p.isPlaying {
+          ProgressView(timerInterval: p.trackStart...p.end, countsDown: false) {
+            EmptyView()
+          } currentValueLabel: {
+            EmptyView()
+          }
+        } else {
+          ProgressView(value: p.positionSec, total: p.durationSec)
+        }
+      }
+      .progressViewStyle(.linear)
+      .tint(.white)
+    }
+  }
+}
+
 struct SmallView: View {
   let track: WidgetTrack
   let playback: EffectivePlayback?
@@ -189,10 +215,11 @@ struct MediumView: View {
         Spacer(minLength: 0)
         Text(track.surahName).font(.headline).lineLimit(1)
         Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
-        HStack {
+        HStack(spacing: 8) {
           HeroPlayButton(track: track, playback: playback)
-          TimeLeft(playback: playback).font(.caption2).opacity(0.75)
+          PlaybackProgress(playback: playback)
         }
+        TimeLeft(playback: playback).font(.caption2).opacity(0.75)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       VStack(alignment: .leading, spacing: 8) {

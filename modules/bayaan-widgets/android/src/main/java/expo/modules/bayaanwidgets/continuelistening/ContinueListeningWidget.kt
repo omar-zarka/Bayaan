@@ -153,15 +153,20 @@ class ContinueListeningWidget : GlanceAppWidget() {
         return@Box
       }
       val size = LocalSize.current
-      val isPlaying = s.nowPlaying?.let {
-        PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis()).isPlaying
-      } ?: false
+      val playback = s.nowPlaying?.let {
+        PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis())
+      }
+      val isPlaying = playback?.isPlaying ?: false
+      // Static value, refreshed whenever state is pushed (spec 5.1).
+      val minutesLeft = playback?.takeIf { (s.nowPlaying?.durationSec ?: 0.0) > 0 }?.let { (it.remainingWallSec / 60).toInt() }
+      // Drop the side list's first item when it is already the hero.
       val sideSource =
-        if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0) else s.upNext
+        if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0)
+        else s.upNext.drop(if (s.nowPlaying == null && s.recent.isEmpty()) 1 else 0)
       val side = sideSource.take(if (size.height >= LARGE.height) 6 else 3)
       when {
         size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, track, s.nowPlaying != null, isPlaying, side)
-        size.width >= MEDIUM.width -> Medium(context, track, s.nowPlaying != null, isPlaying, side)
+        size.width >= MEDIUM.width -> Medium(context, track, s.nowPlaying != null, isPlaying, minutesLeft, side)
         else -> Small(context, track, s.nowPlaying != null, isPlaying)
       }
     }
@@ -233,14 +238,26 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Medium(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean, side: List<WidgetTrack>) {
+  private fun Medium(
+    context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean, minutesLeft: Int?,
+    side: List<WidgetTrack>,
+  ) {
     Row(GlanceModifier.fillMaxSize()) {
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
         Art(context, track.artworkFile, 60)
         Spacer(GlanceModifier.defaultWeight())
         Titles(track, 15)
         Spacer(GlanceModifier.height(6.dp))
-        PlayPause(context, track, hasNowPlaying, isPlaying)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+          PlayPause(context, track, hasNowPlaying, isPlaying)
+          if (minutesLeft != null) {
+            Spacer(GlanceModifier.width(8.dp))
+            Text(
+              "$minutesLeft min left", maxLines = 1,
+              style = TextStyle(color = ColorProvider(Color(0xBFFFFFFF)), fontSize = 11.sp),
+            )
+          }
+        }
       }
       Spacer(GlanceModifier.width(12.dp))
       Column(GlanceModifier.defaultWeight()) { side.forEach { t -> TrackRow(context, t, 30) } }
