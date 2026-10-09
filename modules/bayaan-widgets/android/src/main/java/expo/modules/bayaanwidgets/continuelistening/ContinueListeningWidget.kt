@@ -2,9 +2,12 @@ package expo.modules.bayaanwidgets.continuelistening
 
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.remember
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
@@ -58,6 +61,27 @@ import expo.modules.bayaanwidgets.WidgetStorage
 import expo.modules.bayaanwidgets.WidgetTrack
 import org.json.JSONObject
 import java.io.File
+import kotlin.math.roundToInt
+
+// Decoded artwork for one composition, keyed by file and pixel size, so rows
+// that share a reciter reuse one bitmap in the RemoteViews payload.
+private val LocalArtCache = staticCompositionLocalOf<MutableMap<String, Bitmap?>> { HashMap() }
+
+/** Decodes at (roughly) the rendered pixel size to keep RemoteViews small. */
+private fun decodeArt(file: File, px: Int): Bitmap? {
+  val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+  BitmapFactory.decodeFile(file.path, bounds)
+  if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+  var sample = 1
+  while (minOf(bounds.outWidth, bounds.outHeight) / (sample * 2) >= px) sample *= 2
+  val bmp = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
+    ?: return null
+  if (bmp.width <= px && bmp.height <= px) return bmp
+  val scale = px.toFloat() / maxOf(bmp.width, bmp.height)
+  return Bitmap.createScaledBitmap(
+    bmp, maxOf(1, (bmp.width * scale).roundToInt()), maxOf(1, (bmp.height * scale).roundToInt()), true,
+  )
+}
 
 class ContinueListeningWidget : GlanceAppWidget() {
   companion object {
@@ -104,7 +128,10 @@ class ContinueListeningWidget : GlanceAppWidget() {
       val overrideJson = prefs[OVERRIDE_KEY] ?: initialOverride
       val snapshot = remember(json) { json?.let { SnapshotModels.decode(it) } }
       val override = remember(overrideJson) { PlaybackState.decodeOverride(overrideJson) }
-      Content(context, snapshot, override)
+      val artCache = remember(json) { HashMap<String, Bitmap?>() }
+      CompositionLocalProvider(LocalArtCache provides artCache) {
+        Content(context, snapshot, override)
+      }
     }
   }
 
@@ -142,8 +169,13 @@ class ContinueListeningWidget : GlanceAppWidget() {
 
   @Composable
   private fun Art(context: Context, file: String?, size: Int) {
-    val bmp = file?.let { File(WidgetStorage.artworkDir(context), it) }
-      ?.takeIf { it.exists() }?.let { BitmapFactory.decodeFile(it.path) }
+    val cache = LocalArtCache.current
+    val px = maxOf(1, (size * context.resources.displayMetrics.density).roundToInt())
+    val bmp = file?.let { name ->
+      cache.getOrPut("$name@$px") {
+        File(WidgetStorage.artworkDir(context), name).takeIf { it.exists() }?.let { decodeArt(it, px) }
+      }
+    }
     if (bmp != null) {
       Image(
         ImageProvider(bmp), contentDescription = null,
