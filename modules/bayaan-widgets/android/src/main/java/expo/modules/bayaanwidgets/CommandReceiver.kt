@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
 import kotlin.coroutines.resume
@@ -47,8 +48,10 @@ class CommandReceiver : BroadcastReceiver() {
       return
     }
     val playing = command.optBoolean("playing")
-    // Optimistic render before anything slow.
-    WidgetStorage.writePlaybackOverride(context, PlaybackOverride(playing, System.currentTimeMillis()))
+    // Optimistic render before anything slow. Prefs commits stay off main.
+    withContext(Dispatchers.IO) {
+      WidgetStorage.writePlaybackOverride(context, PlaybackOverride(playing, System.currentTimeMillis()))
+    }
     runCatching { ContinueListeningWidget.pushState(context) }
     runCatching { OverrideExpiryWorker.schedule(context) }
     // JS is not listening; try the live media session directly.
@@ -61,9 +64,13 @@ class CommandReceiver : BroadcastReceiver() {
     var controller: MediaController? = null
     try {
       val token = SessionToken(context, ComponentName(context, AUDIO_SERVICE))
-      controller = withTimeoutOrNull(CONTROLLER_TIMEOUT_MS) {
-        MediaController.Builder(context, token).buildAsync().await()
-      } ?: return false
+      val future = MediaController.Builder(context, token).buildAsync()
+      controller = withTimeoutOrNull(CONTROLLER_TIMEOUT_MS) { future.await() }
+      if (controller == null) {
+        // Timed out; if it connects anyway, release it then.
+        future.addListener({ runCatching { future.get().release() } }, MoreExecutors.directExecutor())
+        return false
+      }
       if (controller.currentMediaItem == null) return false
       if (playing) controller.play() else controller.pause()
       return true
@@ -85,8 +92,8 @@ class CommandReceiver : BroadcastReceiver() {
     cont.invokeOnCancellation { cancel(false) }
   }
 
-  private fun queueAndLaunch(context: Context, command: JSONObject) {
-    WidgetStorage.enqueueCommand(context, command)
+  private suspend fun queueAndLaunch(context: Context, command: JSONObject) {
+    withContext(Dispatchers.IO) { WidgetStorage.enqueueCommand(context, command) }
     if (WidgetStorage.onCommandQueued != null) return // JS alive, it will drain
     context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
       it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
