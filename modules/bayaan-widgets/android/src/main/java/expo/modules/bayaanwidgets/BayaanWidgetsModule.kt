@@ -4,7 +4,6 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import androidx.glance.appwidget.updateAll
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -46,7 +45,7 @@ class BayaanWidgetsModule : Module() {
   private fun updateContinueListening() {
     val ctx = context
     CoroutineScope(Dispatchers.Default).launch {
-      ContinueListeningWidget().updateAll(ctx)
+      runCatching { ContinueListeningWidget.pushState(ctx) }
     }
   }
 }

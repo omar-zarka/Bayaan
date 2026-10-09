@@ -10,6 +10,7 @@ object WidgetStorage {
   private const val KEY_SNAPSHOT = "snapshot"
   private const val KEY_QUEUE = "commandQueue"
   private const val KEY_TASBEEH = "pendingTasbeeh"
+  private const val KEY_PLAYBACK_OVERRIDE = "widgets.playbackOverride"
 
   @Volatile var onCommandQueued: (() -> Unit)? = null
 
@@ -18,8 +19,17 @@ object WidgetStorage {
   fun writeSnapshot(context: Context, json: String) =
     prefs(context).edit().putString(KEY_SNAPSHOT, json).apply()
 
+  fun readSnapshotJson(context: Context): String? = prefs(context).getString(KEY_SNAPSHOT, null)
+
   fun readSnapshot(context: Context): WidgetSnapshot? =
-    prefs(context).getString(KEY_SNAPSHOT, null)?.let { SnapshotModels.decode(it) }
+    readSnapshotJson(context)?.let { SnapshotModels.decode(it) }
+
+  fun writePlaybackOverride(context: Context, override: PlaybackOverride) {
+    prefs(context).edit().putString(KEY_PLAYBACK_OVERRIDE, PlaybackState.encodeOverride(override)).commit()
+  }
+
+  fun readPlaybackOverrideJson(context: Context): String? =
+    prefs(context).getString(KEY_PLAYBACK_OVERRIDE, null)
 
   @Synchronized
   fun enqueueCommand(context: Context, command: JSONObject) {

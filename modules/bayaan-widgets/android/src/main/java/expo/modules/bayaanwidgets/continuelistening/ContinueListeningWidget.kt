@@ -5,6 +5,10 @@ import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
@@ -16,11 +20,16 @@ import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.currentState
+import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
@@ -41,7 +50,9 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import expo.modules.bayaanwidgets.ArtworkStore
 import expo.modules.bayaanwidgets.CommandReceiver
-import expo.modules.bayaanwidgets.WidgetNowPlaying
+import expo.modules.bayaanwidgets.PlaybackOverride
+import expo.modules.bayaanwidgets.PlaybackState
+import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.WidgetSnapshot
 import expo.modules.bayaanwidgets.WidgetStorage
 import expo.modules.bayaanwidgets.WidgetTrack
@@ -53,17 +64,52 @@ class ContinueListeningWidget : GlanceAppWidget() {
     private val SMALL = DpSize(110.dp, 110.dp)
     private val MEDIUM = DpSize(250.dp, 110.dp)
     private val LARGE = DpSize(250.dp, 250.dp)
+
+    val SNAPSHOT_KEY = stringPreferencesKey("snapshot")
+    val OVERRIDE_KEY = stringPreferencesKey("playbackOverride")
+    // Changes on every push so a live session always recomposes.
+    private val PUSHED_AT_KEY = longPreferencesKey("pushedAt")
+
+    /**
+     * Copies the stored snapshot and playback override into each widget's Glance
+     * state and recomposes it. A live Glance session only recomposes from its
+     * state; it does not re-run provideGlance on update.
+     */
+    suspend fun pushState(context: Context) {
+      val json = WidgetStorage.readSnapshotJson(context)
+      val override = WidgetStorage.readPlaybackOverrideJson(context)
+      val ids = GlanceAppWidgetManager(context).getGlanceIds(ContinueListeningWidget::class.java)
+      for (id in ids) {
+        updateAppWidgetState(context, id) { prefs ->
+          if (json != null) prefs[SNAPSHOT_KEY] = json else prefs.remove(SNAPSHOT_KEY)
+          if (override != null) prefs[OVERRIDE_KEY] = override else prefs.remove(OVERRIDE_KEY)
+          prefs[PUSHED_AT_KEY] = System.currentTimeMillis()
+        }
+        ContinueListeningWidget().update(context, id)
+      }
+    }
   }
 
   override val sizeMode = SizeMode.Responsive(setOf(SMALL, MEDIUM, LARGE))
 
+  override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
   override suspend fun provideGlance(context: Context, id: GlanceId) {
-    val snapshot = WidgetStorage.readSnapshot(context)
-    provideContent { Content(context, snapshot) }
+    // Fallbacks for the first composition, before any state has been pushed.
+    val initialJson = WidgetStorage.readSnapshotJson(context)
+    val initialOverride = WidgetStorage.readPlaybackOverrideJson(context)
+    provideContent {
+      val prefs = currentState<Preferences>()
+      val json = prefs[SNAPSHOT_KEY] ?: initialJson
+      val overrideJson = prefs[OVERRIDE_KEY] ?: initialOverride
+      val snapshot = remember(json) { json?.let { SnapshotModels.decode(it) } }
+      val override = remember(overrideJson) { PlaybackState.decodeOverride(overrideJson) }
+      Content(context, snapshot, override)
+    }
   }
 
   @Composable
-  private fun Content(context: Context, s: WidgetSnapshot?) {
+  private fun Content(context: Context, s: WidgetSnapshot?, override: PlaybackOverride?) {
     val track = s?.nowPlaying?.track ?: s?.recent?.firstOrNull() ?: s?.upNext?.firstOrNull()
     val openPlayer = actionStartActivity(
       Intent(Intent.ACTION_VIEW, Uri.parse("bayaan://player")).setPackage(context.packageName),
@@ -80,13 +126,16 @@ class ContinueListeningWidget : GlanceAppWidget() {
         return@Box
       }
       val size = LocalSize.current
+      val isPlaying = s.nowPlaying?.let {
+        PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis()).isPlaying
+      } ?: false
       val sideSource =
         if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0) else s.upNext
       val side = sideSource.take(if (size.height >= LARGE.height) 6 else 3)
       when {
-        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, track, s.nowPlaying, side)
-        size.width >= MEDIUM.width -> Medium(context, track, s.nowPlaying, side)
-        else -> Small(context, track, s.nowPlaying)
+        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, track, isPlaying, side)
+        size.width >= MEDIUM.width -> Medium(context, track, isPlaying, side)
+        else -> Small(context, track, isPlaying)
       }
     }
   }
@@ -125,12 +174,12 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Small(context: Context, track: WidgetTrack, np: WidgetNowPlaying?) {
+  private fun Small(context: Context, track: WidgetTrack, isPlaying: Boolean) {
     Column(GlanceModifier.fillMaxSize()) {
       Row(GlanceModifier.fillMaxWidth()) {
         Art(context, track.artworkFile, 56)
         Spacer(GlanceModifier.defaultWeight())
-        PlayPause(context, np?.isPlaying ?: false)
+        PlayPause(context, isPlaying)
       }
       Spacer(GlanceModifier.defaultWeight())
       Titles(track, 15)
@@ -138,14 +187,14 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Medium(context: Context, track: WidgetTrack, np: WidgetNowPlaying?, side: List<WidgetTrack>) {
+  private fun Medium(context: Context, track: WidgetTrack, isPlaying: Boolean, side: List<WidgetTrack>) {
     Row(GlanceModifier.fillMaxSize()) {
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
         Art(context, track.artworkFile, 60)
         Spacer(GlanceModifier.defaultWeight())
         Titles(track, 15)
         Spacer(GlanceModifier.height(6.dp))
-        PlayPause(context, np?.isPlaying ?: false)
+        PlayPause(context, isPlaying)
       }
       Spacer(GlanceModifier.width(12.dp))
       Column(GlanceModifier.defaultWeight()) { side.forEach { t -> TrackRow(context, t, 30) } }
@@ -153,13 +202,13 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   @Composable
-  private fun Large(context: Context, track: WidgetTrack, np: WidgetNowPlaying?, rows: List<WidgetTrack>) {
+  private fun Large(context: Context, track: WidgetTrack, isPlaying: Boolean, rows: List<WidgetTrack>) {
     Column(GlanceModifier.fillMaxSize()) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Art(context, track.artworkFile, 72)
         Spacer(GlanceModifier.width(12.dp))
         Column(GlanceModifier.defaultWeight()) { Titles(track, 18) }
-        PlayPause(context, np?.isPlaying ?: false)
+        PlayPause(context, isPlaying)
       }
       Spacer(GlanceModifier.height(12.dp))
       rows.forEach { t -> TrackRow(context, t, 36) }

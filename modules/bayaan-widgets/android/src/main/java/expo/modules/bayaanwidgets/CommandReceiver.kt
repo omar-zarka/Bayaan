@@ -15,30 +15,39 @@ class CommandReceiver : BroadcastReceiver() {
     val raw = intent.getStringExtra(EXTRA_COMMAND) ?: return
     val command = try { JSONObject(raw) } catch (e: Exception) { return }
     val pending = goAsync()
-
-    if (command.optString("type") == "togglePlayback" && WidgetStorage.onCommandQueued == null) {
-      // JS is not listening; try the live media session directly.
-      val token = SessionToken(context, ComponentName(context, AUDIO_SERVICE))
-      val future = MediaController.Builder(context, token).buildAsync()
-      future.addListener({
-        try {
-          val controller = future.get()
-          if (controller.currentMediaItem != null) {
-            if (controller.isPlaying) controller.pause() else controller.play()
-            controller.release()
+    // Set when the MediaController listener takes over finishing `pending`.
+    var handedOff = false
+    try {
+      if (command.optString("type") == "togglePlayback" && WidgetStorage.onCommandQueued == null) {
+        // JS is not listening; try the live media session directly.
+        val token = SessionToken(context, ComponentName(context, AUDIO_SERVICE))
+        val future = MediaController.Builder(context, token).buildAsync()
+        future.addListener({
+          try {
+            var controller: MediaController? = null
+            try {
+              controller = future.get()
+              if (controller.currentMediaItem != null) {
+                if (controller.isPlaying) controller.pause() else controller.play()
+                return@addListener
+              }
+            } catch (e: Exception) {
+              // fall through to queue + launch
+            } finally {
+              controller?.let { runCatching { it.release() } }
+            }
+            queueAndLaunch(context, command)
+          } finally {
             pending.finish()
-            return@addListener
           }
-          controller.release()
-        } catch (e: Exception) { /* fall through to queue + launch */ }
-        queueAndLaunch(context, command)
-        pending.finish()
-      }, MoreExecutors.directExecutor())
-      return
+        }, MoreExecutors.directExecutor())
+        handedOff = true
+        return
+      }
+      queueAndLaunch(context, command)
+    } finally {
+      if (!handedOff) pending.finish()
     }
-
-    queueAndLaunch(context, command)
-    pending.finish()
   }
 
   private fun queueAndLaunch(context: Context, command: JSONObject) {
@@ -46,7 +55,7 @@ class CommandReceiver : BroadcastReceiver() {
     if (WidgetStorage.onCommandQueued != null) return // JS alive, it will drain
     context.packageManager.getLaunchIntentForPackage(context.packageName)?.let {
       it.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-      context.startActivity(it)
+      runCatching { context.startActivity(it) }
     }
   }
 
