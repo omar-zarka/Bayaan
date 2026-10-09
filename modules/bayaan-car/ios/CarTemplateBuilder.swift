@@ -5,19 +5,22 @@ import UIKit
 /// and the pushed browse templates on demand.
 final class CarTemplateBuilder {
   private weak var interfaceController: CPInterfaceController?
-  private let style: () -> UIUserInterfaceStyle
+  private let traits: () -> UITraitCollection
+  private var builtStyle: UIUserInterfaceStyle?
+  /// Artwork loads registered while building, started only for items that
+  /// survive `clamp`, then cleared.
+  private var loaders: [ObjectIdentifier: () -> Void] = [:]
   private let homeTemplate = CPListTemplate(title: "Home", sections: [])
   private let libraryTemplate = CPListTemplate(title: "Library", sections: [])
   private let recitersTemplate = CPListTemplate(title: "Reciters", sections: [])
   private let surahsTemplate = CPListTemplate(title: "Surahs", sections: [])
-  private var refreshScheduled = false
 
   private static let emptyCopy = "Open Bayaan on your phone to get started"
   private static let nothingYet = "Nothing here yet"
 
-  init(interfaceController: CPInterfaceController, style: @escaping () -> UIUserInterfaceStyle) {
+  init(interfaceController: CPInterfaceController, traits: @escaping () -> UITraitCollection) {
     self.interfaceController = interfaceController
-    self.style = style
+    self.traits = traits
     homeTemplate.tabTitle = "Home"
     homeTemplate.tabImage = UIImage(systemName: "house.fill")
     libraryTemplate.tabTitle = "Library"
@@ -30,13 +33,30 @@ final class CarTemplateBuilder {
 
   func tabTemplates() -> [CPTemplate] {
     refresh()
-    return [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate]
+    return Array(
+      [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].prefix(CPTabBarTemplate.maximumTabCount))
+  }
+
+  /// CarPlay offers no trait-change callback on iOS 16.4, so the style is
+  /// re-read on every refresh (snapshot change) and when the scene becomes
+  /// active. A light/dark change rebuilds once.
+  func refreshIfStyleChanged() {
+    guard let built = builtStyle, built != currentStyle else { return }
+    refresh()
+  }
+
+  private var currentStyle: UIUserInterfaceStyle { traits().userInterfaceStyle }
+  private var scale: CGFloat {
+    let value = traits().displayScale
+    return value > 0 ? value : 2
   }
 
   func refresh() {
+    builtStyle = currentStyle
     guard let snapshot = CarBridge.shared.snapshot else {
-      let empty = [CPListSection(items: [CPListItem(text: Self.emptyCopy, detailText: nil)])]
-      [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].forEach { $0.updateSections(empty) }
+      [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].forEach {
+        $0.updateSections([emptyState(Self.emptyCopy)])
+      }
       return
     }
     homeTemplate.updateSections(clamp(homeSections(snapshot)))
@@ -49,6 +69,27 @@ final class CarTemplateBuilder {
 
   /// Enforces CarPlay's section and total item limits. An image row counts as one item.
   private func clamp(_ sections: [CPListSection]) -> [CPListSection] {
+    let result = clampSections(sections)
+    startArtwork(for: result)
+    return result
+  }
+
+  private func emptyState(_ text: String) -> CPListSection {
+    CPListSection(items: [CPListItem(text: text, detailText: nil)])
+  }
+
+  /// Starts artwork loads only for items that made it into a template.
+  private func startArtwork(for sections: [CPListSection]) {
+    let pending = loaders
+    loaders.removeAll()
+    for section in sections {
+      for item in section.items {
+        pending[ObjectIdentifier(item)]?()
+      }
+    }
+  }
+
+  private func clampSections(_ sections: [CPListSection]) -> [CPListSection] {
     var remaining = CPListTemplate.maximumItemCount
     var result: [CPListSection] = []
     for section in sections.prefix(CPListTemplate.maximumSectionCount) {
@@ -69,8 +110,21 @@ final class CarTemplateBuilder {
     CPListTemplate(title: title, sections: clamp(sections))
   }
 
-  private func artwork(_ art: CarArtwork) -> UIImage {
-    CarArtworkCache.shared.image(for: art, style: style()) { [weak self] _ in self?.refreshSoon() }
+  private func peek(_ art: CarArtwork, size: CGFloat) -> UIImage {
+    CarArtworkCache.shared.peek(for: art, size: size, scale: scale, style: currentStyle)
+  }
+
+  /// Gives `item` a placeholder (or cached image) now and updates that same
+  /// item in place when the real image arrives. Never rebuilds templates.
+  private func setArtwork(_ item: CPListItem, _ art: CarArtwork) {
+    let size = CPListItem.maximumImageSize.width
+    item.setImage(peek(art, size: size))
+    let (scale, style) = (self.scale, currentStyle)
+    loaders[ObjectIdentifier(item)] = { [weak item] in
+      CarArtworkCache.shared.load(for: art, size: size, scale: scale, style: style) { image in
+        item?.setImage(image)
+      }
+    }
   }
 
   // MARK: Home
@@ -89,14 +143,26 @@ final class CarTemplateBuilder {
       }
     }
     if sections.isEmpty {
-      sections.append(CPListSection(items: [CPListItem(text: Self.nothingYet, detailText: nil)]))
+      sections.append(emptyState(Self.nothingYet))
     }
     return sections
   }
 
   private func imageRow(title: String, items: [CarItem]) -> CPListImageRowItem {
     let limited = Array(items.prefix(CPMaximumNumberOfGridImages))
-    let row = CPListImageRowItem(text: title, images: limited.map { artwork($0.artwork) })
+    let size = CPListImageRowItem.maximumImageSize.width
+    var images = limited.map { peek($0.artwork, size: size) }
+    let row = CPListImageRowItem(text: title, images: images)
+    let (scale, style) = (self.scale, currentStyle)
+    loaders[ObjectIdentifier(row)] = { [weak row] in
+      for (index, item) in limited.enumerated() {
+        CarArtworkCache.shared.load(for: item.artwork, size: size, scale: scale, style: style) { image in
+          guard let row, images.indices.contains(index) else { return }
+          images[index] = image
+          row.update(images)
+        }
+      }
+    }
     row.listImageRowHandler = { [weak self] _, index, completion in
       if limited.indices.contains(index) { self?.perform(limited[index]) }
       completion()
@@ -109,7 +175,7 @@ final class CarTemplateBuilder {
 
   private func librarySections(_ s: CarSnapshot) -> [CPListSection] {
     if s.library.isEmpty {
-      return [CPListSection(items: [CPListItem(text: Self.nothingYet, detailText: nil)])]
+      return [emptyState(Self.nothingYet)]
     }
     return [CPListSection(items: s.library.map(listItem))]
   }
@@ -117,7 +183,8 @@ final class CarTemplateBuilder {
   // MARK: Generic items
 
   private func listItem(_ item: CarItem) -> CPListItem {
-    let row = CPListItem(text: item.title, detailText: item.subtitle, image: artwork(item.artwork))
+    let row = CPListItem(text: item.title, detailText: item.subtitle, image: nil)
+    setArtwork(row, item.artwork)
     if let progress = item.progress { row.playbackProgress = CGFloat(min(max(progress, 0), 1)) }
     if case .play = item.action {} else { row.accessoryType = .disclosureIndicator }
     row.handler = { [weak self] _, completion in
@@ -139,9 +206,12 @@ final class CarTemplateBuilder {
   private func play(_ request: [String: Any]) {
     CarBridge.shared.send(play: request)
     guard let ic = interfaceController else { return }
-    if ic.topTemplate !== CPNowPlayingTemplate.shared {
-      ic.pushTemplate(CPNowPlayingTemplate.shared, animated: true, completion: nil)
+    let nowPlaying = CPNowPlayingTemplate.shared
+    if ic.templates.contains(where: { $0 === nowPlaying }) {
+      if ic.topTemplate !== nowPlaying { ic.pop(to: nowPlaying, animated: true, completion: nil) }
+      return
     }
+    ic.pushTemplate(nowPlaying, animated: true, completion: nil)
   }
 
   private func pushList(_ id: String) {
@@ -158,7 +228,7 @@ final class CarTemplateBuilder {
     let others = s.reciters.filter { !$0.isFavorite }
     var sections: [CPListSection] = []
     if !favorites.isEmpty {
-      sections.append(CPListSection(items: favorites.map(reciterItem), header: "Favorites", sectionIndexTitle: nil))
+      sections.append(CPListSection(items: favorites.map(reciterItem), header: "Favorite reciters", sectionIndexTitle: nil))
     }
     if !others.isEmpty {
       sections.append(CPListSection(items: others.map(reciterItem), header: "All reciters", sectionIndexTitle: nil))
@@ -168,7 +238,8 @@ final class CarTemplateBuilder {
 
   private func reciterItem(_ r: CarReciter) -> CPListItem {
     let item = CPListItem(
-      text: r.name, detailText: r.rewayat.count > 1 ? "\(r.rewayat.count) rewayat" : nil, image: artwork(r.artwork))
+      text: r.name, detailText: r.rewayat.count > 1 ? "\(r.rewayat.count) rewayat" : nil, image: nil)
+    setArtwork(item, r.artwork)
     item.accessoryType = .disclosureIndicator
     item.handler = { [weak self] _, completion in
       self?.pushReciter(r.id)
@@ -207,7 +278,8 @@ final class CarTemplateBuilder {
       let item = CPListItem(
         text: "\(sid). \(surah.name)",
         detailText: isDownloaded ? "\(surah.translation) · Downloaded" : surah.translation,
-        image: artwork(.surah(sid)))
+        image: nil)
+      setArtwork(item, .surah(sid))
       item.handler = { [weak self] _, completion in
         self?.play(["kind": "surah", "reciterId": reciter.id, "rewayatId": rewayah.id, "surahId": sid])
         completion()
@@ -233,7 +305,8 @@ final class CarTemplateBuilder {
   }
 
   private func surahRow(_ surah: CarSurah) -> CPListItem {
-    let item = CPListItem(text: "\(surah.id). \(surah.name)", detailText: surah.translation, image: artwork(.surah(surah.id)))
+    let item = CPListItem(text: "\(surah.id). \(surah.name)", detailText: surah.translation, image: nil)
+    setArtwork(item, .surah(surah.id))
     item.accessoryType = .disclosureIndicator
     item.handler = { [weak self] _, completion in
       self?.pushSurahReciters(surah.id)
@@ -259,8 +332,8 @@ final class CarTemplateBuilder {
     }
     let choices = s.reciters.compactMap { r -> CPListItem? in
       guard let rewayah = r.rewayat.first(where: { $0.surahIds.contains(surahId) }) else { return nil }
-      let item = CPListItem(
-        text: r.name, detailText: r.rewayat.count > 1 ? rewayah.name : nil, image: artwork(r.artwork))
+      let item = CPListItem(text: r.name, detailText: r.rewayat.count > 1 ? rewayah.name : nil, image: nil)
+      setArtwork(item, r.artwork)
       item.handler = { [weak self] _, completion in
         self?.play(["kind": "surah", "reciterId": r.id, "rewayatId": rewayah.id, "surahId": surahId])
         completion()
@@ -270,19 +343,7 @@ final class CarTemplateBuilder {
     var sections: [CPListSection] = []
     if !items.isEmpty { sections.append(CPListSection(items: items)) }
     if !choices.isEmpty { sections.append(CPListSection(items: choices, header: "Choose reciter", sectionIndexTitle: nil)) }
-    if sections.isEmpty { sections.append(CPListSection(items: [CPListItem(text: Self.nothingYet, detailText: nil)])) }
+    if sections.isEmpty { sections.append(emptyState(Self.nothingYet)) }
     interfaceController?.pushTemplate(listTemplate(title: surah.name, sections: sections), animated: true, completion: nil)
-  }
-
-  // MARK: Image refresh coalescing
-
-  private func refreshSoon() {
-    guard !refreshScheduled else { return }
-    refreshScheduled = true
-    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-      guard let self else { return }
-      self.refreshScheduled = false
-      self.refresh()
-    }
   }
 }

@@ -15,7 +15,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     BayaanCarSceneBridge.shared.ensureStarted()
     self.interfaceController = interfaceController
     let builder = CarTemplateBuilder(interfaceController: interfaceController) { [weak interfaceController] in
-      interfaceController?.carTraitCollection.userInterfaceStyle ?? .dark
+      interfaceController?.carTraitCollection ?? UITraitCollection(userInterfaceStyle: .dark)
     }
     self.builder = builder
     nowPlaying = CarNowPlayingController(interfaceController: interfaceController)
@@ -27,6 +27,10 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
         self?.builder?.refresh()
       })
     CarBridge.shared.setConnected(true)
+  }
+
+  public func sceneDidBecomeActive(_ scene: UIScene) {
+    builder?.refreshIfStyleChanged()
   }
 
   public func templateApplicationScene(
