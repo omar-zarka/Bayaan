@@ -18,11 +18,26 @@ private func widgetsDir() -> URL? {
   return dir
 }
 
+/// Same lock file as WidgetQueueLock in targets/widgets/_shared, so a take
+/// cannot interleave with an enqueue and drop the appended command. flock
+/// works across threads and processes, unlike an in-process NSLock.
+private func withQueueLock<T>(_ body: () -> T) -> T {
+  guard let dir = widgetsDir() else { return body() }
+  let fd = open(dir.appendingPathComponent("queue.lock").path, O_CREAT | O_RDWR, 0o644)
+  guard fd >= 0 else { return body() }
+  defer { close(fd) }
+  flock(fd, LOCK_EX)
+  defer { flock(fd, LOCK_UN) }
+  return body()
+}
+
 private func takeString(_ key: String) -> String {
   guard let id = appGroupId(), let defaults = UserDefaults(suiteName: id) else { return "[]" }
-  let value = defaults.string(forKey: key) ?? "[]"
-  defaults.removeObject(forKey: key)
-  return value
+  return withQueueLock {
+    let value = defaults.string(forKey: key) ?? "[]"
+    defaults.removeObject(forKey: key)
+    return value
+  }
 }
 
 public class BayaanWidgetsModule: Module {
