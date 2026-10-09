@@ -66,11 +66,27 @@ export function availableSurahIds(rewayat: Rewayat | undefined): number[] {
     .sort((a, b) => a - b);
 }
 
-function findRewayat(
+/**
+ * The rewayah with the given id, else the reciter's fullest rewayah (most
+ * available surahs; the first one wins a tie). A reciter's first rewayah can
+ * be a partial recording, which would hide surahs the car should offer.
+ */
+export function findRewayat(
   reciter: Reciter,
   rewayatId: string | undefined,
 ): Rewayat | undefined {
-  return reciter.rewayat.find(r => r.id === rewayatId) ?? reciter.rewayat[0];
+  const exact = reciter.rewayat.find(r => r.id === rewayatId);
+  if (exact) return exact;
+  let best: Rewayat | undefined;
+  let bestCount = -1;
+  for (const rewayat of reciter.rewayat) {
+    const count = availableSurahIds(rewayat).length;
+    if (count > bestCount) {
+      best = rewayat;
+      bestCount = count;
+    }
+  }
+  return best;
 }
 
 function pickTopReciter(input: CarSnapshotInput): SituationalReciter | null {

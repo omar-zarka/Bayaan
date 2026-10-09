@@ -338,4 +338,35 @@ describe('buildCarSnapshot', () => {
       expect(normalizeSurahArtworkBase(raw)).toBe(DEFAULT_SURAH_ARTWORK_BASE),
     );
   });
+
+  it('falls back to the fullest rewayah when the first is partial', () => {
+    const partialFirst: Reciter = {
+      ...mishary,
+      rewayat: [
+        rewayat('r1-dorai', 'r1', [12, 14, 25]),
+        rewayat(
+          'r1-hafs',
+          'r1',
+          surahs.map(s => s.id),
+        ),
+      ],
+    };
+    const snap = buildCarSnapshot(
+      input({
+        now: new Date(2026, 9, 9, 12, 30), // Friday noon
+        reciters: [partialFirst, sudais],
+      }),
+    );
+    const forNow = snap.home.sections.find(s => s.id === 'for-now');
+    const kahf = forNow?.items.find(i => i.id === 'now:kahf');
+    expect(kahf?.action).toEqual({
+      kind: 'play',
+      request: {
+        kind: 'surah',
+        reciterId: 'r1',
+        rewayatId: 'r1-hafs',
+        surahId: 18,
+      },
+    });
+  });
 });

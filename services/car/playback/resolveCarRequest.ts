@@ -5,7 +5,10 @@ import {LovedTrack} from '@/services/player/store/lovedStore';
 import {DownloadedSurah} from '@/services/player/store/downloadStore';
 import {PlaylistItem} from '@/services/database/DatabaseService';
 import {CarPlayRequest} from '@/services/car/types';
-import {availableSurahIds} from '@/services/car/snapshot/buildCarSnapshot';
+import {
+  availableSurahIds,
+  findRewayat,
+} from '@/services/car/snapshot/buildCarSnapshot';
 
 export interface CarTrackSpec {
   reciterId: string;
@@ -39,13 +42,6 @@ function isKnownSurah(surahId: number): boolean {
   return Number.isInteger(surahId) && surahId >= 1 && surahId <= SURAH_COUNT;
 }
 
-function pickRewayat(
-  reciter: Reciter,
-  rewayatId: string | undefined,
-): Rewayat | undefined {
-  return reciter.rewayat.find(r => r.id === rewayatId) ?? reciter.rewayat[0];
-}
-
 // Strict spec: the rewayah must contain the surah. Used for explicit surah
 // and resume requests, which are not tied to a snapshot list.
 function spec(
@@ -56,7 +52,7 @@ function spec(
 ): CarTrackSpec | null {
   const reciter = ctx.reciters.find(r => r.id === reciterId);
   if (!reciter) return null;
-  const rewayat = pickRewayat(reciter, rewayatId);
+  const rewayat = findRewayat(reciter, rewayatId);
   if (!rewayat) return null;
   if (!availableSurahIds(rewayat).includes(surahId)) return null;
   return {reciterId: reciter.id, rewayatId: rewayat.id, surahId};
@@ -73,7 +69,7 @@ function listSpec(
   if (!isKnownSurah(surahId)) return null;
   const reciter = ctx.reciters.find(r => r.id === reciterId);
   if (!reciter) return null;
-  const rewayat = pickRewayat(reciter, rewayatId);
+  const rewayat = findRewayat(reciter, rewayatId);
   if (!rewayat) return null;
   return {reciterId: reciter.id, rewayatId: rewayat.id, surahId};
 }
@@ -90,7 +86,7 @@ function topRewayat(ctx: CarResolveContext): {
   const recent = ctx.recentTracks.find(t => !t.isUserUpload);
   const rewayatId =
     recent?.reciter.id === reciter.id ? recent.rewayatId : undefined;
-  const rewayat = pickRewayat(reciter, rewayatId);
+  const rewayat = findRewayat(reciter, rewayatId);
   if (!rewayat) return null;
   return {reciter, rewayat};
 }
