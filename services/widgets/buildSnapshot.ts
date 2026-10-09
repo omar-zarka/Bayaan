@@ -44,12 +44,17 @@ function surahName(surahId: number): string {
   return SURAHS[surahId - 1]?.name ?? '';
 }
 
+function finiteOr(value: number, fallback: number): number {
+  return Number.isFinite(value) ? value : fallback;
+}
+
 function fromQueueTrack(t: Track, input: SnapshotInput): WidgetTrack {
   const parsed = t.surahId ? parseInt(t.surahId, 10) : 0;
   const surahId = Number.isNaN(parsed) ? 0 : parsed;
   return {
     surahId,
-    surahName: surahId > 0 && !t.isUserUpload ? surahName(surahId) : t.title,
+    surahName:
+      (surahId > 0 && !t.isUserUpload ? surahName(surahId) : '') || t.title,
     reciterId: t.reciterId,
     reciterName: t.reciterName,
     rewayatId: t.rewayatId ?? null,
@@ -143,9 +148,9 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
       ? {
           track: fromQueueTrack(current, input),
           isPlaying: input.isPlaying,
-          positionSec: input.positionSec,
-          durationSec: input.durationSec,
-          rate: input.rate,
+          positionSec: finiteOr(input.positionSec, 0),
+          durationSec: finiteOr(input.durationSec, 0),
+          rate: input.rate > 0 ? finiteOr(input.rate, 1) : 1,
         }
       : null,
     upNext,

@@ -91,6 +91,28 @@ describe('buildSnapshot', () => {
     expect(snap.nowPlaying?.track.artworkFile).toBe('reciter-r1.jpg');
   });
 
+  it('clamps non-finite playback numbers', () => {
+    const snap = buildSnapshot(
+      input({
+        queueTracks: [track(18)],
+        positionSec: NaN,
+        durationSec: Infinity,
+        rate: NaN,
+      }),
+    );
+    expect(snap.nowPlaying?.positionSec).toBe(0);
+    expect(snap.nowPlaying?.durationSec).toBe(0);
+    expect(snap.nowPlaying?.rate).toBe(1);
+    expect(JSON.parse(JSON.stringify(snap))).toEqual(snap);
+  });
+
+  it('falls back to the track title when the surah id has no name', () => {
+    const snap = buildSnapshot(
+      input({queueTracks: [track(18, {surahId: '200', title: 'Custom'})]}),
+    );
+    expect(snap.nowPlaying?.track.surahName).toBe('Custom');
+  });
+
   it('handles a user upload without a surah', () => {
     const upload = track(1, {
       surahId: undefined,
