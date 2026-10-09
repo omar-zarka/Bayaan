@@ -1,0 +1,88 @@
+// writeCarSnapshotNow skips the native write when nothing the car shows
+// changed, and the resolve context keeps its own copy of RECITERS.
+import type {CarSnapshot} from '@/services/car/types';
+
+const mockWriteSnapshot = jest.fn((_json: string): void => undefined);
+jest.mock('@/modules/bayaan-car', () => ({
+  BayaanCar: {
+    isAvailable: true,
+    writeSnapshot: (json: string) => mockWriteSnapshot(json),
+  },
+}));
+jest.mock('@/config/branding', () => ({}));
+const mockReciters = [{id: 'r1', name: 'Reciter One'}];
+jest.mock('@/data/reciterData', () => ({
+  get RECITERS() {
+    return mockReciters;
+  },
+}));
+jest.mock('@/data/surahData', () => ({SURAHS: []}));
+jest.mock('@/data/systemPlaylists', () => ({getSystemPlaylists: () => []}));
+jest.mock('@/data/juzData', () => ({SURAH_TO_JUZ: {}}));
+jest.mock('@/utils/reciterImages', () => ({reciterImages: {}}));
+jest.mock('@/utils/artworkUtils', () => ({formatReciterName: jest.fn()}));
+jest.mock('@/services/player/store/recentlyPlayedStore', () => ({
+  useRecentlyPlayedStore: {getState: () => ({recentTracks: []})},
+}));
+jest.mock('@/services/player/store/lovedStore', () => ({
+  useLovedStore: {getState: () => ({tracks: []})},
+}));
+jest.mock('@/services/player/store/downloadStore', () => ({
+  useDownloadStore: {getState: () => ({downloads: []})},
+}));
+jest.mock('@/services/player/store/favoriteRecitersStore', () => ({
+  useFavoriteRecitersStore: {getState: () => ({favoriteReciterIds: []})},
+}));
+jest.mock('@/store/playlistsStore', () => ({
+  usePlaylistsStore: {
+    getState: () => ({playlists: [], getPlaylistItems: jest.fn()}),
+  },
+}));
+jest.mock('@/store/reciterStore', () => ({
+  useReciterStore: {getState: () => ({defaultReciter: {id: ''}})},
+}));
+
+let mockTopReciterId: string | null = 'r1';
+let mockGeneratedAt = '2026-10-09T00:00:00.000Z';
+jest.mock('@/services/car/snapshot/buildCarSnapshot', () => ({
+  buildCarSnapshot: (): CarSnapshot => ({
+    version: 1,
+    generatedAt: mockGeneratedAt,
+    topReciterId: mockTopReciterId,
+    home: {quickStart: [], sections: []},
+    library: [],
+    lists: {},
+    reciters: [],
+    surahs: [],
+    juz: [],
+    downloadedKeys: [],
+  }),
+}));
+
+import {
+  getLastResolveContext,
+  writeCarSnapshotNow,
+} from '../CarSnapshotService';
+
+describe('writeCarSnapshotNow', () => {
+  it('skips the native write when only generatedAt changed', async () => {
+    await writeCarSnapshotNow();
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+
+    mockGeneratedAt = '2026-10-09T00:05:00.000Z';
+    await writeCarSnapshotNow();
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+
+    mockTopReciterId = null;
+    await writeCarSnapshotNow();
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
+    expect(getLastResolveContext()?.topReciterId).toBeNull();
+  });
+
+  it('copies RECITERS into the resolve context', async () => {
+    await writeCarSnapshotNow();
+    const reciters = getLastResolveContext()?.reciters;
+    expect(reciters).toEqual(mockReciters);
+    expect(reciters).not.toBe(mockReciters);
+  });
+});

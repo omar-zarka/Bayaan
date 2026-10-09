@@ -79,6 +79,7 @@ let timer: ReturnType<typeof setTimeout> | null = null;
 let pendingSince: number | null = null;
 let refreshTimer: ReturnType<typeof setInterval> | null = null;
 let lastContext: CarResolveContext | null = null;
+let lastWrittenBody: string | null = null;
 let startedSeq = 0;
 let committedSeq = 0;
 
@@ -92,7 +93,9 @@ export async function writeCarSnapshotNow(): Promise<void> {
   const seq = ++startedSeq;
   const playlistItems = await loadPlaylistItems();
   const context: CarResolveContext = Object.freeze({
-    reciters: RECITERS,
+    // RECITERS is refilled in place when the catalog loads; copy so the
+    // frozen context keeps the list this snapshot was built from.
+    reciters: [...RECITERS],
     topReciterId: null,
     recentTracks: useRecentlyPlayedStore.getState().recentTracks,
     lovedTracks: useLovedStore.getState().tracks,
@@ -123,6 +126,11 @@ export async function writeCarSnapshotNow(): Promise<void> {
     ...context,
     topReciterId: snapshot.topReciterId,
   });
+  // Most rebuilds change nothing the car shows; skip the native decode and
+  // disk write then. generatedAt changes on every build, so leave it out.
+  const body = JSON.stringify({...snapshot, generatedAt: ''});
+  if (body === lastWrittenBody) return;
+  lastWrittenBody = body;
   BayaanCar.writeSnapshot(JSON.stringify(snapshot));
 }
 
