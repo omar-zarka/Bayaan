@@ -1,0 +1,233 @@
+import {BayaanCar} from '@/modules/bayaan-car';
+import {RECITERS} from '@/data/reciterData';
+import {SURAHS} from '@/data/surahData';
+import {getSystemPlaylists} from '@/data/systemPlaylists';
+import {Track} from '@/types/audio';
+import {createTrack, shuffleTracks} from '@/utils/track';
+import {usePlayerStore} from '@/services/player/store/playerStore';
+import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+import {useLovedStore} from '@/services/player/store/lovedStore';
+import {useDownloadStore} from '@/services/player/store/downloadStore';
+import {PlayerState, RepeatMode} from '@/services/player/types/state';
+import {
+  resolveCarRequest,
+  CarTrackSpec,
+} from '@/services/car/playback/resolveCarRequest';
+import {
+  getCachedPlaylistItems,
+  getLastTopReciterId,
+} from '@/services/car/CarSnapshotService';
+import {
+  CarNowPlaying,
+  CarPlayRequest,
+  CarTransport,
+} from '@/services/car/types';
+
+const RATES = [1, 1.25, 1.5, 0.75];
+
+export function nextRate(current: number): number {
+  const index = RATES.indexOf(current);
+  if (index === -1) return 1;
+  return RATES[(index + 1) % RATES.length];
+}
+
+export function nextRepeat(current: RepeatMode): RepeatMode {
+  if (current === 'none') return 'queue';
+  if (current === 'queue') return 'track';
+  return 'none';
+}
+
+interface QueueView {
+  tracks: Track[];
+  currentIndex: number;
+}
+
+interface PlaybackView {
+  state: PlayerState;
+  position: number;
+  duration: number;
+  rate: number;
+}
+
+function surahNumber(track: Track): number | null {
+  const n = Number(track.surahId);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+export function toNowPlaying(
+  queue: QueueView,
+  playback: PlaybackView,
+  repeatMode: RepeatMode,
+  isLoved: boolean,
+): CarNowPlaying | null {
+  const track = queue.tracks[queue.currentIndex];
+  if (!track) return null;
+  const surahId = surahNumber(track);
+  return {
+    title: track.title,
+    subtitle: track.artist,
+    reciterId: track.reciterId || null,
+    surahId,
+    isPlaying: playback.state === 'playing',
+    position: playback.position,
+    duration: playback.duration,
+    rate: playback.rate,
+    repeatMode,
+    isLoved,
+    artwork: surahId !== null ? {kind: 'surah', surahId} : null,
+    queue: queue.tracks.map(t => ({
+      title: t.title,
+      subtitle: t.artist,
+      surahId: surahNumber(t),
+    })),
+    currentIndex: queue.currentIndex,
+  };
+}
+
+async function specToTrack(spec: CarTrackSpec): Promise<Track | null> {
+  const reciter = RECITERS.find(r => r.id === spec.reciterId);
+  const surah = SURAHS.find(s => s.id === spec.surahId);
+  if (!reciter || !surah) return null;
+  return createTrack(reciter, surah, spec.rewayatId);
+}
+
+export async function executeCarRequest(
+  request: CarPlayRequest,
+): Promise<void> {
+  // Must receive the same data the last snapshot was built from, so that
+  // startIndex stays aligned with the list the car is showing.
+  const plan = resolveCarRequest(request, {
+    reciters: RECITERS,
+    topReciterId: getLastTopReciterId(),
+    recentTracks: useRecentlyPlayedStore.getState().recentTracks,
+    lovedTracks: useLovedStore.getState().tracks,
+    downloads: useDownloadStore.getState().downloads,
+    systemPlaylists: getSystemPlaylists(),
+    playlistItems: getCachedPlaylistItems(),
+  });
+  if (!plan) return;
+
+  const built = await Promise.all(plan.tracks.map(specToTrack));
+  const tracks = built.filter((t): t is Track => t !== null);
+  if (tracks.length === 0) return;
+
+  // Dropped specs shift indices, so recompute the start within survivors.
+  const droppedBeforeStart = built
+    .slice(0, plan.startIndex)
+    .filter(t => t === null).length;
+  const alignedStart = Math.min(
+    plan.startIndex - droppedBeforeStart,
+    tracks.length - 1,
+  );
+
+  const ordered = plan.shuffle ? shuffleTracks(tracks) : tracks;
+  const startIndex = plan.shuffle ? 0 : alignedStart;
+
+  const first = plan.tracks[plan.startIndex];
+  const reciter = RECITERS.find(r => r.id === first?.reciterId);
+  const surah = SURAHS.find(s => s.id === first?.surahId);
+  if (plan.chain === 'new' && first && reciter && surah) {
+    useRecentlyPlayedStore
+      .getState()
+      .startNewChain(reciter, surah, 0, 0, first.rewayatId);
+  }
+  if (plan.chain === 'resume') {
+    useRecentlyPlayedStore.getState().resumeChain(0);
+  }
+
+  const player = usePlayerStore.getState();
+  await player.updateQueue(ordered, startIndex, plan.startPosition);
+  await player.play();
+}
+
+function pushNowPlaying(): void {
+  const player = usePlayerStore.getState();
+  const track = player.queue.tracks[player.queue.currentIndex];
+  const isLoved =
+    track?.surahId && track.rewayatId
+      ? useLovedStore
+          .getState()
+          .isLovedWithRewayat(track.reciterId, track.surahId, track.rewayatId)
+      : false;
+  BayaanCar.setNowPlaying(
+    toNowPlaying(
+      player.queue,
+      player.playback,
+      player.settings.repeatMode,
+      isLoved,
+    ),
+  );
+}
+
+async function handleTransport(transport: CarTransport): Promise<void> {
+  const player = usePlayerStore.getState();
+  switch (transport.kind) {
+    case 'next':
+      return player.skipToNext();
+    case 'previous':
+      return player.skipToPrevious();
+    case 'play':
+      return player.play();
+    case 'pause':
+      return player.pause();
+    case 'seek':
+      await player.seekTo(transport.position);
+      // Position is extrapolated natively; resync after a seek.
+      pushNowPlaying();
+      return;
+    case 'rate':
+      return player.setRate(transport.value);
+    case 'cycleRate':
+      return player.setRate(nextRate(player.playback.rate));
+    case 'cycleRepeat':
+      player.setRepeatMode(nextRepeat(player.settings.repeatMode));
+      return;
+    case 'jumpTo':
+      return player.updateQueue(player.queue.tracks, transport.index);
+    case 'toggleLove': {
+      const track = player.queue.tracks[player.queue.currentIndex];
+      if (!track?.surahId || !track.rewayatId) return;
+      useLovedStore
+        .getState()
+        .toggleLoved(track.reciterId, track.surahId, track.rewayatId);
+      return;
+    }
+  }
+}
+
+export function startCarPlaybackBridge(): () => void {
+  if (!BayaanCar.isAvailable) return () => {};
+  let lastKey = '';
+  const unsubscribers = [
+    BayaanCar.addPlayRequestListener(request => {
+      executeCarRequest(request).catch(error => {
+        if (__DEV__)
+          console.warn('[CarPlaybackBridge] play request failed', error);
+      });
+    }),
+    BayaanCar.addTransportListener(transport => {
+      handleTransport(transport).catch(error => {
+        if (__DEV__)
+          console.warn('[CarPlaybackBridge] transport failed', error);
+      });
+    }),
+    usePlayerStore.subscribe(state => {
+      // Position ticks are extrapolated natively; only push on meaningful changes.
+      const key = [
+        state.queue.currentIndex,
+        state.queue.tracks.length,
+        state.playback.state,
+        state.playback.rate,
+        state.settings.repeatMode,
+        Math.round(state.playback.duration),
+      ].join('|');
+      if (key === lastKey) return;
+      lastKey = key;
+      pushNowPlaying();
+    }),
+    useLovedStore.subscribe(pushNowPlaying),
+  ];
+  pushNowPlaying();
+  BayaanCar.markJsReady();
+  return () => unsubscribers.forEach(unsubscribe => unsubscribe());
+}
