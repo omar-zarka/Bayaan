@@ -19,6 +19,8 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 /**
  * Serves car artwork to Android Auto. Exported but read-only; every key is
@@ -34,6 +36,11 @@ class CarArtworkProvider : ContentProvider() {
     private const val LOCK_STRIPES = 64
     private const val DOWNLOAD_DEADLINE_MS = 15_000L
     private val locks = Array(LOCK_STRIPES) { Any() }
+
+    // Writes tile PNGs into their pipes; small and fixed so callers cannot spawn threads.
+    private val tileWriter: ExecutorService = Executors.newFixedThreadPool(2) { r ->
+      Thread(r, "bayaan-car-tile").apply { isDaemon = true }
+    }
     private fun lockFor(name: String): Any = locks[(name.hashCode() and Int.MAX_VALUE) % LOCK_STRIPES]
 
     // Lazily loaded snapshot for a cold process (no JS yet); retried at most every few seconds.
@@ -124,11 +131,18 @@ class CarArtworkProvider : ContentProvider() {
   private fun openTile(key: ArtworkKey.Tile): ParcelFileDescriptor? {
     val bitmap = render(key) ?: return null
     val pipe = runCatching { ParcelFileDescriptor.createPipe() }.getOrNull() ?: return null
-    Thread {
-      runCatching {
-        ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    val submitted = runCatching {
+      tileWriter.execute {
+        runCatching {
+          ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+        }
       }
-    }.start()
+    }
+    if (submitted.isFailure) {
+      runCatching { pipe[0].close() }
+      runCatching { pipe[1].close() }
+      return null
+    }
     return pipe[0]
   }
 
