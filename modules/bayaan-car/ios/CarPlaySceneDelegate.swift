@@ -11,6 +11,7 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
   ) {
     BayaanCarSceneBridge.shared.ensureStarted()
     self.interfaceController = interfaceController
+    CarBridge.shared.setConnected(true)
     let item = CPListItem(text: "Bayaan", detailText: "CarPlay is connected")
     let template = CPListTemplate(title: "Home", sections: [CPListSection(items: [item])])
     interfaceController.setRootTemplate(template, animated: false, completion: nil)
@@ -21,5 +22,6 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     didDisconnectInterfaceController interfaceController: CPInterfaceController
   ) {
     self.interfaceController = nil
+    CarBridge.shared.setConnected(false)
   }
 }
