@@ -133,7 +133,11 @@ final class CarArtworkCache {
     produce: @escaping (URL, @escaping (UIImage?) -> Void) -> Void
   ) {
     let cacheKey = Self.cacheKey(key, size, scale)
-    if memory.object(forKey: cacheKey) != nil { return }
+    // A concurrent load may have finished between the caller's peek and now.
+    if let hit = memory.object(forKey: cacheKey) {
+      DispatchQueue.main.async { completion(hit) }
+      return
+    }
     let flightKey = cacheKey as String
     lock.lock()
     if let failed = failedAt[key], Date().timeIntervalSince(failed) < Self.retryAfter {

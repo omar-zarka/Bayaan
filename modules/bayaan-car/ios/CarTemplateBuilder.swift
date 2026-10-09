@@ -5,7 +5,8 @@ import UIKit
 /// and the pushed browse templates on demand.
 final class CarTemplateBuilder {
   private weak var interfaceController: CPInterfaceController?
-  private let traits: () -> UITraitCollection
+  private let style: () -> UIUserInterfaceStyle
+  private let displayScale: () -> CGFloat
   private var builtStyle: UIUserInterfaceStyle?
   /// Artwork loads registered while building, started only for items that
   /// survive `clamp`, then cleared.
@@ -18,9 +19,14 @@ final class CarTemplateBuilder {
   private static let emptyCopy = "Open Bayaan on your phone to get started"
   private static let nothingYet = "Nothing here yet"
 
-  init(interfaceController: CPInterfaceController, traits: @escaping () -> UITraitCollection) {
+  init(
+    interfaceController: CPInterfaceController,
+    style: @escaping () -> UIUserInterfaceStyle,
+    displayScale: @escaping () -> CGFloat
+  ) {
     self.interfaceController = interfaceController
-    self.traits = traits
+    self.style = style
+    self.displayScale = displayScale
     homeTemplate.tabTitle = "Home"
     homeTemplate.tabImage = UIImage(systemName: "house.fill")
     libraryTemplate.tabTitle = "Library"
@@ -37,17 +43,16 @@ final class CarTemplateBuilder {
       [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].prefix(CPTabBarTemplate.maximumTabCount))
   }
 
-  /// CarPlay offers no trait-change callback on iOS 16.4, so the style is
-  /// re-read on every refresh (snapshot change) and when the scene becomes
-  /// active. A light/dark change rebuilds once.
+  /// Called from `contentStyleDidChange` (and as a fallback when the scene
+  /// becomes active). Rebuilds once if the car's light/dark style changed.
   func refreshIfStyleChanged() {
     guard let built = builtStyle, built != currentStyle else { return }
     refresh()
   }
 
-  private var currentStyle: UIUserInterfaceStyle { traits().userInterfaceStyle }
+  private var currentStyle: UIUserInterfaceStyle { style() }
   private var scale: CGFloat {
-    let value = traits().displayScale
+    let value = displayScale()
     return value > 0 ? value : 2
   }
 
