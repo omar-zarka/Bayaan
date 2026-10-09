@@ -214,7 +214,12 @@ function RootLayout() {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
   }, []);
 
-  useEffect(() => startWidgetSync(), []);
+  // Start after init so the first snapshot sees the restored session and
+  // stores instead of overwriting the widgets with an empty state.
+  useEffect(() => {
+    if (!appIsReady) return;
+    return startWidgetSync();
+  }, [appIsReady]);
 
   // Tajweed data — defer until after first frame + interactions complete
   useEffect(() => {
