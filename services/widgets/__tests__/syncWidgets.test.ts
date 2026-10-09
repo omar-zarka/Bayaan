@@ -271,6 +271,45 @@ describe('widget snapshot flush', () => {
     expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
   });
 
+  it('does not retry a failing artwork URL within the window, then does', async () => {
+    const sync = loadModule();
+    mockBuildSnapshot.mockReturnValue(snapshotWithReciters(['a']));
+    mockReciterById.mockImplementation((id: string) => ({id}));
+    mockCacheArtwork.mockRejectedValue(new Error('net'));
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockCacheArtwork).toHaveBeenCalledTimes(1);
+
+    jest.setSystemTime(Date.now() + 9 * 60 * 1000);
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockCacheArtwork).toHaveBeenCalledTimes(1);
+
+    jest.setSystemTime(Date.now() + 2 * 60 * 1000);
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockCacheArtwork).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not request a URL that is already in flight', async () => {
+    const sync = loadModule();
+    mockBuildSnapshot.mockReturnValue(snapshotWithReciters(['a']));
+    mockReciterById.mockImplementation((id: string) => ({id}));
+    let finish: (ok: boolean) => void = () => undefined;
+    mockCacheArtwork.mockImplementation(
+      () =>
+        new Promise<boolean>(resolve => {
+          finish = resolve;
+        }),
+    );
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockCacheArtwork).toHaveBeenCalledTimes(1);
+    finish(false);
+  });
+
   it('cleanup removes listeners and clears the pending timer', () => {
     const sync = loadModule();
     const stop = sync.startWidgetSync();

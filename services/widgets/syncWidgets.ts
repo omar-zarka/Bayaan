@@ -23,10 +23,13 @@ import {collectSnapshotInput} from './collectSnapshotInput';
 import {handleWidgetCommand} from './handleWidgetCommand';
 
 const DEBOUNCE_MS = 1000;
+const ARTWORK_RETRY_MS = 10 * 60 * 1000;
 
 let lastSnapshot: WidgetSnapshot | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let playerReady = false;
+const artworkFailures = new Map<string, number>();
+const artworkInFlight = new Set<string>();
 
 async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
   const ids = new Set<string>();
@@ -47,10 +50,24 @@ async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
     if (!reciter) continue;
     const url = getReciterArtwork(reciter);
     if (url.startsWith('data:')) continue;
+    const failedAt = artworkFailures.get(url);
+    if (failedAt !== undefined && Date.now() - failedAt < ARTWORK_RETRY_MS)
+      continue;
+    if (artworkInFlight.has(url)) continue;
+    artworkInFlight.add(url);
     try {
-      added = (await cacheArtwork(url, file)) || added;
+      const ok = await cacheArtwork(url, file);
+      if (ok) {
+        artworkFailures.delete(url);
+        added = true;
+      } else {
+        artworkFailures.set(url, Date.now());
+      }
     } catch (error) {
+      artworkFailures.set(url, Date.now());
       console.error('[WidgetSync] Failed to cache artwork:', error);
+    } finally {
+      artworkInFlight.delete(url);
     }
   }
   return added;
