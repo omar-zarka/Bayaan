@@ -22,10 +22,11 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
 
   /**
    * A controller that starts a media item sends setMediaItems, prepare, then
-   * play. The play request already starts playback in JS, so a play command
-   * arriving right after one would only resume the previous item for a moment.
+   * play. The play request already starts playback in JS, so the first play
+   * command after one would only resume the previous item for a moment. It is
+   * consumed once, and expires so a later user play is never swallowed.
    */
-  private var ignorePlayUntilMs = 0L
+  private var playRequestExpiresAtMs = 0L
 
   init {
     CarBridge.onNowPlayingChanged.add(listener)
@@ -36,8 +37,10 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
   }
 
   fun notePlayRequestSent() {
-    ignorePlayUntilMs = SystemClock.elapsedRealtime() + PLAY_SUPPRESS_MS
+    playRequestExpiresAtMs = SystemClock.elapsedRealtime() + PLAY_SUPPRESS_MS
   }
+
+  fun hasRecentPlayRequest(): Boolean = SystemClock.elapsedRealtime() < playRequestExpiresAtMs
 
   override fun getState(): State {
     val np = CarBridge.nowPlaying
@@ -60,6 +63,8 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
     if (np == null || np.queue.isEmpty()) {
       return State.Builder().setAvailableCommands(commands).setPlaybackState(Player.STATE_IDLE).build()
     }
+    val currentIndex = np.currentIndex.coerceIn(0, np.queue.size - 1)
+    val durationMs = if (np.durationSec > 0) (np.durationSec * 1000).toLong() else 0L
     val playlist = np.queue.mapIndexed { index, entry ->
       val metadata = MediaMetadata.Builder()
         .setTitle(entry.title)
@@ -70,20 +75,25 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
         .build()
       val item = MediaItem.Builder().setMediaId("queue:$index").setMediaMetadata(metadata).build()
       val builder = MediaItemData.Builder("queue:$index").setMediaItem(item)
-      if (index == np.currentIndex && np.durationSec > 0) builder.setDurationUs((np.durationSec * 1_000_000).toLong())
+      if (index == currentIndex && durationMs > 0) builder.setDurationUs(durationMs * 1000)
       builder.build()
     }
-    val positionMs = (np.positionSec * 1000).toLong()
-    // getState() can run later than the JS push, so advance by the time since.
-    val nowMs = SystemClock.elapsedRealtime()
-    val livePositionMs = if (np.isPlaying) positionMs + ((nowMs - np.receivedAtMs) * np.rate).toLong() else positionMs
+    fun clamp(ms: Long): Long = if (durationMs > 0) ms.coerceIn(0L, durationMs) else ms.coerceAtLeast(0L)
+    val anchorMs = clamp((np.positionSec * 1000).toLong())
+    val rate = np.rate
+    // Advance from the moment JS pushed the position, so getState() running later stays accurate.
+    val position = if (np.isPlaying) {
+      PositionSupplier { clamp(anchorMs + ((SystemClock.elapsedRealtime() - np.receivedAtMs) * rate).toLong()) }
+    } else {
+      PositionSupplier.getConstant(anchorMs)
+    }
     return State.Builder()
       .setAvailableCommands(commands)
       .setPlaylist(playlist)
-      .setCurrentMediaItemIndex(np.currentIndex.coerceIn(0, playlist.size - 1))
+      .setCurrentMediaItemIndex(currentIndex)
       .setPlaybackState(Player.STATE_READY)
       .setPlayWhenReady(np.isPlaying, Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST)
-      .setPlaybackParameters(PlaybackParameters(np.rate.toFloat()))
+      .setPlaybackParameters(PlaybackParameters(rate.toFloat()))
       .setRepeatMode(
         when (np.repeatMode) {
           "track" -> Player.REPEAT_MODE_ONE
@@ -91,10 +101,7 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
           else -> Player.REPEAT_MODE_OFF
         },
       )
-      .setContentPositionMs(
-        if (np.isPlaying) PositionSupplier.getExtrapolating(livePositionMs, np.rate.toFloat())
-        else PositionSupplier.getConstant(positionMs),
-      )
+      .setContentPositionMs(position)
       .build()
   }
 
@@ -106,7 +113,10 @@ class CarForwardingPlayer(looper: Looper) : SimpleBasePlayer(looper) {
   }
 
   override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
-    if (playWhenReady && SystemClock.elapsedRealtime() < ignorePlayUntilMs) return Futures.immediateVoidFuture()
+    if (playWhenReady && hasRecentPlayRequest()) {
+      playRequestExpiresAtMs = 0L
+      return Futures.immediateVoidFuture()
+    }
     return transport(if (playWhenReady) "play" else "pause")
   }
 

@@ -1,5 +1,11 @@
 package expo.modules.bayaancar
 
+import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Build
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -28,11 +34,14 @@ class BayaanLibraryService : MediaLibraryService() {
   private val carControllers = mutableSetOf<MediaSession.ControllerInfo>()
   private var lastButtonKey: Pair<Boolean, String?>? = null
 
+  // Parent ids each controller subscribed to, so a snapshot change refreshes all of them.
+  private val subscriptions = mutableSetOf<Pair<MediaSession.ControllerInfo, String>>()
+
   private val snapshotListener: () -> Unit = {
     val s = session
     if (s != null) {
-      s.notifyChildrenChanged("root", CarBrowseTree.tabs.size, null)
-      CarBrowseTree.tabs.forEach { (id, _) -> s.notifyChildrenChanged(id, CarBrowseTree.children(id).size, null) }
+      val ids = (listOf("root") + CarBrowseTree.tabs.map { it.first } + subscriptions.map { it.second }).distinct()
+      ids.forEach { id -> s.notifyChildrenChanged(id, CarBrowseTree.children(id).size, null) }
     }
   }
   private val nowPlayingListener: () -> Unit = {
@@ -75,6 +84,35 @@ class BayaanLibraryService : MediaLibraryService() {
 
   override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaLibrarySession? = session
 
+  // Defense in depth. Nothing should start us as a foreground service (the manifest has no
+  // media button receiver for it and its MediaLibraryService action is removed so Media3 does
+  // not register one). If something still does, Android crashes the app unless startForeground
+  // runs, and even a stop without it crashes. So satisfy it with a minimal notification that is
+  // removed at once, and never forward the key to JS from here.
+  override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    if (intent?.action != Intent.ACTION_MEDIA_BUTTON) return super.onStartCommand(intent, flags, startId)
+    runCatching { satisfyForegroundStart() }.onFailure { CarLog.d("foreground start fallback failed: $it") }
+    stopSelf(startId)
+    return START_NOT_STICKY
+  }
+
+  private fun satisfyForegroundStart() {
+    val manager = getSystemService(NotificationManager::class.java)
+    val builder = if (Build.VERSION.SDK_INT >= 26) {
+      manager.createNotificationChannel(NotificationChannel(FGS_CHANNEL, "Bayaan car", NotificationManager.IMPORTANCE_MIN))
+      Notification.Builder(this, FGS_CHANNEL)
+    } else {
+      @Suppress("DEPRECATION") Notification.Builder(this)
+    }
+    val notification = builder.setSmallIcon(applicationInfo.icon).setContentTitle("Bayaan").build()
+    if (Build.VERSION.SDK_INT >= 29) {
+      startForeground(FGS_NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK)
+    } else {
+      startForeground(FGS_NOTIFICATION_ID, notification)
+    }
+    if (Build.VERSION.SDK_INT >= 24) stopForeground(STOP_FOREGROUND_REMOVE) else @Suppress("DEPRECATION") stopForeground(true)
+  }
+
   // expo-audio's AudioControlsService owns the phone notification and foreground state.
   // Media3 only starts a foreground service from the notification manager, which this
   // no-op bypasses, so this service is never foreground-required.
@@ -85,7 +123,9 @@ class BayaanLibraryService : MediaLibraryService() {
     CarBridge.onNowPlayingChanged.remove(nowPlayingListener)
     carControllers.clear()
     CarBridge.setConnected(false)
+    subscriptions.clear()
     player?.detach()
+    player?.release()
     session?.release()
     session = null
     player = null
@@ -115,7 +155,10 @@ class BayaanLibraryService : MediaLibraryService() {
       return MediaSession.ConnectionResult.AcceptedResultBuilder(session).setAvailableSessionCommands(commands).build()
     }
 
+    // Legacy MediaBrowser clients (Android Auto) are only removed after Media3's idle
+    // timeout or onDestroy, so a car disconnect can lag. The 10s skip buttons return then.
     override fun onDisconnected(session: MediaSession, controller: MediaSession.ControllerInfo) {
+      subscriptions.removeAll { it.first == controller }
       if (carControllers.remove(controller) && carControllers.isEmpty()) {
         CarBridge.setConnected(false)
       }
@@ -142,6 +185,25 @@ class BayaanLibraryService : MediaLibraryService() {
     ): ListenableFuture<LibraryResult<MediaItem>> =
       Futures.immediateFuture(LibraryResult.ofItem(CarBrowseTree.root(), params))
 
+    override fun onSubscribe(
+      session: MediaLibrarySession,
+      browser: MediaSession.ControllerInfo,
+      parentId: String,
+      params: LibraryParams?,
+    ): ListenableFuture<LibraryResult<Void>> {
+      subscriptions.add(browser to parentId)
+      return Futures.immediateFuture(LibraryResult.ofVoid())
+    }
+
+    override fun onUnsubscribe(
+      session: MediaLibrarySession,
+      browser: MediaSession.ControllerInfo,
+      parentId: String,
+    ): ListenableFuture<LibraryResult<Void>> {
+      subscriptions.remove(browser to parentId)
+      return Futures.immediateFuture(LibraryResult.ofVoid())
+    }
+
     override fun onGetChildren(
       session: MediaLibrarySession,
       browser: MediaSession.ControllerInfo,
@@ -150,7 +212,9 @@ class BayaanLibraryService : MediaLibraryService() {
       pageSize: Int,
       params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> =
-      Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(CarBrowseTree.children(parentId)), params))
+      Futures.immediateFuture(
+        LibraryResult.ofItemList(ImmutableList.copyOf(CarBrowseTree.slice(CarBrowseTree.children(parentId), page, pageSize)), params),
+      )
 
     override fun onSetMediaItems(
       mediaSession: MediaSession,
@@ -162,10 +226,9 @@ class BayaanLibraryService : MediaLibraryService() {
       ensureJs()
       val chosen = mediaItems.getOrNull(maxOf(startIndex, 0)) ?: mediaItems.firstOrNull()
       val request = chosen?.let { requestFor(it) }
-      if (request != null) {
-        player?.notePlayRequestSent()
-        CarBridge.sendPlay(request)
-      }
+        ?: return Futures.immediateFailedFuture(UnsupportedOperationException("no playable request"))
+      player?.notePlayRequestSent()
+      CarBridge.sendPlay(request)
       // Keep the forwarding player's own playlist; JS will push the real queue.
       return Futures.immediateFuture(MediaSession.MediaItemsWithStartPosition(ImmutableList.of(), 0, 0))
     }
@@ -177,7 +240,7 @@ class BayaanLibraryService : MediaLibraryService() {
       controller: MediaSession.ControllerInfo,
       isForPlayback: Boolean,
     ): ListenableFuture<MediaSession.MediaItemsWithStartPosition> {
-      if (isForPlayback) {
+      if (isForPlayback && player?.hasRecentPlayRequest() != true) {
         ensureJs()
         player?.notePlayRequestSent()
         CarBridge.sendPlay(RESUME_REQUEST)
@@ -204,7 +267,7 @@ class BayaanLibraryService : MediaLibraryService() {
       params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
       val s = CarBridge.snapshot
-      val items = CarSearch.search(s, query).mapNotNull { json ->
+      val results = CarSearch.search(s, query).mapNotNull { json ->
         val o = JSONObject(json)
         val surah = s?.surahs?.firstOrNull { it.id == o.getInt("surahId") } ?: return@mapNotNull null
         val reciter = s.reciters.firstOrNull { it.id == o.getString("reciterId") } ?: return@mapNotNull null
@@ -216,6 +279,7 @@ class BayaanLibraryService : MediaLibraryService() {
             .build(),
         ).build()
       }
+      val items = CarBrowseTree.slice(results, page, pageSize)
       return Futures.immediateFuture(LibraryResult.ofItemList(ImmutableList.copyOf(items), params))
     }
   }
@@ -230,6 +294,8 @@ class BayaanLibraryService : MediaLibraryService() {
 
   private companion object {
     const val GEARHEAD_PACKAGE = "com.google.android.projection.gearhead"
+    const val FGS_CHANNEL = "bayaan_car_fgs"
+    const val FGS_NOTIFICATION_ID = 7421
     const val RESUME_REQUEST = "{\"kind\":\"resume\"}"
   }
 }

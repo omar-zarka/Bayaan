@@ -24,21 +24,32 @@ object CarBrowseTree {
   fun surahRequest(reciterId: String, rewayatId: String, surahId: Int): String =
     JSONObject().put("kind", "surah").put("reciterId", reciterId).put("rewayatId", rewayatId).put("surahId", surahId).toString()
 
+  private const val MAX_CHILDREN = 500
+  private const val MAX_RECITERS = 250
+
+  /** One page of [items]; page and pageSize come from the controller and are clamped. */
+  fun <T> slice(items: List<T>, page: Int, pageSize: Int): List<T> {
+    if (page < 0 || pageSize <= 0) return emptyList()
+    val from = page.toLong() * pageSize
+    if (from >= items.size) return emptyList()
+    val to = minOf(items.size.toLong(), from + pageSize, from + MAX_CHILDREN)
+    return items.subList(from.toInt(), to.toInt())
+  }
+
   fun root(): MediaItem = browsable("root", "Bayaan", null, null)
 
   fun children(parentId: String): List<MediaItem> {
     if (parentId == "root") return tabs.map { (id, title) -> browsable(id, title, null, gridStyle(id != "tab:surahs")) }
     val s = CarBridge.snapshot ?: return listOf(message("Open Bayaan on your phone to get started"))
     return when {
-      parentId == "tab:home" -> home(s)
-      parentId == "tab:library" -> s.library.map { item(it, null) }
-      parentId == "tab:reciters" ->
-        s.reciters.sortedByDescending { it.isFavorite }.map { reciter(it, if (it.isFavorite) "Favorites" else "All reciters") }
+      parentId == "tab:home" -> home(s).orIfEmpty()
+      parentId == "tab:library" -> s.library.map { item(it, null) }.orIfEmpty()
+      parentId == "tab:reciters" -> s.reciters.sortedByDescending { it.isFavorite }.take(MAX_RECITERS)
+        .map { reciter(it, if (it.isFavorite) "Favorite reciters" else "All reciters") }.orIfEmpty()
       parentId == "tab:surahs" -> s.juz.flatMap { juz ->
         juz.surahIds.mapNotNull { id -> s.surahs.firstOrNull { it.id == id } }.map { surahBrowse(it, "Juz ${juz.number}") }
       }
-      parentId.startsWith("list:") -> s.lists[parentId.removePrefix("list:")]?.items?.map { item(it, null) }.orEmpty()
-        .ifEmpty { listOf(message("Nothing here yet")) }
+      parentId.startsWith("list:") -> s.lists[parentId.removePrefix("list:")]?.items?.map { item(it, null) }.orEmpty().orIfEmpty()
       parentId.startsWith("reciter:") -> reciterChildren(s, parentId.removePrefix("reciter:"))
       parentId.startsWith("rewayah:") -> {
         val (reciterId, rewayatId) = parentId.removePrefix("rewayah:").split(":", limit = 2).let { it[0] to it.getOrElse(1) { "" } }
@@ -49,10 +60,12 @@ object CarBrowseTree {
     }
   }
 
+  private fun List<MediaItem>.orIfEmpty(): List<MediaItem> = ifEmpty { listOf(message("Nothing here yet")) }
+
   private fun home(s: CarSnapshot): List<MediaItem> {
     val out = mutableListOf<MediaItem>()
-    s.quickStart.forEach { out.add(item(it, "Quick start")) }
-    s.sections.forEach { section -> section.items.forEach { out.add(item(it, section.title)) } }
+    s.quickStart.forEach { out.add(item(it, "Quick start", grid = true)) }
+    s.sections.forEach { section -> section.items.forEach { out.add(item(it, section.title, grid = true)) } }
     return out
   }
 
@@ -93,8 +106,12 @@ object CarBrowseTree {
   private fun reciter(r: CarReciter, group: String): MediaItem =
     browsable("reciter:${r.id}", r.name, if (r.rewayat.size > 1) "${r.rewayat.size} rewayat" else null, groupTitle(group), r.artwork)
 
-  private fun item(i: CarItem, group: String?): MediaItem {
+  private fun item(i: CarItem, group: String?, grid: Boolean = false): MediaItem {
     val extras = group?.let { groupTitle(it) } ?: Bundle()
+    // Per-item hint: a playable in a grid tab otherwise follows the tab's list playable style.
+    if (grid && i.action is CarItemAction.Play) {
+      extras.putInt(MediaConstants.EXTRAS_KEY_CONTENT_STYLE_SINGLE_ITEM, MediaConstants.EXTRAS_VALUE_CONTENT_STYLE_GRID_ITEM)
+    }
     i.progress?.let {
       extras.putInt(MediaConstants.EXTRAS_KEY_COMPLETION_STATUS, MediaConstants.EXTRAS_VALUE_COMPLETION_STATUS_PARTIALLY_PLAYED)
       extras.putDouble(MediaConstants.EXTRAS_KEY_COMPLETION_PERCENTAGE, it)
