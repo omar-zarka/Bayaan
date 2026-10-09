@@ -2,6 +2,7 @@ package expo.modules.bayaancar
 
 import android.content.ContentProvider
 import android.content.ContentValues
+import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -10,6 +11,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import android.os.SystemClock
 import android.util.Base64
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -17,7 +19,6 @@ import java.io.FileOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.UUID
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Serves car artwork to Android Auto. Exported but read-only; every key is
@@ -31,7 +32,15 @@ class CarArtworkProvider : ContentProvider() {
     private const val STALE_TMP_MS = 10 * 60 * 1000L
 
     @Volatile private var authority: String? = null
-    private val locks = ConcurrentHashMap<String, Any>()
+    private const val LOCK_STRIPES = 64
+    private const val DOWNLOAD_DEADLINE_MS = 15_000L
+    private val locks = Array(LOCK_STRIPES) { Any() }
+    private fun lockFor(name: String): Any = locks[(name.hashCode() and Int.MAX_VALUE) % LOCK_STRIPES]
+
+    // Lazily loaded snapshot for a cold process (no JS yet); retried at most every few seconds.
+    private val loadLock = Any()
+    @Volatile private var loaded: CarSnapshot? = null
+    private var lastLoadAttempt = 0L
 
     // Cached allowlist, rebuilt only when the snapshot or now playing instance changes.
     private class Allow(val snapshot: CarSnapshot?, val nowPlaying: CarNowPlaying?, val urls: Set<String>)
@@ -57,8 +66,20 @@ class CarArtworkProvider : ContentProvider() {
       String(Base64.decode(s, Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING), Charsets.UTF_8)
     }.getOrNull()
 
-    private fun allowedUrls(): Set<String> {
-      val snapshot = CarBridge.snapshot
+    private fun currentSnapshot(ctx: Context): CarSnapshot? {
+      CarBridge.snapshot?.let { return it }
+      loaded?.let { return it }
+      synchronized(loadLock) {
+        loaded?.let { return it }
+        val now = SystemClock.elapsedRealtime()
+        if (lastLoadAttempt != 0L && now - lastLoadAttempt < 5_000) return null
+        lastLoadAttempt = now
+        return CarBridge.loadSnapshotBlocking(ctx).also { loaded = it }
+      }
+    }
+
+    private fun allowedUrls(ctx: Context): Set<String> {
+      val snapshot = currentSnapshot(ctx)
       val nowPlaying = CarBridge.nowPlaying
       val cached = allow
       if (cached != null && cached.snapshot === snapshot && cached.nowPlaying === nowPlaying) return cached.urls
@@ -71,8 +92,6 @@ class CarArtworkProvider : ContentProvider() {
   override fun onCreate(): Boolean {
     val ctx = context ?: return false
     authority = "${ctx.packageName}.bayaancar.artwork"
-    // Cold process hit by the provider alone: load the persisted snapshot for the allowlist.
-    CarBridge.init(ctx.applicationContext ?: ctx)
     return true
   }
 
@@ -85,10 +104,11 @@ class CarArtworkProvider : ContentProvider() {
     if (mode != "r") return null
     val keyString = uri.pathSegments.singleOrNull() ?: return null
     val key = CarArtworkKeys.parseKey(keyString) ?: return null
+    if (key is ArtworkKey.Tile) return openTile(key)
     val dir = cacheDir() ?: return null
     val name = CarArtworkKeys.fileNameFor(keyString)
     val file = File(dir, name)
-    val lock = locks.getOrPut(name) { Any() }
+    val lock = lockFor(name)
     synchronized(lock) {
       if (!file.isFile) {
         val bitmap = render(key) ?: return null
@@ -99,6 +119,18 @@ class CarArtworkProvider : ContentProvider() {
       }
       return runCatching { ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY) }.getOrNull()
     }
+  }
+
+  /** Tiles are cheap to draw, so they are streamed through a pipe and never cached on disk. */
+  private fun openTile(key: ArtworkKey.Tile): ParcelFileDescriptor? {
+    val bitmap = render(key) ?: return null
+    val pipe = runCatching { ParcelFileDescriptor.createPipe() }.getOrNull() ?: return null
+    Thread {
+      runCatching {
+        ParcelFileDescriptor.AutoCloseOutputStream(pipe[1]).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+      }
+    }.start()
+    return pipe[0]
   }
 
   private fun writeAtomically(dir: File, target: File, bitmap: Bitmap): Boolean {
@@ -129,13 +161,14 @@ class CarArtworkProvider : ContentProvider() {
     is ArtworkKey.Url -> decode(key.encoded)?.let { fetchIfAllowed(it) }
     is ArtworkKey.Asset -> decode(key.encoded)?.let { asset(it) }
     is ArtworkKey.Tile -> decode(key.encoded)?.let { d ->
-      val parts = d.split("|", limit = 2)
-      tile(parts[0], parts.getOrElse(1) { "#333333" })
+      val (label, hex) = CarArtworkKeys.parseTile(d)
+      tile(label, hex)
     }
   }
 
   private fun fetchIfAllowed(url: String): Bitmap? {
-    if (!CarArtworkKeys.isHttps(url) || url !in allowedUrls()) return null
+    val ctx = context ?: return null
+    if (!CarArtworkKeys.isHttps(url) || url !in allowedUrls(ctx)) return null
     return download(url)
   }
 
@@ -160,11 +193,13 @@ class CarArtworkProvider : ContentProvider() {
 
   private fun readCapped(conn: HttpURLConnection): ByteArray? {
     val out = ByteArrayOutputStream()
+    val deadline = SystemClock.elapsedRealtime() + DOWNLOAD_DEADLINE_MS
     val buf = ByteArray(16 * 1024)
     conn.inputStream.use { input ->
       while (true) {
         val n = input.read(buf)
         if (n < 0) break
+        if (SystemClock.elapsedRealtime() > deadline) return null
         if (out.size() + n > CarArtworkKeys.MAX_DOWNLOAD_BYTES) return null
         out.write(buf, 0, n)
       }
@@ -176,10 +211,15 @@ class CarArtworkProvider : ContentProvider() {
   private fun decodeSquare(bytes: ByteArray): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-    if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+    if (!CarArtworkKeys.isDecodable(bounds.outWidth, bounds.outHeight)) return null
     val opts = BitmapFactory.Options().apply { inSampleSize = CarArtworkKeys.sampleSize(bounds.outWidth, bounds.outHeight) }
-    val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts) ?: return null
-    return squareScaled(decoded)
+    return try {
+      val decoded = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts) ?: return null
+      squareScaled(decoded)
+    } catch (e: OutOfMemoryError) {
+      CarLog.d("artwork decode OOM")
+      null
+    }
   }
 
   private fun squareScaled(src: Bitmap): Bitmap {
@@ -196,6 +236,7 @@ class CarArtworkProvider : ContentProvider() {
     if (id == 0) return null
     val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeResource(ctx.resources, id, opts)
+    if (!CarArtworkKeys.isDecodable(opts.outWidth, opts.outHeight)) return null
     val sample = CarArtworkKeys.sampleSize(opts.outWidth, opts.outHeight)
     val decoded = BitmapFactory.decodeResource(ctx.resources, id, BitmapFactory.Options().apply { inSampleSize = sample }) ?: return null
     return squareScaled(decoded)
@@ -205,7 +246,7 @@ class CarArtworkProvider : ContentProvider() {
     val size = CarArtworkKeys.SIZE
     val bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
-    canvas.drawColor(runCatching { Color.parseColor(hex) }.getOrDefault(Color.DKGRAY))
+    canvas.drawColor(runCatching { Color.parseColor(hex) }.getOrDefault(Color.parseColor(CarArtworkKeys.DEFAULT_TILE_HEX)))
     val text = CarArtworkKeys.tileText(label)
     if (text.isEmpty()) return bitmap
     val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {

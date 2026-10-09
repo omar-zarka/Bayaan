@@ -1,6 +1,7 @@
 package expo.modules.bayaancar
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -51,8 +52,10 @@ class CarArtworkKeysTest {
   @Test fun tileTextHandlesEmptyAndLong() {
     assertEquals("", CarArtworkKeys.tileText(""))
     assertEquals("", CarArtworkKeys.tileText("   "))
-    assertEquals("AB", CarArtworkKeys.tileText("abc"))
-    assertEquals("M", CarArtworkKeys.tileText("m"))
+    assertEquals("abc", CarArtworkKeys.tileText("abcdef"))
+    assertEquals("m", CarArtworkKeys.tileText("m"))
+    assertEquals("\u0645\u0634", CarArtworkKeys.tileText("\u0645\u0634"))
+    assertEquals("e\u0301ab", CarArtworkKeys.tileText("e\u0301abc"))
   }
 
   @Test fun evictionRemovesOldestUntilWithinBounds() {
@@ -64,9 +67,9 @@ class CarArtworkKeysTest {
 
   @Test fun httpsOnly() {
     assertTrue(CarArtworkKeys.isHttps("https://a.com/x.png"))
-    assertTrue(!CarArtworkKeys.isHttps("http://a.com/x.png"))
-    assertTrue(!CarArtworkKeys.isHttps("https://"))
-    assertTrue(!CarArtworkKeys.isHttps("file:///etc/passwd"))
+    assertFalse(CarArtworkKeys.isHttps("http://a.com/x.png"))
+    assertFalse(CarArtworkKeys.isHttps("https://"))
+    assertFalse(CarArtworkKeys.isHttps("file:///etc/passwd"))
   }
 
   @Test fun allowlistCollectsHttpsArtworkAndNullSnapshotIsEmpty() {
@@ -87,5 +90,33 @@ class CarArtworkKeysTest {
       setOf("https://a.com/1.png", "https://a.com/3.png", "https://a.com/5.png", "https://a.com/r.png"),
       CarArtworkKeys.allowedUrls(snap, null),
     )
+  }
+
+  @Test fun arabicIndicDigitsAndBoundaryRejected() {
+    assertNull(CarArtworkKeys.parseKey("surah-\u0661\u0668"))
+    assertNull(CarArtworkKeys.parseKey("surah-\u0661"))
+    assertNotNull(CarArtworkKeys.parseKey("url-" + "a".repeat(2048)))
+    assertNull(CarArtworkKeys.parseKey("url-" + "a".repeat(2049)))
+  }
+
+  @Test fun tileParsingUsesLastBarAndValidatesHex() {
+    assertEquals("a|b" to "#112233", CarArtworkKeys.parseTile("a|b|#112233"))
+    assertEquals("" to "#333333", CarArtworkKeys.parseTile("|#333333"))
+    assertEquals("ab" to "#333333", CarArtworkKeys.parseTile("ab|notacolor"))
+    assertEquals("ab" to "#333333", CarArtworkKeys.parseTile("ab"))
+    assertEquals("ab" to "#11223344", CarArtworkKeys.parseTile("ab|#11223344"))
+  }
+
+  @Test fun decodableBoundsRejectExtremes() {
+    assertTrue(CarArtworkKeys.isDecodable(1200, 1200))
+    assertTrue(CarArtworkKeys.isDecodable(400, 100))
+    assertFalse(CarArtworkKeys.isDecodable(401, 100))
+    assertFalse(CarArtworkKeys.isDecodable(20000, 20000))
+    assertFalse(CarArtworkKeys.isDecodable(0, 10))
+  }
+
+  @Test fun allowlistIncludesNowPlayingEvenWithoutSnapshot() {
+    val np = CarNowPlaying("t", "s", null, 1, true, 0.0, 1.0, 1.0, "off", false, CarArtwork.Url("https://a.com/np.png"), emptyList(), 0, 0L)
+    assertEquals(setOf("https://a.com/np.png"), CarArtworkKeys.allowedUrls(null, np))
   }
 }

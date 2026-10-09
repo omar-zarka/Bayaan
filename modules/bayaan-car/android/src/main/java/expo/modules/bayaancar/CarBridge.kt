@@ -58,6 +58,25 @@ object CarBridge {
     }
   }
 
+  /**
+   * Reads and parses the persisted snapshot on the calling thread (for binder threads such
+   * as the artwork provider). Does not touch bridge state unless the bridge snapshot is
+   * still empty, in which case it is published on main.
+   */
+  fun loadSnapshotBlocking(context: Context): CarSnapshot? {
+    snapshot?.let { return it }
+    val f = File(context.filesDir, "bayaan-car/snapshot.json")
+    if (!f.exists()) return null
+    val parsed = runCatching { CarSnapshot.parse(f.readText()) }.getOrNull() ?: return null
+    onMain {
+      if (snapshot == null) {
+        snapshot = parsed
+        onSnapshotChanged.forEach { it() }
+      }
+    }
+    return parsed
+  }
+
   /** A new module instance (new JS runtime) takes over. Not ready until markJsReady. */
   fun registerEmitter(token: Any, emitter: (String, Map<String, Any>) -> Unit) = onMain {
     owner = token

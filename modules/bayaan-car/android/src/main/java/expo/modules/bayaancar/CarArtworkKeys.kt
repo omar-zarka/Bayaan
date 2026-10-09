@@ -48,7 +48,6 @@ object CarArtworkKeys {
 
   /** Every https artwork URL referenced by the snapshot and now playing. */
   fun allowedUrls(snapshot: CarSnapshot?, nowPlaying: CarNowPlaying?): Set<String> {
-    if (snapshot == null) return emptySet()
     val out = HashSet<String>()
     fun add(a: CarArtwork?) {
       val u = when (a) {
@@ -58,12 +57,13 @@ object CarArtworkKeys {
       } ?: return
       if (isHttps(u)) out.add(u)
     }
+    add(nowPlaying?.artwork)
+    if (snapshot == null) return out
     snapshot.reciters.forEach { add(it.artwork) }
     snapshot.quickStart.forEach { add(it.artwork) }
     snapshot.library.forEach { add(it.artwork) }
     snapshot.sections.forEach { s -> s.items.forEach { add(it.artwork) } }
     snapshot.lists.values.forEach { l -> l.items.forEach { add(it.artwork) } }
-    add(nowPlaying?.artwork)
     return out
   }
 
@@ -84,12 +84,42 @@ object CarArtworkKeys {
     return Triple((width - side) / 2, (height - side) / 2, side)
   }
 
-  /** Initials for a tile; empty label gives empty text (plain tile). */
+  /** First 3 grapheme clusters of the label, not case-changed (matches iOS `label.prefix(3)`). */
   fun tileText(label: String): String {
-    val trimmed = label.trim()
-    if (trimmed.isEmpty()) return ""
-    val points = trimmed.codePoints().limit(2).toArray()
-    return String(points, 0, points.size).uppercase()
+    if (label.isBlank()) return ""
+    val it = java.text.BreakIterator.getCharacterInstance()
+    it.setText(label)
+    var end = 0
+    var count = 0
+    while (count < 3) {
+      val next = it.next()
+      if (next == java.text.BreakIterator.DONE) break
+      end = next
+      count++
+    }
+    return label.substring(0, end)
+  }
+
+  const val DEFAULT_TILE_HEX = "#333333"
+  private val hexColor = Regex("#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?")
+
+  /** Splits "label|hex" on the last '|'; an invalid or missing hex becomes the neutral default. */
+  fun parseTile(decoded: String): Pair<String, String> {
+    val bar = decoded.lastIndexOf('|')
+    if (bar < 0) return decoded to DEFAULT_TILE_HEX
+    val hex = decoded.substring(bar + 1)
+    return decoded.substring(0, bar) to (if (hexColor.matches(hex)) hex else DEFAULT_TILE_HEX)
+  }
+
+  const val MAX_ASPECT = 4
+  const val MAX_SIDE = 10_000
+
+  /** Rejects absurd aspect ratios and sizes before any pixel decode. */
+  fun isDecodable(width: Int, height: Int): Boolean {
+    if (width <= 0 || height <= 0) return false
+    val long = maxOf(width, height)
+    val short = minOf(width, height)
+    return long <= MAX_SIDE && long <= short.toLong() * MAX_ASPECT
   }
 
   /** Files to delete (oldest first) so the cache stays within both bounds. */
