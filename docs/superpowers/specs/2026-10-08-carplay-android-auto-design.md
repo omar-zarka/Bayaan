@@ -167,15 +167,17 @@ ExpoAudioService (expo-audio)
 interface CarSnapshot {
   version: 1;
   generatedAt: string; // ISO
+  topReciterId: string | null;
   home: {
     quickStart: CarItem[];   // max 4
     sections: CarSection[];  // For right now, Jump back in, Your reciters, Your playlists
   };
-  library: CarSection[];      // Loved, Playlists, Downloads, Favorite reciters
+  library: CarItem[];         // Loved, Playlists, Downloads, Favorite reciters (browse entries)
+  lists: Record<string, CarList>; // browse targets by id (loved, downloads, playlists, ...)
   reciters: CarReciter[];     // favorites first, then A to Z
   surahs: CarSurah[];         // 114
   juz: { number: number; surahIds: number[] }[];
-  searchIndex: { surahs: CarSearchSurah[]; reciters: CarSearchReciter[] };
+  downloadedKeys: string[];   // reciter:rewayah:surah keys of completed downloads
   surahArtworkBase?: string;  // https, ends in '/'; natives default to the Bayaan CDN
 }
 
