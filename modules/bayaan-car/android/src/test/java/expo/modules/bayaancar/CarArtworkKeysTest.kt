@@ -119,4 +119,29 @@ class CarArtworkKeysTest {
     val np = CarNowPlaying("t", "s", null, 1, true, 0.0, 1.0, 1.0, "off", false, CarArtwork.Url("https://a.com/np.png"), emptyList(), 0, 0L)
     assertEquals(setOf("https://a.com/np.png"), CarArtworkKeys.allowedUrls(null, np))
   }
+
+  @Test fun surahUrlUsesSnapshotBaseOnlyWhenHttps() {
+    assertEquals("https://cdn.fork.example/surah/18.png", CarArtworkKeys.surahUrl("https://cdn.fork.example/surah/", 18))
+    val fallback = CarArtworkKeys.DEFAULT_SURAH_BASE + "18.png"
+    listOf(
+      null,
+      "",
+      "http://cdn.fork.example/surah/",
+      "https://cdn.fork.example/surah",
+      "https://cdn.fork.example/surah/?x=",
+      "https://cdn.fork.example/a b/",
+      "https://cdn.fork.example/../x/",
+      "file:///data/",
+      "https:///",
+    ).forEach { assertEquals(it, fallback, CarArtworkKeys.surahUrl(it, 18)) }
+  }
+
+  @Test fun snapshotParsesOptionalSurahArtworkBase() {
+    val base = """{"version":1,"topReciterId":null,"home":{"quickStart":[],"sections":[]},"library":[],"lists":{},"reciters":[],"surahs":[],"juz":[],"downloadedKeys":[]"""
+    assertNull(CarSnapshot.parse("$base}")!!.surahArtworkBase)
+    assertEquals(
+      "https://cdn.fork.example/surah/",
+      CarSnapshot.parse("$base,\"surahArtworkBase\":\"https://cdn.fork.example/surah/\"}")!!.surahArtworkBase,
+    )
+  }
 }

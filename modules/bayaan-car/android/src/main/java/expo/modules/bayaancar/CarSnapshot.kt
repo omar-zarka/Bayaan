@@ -95,6 +95,7 @@ data class CarSnapshot(
   val surahs: List<CarSurah>,
   val juz: List<CarJuz>,
   val downloadedKeys: Set<String>,
+  val surahArtworkBase: String? = null,
 ) {
   companion object {
     /** Parses each element on its own; malformed elements are skipped, not fatal. */
@@ -137,6 +138,7 @@ data class CarSnapshot(
         },
         juz = o.getJSONArray("juz").mapObjects { j -> CarJuz(j.getInt("number"), j.getJSONArray("surahIds").ints()) },
         downloadedKeys = o.getJSONArray("downloadedKeys").let { a -> (0 until a.length()).map { a.getString(it) }.toSet() },
+        surahArtworkBase = if (o.has("surahArtworkBase") && !o.isNull("surahArtworkBase")) o.getString("surahArtworkBase") else null,
       )
     }.onFailure { CarLog.d("snapshot parse failed: $it") }.getOrNull()
   }

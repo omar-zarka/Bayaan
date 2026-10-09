@@ -21,7 +21,18 @@ final class CarArtworkCache {
   private let lock = NSLock()
   private var inFlight: [String: [(UIImage) -> Void]] = [:]
   private var failedAt: [String: Date] = [:]
-  private let surahBase = "https://cdn.thebayaan.com/assets/og-images/surah/"
+  private static let defaultSurahBase = "https://cdn.thebayaan.com/assets/og-images/surah/"
+
+  /// The snapshot's surah base when it is an https URL ending in "/", else Bayaan's CDN.
+  /// Mirrors the JS normalizer and the Android provider. Main thread only.
+  private var surahBase: String {
+    guard let base = CarBridge.shared.snapshot?.surahArtworkBase,
+      base.hasPrefix("https://"), base.hasSuffix("/"), base.count > "https://".count + 1,
+      !base.contains("/../"),
+      base.rangeOfCharacter(from: CharacterSet(charactersIn: "?#\\").union(.whitespacesAndNewlines)) == nil
+    else { return Self.defaultSurahBase }
+    return base
+  }
 
   private init() {
     let base = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]

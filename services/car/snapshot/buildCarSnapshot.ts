@@ -30,6 +30,29 @@ export interface CarSnapshotInput {
   systemPlaylists: SystemPlaylist[];
   surahToJuz: Record<number, number>;
   resolveReciterArtwork: (reciter: Reciter) => CarArtwork;
+  surahArtworkBase?: string;
+}
+
+export const DEFAULT_SURAH_ARTWORK_BASE =
+  'https://cdn.thebayaan.com/assets/og-images/surah/';
+
+/**
+ * Normalizes a fork-supplied surah artwork base to an https URL ending in '/'.
+ * Absent or non-https values fall back to Bayaan's CDN.
+ */
+export function normalizeSurahArtworkBase(raw: string | undefined): string {
+  const trimmed = raw?.trim().replace(/\/+$/, '');
+  if (!trimmed) return DEFAULT_SURAH_ARTWORK_BASE;
+  const base = `${trimmed}/`;
+  // Same rule the Android artwork provider enforces.
+  if (/^https:\/\/[^\s?#\\]+\/$/.test(base) && !base.includes('/../')) {
+    return base;
+  }
+  if (__DEV__)
+    console.warn(
+      '[CarSnapshot] surahArtworkCdnBase must be an https URL; using the default',
+    );
+  return DEFAULT_SURAH_ARTWORK_BASE;
 }
 
 const ALL_SURAH_IDS = Array.from({length: 114}, (_, i) => i + 1);
@@ -470,5 +493,6 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
     downloadedKeys: input.downloads
       .filter(d => d.status === 'completed')
       .map(d => downloadKey(d.reciterId, d.rewayatId, Number(d.surahId))),
+    surahArtworkBase: normalizeSurahArtworkBase(input.surahArtworkBase),
   };
 }

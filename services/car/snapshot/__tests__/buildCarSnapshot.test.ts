@@ -2,6 +2,8 @@ import {
   buildCarSnapshot,
   CarSnapshotInput,
   availableSurahIds,
+  normalizeSurahArtworkBase,
+  DEFAULT_SURAH_ARTWORK_BASE,
 } from '../buildCarSnapshot';
 import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
@@ -304,5 +306,36 @@ describe('buildCarSnapshot', () => {
     );
     const ids = snap.home.sections.flatMap(s => s.items.map(i => i.id));
     expect(ids).not.toContain('now:morning');
+  });
+
+  it('emits the surah artwork base, defaulting to the Bayaan CDN', () => {
+    expect(buildCarSnapshot(input()).surahArtworkBase).toBe(
+      DEFAULT_SURAH_ARTWORK_BASE,
+    );
+    expect(
+      buildCarSnapshot(
+        input({surahArtworkBase: 'https://cdn.fork.example/surah'}),
+      ).surahArtworkBase,
+    ).toBe('https://cdn.fork.example/surah/');
+  });
+
+  it('accepts only https surah artwork bases', () => {
+    expect(normalizeSurahArtworkBase(undefined)).toBe(
+      DEFAULT_SURAH_ARTWORK_BASE,
+    );
+    expect(normalizeSurahArtworkBase(' https://a.example/s/// ')).toBe(
+      'https://a.example/s/',
+    );
+    [
+      '',
+      'http://a.example/s/',
+      'https://',
+      'https://a.example/s?x=1',
+      'https://a.example/a b/',
+      'https://a.example/../s',
+      'file:///data/',
+    ].forEach(raw =>
+      expect(normalizeSurahArtworkBase(raw)).toBe(DEFAULT_SURAH_ARTWORK_BASE),
+    );
   });
 });

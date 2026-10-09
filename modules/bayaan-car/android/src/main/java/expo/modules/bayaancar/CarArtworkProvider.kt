@@ -23,11 +23,10 @@ import java.util.UUID
 /**
  * Serves car artwork to Android Auto. Exported but read-only; every key is
  * validated, network fetches are limited to https URLs present in the current
- * snapshot (plus the fixed surah CDN), and the on-disk cache is bounded.
+ * snapshot (plus `{surahArtworkBase}{id}.png`), and the on-disk cache is bounded.
  */
 class CarArtworkProvider : ContentProvider() {
   companion object {
-    private const val SURAH_BASE = "https://cdn.thebayaan.com/assets/og-images/surah/"
     private const val TIMEOUT_MS = 10_000
     private const val STALE_TMP_MS = 10 * 60 * 1000L
 
@@ -157,7 +156,9 @@ class CarArtworkProvider : ContentProvider() {
   }
 
   private fun render(key: ArtworkKey): Bitmap? = when (key) {
-    is ArtworkKey.Surah -> download("$SURAH_BASE${key.surahId}.png")
+    is ArtworkKey.Surah -> context?.let { ctx ->
+      download(CarArtworkKeys.surahUrl(currentSnapshot(ctx)?.surahArtworkBase, key.surahId))
+    }
     is ArtworkKey.Url -> decode(key.encoded)?.let { fetchIfAllowed(it) }
     is ArtworkKey.Asset -> decode(key.encoded)?.let { asset(it) }
     is ArtworkKey.Tile -> decode(key.encoded)?.let { d ->

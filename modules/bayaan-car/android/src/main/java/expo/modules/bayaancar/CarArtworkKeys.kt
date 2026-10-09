@@ -69,6 +69,16 @@ object CarArtworkKeys {
 
   fun isHttps(url: String): Boolean = url.startsWith("https://") && url.length > "https://".length
 
+  const val DEFAULT_SURAH_BASE = "https://cdn.thebayaan.com/assets/og-images/surah/"
+  private val surahBasePattern = Regex("https://[^\\s?#\\\\]+/")
+
+  /** The snapshot's surah base when it is an https URL ending in '/', else the default CDN. */
+  fun surahBase(fromSnapshot: String?): String =
+    fromSnapshot?.takeIf { surahBasePattern.matches(it) && !it.contains("/../") } ?: DEFAULT_SURAH_BASE
+
+  /** Surah fetches only ever go to `{base}{id}.png`. */
+  fun surahUrl(fromSnapshot: String?, surahId: Int): String = "${surahBase(fromSnapshot)}$surahId.png"
+
   /** Largest power-of-two sample size that keeps both dimensions at or above [target]. */
   fun sampleSize(width: Int, height: Int, target: Int = SIZE): Int {
     if (width <= 0 || height <= 0) return 1

@@ -288,6 +288,16 @@ export interface Branding {
    */
   timestampCdnBase?: string;
   /**
+   * Base URL for the surah cards CarPlay and Android Auto show, laid out as
+   * `{base}{surahId}.png` (dark) and `{base}{surahId}-light.png` (light).
+   * Follows the RFC-015 pattern.
+   *
+   * Field absent → `'https://cdn.thebayaan.com/assets/og-images/surah/'`.
+   * Must be https; a trailing slash is optional. A non-https value falls
+   * back to the default.
+   */
+  surahArtworkCdnBase?: string;
+  /**
    * RFC-019 — optional provider for **bundled** ayah-timing data, for forks
    * that ship their own offline-authored timestamps for a reciter rather than
    * serving them from a CDN (see `timestampCdnBase`, RFC-015).

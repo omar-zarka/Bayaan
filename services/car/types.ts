@@ -86,6 +86,8 @@ export interface CarSnapshot {
   surahs: CarSurah[];
   juz: {number: number; surahIds: number[]}[];
   downloadedKeys: string[];
+  /** https base for surah cards, ending in '/'. Natives fall back to Bayaan's CDN when absent. */
+  surahArtworkBase?: string;
 }
 
 export type CarTransport =

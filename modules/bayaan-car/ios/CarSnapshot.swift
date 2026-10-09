@@ -216,9 +216,11 @@ struct CarSnapshot: Decodable {
   let surahs: [CarSurah]
   let juz: [CarJuz]
   let downloadedKeys: [String]
+  let surahArtworkBase: String?
 
   private enum Keys: String, CodingKey {
     case version, generatedAt, topReciterId, home, library, lists, reciters, surahs, juz, downloadedKeys
+    case surahArtworkBase
   }
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: Keys.self)
@@ -232,6 +234,7 @@ struct CarSnapshot: Decodable {
     surahs = try c.decodeLossy([CarSurah].self, forKey: .surahs)
     juz = try c.decodeLossy([CarJuz].self, forKey: .juz)
     downloadedKeys = try c.decode([String].self, forKey: .downloadedKeys)
+    surahArtworkBase = try? c.decodeIfPresent(String.self, forKey: .surahArtworkBase)
   }
 }
 

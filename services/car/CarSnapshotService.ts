@@ -1,4 +1,5 @@
 import {AppState, Image} from 'react-native';
+import branding from '@/config/branding';
 import {BayaanCar} from '@/modules/bayaan-car';
 import {RECITERS, Reciter} from '@/data/reciterData';
 import {SURAHS} from '@/data/surahData';
@@ -113,6 +114,7 @@ export async function writeCarSnapshotNow(): Promise<void> {
     systemPlaylists: context.systemPlaylists,
     surahToJuz: SURAH_TO_JUZ,
     resolveReciterArtwork,
+    surahArtworkBase: branding.surahArtworkCdnBase,
   });
   // An older concurrent write must not overwrite a newer one.
   if (seq < committedSeq) return;
