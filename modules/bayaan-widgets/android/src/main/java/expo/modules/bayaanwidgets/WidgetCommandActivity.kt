@@ -68,6 +68,11 @@ class WidgetCommandActivity : Activity() {
     }
     runCatching { ContinueListeningWidget.pushState(context) }
     runCatching { OverrideExpiryWorker.schedule(context) }
+    // JS is alive: play/pause need no JS timers, so it can drain in place.
+    if (WidgetStorage.onCommandQueued != null) {
+      withContext(Dispatchers.IO) { WidgetStorage.enqueueCommand(context, command) }
+      return
+    }
     if (controlSession(context, playing)) return
     queueAndOpenApp(context, command)
   }
