@@ -116,6 +116,7 @@ describe('drainWidgetCommands', () => {
 
   it('forces a Continue Listening write after handling a command', async () => {
     const sync = loadModule();
+    sync.markSessionRestoredForWidgets();
     sync.markPlayerReadyForWidgets();
     await flush();
     mockWriteSnapshot.mockClear();
@@ -129,10 +130,22 @@ describe('drainWidgetCommands', () => {
 
   it('does not write a snapshot when no command was handled', async () => {
     const sync = loadModule();
+    sync.markSessionRestoredForWidgets();
     sync.markPlayerReadyForWidgets();
     await flush();
     await sync.drainWidgetCommands();
     expect(mockWriteSnapshot).not.toHaveBeenCalled();
+  });
+
+  it('does nothing before the session is restored', async () => {
+    const sync = loadModule();
+    mockTakeQueuedCommands.mockReturnValue([queued(toggle)]);
+    sync.markPlayerReadyForWidgets();
+    await sync.drainWidgetCommands();
+    expect(mockHandleWidgetCommand).not.toHaveBeenCalled();
+    sync.markSessionRestoredForWidgets();
+    await flush();
+    expect(mockHandleWidgetCommand).toHaveBeenCalledWith(toggle);
   });
 
   it('does nothing before the player is ready', async () => {
@@ -147,6 +160,7 @@ describe('drainWidgetCommands', () => {
     const sync = loadModule();
     mockTakeQueuedCommands.mockReturnValueOnce([queued(toggle)]);
     mockTakeQueuedCommands.mockReturnValue([]);
+    sync.markSessionRestoredForWidgets();
     sync.markPlayerReadyForWidgets();
     await sync.drainWidgetCommands();
     expect(mockHandleWidgetCommand).toHaveBeenCalledWith(toggle);
@@ -154,6 +168,7 @@ describe('drainWidgetCommands', () => {
 
   it('continues past a command that throws', async () => {
     const sync = loadModule();
+    sync.markSessionRestoredForWidgets();
     sync.markPlayerReadyForWidgets();
     await flush();
     mockHandleWidgetCommand.mockReset();
@@ -174,6 +189,7 @@ describe('drainWidgetCommands', () => {
 
   it('never runs two drains concurrently and re-drains without dropping commands', async () => {
     const sync = loadModule();
+    sync.markSessionRestoredForWidgets();
     sync.markPlayerReadyForWidgets();
     await flush();
     mockHandleWidgetCommand.mockReset();

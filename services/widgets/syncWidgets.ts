@@ -28,6 +28,9 @@ const ARTWORK_RETRY_MS = 10 * 60 * 1000;
 let lastSnapshot: WidgetSnapshot | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let playerReady = false;
+// Set once restoreSession has populated the queue and saved position, so a
+// cold-start command does not run against an empty or stale player store.
+let sessionRestored = false;
 const artworkFailures = new Map<string, number>();
 const artworkInFlight = new Set<string>();
 
@@ -121,7 +124,7 @@ let draining = false;
 let redrainRequested = false;
 
 export async function drainWidgetCommands(): Promise<void> {
-  if (!playerReady) return;
+  if (!playerReady || !sessionRestored) return;
   if (draining) {
     redrainRequested = true;
     return;
@@ -154,8 +157,15 @@ export function markPlayerReadyForWidgets(): void {
   void drainWidgetCommands();
 }
 
+export function markSessionRestoredForWidgets(): void {
+  sessionRestored = true;
+  void drainWidgetCommands();
+}
+
+// The root layout starts sync only after restoreSession has finished.
 export function startWidgetSync(): () => void {
   if (!isWidgetsAvailable()) return () => undefined;
+  markSessionRestoredForWidgets();
   const unsubs = [
     usePlayerStore.subscribe(schedule),
     useRecentlyPlayedStore.subscribe(schedule),
