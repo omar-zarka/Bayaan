@@ -106,8 +106,13 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
 
 // Trailing throttle: the first change starts the timer and later changes do
 // not reset it, so continuous updates (playback ticks) still flush every
-// DEBOUNCE_MS.
+// DEBOUNCE_MS. Android pauses JS timers while the app is backgrounded, so
+// flush right away then; changedWidgetKinds keeps playback ticks from writing.
 function schedule(): void {
+  if (AppState.currentState === 'background') {
+    flushWidgetSnapshot();
+    return;
+  }
   if (timer) return;
   timer = setTimeout(flushWidgetSnapshot, DEBOUNCE_MS);
 }

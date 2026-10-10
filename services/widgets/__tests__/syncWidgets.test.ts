@@ -13,6 +13,7 @@ const mockCollect = jest.fn();
 const mockReciterById = jest.fn();
 const mockCommandRemove = jest.fn();
 const mockAppStateRemove = jest.fn();
+let mockAppStateCurrent = 'active';
 const mockUnsubs: jest.Mock[] = [];
 const mockCallbacks: Array<() => void> = [];
 const mockSubscribe = jest.fn((cb: () => void) => {
@@ -36,10 +37,15 @@ jest.mock('bayaan-widgets', () => ({
 }));
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
-  jest.spyOn(actual.AppState, 'addEventListener').mockImplementation(() => ({
-    remove: mockAppStateRemove,
-  }));
-  return actual;
+  const appState = {
+    addEventListener: () => ({remove: mockAppStateRemove}),
+    get currentState(): string {
+      return mockAppStateCurrent;
+    },
+  };
+  return new Proxy(actual, {
+    get: (target, prop) => (prop === 'AppState' ? appState : target[prop]),
+  });
 });
 jest.mock('@/services/player/store/playerStore', () => ({
   usePlayerStore: {subscribe: (cb: () => void) => mockSubscribe(cb)},
@@ -232,6 +238,7 @@ describe('widget snapshot flush', () => {
     mockCallbacks.length = 0;
     mockCommandRemove.mockClear();
     mockAppStateRemove.mockClear();
+    mockAppStateCurrent = 'active';
     jest.spyOn(console, 'error').mockImplementation(() => undefined);
     jest.mocked(console.error).mockClear();
   });
@@ -246,6 +253,18 @@ describe('widget snapshot flush', () => {
     jest.advanceTimersByTime(1000);
     expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
     expect(mockReloadWidgets).toHaveBeenCalledWith(['ContinueListening']);
+    stop();
+  });
+
+  it('flushes at once while the app is not active (timers may be paused)', () => {
+    mockAppStateCurrent = 'background';
+    const sync = loadModule();
+    const stop = sync.startWidgetSync();
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+    const tick = mockCallbacks[0];
+    if (!tick) throw new Error('no subscriber');
+    tick();
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
     stop();
   });
 

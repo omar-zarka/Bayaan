@@ -25,7 +25,6 @@ import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.SizeMode
-import androidx.glance.appwidget.action.actionSendBroadcast
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
@@ -52,7 +51,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import expo.modules.bayaanwidgets.ArtworkStore
-import expo.modules.bayaanwidgets.CommandReceiver
+import expo.modules.bayaanwidgets.WidgetCommandActivity
 import expo.modules.bayaanwidgets.PlaybackOverride
 import expo.modules.bayaanwidgets.PlaybackState
 import expo.modules.bayaanwidgets.SnapshotModels
@@ -211,8 +210,8 @@ class ContinueListeningWidget : GlanceAppWidget() {
       contentDescription = if (isPlaying) "Pause" else "Play",
       modifier = GlanceModifier.size(34.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(17.dp)
         .padding(7.dp).clickable(
-          actionSendBroadcast(
-            CommandReceiver.intent(context, cmd)
+          actionStartActivity(
+            WidgetCommandActivity.intent(context, cmd)
               .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
           ),
         ),
@@ -288,8 +287,8 @@ class ContinueListeningWidget : GlanceAppWidget() {
   private fun TrackRow(context: Context, t: WidgetTrack, art: Int) {
     val cmd = playTrackCommand(t)
     val base = if (t.isUserUpload || t.surahId == 0) GlanceModifier else GlanceModifier.clickable(
-      actionSendBroadcast(
-        CommandReceiver.intent(context, cmd)
+      actionStartActivity(
+        WidgetCommandActivity.intent(context, cmd)
           .setData(Uri.parse("bayaan-widget://row/${t.surahId}/${t.reciterId}")),
       ),
     )

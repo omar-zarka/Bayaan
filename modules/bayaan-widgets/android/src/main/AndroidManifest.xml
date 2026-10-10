@@ -1,8 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <application>
-    <receiver
-      android:name="expo.modules.bayaanwidgets.CommandReceiver"
-      android:exported="false" />
+    <activity
+      android:name="expo.modules.bayaanwidgets.WidgetCommandActivity"
+      android:exported="false"
+      android:excludeFromRecents="true"
+      android:noHistory="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar" />
     <receiver
       android:name="expo.modules.bayaanwidgets.continuelistening.ContinueListeningReceiver"
       android:exported="true"
