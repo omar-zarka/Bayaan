@@ -4,7 +4,7 @@ Plan: `docs/superpowers/plans/2026-10-08-widgets-phase-1a.md` (Task 10).
 
 Environment:
 - iOS: iPhone 17 Pro simulator, iOS 26.2 ("Bayaan Widgets", B68030CC), Xcode 27. Release build via xcodebuild unless noted (the Debug dev client cannot run app JS on a background launch).
-- Android: pending (Pixel_API_36 emulator, once disk space allows).
+- Android: Pixel_API_36 emulator, API 36, Release APK via `./gradlew :app:assembleRelease`.
 - The host was heavily loaded for part of the run (load average 200 to 800 from other sessions' builds), so absolute timings below are not representative of a phone.
 
 Status key: PASS, PARTIAL, FAIL, PENDING.
@@ -33,7 +33,7 @@ Status key: PASS, PARTIAL, FAIL, PENDING.
 
 ### Open items
 
-- Item 1: background cold boot with a restored session can exceed the 60 s command window. Measure on a phone first.
+- Item 1: background cold boot with a restored session can exceed the 60 s command window. Measure on a phone first. Since `5ae7d5c7` the drain also waits for the session restore, so a command that does run resumes at the saved position instead of 0.
 - Item 10: `bayaan://player` from a cold start does not open the full player. The sheet renders nothing until the session is restored; waiting for the restore was tried and did not help, so the cause is not found yet.
 - After the app is killed while playing, the widget keeps showing "playing" with a running countdown until the computed track end (M6 behavior), since no final snapshot is written.
 - Small widget truncates long reciter names when the countdown shows.
@@ -41,12 +41,32 @@ Status key: PASS, PARTIAL, FAIL, PENDING.
 
 ## Android
 
-All items PENDING (disk space).
+| # | Check | Result | Notes |
+|---|-------|--------|-------|
+| 1 | App not running, tap Play on the widget | PASS | Icon flips at once; the app opens and plays within about 9 s, resuming at the saved position (saved 0:22, resumed at 24.2 s). Required `e184d971` (broadcast receiver could not open the app on API 34+: I9 confirmed) and `5ae7d5c7` (command ran before the session restore and played from 0). |
+| 2 | App alive in background, pause then play | PASS | Play and pause run in place (launcher stays in front), icon flips at once, media session follows. Required `624d55f6`: the first version of the activity brought the app forward on every pause. |
+| 3 | Tap an up-next row (medium) | PASS | Opens the app and plays that surah with the same reciter and rewayah within about 2 s. Before `e184d971` a row tap while paused stalled until the app was opened, because React Native pauses JS timers in the background. Android row taps open the app by design (Ruling 24); iOS plays in place. |
+| 4 | Fresh install | Not rerun | Shared JS path verified on iOS; reinstalling would remove the placed widget. |
+| 5 | Playback with widget visible | PASS | Widget follows track changes while the app is backgrounded (An-Nahl to Al-Kahf, up-next list updated) after `e184d971` made the background flush immediate. While playing, Android shows no countdown by design (static "N min left" only when paused). |
+| 6, 7 | Theme, missing artwork | Not rerun | Shared JS path verified on iOS. |
+| 9 | Resize through all three sizes | PASS | 2x2 small, 3x2 medium (hero plus three up-next rows), 3x4 large (hero plus rows); layout switches cleanly each time. |
+| 10 | Deep links | PASS | `quran/18?ayah=10` opens page 294; `player` from a cold start opens the full player (unlike iOS). |
+| 11 | `npm run prebuild` (Android) from clean reproduces a building project | PASS | Widget receivers and manifest entries regenerate unchanged; Release build succeeds. Other drift (Sentry gradle line, versions, EXUpdates, App Links filter) predates this branch. |
+
+### Fixes made during the Android run
+
+- `e184d971` Route Android widget taps through a translucent `WidgetCommandActivity` instead of a broadcast receiver, and flush the widget snapshot immediately while the app is backgrounded (JS timers are paused there).
+- `5ae7d5c7` Drain widget commands only after the session restore, so a cold-start Play resumes at the saved position. Shared code, so this also applies to iOS.
+- `624d55f6` Keep Android play/pause in place while JS is alive.
+
+### Android open items
+
+- One "Bayaan isn't responding" (reason: no response to `onStartJob`, likely the icon-expiry WorkManager job) appeared while the mushaf page rendered after a deep link. The emulator logged ANRs in many processes during the run, including System UI, so this needs a look on a real phone before release.
 
 ## Carried items
 
 | Item | Result | Notes |
 |------|--------|-------|
 | Optimistic override expires after 61 s | PASS (iOS) | Seen in item 1: when the command was dropped, the icon reverted to Play once the override expired. |
-| I9: Android background activity launch on API 34+ | PENDING | Android |
-| Bitmap payload under RemoteViews limit | PENDING | Android |
+| I9: Android background activity launch on API 34+ | CONFIRMED, FIXED | The receiver's `startActivity` was blocked; fixed by `e184d971`. |
+| Bitmap payload under RemoteViews limit | PASS | No `TransactionTooLarge` from Bayaan across all three sizes (the one failed binder in logcat was Google Play services). |
