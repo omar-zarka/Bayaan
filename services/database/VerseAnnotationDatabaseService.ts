@@ -1,28 +1,41 @@
-import * as SQLite from 'expo-sqlite';
 import type {
   VerseBookmark,
   VerseNote,
   VerseHighlight,
   HighlightColor,
+  AnnotationOwnerScope,
 } from '@/types/verse-annotations';
 import {
   ALL_REWAYAH_IDS,
-  PERSISTED_ID_MIGRATIONS,
+  migratePersistedId,
   type RewayahId,
 } from '@/services/rewayah/RewayahIdentity';
+import {verseAnnotationDatabase} from '@/services/database/VerseAnnotationDatabase';
+import {GUEST_OWNER_SCOPE} from '@/services/database/migrations/userSyncV1';
+import type {SQLiteDatabase} from 'expo-sqlite';
+
+type AnnotationSqliteExecutor = Pick<
+  SQLiteDatabase,
+  'runAsync' | 'getFirstAsync'
+>;
 
 // Database row types (snake_case)
 interface BookmarkRow {
   id: string;
+  owner_scope: AnnotationOwnerScope;
   verse_key: string;
   surah_number: number;
   ayah_number: number;
   created_at: number;
   rewayah_id: string | null;
+  remote_id: string | null;
+  server_created_at: number | null;
+  server_updated_at: number | null;
 }
 
 interface NoteRow {
   id: string;
+  owner_scope: AnnotationOwnerScope;
   verse_key: string;
   surah_number: number;
   ayah_number: number;
@@ -31,16 +44,23 @@ interface NoteRow {
   created_at: number;
   updated_at: number;
   rewayah_id: string | null;
+  remote_id: string | null;
+  server_created_at: number | null;
+  server_updated_at: number | null;
 }
 
 interface HighlightRow {
   id: string;
+  owner_scope: AnnotationOwnerScope;
   verse_key: string;
   surah_number: number;
   ayah_number: number;
   color: string;
   created_at: number;
   rewayah_id: string | null;
+  remote_id: string | null;
+  server_created_at: number | null;
+  server_updated_at: number | null;
 }
 
 function generateId(): string {
@@ -55,20 +75,29 @@ function parseRewayahId(value: string | null): RewayahId | undefined {
   return known.has(value as RewayahId) ? (value as RewayahId) : undefined;
 }
 
+function resolveRewayahId(value: string | undefined): RewayahId {
+  return migratePersistedId(value ?? 'hafs');
+}
+
 function mapBookmarkRow(row: BookmarkRow): VerseBookmark {
   return {
     id: row.id,
+    ownerScope: row.owner_scope,
     verseKey: row.verse_key,
     surahNumber: row.surah_number,
     ayahNumber: row.ayah_number,
     createdAt: row.created_at,
     rewayahId: parseRewayahId(row.rewayah_id),
+    remoteId: row.remote_id ?? undefined,
+    serverCreatedAt: row.server_created_at ?? undefined,
+    serverUpdatedAt: row.server_updated_at ?? undefined,
   };
 }
 
 function mapNoteRow(row: NoteRow): VerseNote {
   return {
     id: row.id,
+    ownerScope: row.owner_scope,
     verseKey: row.verse_key,
     surahNumber: row.surah_number,
     ayahNumber: row.ayah_number,
@@ -77,195 +106,47 @@ function mapNoteRow(row: NoteRow): VerseNote {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     rewayahId: parseRewayahId(row.rewayah_id),
+    remoteId: row.remote_id ?? undefined,
+    serverCreatedAt: row.server_created_at ?? undefined,
+    serverUpdatedAt: row.server_updated_at ?? undefined,
   };
 }
 
 function mapHighlightRow(row: HighlightRow): VerseHighlight {
   return {
     id: row.id,
+    ownerScope: row.owner_scope,
     verseKey: row.verse_key,
     surahNumber: row.surah_number,
     ayahNumber: row.ayah_number,
     color: row.color as HighlightColor,
     createdAt: row.created_at,
     rewayahId: parseRewayahId(row.rewayah_id),
+    remoteId: row.remote_id ?? undefined,
+    serverCreatedAt: row.server_created_at ?? undefined,
+    serverUpdatedAt: row.server_updated_at ?? undefined,
   };
 }
 
-class VerseAnnotationDatabaseService {
-  private db: SQLite.SQLiteDatabase | null = null;
-  private initPromise: Promise<void> | null = null;
-  private ready = false;
+function requireOwnerScope(
+  ownerScope: AnnotationOwnerScope,
+): AnnotationOwnerScope {
+  if (!ownerScope) {
+    throw new Error('ownerScope is required');
+  }
+
+  return ownerScope;
+}
+
+export class VerseAnnotationDatabaseService {
+  constructor(private readonly database = verseAnnotationDatabase) {}
 
   async initialize(): Promise<void> {
-    if (this.ready) return;
-
-    if (this.initPromise) {
-      return this.initPromise;
-    }
-
-    this.initPromise = (async () => {
-      try {
-        this.db = await SQLite.openDatabaseAsync('verse-annotations.db');
-        await this.createTables();
-        this.ready = true;
-      } catch (error) {
-        console.error(
-          'Failed to initialize verse annotations database:',
-          error,
-        );
-        this.initPromise = null;
-        throw error;
-      }
-    })();
-
-    return this.initPromise;
+    await this.database.initialize();
   }
 
-  private async ensureReady(): Promise<SQLite.SQLiteDatabase> {
-    if (!this.ready && this.initPromise) {
-      await this.initPromise;
-    }
-    if (!this.db || !this.ready) {
-      throw new Error('Database not initialized');
-    }
-    return this.db;
-  }
-
-  private async createTables(): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-
-    await this.db.execAsync('PRAGMA journal_mode = WAL;');
-
-    await this.db.execAsync(`
-      CREATE TABLE IF NOT EXISTS bookmarks (
-        id TEXT PRIMARY KEY,
-        verse_key TEXT NOT NULL UNIQUE,
-        surah_number INTEGER NOT NULL,
-        ayah_number INTEGER NOT NULL,
-        created_at INTEGER NOT NULL
-      );
-    `);
-
-    await this.db.execAsync(`
-      CREATE INDEX IF NOT EXISTS idx_bookmarks_surah
-      ON bookmarks(surah_number);
-    `);
-
-    await this.db.execAsync(`
-      CREATE TABLE IF NOT EXISTS notes (
-        id TEXT PRIMARY KEY,
-        verse_key TEXT NOT NULL,
-        surah_number INTEGER NOT NULL,
-        ayah_number INTEGER NOT NULL,
-        content TEXT NOT NULL,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      );
-    `);
-
-    // Migration: drop UNIQUE constraint if it exists from older schema
-    // SQLite doesn't support ALTER TABLE DROP CONSTRAINT, so we check and recreate
-    try {
-      const tableInfo = (await this.db.getAllAsync(
-        `PRAGMA index_list(notes)`,
-      )) as Array<{name: string; unique: number}>;
-      const hasUniqueIndex = tableInfo.some(
-        idx =>
-          idx.unique === 1 &&
-          idx.name !== 'sqlite_autoindex_notes_1' &&
-          idx.name.includes('verse_key'),
-      );
-      // If there's a sqlite autoindex from UNIQUE constraint, recreate table
-      const hasAutoIndex = tableInfo.some(
-        idx => idx.name === 'sqlite_autoindex_notes_1',
-      );
-      if (hasAutoIndex || hasUniqueIndex) {
-        await this.db.execAsync(`
-          CREATE TABLE IF NOT EXISTS notes_new (
-            id TEXT PRIMARY KEY,
-            verse_key TEXT NOT NULL,
-            surah_number INTEGER NOT NULL,
-            ayah_number INTEGER NOT NULL,
-            content TEXT NOT NULL,
-            created_at INTEGER NOT NULL,
-            updated_at INTEGER NOT NULL
-          );
-        `);
-        await this.db.execAsync(`
-          INSERT OR IGNORE INTO notes_new SELECT * FROM notes;
-        `);
-        await this.db.execAsync(`DROP TABLE notes;`);
-        await this.db.execAsync(`ALTER TABLE notes_new RENAME TO notes;`);
-      }
-    } catch {
-      // Migration already done or not needed
-    }
-
-    await this.db.execAsync(`
-      CREATE INDEX IF NOT EXISTS idx_notes_surah
-      ON notes(surah_number);
-    `);
-
-    await this.db.execAsync(`
-      CREATE TABLE IF NOT EXISTS highlights (
-        id TEXT PRIMARY KEY,
-        verse_key TEXT NOT NULL UNIQUE,
-        surah_number INTEGER NOT NULL,
-        ayah_number INTEGER NOT NULL,
-        color TEXT NOT NULL,
-        created_at INTEGER NOT NULL
-      );
-    `);
-
-    await this.db.execAsync(`
-      CREATE INDEX IF NOT EXISTS idx_highlights_surah
-      ON highlights(surah_number);
-    `);
-
-    // Migration: add verse_keys column to notes table
-    try {
-      await this.db.execAsync(`ALTER TABLE notes ADD COLUMN verse_keys TEXT;`);
-    } catch {
-      // Column already exists
-    }
-
-    // Migration: add rewayah_id column to all three annotation tables.
-    // Legacy rows created before rewayah support existed are backfilled
-    // to 'hafs' (the only reading the app showed pre-feature). Idempotent
-    // on rerun — the UPDATE only touches NULLs, new saves stamp their
-    // own rewayah via service callers.
-    for (const table of ['bookmarks', 'notes', 'highlights']) {
-      try {
-        await this.db.execAsync(
-          `ALTER TABLE ${table} ADD COLUMN rewayah_id TEXT;`,
-        );
-      } catch (err) {
-        // Idempotent: the column already exists on reruns. Re-throw any
-        // other error (disk full, locked DB, etc.) so callers can fail
-        // loudly instead of silently corrupting subsequent INSERTs.
-        const msg = err instanceof Error ? err.message : String(err);
-        if (!msg.toLowerCase().includes('duplicate column')) throw err;
-      }
-      await this.db.execAsync(
-        `UPDATE ${table} SET rewayah_id = 'hafs' WHERE rewayah_id IS NULL;`,
-      );
-    }
-
-    // One-shot rename of pre-canonical rewayah slugs to the canonical ones.
-    // Pre-canonical ids (qumbul, shouba, qaloon, doori, soosi, bazzi)
-    // shipped only in TestFlight — the rename table in RewayahIdentity is
-    // the single source of truth. Idempotent: once applied, rows match the
-    // `=` clause once; on rerun the WHERE matches nothing and the UPDATE is
-    // a no-op. Safe to run every boot.
-    for (const table of ['bookmarks', 'notes', 'highlights']) {
-      for (const [oldId, newId] of Object.entries(PERSISTED_ID_MIGRATIONS)) {
-        if (oldId === newId) continue;
-        await this.db.execAsync(
-          `UPDATE ${table} SET rewayah_id = '${newId}' WHERE rewayah_id = '${oldId}';`,
-        );
-      }
-    }
+  private async ensureReady() {
+    return this.database.getConnection();
   }
 
   // Bookmark operations
@@ -275,65 +156,126 @@ class VerseAnnotationDatabaseService {
     ayahNumber: number,
     rewayahId?: string,
   ): Promise<VerseBookmark> {
-    const db = await this.ensureReady();
+    return this.addBookmarkForOwnerScope(
+      GUEST_OWNER_SCOPE,
+      verseKey,
+      surahNumber,
+      ayahNumber,
+      rewayahId,
+    );
+  }
+
+  async addBookmarkForOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+    surahNumber: number,
+    ayahNumber: number,
+    rewayahId?: string,
+    transaction?: AnnotationSqliteExecutor,
+  ): Promise<VerseBookmark> {
+    const db = transaction ?? (await this.ensureReady());
+    const resolvedOwnerScope = requireOwnerScope(ownerScope);
+    const resolvedRewayahId = resolveRewayahId(rewayahId);
 
     const bookmark: VerseBookmark = {
       id: generateId(),
+      ownerScope: resolvedOwnerScope,
       verseKey,
       surahNumber,
       ayahNumber,
       createdAt: Date.now(),
-      rewayahId: rewayahId as VerseBookmark['rewayahId'],
+      rewayahId: resolvedRewayahId,
     };
 
-    // OR IGNORE: `verse_key` is UNIQUE, so a plain INSERT of an
-    // already-bookmarked verse raises SQLITE_CONSTRAINT and rejects. That is
-    // reachable whenever the caller's `isBookmarked` is stale, and the
-    // rejection used to abort the toggle handler mid-way (leaving the sheet
-    // open). Bookmarking is idempotent by intent — swallow the duplicate. @ai
-    await db.runAsync(
-      `INSERT OR IGNORE INTO bookmarks (id, verse_key, surah_number, ayah_number, created_at, rewayah_id)
-       VALUES (?, ?, ?, ?, ?, ?)`,
+    // @ai-start
+    // Keep #314's idempotent insert with the account-scoped unique key.
+    const result = await db.runAsync(
+      `INSERT OR IGNORE INTO bookmarks (id, owner_scope, verse_key, surah_number, ayah_number, created_at, rewayah_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         bookmark.id,
+        resolvedOwnerScope,
         bookmark.verseKey,
         bookmark.surahNumber,
         bookmark.ayahNumber,
         bookmark.createdAt,
-        bookmark.rewayahId ?? null,
+        resolvedRewayahId,
       ],
     );
 
+    if (result?.changes === 0) {
+      // An ignored duplicate must return its real ID/remote metadata so the
+      // sync outbox never references a generated ID that was not persisted.
+      const existing = await db.getFirstAsync<BookmarkRow>(
+        'SELECT * FROM bookmarks WHERE owner_scope = ? AND verse_key = ?',
+        [resolvedOwnerScope, verseKey],
+      );
+      if (!existing) throw new Error('Bookmark was not persisted');
+      return mapBookmarkRow(existing);
+    }
     return bookmark;
+    // @ai-end
   }
 
   async removeBookmark(verseKey: string): Promise<void> {
-    const db = await this.ensureReady();
-    await db.runAsync(`DELETE FROM bookmarks WHERE verse_key = ?`, [verseKey]);
+    await this.removeBookmarkInOwnerScope(GUEST_OWNER_SCOPE, verseKey);
+  }
+
+  async removeBookmarkInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+    transaction?: AnnotationSqliteExecutor,
+  ): Promise<void> {
+    const db = transaction ?? (await this.ensureReady());
+    await db.runAsync(
+      `DELETE FROM bookmarks WHERE owner_scope = ? AND verse_key = ?`,
+      [requireOwnerScope(ownerScope), verseKey],
+    );
   }
 
   async getBookmarksBySurah(surahNumber: number): Promise<VerseBookmark[]> {
+    return this.getBookmarksBySurahInOwnerScope(GUEST_OWNER_SCOPE, surahNumber);
+  }
+
+  async getBookmarksBySurahInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    surahNumber: number,
+  ): Promise<VerseBookmark[]> {
     const db = await this.ensureReady();
     const rows = (await db.getAllAsync(
-      `SELECT * FROM bookmarks WHERE surah_number = ? ORDER BY ayah_number`,
-      [surahNumber],
+      `SELECT * FROM bookmarks WHERE owner_scope = ? AND surah_number = ? ORDER BY ayah_number`,
+      [requireOwnerScope(ownerScope), surahNumber],
     )) as BookmarkRow[];
     return rows.map(mapBookmarkRow);
   }
 
   async getAllBookmarks(): Promise<VerseBookmark[]> {
+    return this.getAllBookmarksInOwnerScope(GUEST_OWNER_SCOPE);
+  }
+
+  async getAllBookmarksInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+  ): Promise<VerseBookmark[]> {
     const db = await this.ensureReady();
     const rows = (await db.getAllAsync(
-      `SELECT * FROM bookmarks ORDER BY created_at DESC`,
+      `SELECT * FROM bookmarks WHERE owner_scope = ? ORDER BY created_at DESC`,
+      [requireOwnerScope(ownerScope)],
     )) as BookmarkRow[];
     return rows.map(mapBookmarkRow);
   }
 
   async isBookmarked(verseKey: string): Promise<boolean> {
+    return this.isBookmarkedInOwnerScope(GUEST_OWNER_SCOPE, verseKey);
+  }
+
+  async isBookmarkedInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+  ): Promise<boolean> {
     const db = await this.ensureReady();
     const row = await db.getFirstAsync(
-      `SELECT id FROM bookmarks WHERE verse_key = ?`,
-      [verseKey],
+      `SELECT id FROM bookmarks WHERE owner_scope = ? AND verse_key = ?`,
+      [requireOwnerScope(ownerScope), verseKey],
     );
     return row !== null;
   }
@@ -347,17 +289,40 @@ class VerseAnnotationDatabaseService {
     verseKeys?: string[],
     rewayahId?: string,
   ): Promise<VerseNote> {
-    const db = await this.ensureReady();
+    return this.addNoteForOwnerScope(
+      GUEST_OWNER_SCOPE,
+      verseKey,
+      surahNumber,
+      ayahNumber,
+      content,
+      verseKeys,
+      rewayahId,
+    );
+  }
+
+  async addNoteForOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+    surahNumber: number,
+    ayahNumber: number,
+    content: string,
+    verseKeys?: string[],
+    rewayahId?: string,
+    transaction?: AnnotationSqliteExecutor,
+  ): Promise<VerseNote> {
+    const db = transaction ?? (await this.ensureReady());
+    const resolvedOwnerScope = requireOwnerScope(ownerScope);
 
     const now = Date.now();
     const id = generateId();
     const verseKeysStr = verseKeys?.length ? verseKeys.join(',') : null;
 
     await db.runAsync(
-      `INSERT INTO notes (id, verse_key, surah_number, ayah_number, content, verse_keys, created_at, updated_at, rewayah_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO notes (id, owner_scope, verse_key, surah_number, ayah_number, content, verse_keys, created_at, updated_at, rewayah_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
+        resolvedOwnerScope,
         verseKey,
         surahNumber,
         ayahNumber,
@@ -365,12 +330,13 @@ class VerseAnnotationDatabaseService {
         verseKeysStr,
         now,
         now,
-        rewayahId ?? null,
+        resolveRewayahId(rewayahId),
       ],
     );
 
     return {
       id,
+      ownerScope: resolvedOwnerScope,
       verseKey,
       surahNumber,
       ayahNumber,
@@ -378,62 +344,118 @@ class VerseAnnotationDatabaseService {
       verseKeys: verseKeys?.length ? verseKeys : undefined,
       createdAt: now,
       updatedAt: now,
-      rewayahId: rewayahId as VerseNote['rewayahId'],
+      rewayahId: resolveRewayahId(rewayahId),
     };
   }
 
   async updateNote(noteId: string, content: string): Promise<void> {
-    const db = await this.ensureReady();
+    await this.updateNoteInOwnerScope(GUEST_OWNER_SCOPE, noteId, content);
+  }
+
+  async updateNoteInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    noteId: string,
+    content: string,
+    transaction?: AnnotationSqliteExecutor,
+  ): Promise<void> {
+    const db = transaction ?? (await this.ensureReady());
     await db.runAsync(
-      `UPDATE notes SET content = ?, updated_at = ? WHERE id = ?`,
-      [content, Date.now(), noteId],
+      `UPDATE notes SET content = ?, updated_at = ? WHERE owner_scope = ? AND id = ?`,
+      [content, Date.now(), requireOwnerScope(ownerScope), noteId],
     );
   }
 
   async getNoteById(noteId: string): Promise<VerseNote | null> {
+    return this.getNoteByIdInOwnerScope(GUEST_OWNER_SCOPE, noteId);
+  }
+
+  async getNoteByIdInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    noteId: string,
+  ): Promise<VerseNote | null> {
     const db = await this.ensureReady();
-    const row = (await db.getFirstAsync(`SELECT * FROM notes WHERE id = ?`, [
-      noteId,
-    ])) as NoteRow | null;
+    const row = (await db.getFirstAsync(
+      `SELECT * FROM notes WHERE owner_scope = ? AND id = ?`,
+      [requireOwnerScope(ownerScope), noteId],
+    )) as NoteRow | null;
     return row ? mapNoteRow(row) : null;
   }
 
   async getNotesForVerse(verseKey: string): Promise<VerseNote[]> {
+    return this.getNotesForVerseInOwnerScope(GUEST_OWNER_SCOPE, verseKey);
+  }
+
+  async getNotesForVerseInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+  ): Promise<VerseNote[]> {
     const db = await this.ensureReady();
     const rows = (await db.getAllAsync(
-      `SELECT * FROM notes WHERE verse_key = ? OR (',' || verse_keys || ',') LIKE ? ORDER BY created_at DESC`,
-      [verseKey, `%,${verseKey},%`],
+      `SELECT * FROM notes WHERE owner_scope = ? AND (verse_key = ? OR (',' || verse_keys || ',') LIKE ?) ORDER BY created_at DESC`,
+      [requireOwnerScope(ownerScope), verseKey, `%,${verseKey},%`],
     )) as NoteRow[];
     return rows.map(mapNoteRow);
   }
 
   async deleteNoteById(noteId: string): Promise<void> {
-    const db = await this.ensureReady();
-    await db.runAsync(`DELETE FROM notes WHERE id = ?`, [noteId]);
+    await this.deleteNoteByIdInOwnerScope(GUEST_OWNER_SCOPE, noteId);
+  }
+
+  async deleteNoteByIdInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    noteId: string,
+    transaction?: AnnotationSqliteExecutor,
+  ): Promise<void> {
+    const db = transaction ?? (await this.ensureReady());
+    await db.runAsync(`DELETE FROM notes WHERE owner_scope = ? AND id = ?`, [
+      requireOwnerScope(ownerScope),
+      noteId,
+    ]);
   }
 
   async getNotesCountForVerse(verseKey: string): Promise<number> {
+    return this.getNotesCountForVerseInOwnerScope(GUEST_OWNER_SCOPE, verseKey);
+  }
+
+  async getNotesCountForVerseInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+  ): Promise<number> {
     const db = await this.ensureReady();
     const row = (await db.getFirstAsync(
-      `SELECT COUNT(*) as count FROM notes WHERE verse_key = ? OR (',' || verse_keys || ',') LIKE ?`,
-      [verseKey, `%,${verseKey},%`],
+      `SELECT COUNT(*) as count FROM notes WHERE owner_scope = ? AND (verse_key = ? OR (',' || verse_keys || ',') LIKE ?)`,
+      [requireOwnerScope(ownerScope), verseKey, `%,${verseKey},%`],
     )) as {count: number} | null;
     return row?.count ?? 0;
   }
 
   async getAllNotes(): Promise<VerseNote[]> {
+    return this.getAllNotesInOwnerScope(GUEST_OWNER_SCOPE);
+  }
+
+  async getAllNotesInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+  ): Promise<VerseNote[]> {
     const db = await this.ensureReady();
     const rows = (await db.getAllAsync(
-      `SELECT * FROM notes ORDER BY updated_at DESC`,
+      `SELECT * FROM notes WHERE owner_scope = ? ORDER BY updated_at DESC`,
+      [requireOwnerScope(ownerScope)],
     )) as NoteRow[];
     return rows.map(mapNoteRow);
   }
 
   async getNotesBySurah(surahNumber: number): Promise<VerseNote[]> {
+    return this.getNotesBySurahInOwnerScope(GUEST_OWNER_SCOPE, surahNumber);
+  }
+
+  async getNotesBySurahInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    surahNumber: number,
+  ): Promise<VerseNote[]> {
     const db = await this.ensureReady();
     const rows = (await db.getAllAsync(
-      `SELECT * FROM notes WHERE surah_number = ? ORDER BY ayah_number`,
-      [surahNumber],
+      `SELECT * FROM notes WHERE owner_scope = ? AND surah_number = ? ORDER BY ayah_number`,
+      [requireOwnerScope(ownerScope), surahNumber],
     )) as NoteRow[];
     return rows.map(mapNoteRow);
   }
@@ -446,39 +468,88 @@ class VerseAnnotationDatabaseService {
     color: HighlightColor,
     rewayahId?: string,
   ): Promise<VerseHighlight> {
+    return this.upsertHighlightForOwnerScope(
+      GUEST_OWNER_SCOPE,
+      verseKey,
+      surahNumber,
+      ayahNumber,
+      color,
+      rewayahId,
+    );
+  }
+
+  async upsertHighlightForOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+    surahNumber: number,
+    ayahNumber: number,
+    color: HighlightColor,
+    rewayahId?: string,
+  ): Promise<VerseHighlight> {
     const db = await this.ensureReady();
+    const resolvedOwnerScope = requireOwnerScope(ownerScope);
 
     const now = Date.now();
     const id = generateId();
 
     await db.runAsync(
-      `INSERT INTO highlights (id, verse_key, surah_number, ayah_number, color, created_at, rewayah_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(verse_key) DO UPDATE SET color = excluded.color, rewayah_id = excluded.rewayah_id`,
-      [id, verseKey, surahNumber, ayahNumber, color, now, rewayahId ?? null],
+      `INSERT INTO highlights (id, owner_scope, verse_key, surah_number, ayah_number, color, created_at, rewayah_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(owner_scope, verse_key) DO UPDATE SET color = excluded.color, rewayah_id = excluded.rewayah_id`,
+      [
+        id,
+        resolvedOwnerScope,
+        verseKey,
+        surahNumber,
+        ayahNumber,
+        color,
+        now,
+        resolveRewayahId(rewayahId),
+      ],
     );
 
     return {
       id,
+      ownerScope: resolvedOwnerScope,
       verseKey,
       surahNumber,
       ayahNumber,
       color,
       createdAt: now,
-      rewayahId: rewayahId as VerseHighlight['rewayahId'],
+      rewayahId: resolveRewayahId(rewayahId),
     };
   }
 
   async removeHighlight(verseKey: string): Promise<void> {
+    await this.removeHighlightInOwnerScope(GUEST_OWNER_SCOPE, verseKey);
+  }
+
+  async removeHighlightInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    verseKey: string,
+  ): Promise<void> {
     const db = await this.ensureReady();
-    await db.runAsync(`DELETE FROM highlights WHERE verse_key = ?`, [verseKey]);
+    await db.runAsync(
+      `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+      [requireOwnerScope(ownerScope), verseKey],
+    );
   }
 
   async getHighlightsBySurah(surahNumber: number): Promise<VerseHighlight[]> {
+    return this.getHighlightsBySurahInOwnerScope(
+      GUEST_OWNER_SCOPE,
+      surahNumber,
+    );
+  }
+
+  async getHighlightsBySurahInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    surahNumber: number,
+  ): Promise<VerseHighlight[]> {
     const db = await this.ensureReady();
     const rows = (await db.getAllAsync(
-      `SELECT * FROM highlights WHERE surah_number = ? ORDER BY ayah_number`,
-      [surahNumber],
+      `SELECT * FROM highlights WHERE owner_scope = ? AND surah_number = ? ORDER BY ayah_number`,
+      [requireOwnerScope(ownerScope), surahNumber],
     )) as HighlightRow[];
     return rows.map(mapHighlightRow);
   }
@@ -489,19 +560,30 @@ class VerseAnnotationDatabaseService {
     notes: VerseNote[];
     highlights: VerseHighlight[];
   }> {
+    return this.getAnnotationsForSurahInOwnerScope(
+      GUEST_OWNER_SCOPE,
+      surahNumber,
+    );
+  }
+
+  async getAnnotationsForSurahInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    surahNumber: number,
+  ): Promise<{
+    bookmarks: VerseBookmark[];
+    notes: VerseNote[];
+    highlights: VerseHighlight[];
+  }> {
     const [bookmarks, notes, highlights] = await Promise.all([
-      this.getBookmarksBySurah(surahNumber),
-      this.getNotesBySurah(surahNumber),
-      this.getHighlightsBySurah(surahNumber),
+      this.getBookmarksBySurahInOwnerScope(ownerScope, surahNumber),
+      this.getNotesBySurahInOwnerScope(ownerScope, surahNumber),
+      this.getHighlightsBySurahInOwnerScope(ownerScope, surahNumber),
     ]);
     return {bookmarks, notes, highlights};
   }
 
   async close(): Promise<void> {
-    if (this.db) {
-      await this.db.closeAsync();
-      this.db = null;
-    }
+    await this.database.close();
   }
 }
 
