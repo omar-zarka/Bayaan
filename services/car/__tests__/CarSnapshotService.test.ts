@@ -44,8 +44,11 @@ jest.mock('@/store/uploadsStore', () => ({
     getState: () => ({recitations: mockRecitations, customReciters: []}),
   },
 }));
+const mockGetDailyAggregate = jest.fn((_date: string): unknown => null);
 jest.mock('@/services/analytics/LocalAggregationStore', () => ({
-  localAggregationStore: {getDailyAggregate: () => null},
+  localAggregationStore: {
+    getDailyAggregate: (date: string) => mockGetDailyAggregate(date),
+  },
 }));
 jest.mock('@/store/reciterStore', () => ({
   useReciterStore: {getState: () => ({defaultReciter: {id: ''}})},
@@ -53,19 +56,23 @@ jest.mock('@/store/reciterStore', () => ({
 
 let mockTopReciterId: string | null = 'r1';
 let mockGeneratedAt = '2026-10-09T00:00:00.000Z';
+const mockBuildInputs: {playCounts: unknown}[] = [];
 jest.mock('@/services/car/snapshot/buildCarSnapshot', () => ({
-  buildCarSnapshot: (): CarSnapshot => ({
-    version: 1,
-    generatedAt: mockGeneratedAt,
-    topReciterId: mockTopReciterId,
-    home: {sections: []},
-    library: [],
-    lists: {},
-    reciters: [],
-    surahs: [],
-    juz: [],
-    downloadedKeys: [],
-  }),
+  buildCarSnapshot: (input: {playCounts: unknown}): CarSnapshot => {
+    mockBuildInputs.push(input);
+    return {
+      version: 1,
+      generatedAt: mockGeneratedAt,
+      topReciterId: mockTopReciterId,
+      home: {sections: []},
+      library: [],
+      lists: {},
+      reciters: [],
+      surahs: [],
+      juz: [],
+      downloadedKeys: [],
+    };
+  },
 }));
 
 import {
@@ -98,5 +105,31 @@ describe('writeCarSnapshotNow', () => {
   it('freezes the uploads the snapshot was built from', async () => {
     await writeCarSnapshotNow();
     expect(getLastResolveContext()?.uploads).toBe(mockRecitations);
+  });
+
+  it('skips an unreadable day of listening history instead of failing', async () => {
+    const today = new Date();
+    const yesterday = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate() - 1,
+    );
+    const key = (d: Date): string =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
+        d.getDate(),
+      ).padStart(2, '0')}`;
+    mockGetDailyAggregate.mockImplementation(date => {
+      if (date === key(today)) throw new SyntaxError('corrupt');
+      if (date === key(yesterday)) {
+        return {date, surahs: {'18': 5 * 60_000}};
+      }
+      return null;
+    });
+    mockBuildInputs.length = 0;
+    await writeCarSnapshotNow();
+    expect(mockBuildInputs[0]?.playCounts).toEqual([
+      {surahId: 18, count: 1, lastPlayed: yesterday.getTime()},
+    ]);
+    mockGetDailyAggregate.mockImplementation(() => null);
   });
 });

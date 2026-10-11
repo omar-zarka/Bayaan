@@ -215,6 +215,18 @@ function localDateKey(day: Date): string {
   return `${day.getFullYear()}-${month}-${date}`;
 }
 
+/** One day of history, or null when it is missing or unreadable. */
+function readDailyAggregate(date: string): DailySurahListening | null {
+  try {
+    const aggregate = localAggregationStore.getDailyAggregate(date);
+    if (!aggregate?.surahs || typeof aggregate.surahs !== 'object') return null;
+    return {date: aggregate.date, surahs: aggregate.surahs};
+  } catch {
+    // A corrupt day must not stop every later snapshot write.
+    return null;
+  }
+}
+
 /** The last few weeks of on-device listening, newest first. */
 function recentDailyListening(now: Date): DailySurahListening[] {
   const days: DailySurahListening[] = [];
@@ -224,10 +236,8 @@ function recentDailyListening(now: Date): DailySurahListening[] {
       now.getMonth(),
       now.getDate() - offset,
     );
-    const aggregate = localAggregationStore.getDailyAggregate(
-      localDateKey(day),
-    );
-    if (aggregate) days.push({date: aggregate.date, surahs: aggregate.surahs});
+    const aggregate = readDailyAggregate(localDateKey(day));
+    if (aggregate) days.push(aggregate);
   }
   return days;
 }
