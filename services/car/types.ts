@@ -45,6 +45,8 @@ export interface CarItem {
   subtitle?: string;
   artwork: CarArtwork;
   progress?: number;
+  /** Length in seconds, so CarPlay can show the time left with progress. */
+  duration?: number;
   isDownloaded?: boolean;
   action: CarItemAction;
 }

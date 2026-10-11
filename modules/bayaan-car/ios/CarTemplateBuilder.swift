@@ -1,4 +1,5 @@
 import CarPlay
+import CoreMedia
 import UIKit
 
 /// Main-thread only. Builds the four root tabs from `CarBridge.shared.snapshot`
@@ -298,13 +299,26 @@ final class CarTemplateBuilder {
   private func listItem(_ item: CarItem) -> CPListItem {
     let row = CPListItem(text: item.title, detailText: item.subtitle, image: nil)
     setArtwork(row, item.artwork)
-    if let progress = item.progress { row.playbackProgress = CGFloat(min(max(progress, 0), 1)) }
+    if let progress = item.progress { setProgress(row, min(max(progress, 0), 1), duration: item.duration) }
     if case .play = item.action {} else { row.accessoryType = .disclosureIndicator }
     row.handler = { [weak self] _, completion in
       self?.perform(item)
       completion()
     }
     return row
+  }
+
+  /// `playbackProgress` alone drew no bar on an iOS 26 device, so 26.4+ also
+  /// gets a `playbackConfiguration` when the length is known.
+  private func setProgress(_ row: CPListItem, _ fraction: Double, duration: Double?) {
+    row.playbackProgress = CGFloat(fraction)
+    guard #available(iOS 26.4, *), let duration, duration > 0 else { return }
+    row.playbackConfiguration = CPPlaybackConfiguration(
+      preferredPresentation: .audio,
+      playbackAction: .play,
+      elapsedTime: CMTime(seconds: fraction * duration, preferredTimescale: 600),
+      duration: CMTime(seconds: duration, preferredTimescale: 600)
+    )
   }
 
   private func perform(_ item: CarItem) {

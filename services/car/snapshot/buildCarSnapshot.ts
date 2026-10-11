@@ -190,7 +190,7 @@ function buildJumpBackIn(input: CarSnapshotInput): CarItem[] {
             `recent:upload:${upload.id}`,
             upload,
             input,
-            {progress: t.progress},
+            {progress: t.progress, duration: t.duration},
             {
               kind: 'play',
               request: {kind: 'resume', recitationId: upload.id},
@@ -205,7 +205,7 @@ function buildJumpBackIn(input: CarSnapshotInput): CarItem[] {
           `recent:${t.reciter.id}:${rewayatId}:${t.surah.id}`,
           t.reciter,
           t.surah,
-          {progress: t.progress},
+          {progress: t.progress, duration: t.duration},
           {
             kind: 'play',
             request: {

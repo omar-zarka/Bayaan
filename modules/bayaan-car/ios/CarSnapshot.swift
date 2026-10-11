@@ -134,6 +134,7 @@ struct CarItem: Decodable {
   let subtitle: String?
   let artwork: CarArtwork
   let progress: Double?
+  let duration: Double?
   let isDownloaded: Bool?
   let action: CarItemAction
 }

@@ -195,6 +195,7 @@ describe('buildCarSnapshot', () => {
     );
     const section = snap.home.sections.find(s => s.id === 'jump-back-in');
     expect(section?.items[0].progress).toBe(0.5);
+    expect(section?.items[0].duration).toBe(600);
     expect(section?.items[0].action).toEqual({
       kind: 'play',
       request: {
