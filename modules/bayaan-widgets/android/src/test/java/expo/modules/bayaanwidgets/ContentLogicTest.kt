@@ -177,4 +177,15 @@ class ContentLogicTest {
     assertNull(ContentLogic.repeatLabel(1))
     assertEquals("×3", ContentLogic.repeatLabel(3))
   }
+
+  @Test fun playingAtFollowsTheComputedTrackEnd() {
+    val full = SnapshotModels.decode(fixture("snapshot.full.json"))!!
+    // generatedAt 1791460800000, playing at 120.5 s of 1800 s, rate 1: ends 1679.5 s later.
+    assertTrue(ContentLogic.playingAt(full, full.generatedAt + 1_000))
+    assertFalse(ContentLogic.playingAt(full, full.generatedAt + 1_680_000))
+    assertFalse(ContentLogic.playingAt(full.copy(nowPlaying = full.nowPlaying!!.copy(isPlaying = false)), full.generatedAt))
+    assertTrue(ContentLogic.playingAt(full.copy(nowPlaying = full.nowPlaying!!.copy(rate = 2.0)), full.generatedAt + 839_000))
+    assertFalse(ContentLogic.playingAt(full.copy(nowPlaying = full.nowPlaying!!.copy(rate = 2.0)), full.generatedAt + 840_000))
+    assertFalse(ContentLogic.playingAt(null, 0L))
+  }
 }

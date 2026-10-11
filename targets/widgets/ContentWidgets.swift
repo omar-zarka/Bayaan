@@ -12,5 +12,6 @@ struct ContentWidgets: WidgetBundle {
     AdhkarWidget()
     HijriDateWidget()
     OccasionWidget()
+    BayaanNowWidget()
   }
 }

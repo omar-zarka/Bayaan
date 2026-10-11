@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import expo.modules.bayaanwidgets.adhkar.AdhkarWidget
+import expo.modules.bayaanwidgets.bayaannow.BayaanNowWidget
 import expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayWidget
 import expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
@@ -67,6 +68,7 @@ class BayaanWidgetsModule : Module() {
           "Adhkar" -> push(AdhkarWidget())
           "HijriDate" -> push(HijriDateWidget())
           "Occasion" -> push(OccasionWidget())
+          "BayaanNow" -> push(BayaanNowWidget())
           else -> Unit // widget kinds register here as they are added
         }
       }

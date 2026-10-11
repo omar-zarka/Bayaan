@@ -11,6 +11,8 @@ import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidget
 import expo.modules.bayaanwidgets.adhkar.AdhkarReceiver
 import expo.modules.bayaanwidgets.adhkar.AdhkarWidget
+import expo.modules.bayaanwidgets.bayaannow.BayaanNowReceiver
+import expo.modules.bayaanwidgets.bayaannow.BayaanNowWidget
 import expo.modules.bayaanwidgets.hijri.HijriDateReceiver
 import expo.modules.bayaanwidgets.hijri.HijriDateWidget
 import expo.modules.bayaanwidgets.hijri.OccasionReceiver
@@ -51,6 +53,7 @@ class ContextClockReceiver : BroadcastReceiver() {
       ClockTarget(AdhkarReceiver::class.java) { AdhkarWidget() },
       ClockTarget(HijriDateReceiver::class.java) { HijriDateWidget() },
       ClockTarget(OccasionReceiver::class.java) { OccasionWidget() },
+      ClockTarget(BayaanNowReceiver::class.java) { BayaanNowWidget() },
     )
 
     fun hasWidgets(context: Context): Boolean {

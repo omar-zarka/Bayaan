@@ -79,6 +79,18 @@ object ContentLogic {
   fun occasionAt(nowMs: Long, tz: TimeZone, hijriOf: HijriOf): String? =
     occasion(hijri(nowMs, tz, hijriOf), weekday(nowMs, tz), hour(nowMs, tz))
 
+  /**
+   * Whether the snapshot's track is still playing at nowMs (playing, and not past
+   * generatedAt + remaining / rate). Bayaan Now only; it ignores the tap override.
+   */
+  fun playingAt(snapshot: WidgetSnapshot?, nowMs: Long): Boolean {
+    val np = snapshot?.nowPlaying ?: return false
+    if (!np.isPlaying) return false
+    val rate = if (np.rate > 0 && np.rate.isFinite()) np.rate else 1.0
+    val remainingMs = ((np.durationSec - np.positionSec).coerceAtLeast(0.0) / rate * 1000).toLong()
+    return nowMs < snapshot.generatedAt + remainingMs
+  }
+
   fun mode(hour: Int, isPlaying: Boolean, occasion: String?): BayaanNowMode = when {
     isPlaying -> BayaanNowMode.LISTENING
     occasion != null -> BayaanNowMode.OCCASION
