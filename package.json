@@ -12,7 +12,7 @@
     "web": "expo start --web",
     "test": "jest --watchAll",
     "test:ci": "jest --watchAll=false --ci --reporters=default",
-    "test:widget-fixtures": "bash scripts/check-widget-fixtures.sh",
+    "test:widget-fixtures": "bash scripts/check-widget-fixtures.sh && bash scripts/check-widget-system-surfaces.sh",
     "generate:widget-data": "tsx scripts/generate-widget-data.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

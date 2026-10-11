@@ -17,6 +17,7 @@ export * from './widgetKinds';
 export * from './catalog';
 export * from './artworkRequests';
 export * from './dayMath';
+export * from './liveActivity';
 
 export function isWidgetsAvailable(): boolean {
   return NativeBayaanWidgets !== null;
