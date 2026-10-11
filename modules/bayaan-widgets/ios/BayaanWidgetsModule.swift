@@ -66,12 +66,15 @@ public class BayaanWidgetsModule: Module {
         to: dir.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
-    // ListeningAccessory reads the same snapshot slice as ContinueListening.
+    // ListeningAccessory and the play/pause control read the same snapshot slice as ContinueListening.
     Function("reloadWidgets") { (kinds: [String]) in
       for kind in kinds {
         WidgetCenter.shared.reloadTimelines(ofKind: kind)
         if kind == "ContinueListening" {
           WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
+          if #available(iOS 18.0, *) {
+            ControlCenter.shared.reloadControls(ofKind: "PlaybackControl")
+          }
         }
       }
     }

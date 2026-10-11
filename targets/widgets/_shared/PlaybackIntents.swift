@@ -82,6 +82,9 @@ enum PlaybackCommand {
     PlaybackOverrideStore.write(isPlaying: playing)
     WidgetCenter.shared.reloadTimelines(ofKind: "ContinueListening")
     WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
+    if #available(iOS 18.0, *) {
+      ControlCenter.shared.reloadControls(ofKind: "PlaybackControl")
+    }
     WidgetCommandQueue.enqueue(["type": "setPlayback", "playing": playing])
   }
 
@@ -157,6 +160,23 @@ struct ResumePlaybackIntent: AudioPlaybackIntent {
     case .nothing:
       break
     }
+    return .result()
+  }
+}
+
+/// The play/pause control's action. ControlWidgetToggle needs a SetValueIntent
+/// whose `value` is the new state; AudioPlaybackIntent keeps it in the app process.
+@available(iOS 18.0, *)
+struct SetPlayingControlIntent: SetValueIntent, AudioPlaybackIntent {
+  static var title: LocalizedStringResource = "Play or Pause Bayaan"
+  static var isDiscoverable = false
+
+  @Parameter(title: "Playing") var value: Bool
+
+  init() {}
+
+  func perform() async throws -> some IntentResult {
+    PlaybackCommand.setPlaying(value)
     return .result()
   }
 }
