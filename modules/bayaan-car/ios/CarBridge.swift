@@ -83,6 +83,7 @@ final class CarBridge {
     onMain {
       self.snapshot = decoded
       NotificationCenter.default.post(name: CarBridge.snapshotDidChange, object: nil)
+      BayaanCarSiri.donateVocabulary(decoded)
     }
   }
 
@@ -141,6 +142,19 @@ final class CarBridge {
         self.pending.removeFirst(self.pending.count - CarBridge.maxPending)
       }
     }
+  }
+
+  /// Main queue only. A cold Siri launch can ask before the async disk load
+  /// finishes, so read the persisted snapshot synchronously if needed.
+  func loadSnapshotIfNeeded() -> CarSnapshot? {
+    if let snapshot { return snapshot }
+    guard let data = try? Data(contentsOf: snapshotURL),
+      let decoded = try? JSONDecoder().decode(CarSnapshot.self, from: data),
+      decoded.version == 1
+    else { return nil }
+    snapshot = decoded
+    NotificationCenter.default.post(name: CarBridge.snapshotDidChange, object: nil)
+    return decoded
   }
 
   private func loadSnapshotFromDisk() {

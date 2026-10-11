@@ -1,5 +1,6 @@
 internal import Expo
 import React
+import Intents
 internal import BayaanCar
 import ReactAppDependencyProvider
 
@@ -34,6 +35,20 @@ class AppDelegate: ExpoAppDelegate {
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
+
+  // @bayaan-car siri start
+  func application(_ application: UIApplication, handlerFor intent: INIntent) -> Any? {
+    return BayaanCarSiri.handler(for: intent)
+  }
+
+  func application(
+    _ application: UIApplication,
+    handle intent: INIntent,
+    completionHandler: @escaping (INIntentResponse) -> Void
+  ) {
+    BayaanCarSiri.handle(intent, completion: completionHandler)
+  }
+  // @bayaan-car siri end
 
   // Linking API
   public override func application(

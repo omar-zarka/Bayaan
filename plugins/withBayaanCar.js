@@ -6,6 +6,25 @@ const {
 } = require('expo/config-plugins');
 
 const START_MARKER = '// @bayaan-car scene bridge start';
+const SIRI_START_MARKER = '// @bayaan-car siri start';
+const SIRI_END_MARKER = '// @bayaan-car siri end';
+const SIRI_ANCHOR = '  // Linking API\n';
+
+const SIRI_BLOCK = `  ${SIRI_START_MARKER}
+  func application(_ application: UIApplication, handlerFor intent: INIntent) -> Any? {
+    return BayaanCarSiri.handler(for: intent)
+  }
+
+  func application(
+    _ application: UIApplication,
+    handle intent: INIntent,
+    completionHandler: @escaping (INIntentResponse) -> Void
+  ) {
+    BayaanCarSiri.handle(intent, completion: completionHandler)
+  }
+  ${SIRI_END_MARKER}
+
+`;
 const END_MARKER = '// @bayaan-car scene bridge end';
 
 const ORIGINAL_WINDOW_BLOCK = `    window = UIWindow(frame: UIScreen.main.bounds)
@@ -46,6 +65,42 @@ function withCarPlayInfoPlist(config) {
   });
 }
 
+// Siri "play ... on Bayaan", handled in the app (no Intents extension).
+function withSiriInfoPlist(config) {
+  return withInfoPlist(config, cfg => {
+    const supported = new Set(cfg.modResults.INIntentsSupported ?? []);
+    supported.add('INPlayMediaIntent');
+    cfg.modResults.INIntentsSupported = [...supported];
+    cfg.modResults.INSupportedMediaCategories = ['INMediaCategoryGeneral'];
+    return cfg;
+  });
+}
+
+function withSiriEntitlement(config) {
+  return withEntitlementsPlist(config, cfg => {
+    cfg.modResults['com.apple.developer.siri'] = true;
+    return cfg;
+  });
+}
+
+function withSiriAppDelegate(config) {
+  return withAppDelegate(config, cfg => {
+    let src = cfg.modResults.contents;
+    if (src.includes(SIRI_START_MARKER)) return cfg;
+    if (!src.includes(SIRI_ANCHOR)) {
+      throw new Error(
+        '[withBayaanCar] AppDelegate "// Linking API" anchor not found. Update SIRI_ANCHOR for this Expo SDK.',
+      );
+    }
+    src = src.replace(SIRI_ANCHOR, SIRI_BLOCK + SIRI_ANCHOR);
+    if (!src.includes('import Intents')) {
+      src = src.replace('import React\n', 'import React\nimport Intents\n');
+    }
+    cfg.modResults.contents = src;
+    return cfg;
+  });
+}
+
 function withCarPlayEntitlement(config) {
   return withEntitlementsPlist(config, cfg => {
     cfg.modResults['com.apple.developer.carplay-audio'] = true;
@@ -79,12 +134,18 @@ function withSceneAppDelegate(config) {
   });
 }
 
-// Forks without Apple's CarPlay audio entitlement can pass {carPlayAudioEntitlement: false}.
+// Forks without Apple's CarPlay audio entitlement can pass {carPlayAudioEntitlement: false};
+// forks without the Siri capability on their App ID can pass {siri: false}.
 function withBayaanCar(config, props) {
-  const {carPlayAudioEntitlement = true} = props ?? {};
+  const {carPlayAudioEntitlement = true, siri = true} = props ?? {};
   config = withCarPlayInfoPlist(config);
   if (carPlayAudioEntitlement) config = withCarPlayEntitlement(config);
   config = withSceneAppDelegate(config);
+  if (siri) {
+    config = withSiriInfoPlist(config);
+    config = withSiriEntitlement(config);
+    config = withSiriAppDelegate(config);
+  }
   return config;
 }
 
