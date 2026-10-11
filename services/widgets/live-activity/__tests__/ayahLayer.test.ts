@@ -1,10 +1,17 @@
 import type {AyahTimestamp} from '@/types/timestamps';
 import type {WidgetNowPlaying} from 'bayaan-widgets';
 import {KAHF_TRACK} from '@/test-utils/widgetSnapshots';
+import {rewayahVerseMapService} from '@/services/mushaf/RewayahVerseMapService';
+import {loadTimings} from '@/services/timestamps/__fixtures__/timingFixtures';
 import {
-  ayahCount,
+  createTimingNumbering,
+  type TimingNumberingMode,
+} from '@/utils/timestampNumbering';
+import type {RewayahId} from '@/services/rewayah/RewayahIdentity';
+import {
   buildActivityAyah,
   currentAyahTimestamp,
+  hafsActivityAyah,
   msUntilNextAyah,
   positionAt,
   truncateUtf8Words,
@@ -57,11 +64,6 @@ describe('current and next ayah', () => {
     expect(msUntilNextAyah(TS, 10, 0)).toBe(2000);
     expect(msUntilNextAyah(TS, 21, 1)).toBe(null);
   });
-
-  it('counts ayat by the last ayah number', () => {
-    expect(ayahCount(TS)).toBe(3);
-    expect(ayahCount([])).toBe(0);
-  });
 });
 
 describe('positionAt', () => {
@@ -98,10 +100,72 @@ describe('UTF-8 truncation', () => {
   });
 
   it('builds the activity ayah', () => {
-    expect(buildActivityAyah(TS[1], 3, 'text')).toEqual({
+    expect(buildActivityAyah(2, 3, 'text')).toEqual({
       number: 2,
       count: 3,
       text: 'text',
     });
+  });
+});
+
+describe('hafsActivityAyah', () => {
+  function fixture(
+    mode: TimingNumberingMode,
+    rewayah: RewayahId,
+    set: string,
+    surah: number,
+  ) {
+    const entries = loadTimings(set, surah);
+    if (!entries) throw new Error(`missing fixture ${set}/${surah}`);
+    const numbering = createTimingNumbering({
+      surah,
+      mode,
+      reciterRewayah: rewayah,
+      reason: 'test',
+      entries,
+      verseMap: rewayahVerseMapService,
+    });
+    return {entries, numbering};
+  }
+  const text = (key: string): string => `hafs ${key}`;
+
+  it('shows the Hafs ayah a Warsh-numbered entry recites, not the entry number', () => {
+    const {entries, numbering} = fixture('riwayah', 'warsh', 'warsh-14', 2);
+    // Warsh 2:4 recites Hafs 2:5 (Warsh 2:1 holds Hafs 2:1-2).
+    const entry = entries.find(e => e.ayahNumber === 4);
+    if (!entry) throw new Error('missing Warsh entry 4');
+    expect(hafsActivityAyah(numbering, entry, 286, text)).toEqual({
+      number: 5,
+      count: 286,
+      text: 'hafs 2:5',
+    });
+  });
+
+  it('shows the first Hafs ayah of an entry that recites two', () => {
+    const {entries, numbering} = fixture('riwayah', 'warsh', 'warsh-14', 2);
+    expect(hafsActivityAyah(numbering, entries[0], 286, text)).toEqual({
+      number: 1,
+      count: 286,
+      text: 'hafs 2:1',
+    });
+  });
+
+  it('keys the text by the surah, not the entry surahNumber', () => {
+    const {numbering} = fixture('hafs', 'hafs', 'hafs-clean', 2);
+    const entry = {...TS[1], surahNumber: 0, ayahNumber: 7};
+    expect(hafsActivityAyah(numbering, entry, 286, text)).toEqual({
+      number: 7,
+      count: 286,
+      text: 'hafs 2:7',
+    });
+  });
+
+  it('hides the ayah line for a disabled numbering or a pre-roll entry', () => {
+    const {entries, numbering} = fixture('disabled', 'warsh', 'warsh-14', 2);
+    expect(hafsActivityAyah(numbering, entries[3], 286, text)).toBeNull();
+    const hafs = fixture('hafs', 'hafs', 'hafs-clean', 2).numbering;
+    expect(
+      hafsActivityAyah(hafs, {...TS[0], ayahNumber: 0}, 286, text),
+    ).toBeNull();
   });
 });

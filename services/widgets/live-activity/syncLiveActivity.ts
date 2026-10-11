@@ -14,6 +14,8 @@ import {
   type WidgetSnapshot,
 } from 'bayaan-widgets';
 import {timestampService} from '@/services/timestamps/TimestampService';
+import {timingNumberingService} from '@/services/timestamps/TimingNumberingService';
+import {SURAHS} from '@/data/surahData';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {liveActivityMode} from './config';
 import {createAyahTicker, type AyahTicker} from './ayahTicker';
@@ -160,9 +162,18 @@ export function startLiveActivitySync(): () => void {
       ? createAyahTicker({
           loadTimestamps: (rewayatId, surahId) =>
             timestampService.getTimestampsForSurah(rewayatId, surahId),
+          resolveNumbering: async (rewayatId, surahId, list) => {
+            // The ayah line shows Hafs text whatever rewayah the mushaf is
+            // on, so side-load the Hafs words before the first tick.
+            await digitalKhattDataService
+              .ensureRewayahLoaded('hafs')
+              .catch(() => undefined);
+            return timingNumberingService.resolve(rewayatId, surahId, list);
+          },
+          hafsVerseCount: surahId => SURAHS[surahId - 1]?.verses_count ?? 0,
           verseText: key =>
             digitalKhattDataService.initialized
-              ? digitalKhattDataService.getVerseText(key)
+              ? digitalKhattDataService.getVerseText(key, 'hafs')
               : '',
           setAyah: setLiveActivityAyah,
           now: () => Date.now(),
