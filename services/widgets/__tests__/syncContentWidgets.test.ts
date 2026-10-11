@@ -4,6 +4,7 @@ import type {DownloadedSurah} from '@/services/player/store/downloadStore';
 
 const mockWriteContent = jest.fn();
 const mockReload = jest.fn();
+const mockAppStateHandlers: ((state: string) => void)[] = [];
 const mockCacheArtwork = jest.fn<Promise<boolean>, [string, string]>(
   async () => true,
 );
@@ -23,7 +24,12 @@ jest.mock('bayaan-widgets', () => ({
 }));
 jest.mock('react-native', () => {
   const actual = jest.requireActual('react-native');
-  const appState = {addEventListener: () => ({remove: jest.fn()})};
+  const appState = {
+    addEventListener: (_: string, handler: (state: string) => void) => {
+      mockAppStateHandlers.push(handler);
+      return {remove: jest.fn()};
+    },
+  };
   return new Proxy(actual, {
     get: (target, prop) => (prop === 'AppState' ? appState : target[prop]),
   });
@@ -87,6 +93,7 @@ import {
   contentArtworkJobs,
   flushContent,
   resetContentSync,
+  startContentWidgetSync,
 } from '../syncContentWidgets';
 
 function download(surahId: string, date: number): DownloadedSurah {
@@ -105,6 +112,7 @@ beforeEach(() => {
   resetContentSync();
   mockWriteContent.mockReset();
   mockReload.mockReset();
+  mockAppStateHandlers.length = 0;
   mockCacheArtwork.mockClear();
   mockCached.clear();
   mockDownloads = [download('67', 2)];
@@ -232,4 +240,17 @@ it('registers runContentCommand with the command handler on import', () => {
   const {setContentCommandRunner} = jest.requireMock('../handleWidgetCommand');
   const {runContentCommand} = jest.requireMock('../contentCommands');
   expect(setContentCommandRunner).toHaveBeenCalledWith(runContentCommand);
+});
+
+it('reloads the date-only widgets on launch and on every foreground', async () => {
+  const stop = startContentWidgetSync();
+  const dateKinds = ['Adhkar', 'HijriDate', 'Occasion'];
+  expect(mockReload).toHaveBeenCalledWith(dateKinds);
+  mockReload.mockClear();
+  mockAppStateHandlers[0]('background');
+  expect(mockReload).not.toHaveBeenCalledWith(dateKinds);
+  mockAppStateHandlers[0]('active');
+  expect(mockReload).toHaveBeenCalledWith(dateKinds);
+  stop();
+  await flushContent();
 });

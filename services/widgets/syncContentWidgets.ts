@@ -219,9 +219,15 @@ function schedule(reloadPlaylists = false): void {
   }, DEBOUNCE_MS);
 }
 
+// Adhkar, Hijri Date and Occasion depend only on the date, so nothing else
+// reloads them. Reloading on launch and foreground refreshes them and lets
+// Android re-arm its context alarm after a force stop.
+const DATE_KINDS: ContentWidgetKind[] = ['Adhkar', 'HijriDate', 'Occasion'];
+
 // Started by the root layout next to startWidgetSync.
 export function startContentWidgetSync(): () => void {
   if (!isWidgetsAvailable()) return () => undefined;
+  reloadWidgets(DATE_KINDS);
   runFlush(true);
   const unsubs = [
     addSnapshotListener((prev, next) => {
@@ -247,7 +253,9 @@ export function startContentWidgetSync(): () => void {
     useReciterStore.subscribe(() => schedule()),
   ];
   const appState = AppState.addEventListener('change', state => {
-    if (state === 'active') runFlush(true);
+    if (state !== 'active') return;
+    reloadWidgets(DATE_KINDS);
+    runFlush(true);
   });
   return () => {
     unsubs.forEach(u => u());

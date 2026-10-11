@@ -77,7 +77,7 @@ struct OccasionView: View {
 
   // Jumu'ah plays Surah Al-Kahf from the start; other occasions play from the ayah onward.
   private func listen(_ o: OccasionInfo, _ a: StaticAyah) -> PlayTrackIntent {
-    if let surah = o.listenSurahId { return PlayTrackIntent(surahId: surah, reciterId: nil, rewayatId: nil) }
+    if let surah = o.listenSurahId { return PlayTrackIntent(surahId: surah, reciterId: nil, rewayatId: nil, ayah: 1) }
     return PlayTrackIntent(surahId: a.surahId, reciterId: nil, rewayatId: nil, ayah: a.ayah)
   }
 

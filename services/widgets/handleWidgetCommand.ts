@@ -64,6 +64,8 @@ export interface CommandDeps {
   play: () => Promise<void>;
   pause: () => Promise<void>;
   playTracks: (tracks: Track[], startSec: number) => Promise<void>;
+  // Starts a fresh recently-played chain, like every in-app surah play.
+  startNewChain: (reciter: Reciter, surahId: number, rewayatId: string) => void;
   lastSurahForReciter: (reciterId: string) => number | null;
   // Index of a matching queued track after the current one.
   upNextIndexOf: (key: TrackKey) => number | null;
@@ -120,6 +122,13 @@ export function defaultDeps(): CommandDeps {
       const store = usePlayerStore.getState();
       await store.updateQueue(tracks, 0, startSec);
       await store.play();
+    },
+    startNewChain: (reciter, surahId, rewayatId) => {
+      const surah = getSurahById(surahId);
+      if (!surah) return;
+      useRecentlyPlayedStore
+        .getState()
+        .startNewChain(reciter, surah, 0, 0, rewayatId);
     },
     lastSurahForReciter: reciterId => {
       const hit = useRecentlyPlayedStore
@@ -209,11 +218,13 @@ export async function playSurah(
     rewayatId ?? rewayatForSurah(reciter, surahId),
   );
   const resolvedRewayat = track.rewayatId ?? reciter.rewayat[0]?.id;
+  // Ayah 1 means the start of the surah (a widget's "from the beginning").
   const startSec =
-    ayah !== null && resolvedRewayat
+    ayah !== null && ayah > 1 && resolvedRewayat
       ? (await deps.ayahStartSec(resolvedRewayat, surahId, ayah)) ?? 0
       : 0;
   await deps.playTracks([track], startSec);
+  if (resolvedRewayat) deps.startNewChain(reciter, surahId, resolvedRewayat);
   return true;
 }
 

@@ -50,6 +50,7 @@ const reciter = {
 function fakeDeps(): CommandDeps {
   return {
     playTracks: jest.fn(async () => undefined),
+    startNewChain: jest.fn(),
     ayahStartSec: jest.fn(async () => 12),
   } as unknown as CommandDeps;
 }
@@ -91,5 +92,7 @@ it('passes a play-from-start function that starts at 0 and reports success', asy
     [expect.objectContaining({surahId: '67'})],
     0,
   );
+  expect(deps.startNewChain).toHaveBeenCalledWith(reciter, 67, 'rw1');
   await expect(play(reciter, 999)).resolves.toBe(false);
+  expect(deps.startNewChain).toHaveBeenCalledTimes(1);
 });
