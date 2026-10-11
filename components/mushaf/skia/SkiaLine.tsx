@@ -65,6 +65,11 @@ interface SkiaLineProps {
   charToColor?: Map<number, string>;
   fontFamily?: string;
   arabicTextWeight?: MushafArabicTextWeight;
+  // @ai-start
+  /** Identity of the text this line shows (getPageTextIdentity); a change
+   *  rebuilds the paragraph from the current line text. */
+  textIdentity?: string | null;
+  // @ai-end
   onParagraphReady?: (
     lineIndex: number,
     paragraph: SkParagraph,
@@ -89,6 +94,7 @@ const SkiaLine: React.FC<SkiaLineProps> = ({
   charToColor,
   fontFamily = 'DigitalKhatt',
   arabicTextWeight = 'normal',
+  textIdentity, // @ai
   onParagraphReady,
   onParagraphDisposed,
   backgroundHighlights,
@@ -277,6 +283,9 @@ const SkiaLine: React.FC<SkiaLineProps> = ({
         strokeWidth > 0 ? buildParagraph(true, wordSize, spaceExtra) : null,
     };
     // @ai-end
+    // textIdentity: the line text (read from quranTextService) follows the
+    // words cache; char indices of charToRule/charToColor index into it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     pageNumber,
     lineIndex,
@@ -290,6 +299,7 @@ const SkiaLine: React.FC<SkiaLineProps> = ({
     charToColor,
     fontFamily,
     arabicTextWeight,
+    textIdentity, // @ai
   ]);
 
   const paragraph = paragraphs?.paragraph;
