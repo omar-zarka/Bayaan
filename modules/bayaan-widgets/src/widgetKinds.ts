@@ -19,7 +19,7 @@ export const ALL_WIDGET_KINDS: readonly WidgetKind[] = [
 ];
 
 // Seconds the anchor may drift before a playing widget is reloaded.
-const SEEK_TOLERANCE_SEC = 2;
+export const SEEK_TOLERANCE_SEC = 2;
 
 // Position is excluded while playing: widgets animate it from
 // generatedAt + positionSec, so ticks must not trigger reloads.
