@@ -186,5 +186,38 @@
         android:name="android.appwidget.provider"
         android:resource="@xml/reciter_spotlight_info" />
     </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.adhkar.AdhkarReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_adhkar_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/adhkar_info" />
+    </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.hijri.HijriDateReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_hijri_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/hijri_date_info" />
+    </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.hijri.OccasionReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_occasion_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/occasion_info" />
+    </receiver>
   </application>
 </manifest>

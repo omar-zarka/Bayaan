@@ -9,5 +9,8 @@ struct ContentWidgets: WidgetBundle {
     LibraryShelfWidget()
     BedtimeWidget()
     ReciterSpotlightWidget()
+    AdhkarWidget()
+    HijriDateWidget()
+    OccasionWidget()
   }
 }

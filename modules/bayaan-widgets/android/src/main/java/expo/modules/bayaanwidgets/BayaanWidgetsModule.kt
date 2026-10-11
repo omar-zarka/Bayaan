@@ -5,11 +5,14 @@ import androidx.glance.appwidget.GlanceAppWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import expo.modules.bayaanwidgets.adhkar.AdhkarWidget
 import expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayWidget
 import expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.bayaanwidgets.continuereading.ContinueReadingWidget
 import expo.modules.bayaanwidgets.bedtime.BedtimeWidget
+import expo.modules.bayaanwidgets.hijri.HijriDateWidget
+import expo.modules.bayaanwidgets.hijri.OccasionWidget
 import expo.modules.bayaanwidgets.libraryshelf.LibraryShelfWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
@@ -61,6 +64,9 @@ class BayaanWidgetsModule : Module() {
           "LibraryShelf" -> push(LibraryShelfWidget())
           "Bedtime" -> push(BedtimeWidget())
           "ReciterSpotlight" -> push(ReciterSpotlightWidget())
+          "Adhkar" -> push(AdhkarWidget())
+          "HijriDate" -> push(HijriDateWidget())
+          "Occasion" -> push(OccasionWidget())
           else -> Unit // widget kinds register here as they are added
         }
       }

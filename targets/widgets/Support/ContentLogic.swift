@@ -50,13 +50,17 @@ enum ContentLogic {
     gregorian(timeZone).component(.weekday, from: date)
   }
 
+  // One explicit Umm al-Qura calendar at UTC, reused across the forward scans.
+  private static let ummAlQura: Calendar = {
+    var calendar = Calendar(identifier: .islamicUmmAlQura)
+    calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+    return calendar
+  }()
+
   /// Umm al-Qura date of a local Gregorian day number, read at 12:00 UTC.
   static func hijri(dayNumber: Int) -> HijriDate? {
-    guard let utc = TimeZone(identifier: "UTC") else { return nil }
-    var calendar = Calendar(identifier: .islamicUmmAlQura)
-    calendar.timeZone = utc
     let noon = Date(timeIntervalSince1970: Double(dayNumber) * 86_400 + 43_200)
-    let c = calendar.dateComponents([.year, .month, .day], from: noon)
+    let c = ummAlQura.dateComponents([.year, .month, .day], from: noon)
     guard let y = c.year, let m = c.month, let d = c.day else { return nil }
     return HijriDate(year: y, month: m, day: d)
   }
@@ -137,7 +141,7 @@ enum ContentLogic {
                             hijriOf: (Int) -> HijriDate?) -> [UpcomingOccasion] {
     var found: [UpcomingOccasion] = []
     var d = 1
-    while d <= horizon && found.count < upcomingAnchors.count {
+    while d <= horizon && found.count < count {
       guard let h = hijriOf(today + d) else { break }
       for a in upcomingAnchors where a.month == h.month && a.day == h.day && !found.contains(where: { $0.id == a.id }) {
         found.append(UpcomingOccasion(id: a.id, days: d))

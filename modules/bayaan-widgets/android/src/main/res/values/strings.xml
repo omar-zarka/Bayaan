@@ -20,4 +20,10 @@
   <string name="bayaan_widget_bedtime_desc">Fall asleep to a surah with a sleep timer.</string>
   <string name="bayaan_widget_spotlight_label">Reciter of the Day</string>
   <string name="bayaan_widget_spotlight_desc">Meet a new reciter every day.</string>
+  <string name="bayaan_widget_adhkar_label">Morning &amp; Evening Adhkar</string>
+  <string name="bayaan_widget_adhkar_desc">The adhkar for this time of day.</string>
+  <string name="bayaan_widget_hijri_label">Hijri Date</string>
+  <string name="bayaan_widget_hijri_desc">Today\'s date in the Umm al-Qura calendar.</string>
+  <string name="bayaan_widget_occasion_label">Occasions</string>
+  <string name="bayaan_widget_occasion_desc">Ayat for Ramadan, Dhul Hijjah, Jumu\'ah and more.</string>
 </resources>
