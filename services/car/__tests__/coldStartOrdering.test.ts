@@ -187,6 +187,10 @@ function loadModules(): Modules {
   return modules;
 }
 
+// Each test loads the bridge and restore graph fresh (isolateModules), which
+// takes several seconds on a busy machine.
+jest.setTimeout(30_000);
+
 describe('cold-start car request vs restoreSession', () => {
   beforeEach(() => {
     jest.useFakeTimers();

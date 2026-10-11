@@ -86,7 +86,12 @@ async function flush(): Promise<void> {
 
 describe('CarRoot handover', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    // mockCreateAudioPlayer is deliberately not cleared: the shared player
+    // lives at module level, so the whole file creates it exactly once.
+    mockSetPlayer.mockClear();
+    mockStartSync.mockClear();
+    mockStopSync.mockClear();
+    mockBootApp.mockClear();
   });
 
   it('boots the app and owns the player while the phone layout is closed', async () => {
@@ -98,6 +103,7 @@ describe('CarRoot handover', () => {
     expect(mockBootApp).toHaveBeenCalledTimes(1);
     expect(mockSetPlayer).toHaveBeenCalledWith(mockPlayer);
     expect(mockStartSync).toHaveBeenCalledTimes(1);
+    expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1);
     await act(async () => car?.unmount());
     await flush();
     expect(mockStopSync).toHaveBeenCalledTimes(1);
@@ -122,7 +128,7 @@ describe('CarRoot handover', () => {
     expect(mockStopSync).not.toHaveBeenCalled();
     expect(mockStartSync).toHaveBeenCalledTimes(1);
     // Same player throughout: audio is never released or recreated.
-    expect(mockCreateAudioPlayer.mock.calls.length).toBeLessThanOrEqual(1);
+    expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1);
     expect(new Set(mockSetPlayer.mock.calls.map(c => c[0]))).toEqual(
       new Set([mockPlayer]),
     );
@@ -132,6 +138,7 @@ describe('CarRoot handover', () => {
     // The car root's provider remounted (attached again) before sync stopped.
     expect(mockSetPlayer).toHaveBeenCalledTimes(3);
     expect(mockStopSync).not.toHaveBeenCalled();
+    expect(mockCreateAudioPlayer).toHaveBeenCalledTimes(1);
 
     await act(async () => car?.unmount());
     await flush();

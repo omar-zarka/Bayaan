@@ -32,6 +32,9 @@ const mockEvents: string[] = [];
 let mockContext: CarResolveContext | null = null;
 
 jest.mock('@/modules/bayaan-car', () => ({BayaanCar: {isAvailable: false}}));
+jest.mock('@/services/audio/ExpoAudioService', () => ({
+  expoAudioService: {waitForPlayer: () => Promise.resolve()},
+}));
 jest.mock('@/services/audio/LockScreenService', () => ({
   lockScreenService: {setCarMode: jest.fn()},
 }));
