@@ -7,5 +7,7 @@ struct ContentWidgets: WidgetBundle {
   var body: some Widget {
     RecentlyPlayedWidget()
     LibraryShelfWidget()
+    BedtimeWidget()
+    ReciterSpotlightWidget()
   }
 }

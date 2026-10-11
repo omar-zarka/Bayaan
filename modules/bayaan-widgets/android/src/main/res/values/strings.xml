@@ -16,4 +16,8 @@
   <string name="bayaan_widget_recently_played_desc">Jump back into what you listened to.</string>
   <string name="bayaan_widget_library_shelf_label">Library</string>
   <string name="bayaan_widget_library_shelf_desc">Your downloads or a playlist, one tap away.</string>
+  <string name="bayaan_widget_bedtime_label">Bedtime</string>
+  <string name="bayaan_widget_bedtime_desc">Fall asleep to a surah with a sleep timer.</string>
+  <string name="bayaan_widget_spotlight_label">Reciter of the Day</string>
+  <string name="bayaan_widget_spotlight_desc">Meet a new reciter every day.</string>
 </resources>

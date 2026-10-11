@@ -24,6 +24,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.BedtimeConfig
 import expo.modules.bayaanwidgets.StaticData
 import java.util.Date
 import org.json.JSONObject
@@ -75,3 +76,9 @@ fun clockTime(context: Context, epochMs: Long): String = DateFormat.getTimeForma
 
 fun playPlaylistCommand(playlistId: String, itemId: String?): JSONObject =
   JSONObject().put("type", "playPlaylist").put("playlistId", playlistId).put("itemId", itemId ?: JSONObject.NULL)
+
+fun startBedtimeCommand(c: BedtimeConfig): JSONObject =
+  JSONObject().put("type", "startBedtime").put("surahId", c.surahId)
+    .put("reciterId", c.reciterId ?: JSONObject.NULL)
+    .put("sleepMinutes", c.minutes)
+    .put("ambient", c.ambient ?: JSONObject.NULL)

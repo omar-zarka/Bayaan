@@ -9,10 +9,12 @@ import expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayWidget
 import expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.bayaanwidgets.continuereading.ContinueReadingWidget
+import expo.modules.bayaanwidgets.bedtime.BedtimeWidget
 import expo.modules.bayaanwidgets.libraryshelf.LibraryShelfWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
 import expo.modules.bayaanwidgets.recentlyplayed.RecentlyPlayedWidget
+import expo.modules.bayaanwidgets.spotlight.ReciterSpotlightWidget
 import expo.modules.bayaanwidgets.tasbeeh.TasbeehWidget
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -57,6 +59,8 @@ class BayaanWidgetsModule : Module() {
           }
           "RecentlyPlayed" -> push(RecentlyPlayedWidget())
           "LibraryShelf" -> push(LibraryShelfWidget())
+          "Bedtime" -> push(BedtimeWidget())
+          "ReciterSpotlight" -> push(ReciterSpotlightWidget())
           else -> Unit // widget kinds register here as they are added
         }
       }

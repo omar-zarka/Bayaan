@@ -9,6 +9,8 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import androidx.glance.appwidget.GlanceAppWidget
+import expo.modules.bayaanwidgets.spotlight.ReciterSpotlightReceiver
+import expo.modules.bayaanwidgets.spotlight.ReciterSpotlightWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -38,7 +40,9 @@ class ContextClockReceiver : BroadcastReceiver() {
 
   companion object {
     // Each Phase 3 widget task adds its entry here.
-    val TARGETS: List<ClockTarget> = listOf()
+    val TARGETS: List<ClockTarget> = listOf(
+      ClockTarget(ReciterSpotlightReceiver::class.java) { ReciterSpotlightWidget() },
+    )
 
     fun hasWidgets(context: Context): Boolean {
       val manager = AppWidgetManager.getInstance(context)
