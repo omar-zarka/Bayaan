@@ -12,6 +12,7 @@ object WidgetStorage {
   private const val KEY_TASBEEH = "pendingTasbeeh"
   private const val KEY_PLAYBACK_OVERRIDE = "widgets.playbackOverride"
   private const val KEY_CATALOG = "catalog"
+  private const val KEY_CONTENT = "content"
   private const val KEY_ARTWORK_REQUESTS = "artworkRequests"
   private fun configKey(appWidgetId: Int) = "config.$appWidgetId"
 
@@ -53,6 +54,10 @@ object WidgetStorage {
   fun takeTasbeeh(context: Context) = take(context, KEY_TASBEEH)
 
   fun writeCatalog(context: Context, json: String) = prefs(context).edit().putString(KEY_CATALOG, json).apply()
+
+  fun writeContent(context: Context, json: String) = prefs(context).edit().putString(KEY_CONTENT, json).apply()
+
+  fun readContentJson(context: Context): String? = prefs(context).getString(KEY_CONTENT, null)
 
   fun readCatalogJson(context: Context): String? = prefs(context).getString(KEY_CATALOG, null)
 

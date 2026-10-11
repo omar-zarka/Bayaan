@@ -81,6 +81,9 @@
       </intent-filter>
     </receiver>
     <receiver
+      android:name="expo.modules.bayaanwidgets.ContextClockReceiver"
+      android:exported="false" />
+    <receiver
       android:name="expo.modules.bayaanwidgets.continuereading.ContinueReadingReceiver"
       android:exported="true"
       android:label="@string/bayaan_widget_continue_reading_label">

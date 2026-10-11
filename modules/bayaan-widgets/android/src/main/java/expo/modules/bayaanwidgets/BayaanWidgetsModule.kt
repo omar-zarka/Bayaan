@@ -61,6 +61,7 @@ class BayaanWidgetsModule : Module() {
     Function("takeQueuedCommands") { WidgetStorage.takeQueue(context) }
     Function("takePendingTasbeeh") { WidgetStorage.takeTasbeeh(context) }
     Function("writeCatalog") { json: String -> WidgetStorage.writeCatalog(context, json) }
+    Function("writeContent") { json: String -> WidgetStorage.writeContent(context, json) }
     Function("readArtworkRequests") { WidgetStorage.readArtworkRequestsJson(context) }
 
     Function("hasArtwork") { fileName: String ->
