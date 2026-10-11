@@ -6,6 +6,7 @@ import WidgetKit
 struct BayaanWidgetsBundle: WidgetBundle {
   var body: some Widget {
     ContinueListeningWidget()
+    ContinueReadingWidget()
     QuickSurahWidget()
     PinnedReciterWidget()
     AyahOfTheDayWidget()

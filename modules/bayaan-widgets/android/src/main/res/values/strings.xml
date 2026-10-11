@@ -8,4 +8,6 @@
   <string name="bayaan_widget_pinned_reciter_desc">Play a favorite reciter in one tap.</string>
   <string name="bayaan_widget_ayah_label">Ayah of the Day</string>
   <string name="bayaan_widget_ayah_desc">A new ayah every day, in Digital Khatt.</string>
+  <string name="bayaan_widget_continue_reading_label">Continue Reading</string>
+  <string name="bayaan_widget_continue_reading_desc">Return to the page you were reading.</string>
 </resources>

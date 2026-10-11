@@ -74,5 +74,16 @@
     <receiver
       android:name="expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver"
       android:exported="false" />
+    <receiver
+      android:name="expo.modules.bayaanwidgets.continuereading.ContinueReadingReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_continue_reading_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/continue_reading_info" />
+    </receiver>
   </application>
 </manifest>

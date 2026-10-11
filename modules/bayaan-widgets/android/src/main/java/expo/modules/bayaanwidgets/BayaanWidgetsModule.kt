@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayWidget
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
+import expo.modules.bayaanwidgets.continuereading.ContinueReadingWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
 import expo.modules.kotlin.modules.Module
@@ -39,6 +40,7 @@ class BayaanWidgetsModule : Module() {
       for (kind in kinds) {
         when (kind) {
           "ContinueListening" -> updateContinueListening()
+          "ContinueReading" -> push(ContinueReadingWidget())
           "QuickSurah" -> push(QuickSurahWidget())
           "PinnedReciter" -> push(PinnedReciterWidget())
           "AyahOfTheDay" -> push(AyahOfTheDayWidget())
