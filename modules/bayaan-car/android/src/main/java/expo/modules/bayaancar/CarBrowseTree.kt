@@ -47,7 +47,7 @@ object CarBrowseTree {
       parentId == "tab:reciters" -> s.reciters.sortedByDescending { it.isFavorite }.take(MAX_RECITERS)
         .map { reciter(it, if (it.isFavorite) "Favorite reciters" else "All reciters") }.orIfEmpty()
       parentId == "tab:surahs" -> s.juz.flatMap { juz ->
-        juz.surahIds.mapNotNull { id -> s.surahs.firstOrNull { it.id == id } }.map { surahBrowse(it, "Juz ${juz.number}") }
+        juz.surahIds.mapNotNull { id -> s.surahs.firstOrNull { it.id == id } }.map { surahBrowse(it, juz.title ?: "Juz ${juz.number}") }
       }
       parentId.startsWith("list:") -> s.lists[parentId.removePrefix("list:")]?.items?.map { item(it, null) }.orEmpty().orIfEmpty()
       parentId.startsWith("reciter:") -> reciterChildren(s, parentId.removePrefix("reciter:"))

@@ -93,7 +93,7 @@ data class CarList(val id: String, val title: String, val items: List<CarItem>)
 data class CarRewayah(val id: String, val name: String, val style: String, val surahIds: List<Int>)
 data class CarReciter(val id: String, val name: String, val artwork: CarArtwork, val isFavorite: Boolean, val rewayat: List<CarRewayah>)
 data class CarSurah(val id: Int, val name: String, val nameArabic: String, val translation: String, val versesCount: Int)
-data class CarJuz(val number: Int, val surahIds: List<Int>)
+data class CarJuz(val number: Int, val surahIds: List<Int>, val title: String? = null)
 
 data class CarSnapshot(
   val topReciterId: String?,
@@ -146,7 +146,9 @@ data class CarSnapshot(
         surahs = o.getJSONArray("surahs").mapObjects { s ->
           CarSurah(s.getInt("id"), s.getString("name"), s.getString("nameArabic"), s.getString("translation"), s.getInt("versesCount"))
         },
-        juz = o.getJSONArray("juz").mapObjects { j -> CarJuz(j.getInt("number"), j.getJSONArray("surahIds").ints()) },
+        juz = o.getJSONArray("juz").mapObjects { j ->
+          CarJuz(j.getInt("number"), j.getJSONArray("surahIds").ints(), j.optString("title").takeIf { it.isNotEmpty() })
+        },
         downloadedKeys = o.getJSONArray("downloadedKeys").let { a -> (0 until a.length()).map { a.getString(it) }.toSet() },
         surahArtworkBase = if (o.has("surahArtworkBase") && !o.isNull("surahArtworkBase")) o.getString("surahArtworkBase") else null,
       )

@@ -31,6 +31,8 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
   /// CarPlay audio apps may stack at most five templates (tab bar root included).
   private static let maxTemplateDepth = 5
   private var upNextTemplate: CPListTemplate?
+  /// Queue identity and current index the Up Next list was built from.
+  private var upNextKey: String?
   private var isPushing = false
 
   init(interfaceController: CPInterfaceController, builder: CarTemplateBuilder) {
@@ -69,6 +71,7 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
       forName: CarBridge.nowPlayingDidChange, object: nil, queue: .main
     ) { [weak self] _ in
       self?.updateButtons()
+      self?.refreshUpNext()
     }
     updateButtons()
   }
@@ -90,6 +93,7 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     if let observer { NotificationCenter.default.removeObserver(observer) }
     observer = nil
     upNextTemplate = nil
+    upNextKey = nil
   }
 
   // MARK: Buttons
@@ -153,16 +157,42 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
   func nowPlayingTemplateUpNextButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {
     guard let ic = interfaceController, canPush(), let np = CarBridge.shared.nowPlaying else { return }
     if let existing = upNextTemplate, ic.templates.contains(where: { $0 === existing }) { return }
+    let template = builder.listTemplate(title: "Up Next", sections: upNextSections(np))
+    upNextKey = Self.upNextKey(np)
+    upNextTemplate = template
+    isPushing = true
+    ic.pushTemplate(template, animated: true) { [weak self] _, _ in
+      self?.isPushing = false
+    }
+  }
+
+  private static func upNextKey(_ np: CarNowPlaying) -> String {
+    np.queue.map { "\($0.title)|\($0.subtitle)" }.joined(separator: "\n") + "#\(np.currentIndex)"
+  }
+
+  /// Keeps a visible Up Next list in step with skips and queue changes.
+  private func refreshUpNext() {
+    guard let template = upNextTemplate, let np = CarBridge.shared.nowPlaying,
+      interfaceController?.templates.contains(where: { $0 === template }) == true
+    else { return }
+    let key = Self.upNextKey(np)
+    guard key != upNextKey else { return }
+    upNextKey = key
+    template.updateSections(upNextSections(np))
+  }
+
+  /// Like Apple Music: the current item, then what plays next.
+  private func upNextSections(_ np: CarNowPlaying) -> [CPListSection] {
     let count = np.queue.count
-    let limit = CPListTemplate.maximumItemCount
-    // Longer queues than CarPlay can show are windowed to start at the current item.
-    let start = count > limit ? min(max(np.currentIndex, 0), count - limit) : 0
-    let end = min(count, start + limit)
-    let items = (start..<end).map { index -> CPListItem in
+    guard count > 0 else { return [CPListSection(items: [CPListItem(text: "Nothing here yet", detailText: nil)])] }
+    let current = min(max(np.currentIndex, 0), count - 1)
+    let end = min(count, current + CPListTemplate.maximumItemCount)
+    let row = { (index: Int) -> CPListItem in
       let entry = np.queue[index]
       let item = CPListItem(text: entry.title, detailText: entry.subtitle, image: nil)
-      if let surahId = entry.surahId { builder.setArtwork(item, .surah(surahId)) }
-      item.isPlaying = index == np.currentIndex
+      if let surahId = entry.surahId { self.builder.setArtwork(item, .surah(surahId)) }
+      item.isPlaying = index == current
+      item.playingIndicatorLocation = .trailing
       item.handler = { [weak self] _, completion in
         CarBridge.shared.send(transport: ["kind": "jumpTo", "index": index])
         self?.popToNowPlaying()
@@ -170,13 +200,11 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
       }
       return item
     }
-    let rows = items.isEmpty ? [CPListItem(text: "Nothing here yet", detailText: nil)] : items
-    let template = builder.listTemplate(title: "Up Next", sections: [CPListSection(items: rows)])
-    upNextTemplate = template
-    isPushing = true
-    ic.pushTemplate(template, animated: true) { [weak self] _, _ in
-      self?.isPushing = false
+    var sections = [CPListSection(items: [row(current)], header: "Now playing", sectionIndexTitle: nil)]
+    if current + 1 < end {
+      sections.append(CPListSection(items: (current + 1..<end).map(row), header: "Next", sectionIndexTitle: nil))
     }
+    return sections
   }
 
   func nowPlayingTemplateAlbumArtistButtonTapped(_ nowPlayingTemplate: CPNowPlayingTemplate) {

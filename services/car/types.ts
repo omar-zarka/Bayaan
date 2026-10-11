@@ -98,7 +98,8 @@ export interface CarSnapshot {
   lists: Record<string, CarList>;
   reciters: CarReciter[];
   surahs: CarSurah[];
-  juz: {number: number; surahIds: number[]}[];
+  /** `title` covers juz that start no surah: "Juz 1–2". */
+  juz: {number: number; title: string; surahIds: number[]}[];
   downloadedKeys: string[];
   /** https base for surah cards, ending in '/'. Natives fall back to Bayaan's CDN when absent. */
   surahArtworkBase?: string;

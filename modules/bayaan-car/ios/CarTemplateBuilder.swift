@@ -12,6 +12,11 @@ final class CarTemplateBuilder {
   /// Identity of the Quick start header buttons currently set (ids, titles,
   /// artwork, style), so unrelated snapshot changes do not reset them.
   private var quickStartSignature: String?
+  /// What each non-Home tab was last built from. Playback rebuilds the
+  /// snapshot every 10% for Jump back in progress; only Home needs that, so
+  /// the other tabs keep their rows (and scroll position) unless their own
+  /// content or the light/dark style changed.
+  private var tabSignatures: [ObjectIdentifier: String] = [:]
   /// Artwork loads registered while building, started only for items that
   /// survive `clamp`, then cleared.
   private var loaders: [ObjectIdentifier: () -> Void] = [:]
@@ -66,6 +71,7 @@ final class CarTemplateBuilder {
       [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].forEach {
         $0.updateSections([emptyState(Self.emptyCopy)])
       }
+      tabSignatures.removeAll()
       if #available(iOS 26.0, *) {
         homeTemplate.headerGridButtons = nil
         quickStartSignature = nil
@@ -81,9 +87,31 @@ final class CarTemplateBuilder {
         homeTemplate.headerGridButtons = quickStartButtons(snapshot.home.quickStart)
       }
     }
-    libraryTemplate.updateSections(clamp(librarySections(snapshot)))
-    recitersTemplate.updateSections(clamp(reciterSections(snapshot)))
-    surahsTemplate.updateSections(clamp(surahSections(snapshot)))
+    let style = "#\(currentStyle.rawValue)"
+    updateTab(libraryTemplate, signature: Self.librarySignature(snapshot) + style) { librarySections(snapshot) }
+    updateTab(recitersTemplate, signature: Self.recitersSignature(snapshot) + style) { reciterSections(snapshot) }
+    updateTab(surahsTemplate, signature: Self.surahsSignature(snapshot) + style) { surahSections(snapshot) }
+  }
+
+  private func updateTab(_ template: CPListTemplate, signature: String, sections: () -> [CPListSection]) {
+    let key = ObjectIdentifier(template)
+    guard tabSignatures[key] != signature else { return }
+    tabSignatures[key] = signature
+    template.updateSections(clamp(sections()))
+  }
+
+  private static func librarySignature(_ s: CarSnapshot) -> String {
+    s.library.map { "\($0.id)|\($0.title)|\($0.subtitle ?? "")|\($0.artwork)" }.joined(separator: "\n")
+  }
+
+  private static func recitersSignature(_ s: CarSnapshot) -> String {
+    s.reciters.map { "\($0.id)|\($0.name)|\($0.isFavorite)|\($0.artwork)|\($0.rewayat.count)" }
+      .joined(separator: "\n")
+  }
+
+  private static func surahsSignature(_ s: CarSnapshot) -> String {
+    let juz = s.juz.map { "\($0.number):\($0.title ?? ""):\($0.surahIds)" }.joined(separator: ",")
+    return juz + "|\(s.surahs.count)|\(s.surahArtworkBase ?? "")"
   }
 
   // MARK: Limits
@@ -478,7 +506,7 @@ final class CarTemplateBuilder {
     return s.juz.compactMap { juz -> CPListSection? in
       let rows = juz.surahIds.compactMap { byId[$0] }.map(surahRow)
       guard !rows.isEmpty else { return nil }
-      return CPListSection(items: rows, header: "Juz \(juz.number)", sectionIndexTitle: "\(juz.number)")
+      return CPListSection(items: rows, header: juz.title ?? "Juz \(juz.number)", sectionIndexTitle: "\(juz.number)")
     }
   }
 

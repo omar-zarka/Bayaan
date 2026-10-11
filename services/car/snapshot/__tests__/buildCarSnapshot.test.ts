@@ -4,6 +4,7 @@ import {
   availableSurahIds,
   normalizeSurahArtworkBase,
   DEFAULT_SURAH_ARTWORK_BASE,
+  juzGroups,
 } from '../buildCarSnapshot';
 import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
@@ -615,5 +616,23 @@ describe('buildCarSnapshot', () => {
         surahId: 18,
       },
     });
+  });
+
+  it('titles juz groups to cover juz that start no surah', () => {
+    expect(
+      juzGroups(
+        new Map([
+          [3, [3]],
+          [1, [1, 2]],
+          [30, [78, 79]],
+          [4, [4]],
+        ]),
+      ).map(g => [g.number, g.title, g.surahIds]),
+    ).toEqual([
+      [1, 'Juz 1–2', [1, 2]],
+      [3, 'Juz 3', [3]],
+      [4, 'Juz 4–29', [4]],
+      [30, 'Juz 30', [78, 79]],
+    ]);
   });
 });

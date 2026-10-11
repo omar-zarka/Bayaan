@@ -216,6 +216,7 @@ struct CarHome: Decodable {
 
 struct CarJuz: Decodable {
   let number: Int
+  let title: String?
   let surahIds: [Int]
 }
 

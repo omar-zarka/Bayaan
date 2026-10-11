@@ -83,6 +83,25 @@ export function availableSurahIds(rewayat: Rewayat | undefined): number[] {
  * available surahs; the first one wins a tie). A reciter's first rewayah can
  * be a partial recording, which would hide surahs the car should offer.
  */
+const LAST_JUZ = 30;
+
+/**
+ * Surahs grouped by the juz they start in. Some juz start no surah (Juz 2 is
+ * all Al-Baqarah), so each group's title covers the juz up to the next
+ * group: "Juz 1–2", then "Juz 3".
+ */
+export function juzGroups(
+  juzMap: ReadonlyMap<number, number[]>,
+): {number: number; title: string; surahIds: number[]}[] {
+  const sorted = [...juzMap.entries()].sort(([a], [b]) => a - b);
+  return sorted.map(([number, surahIds], index) => {
+    const next = sorted[index + 1]?.[0];
+    const last = next === undefined ? LAST_JUZ : next - 1;
+    const title = last > number ? `Juz ${number}–${last}` : `Juz ${number}`;
+    return {number, title, surahIds};
+  });
+}
+
 export function findRewayat(
   reciter: Reciter,
   rewayatId: string | undefined,
@@ -590,9 +609,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
       translation: s.translated_name_english,
       versesCount: s.verses_count,
     })),
-    juz: [...juzMap.entries()]
-      .sort(([a], [b]) => a - b)
-      .map(([number, surahIds]) => ({number, surahIds})),
+    juz: juzGroups(juzMap),
     downloadedKeys: input.downloads
       .filter(d => d.status === 'completed')
       .map(d => downloadKey(d.reciterId, d.rewayatId, Number(d.surahId))),
