@@ -10,6 +10,7 @@ import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.bayaanwidgets.continuereading.ContinueReadingWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
+import expo.modules.bayaanwidgets.tasbeeh.TasbeehWidget
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 
@@ -44,6 +45,7 @@ class BayaanWidgetsModule : Module() {
           "QuickSurah" -> push(QuickSurahWidget())
           "PinnedReciter" -> push(PinnedReciterWidget())
           "AyahOfTheDay" -> push(AyahOfTheDayWidget())
+          "Tasbeeh" -> push(TasbeehWidget())
           else -> Unit // widget kinds register here as they are added
         }
       }

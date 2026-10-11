@@ -10,6 +10,8 @@ import android.content.Context
 import android.content.Intent
 import expo.modules.bayaanwidgets.DayMath
 import expo.modules.bayaanwidgets.GlanceState
+import expo.modules.bayaanwidgets.tasbeeh.TasbeehReceiver
+import expo.modules.bayaanwidgets.tasbeeh.TasbeehWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -26,6 +28,7 @@ class MidnightReceiver : BroadcastReceiver() {
     CoroutineScope(Dispatchers.Default).launch {
       try {
         runCatching { GlanceState.push(app, AyahOfTheDayWidget()) }
+        runCatching { GlanceState.push(app, TasbeehWidget()) }
       } finally {
         if (hasWidgets(app)) schedule(app)
         pending.finish()
@@ -34,8 +37,8 @@ class MidnightReceiver : BroadcastReceiver() {
   }
 
   companion object {
-    // Providers whose content changes at midnight. Task 10 adds TasbeehReceiver.
-    private val PROVIDERS: List<Class<*>> = listOf(AyahOfTheDayReceiver::class.java)
+    // Providers whose content changes at midnight.
+    private val PROVIDERS: List<Class<*>> = listOf(AyahOfTheDayReceiver::class.java, TasbeehReceiver::class.java)
 
     fun hasWidgets(context: Context): Boolean {
       val manager = AppWidgetManager.getInstance(context)

@@ -10,5 +10,6 @@ struct BayaanWidgetsBundle: WidgetBundle {
     QuickSurahWidget()
     PinnedReciterWidget()
     AyahOfTheDayWidget()
+    TasbeehWidget()
   }
 }
