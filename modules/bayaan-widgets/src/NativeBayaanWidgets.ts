@@ -10,6 +10,8 @@ export interface NativeBayaanWidgetsModule {
   takePendingTasbeeh(): string;
   cacheArtwork(sourceUrl: string, fileName: string): Promise<boolean>;
   hasArtwork(fileName: string): boolean;
+  writeCatalog(json: string): void;
+  readArtworkRequests(): string;
   addListener(
     event: 'onCommandQueued',
     listener: () => void,

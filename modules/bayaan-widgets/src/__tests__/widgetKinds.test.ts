@@ -74,4 +74,15 @@ describe('changedWidgetKinds', () => {
     const next = {...base(), theme: 'light' as const};
     expect(changedWidgetKinds(prev, next)).toHaveLength(6);
   });
+
+  it('reloads Pinned Reciter and Quick Surah when the default reciter changes', () => {
+    const prev = base();
+    const next = base();
+    if (next.defaultReciter) next.defaultReciter.name = 'Someone Else';
+    expect(changedWidgetKinds(prev, next)).toEqual([
+      'ContinueListening',
+      'QuickSurah',
+      'PinnedReciter',
+    ]);
+  });
 });

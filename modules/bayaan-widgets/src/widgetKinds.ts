@@ -72,7 +72,7 @@ function sliceFor(kind: WidgetKind, s: WidgetSnapshot): unknown {
     case 'QuickSurah':
       return s.defaultReciter;
     case 'PinnedReciter':
-      return s.reciterRecents;
+      return [s.reciterRecents, s.defaultReciter];
     case 'AyahOfTheDay':
       return null;
     case 'ContinueReading':
