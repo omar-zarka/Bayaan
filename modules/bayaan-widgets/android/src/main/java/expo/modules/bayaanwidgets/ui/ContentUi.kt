@@ -26,6 +26,7 @@ import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import expo.modules.bayaanwidgets.StaticData
 import java.util.Date
+import org.json.JSONObject
 
 /** The rounded near-black root every Phase 3 widget draws on. */
 fun contentRoot(): GlanceModifier = GlanceModifier.fillMaxSize().background(WidgetColors.BACKGROUND).cornerRadius(20.dp)
@@ -71,3 +72,6 @@ fun ContentMessage(modifier: GlanceModifier, title: String, detail: String?) {
 
 /** Local clock time in the user's 12/24 hour setting, for "Sleep at 23:40". */
 fun clockTime(context: Context, epochMs: Long): String = DateFormat.getTimeFormat(context).format(Date(epochMs))
+
+fun playPlaylistCommand(playlistId: String, itemId: String?): JSONObject =
+  JSONObject().put("type", "playPlaylist").put("playlistId", playlistId).put("itemId", itemId ?: JSONObject.NULL)
