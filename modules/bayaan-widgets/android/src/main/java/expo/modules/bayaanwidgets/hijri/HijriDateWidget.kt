@@ -8,6 +8,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.provideContent
@@ -33,6 +34,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.contentRoot
+import expo.modules.bayaanwidgets.ui.deepLink
 import java.util.TimeZone
 
 class HijriDateWidget : GlanceAppWidget() {
@@ -49,7 +51,7 @@ class HijriDateWidget : GlanceAppWidget() {
   }
 }
 
-/** The small Hijri date; also Bayaan Now's small occasion mode. Tapping opens the app (launcher default). */
+/** The small Hijri date; also Bayaan Now's small occasion mode. Tapping opens the app. */
 @Composable
 fun HijriSmallContent(context: Context, nowMs: Long) {
   val tz = TimeZone.getDefault()
@@ -57,7 +59,7 @@ fun HijriSmallContent(context: Context, nowMs: Long) {
   val hijri = ContentLogic.hijri(nowMs, tz, IcuHijri)
   val month = hijri?.let { data?.month(it.month) }
   val occasion = data?.occasion(ContentLogic.occasionAt(nowMs, tz, IcuHijri))
-  Column(contentRoot().padding(12.dp)) {
+  Column(contentRoot().padding(12.dp).clickable(deepLink(context, "bayaan://"))) {
     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       if (month != null) ArabicText(context, month.arabic, ArabicBitmap.DHIKR_FONT, 72f, 22f, 15f, 10f, 1, center = false)
       Spacer(GlanceModifier.defaultWeight())

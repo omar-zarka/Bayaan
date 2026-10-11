@@ -187,5 +187,9 @@ class ContentLogicTest {
     assertTrue(ContentLogic.playingAt(full.copy(nowPlaying = full.nowPlaying!!.copy(rate = 2.0)), full.generatedAt + 839_000))
     assertFalse(ContentLogic.playingAt(full.copy(nowPlaying = full.nowPlaying!!.copy(rate = 2.0)), full.generatedAt + 840_000))
     assertFalse(ContentLogic.playingAt(null, 0L))
+    assertEquals(full.generatedAt + 1_679_500, ContentLogic.trackEndMs(full))
+    assertEquals(full.generatedAt + 839_750, ContentLogic.trackEndMs(full.copy(nowPlaying = full.nowPlaying!!.copy(rate = 2.0))))
+    assertNull(ContentLogic.trackEndMs(full.copy(nowPlaying = full.nowPlaying!!.copy(isPlaying = false))))
+    assertNull(ContentLogic.trackEndMs(null))
   }
 }

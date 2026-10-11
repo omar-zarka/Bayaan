@@ -64,11 +64,26 @@ class BayaanWidgetsModule : Module() {
           "RecentlyPlayed" -> push(RecentlyPlayedWidget())
           "LibraryShelf" -> push(LibraryShelfWidget())
           "Bedtime" -> push(BedtimeWidget())
-          "ReciterSpotlight" -> push(ReciterSpotlightWidget())
-          "Adhkar" -> push(AdhkarWidget())
-          "HijriDate" -> push(HijriDateWidget())
-          "Occasion" -> push(OccasionWidget())
-          "BayaanNow" -> push(BayaanNowWidget())
+          "ReciterSpotlight" -> {
+            push(ReciterSpotlightWidget())
+            rearmContextClock()
+          }
+          "Adhkar" -> {
+            push(AdhkarWidget())
+            rearmContextClock()
+          }
+          "HijriDate" -> {
+            push(HijriDateWidget())
+            rearmContextClock()
+          }
+          "Occasion" -> {
+            push(OccasionWidget())
+            rearmContextClock()
+          }
+          "BayaanNow" -> {
+            push(BayaanNowWidget())
+            rearmContextClock()
+          }
           else -> Unit // widget kinds register here as they are added
         }
       }
@@ -100,6 +115,12 @@ class BayaanWidgetsModule : Module() {
   private fun rearmMidnight() {
     val ctx = context
     if (MidnightReceiver.hasWidgets(ctx)) MidnightReceiver.schedule(ctx)
+  }
+
+  /** Any app push re-arms the context alarm that a force stop cancelled. */
+  private fun rearmContextClock() {
+    val ctx = context
+    if (ContextClockReceiver.hasWidgets(ctx)) ContextClockReceiver.schedule(ctx)
   }
 
   /** Pushes stored inputs into every instance of a Phase 1b widget. */

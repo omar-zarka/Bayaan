@@ -72,7 +72,7 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
             if (i > 0) Spacer(GlanceModifier.defaultWeight())
             val action = commandAction(context, playTrackCommand(t.surahId, t.reciterId, t.rewayatId, null),
               "recent/${t.surahId}/${t.reciterId}/${t.rewayatId ?: "any"}")
-            SurahTile(context, t.surahId, if (large) 60 else 52, action, if (large) t.reciterName else null)
+            SurahTile(context, t.surahId, if (large) 60 else 44, action, if (large) t.reciterName else null)
           }
         }
       }

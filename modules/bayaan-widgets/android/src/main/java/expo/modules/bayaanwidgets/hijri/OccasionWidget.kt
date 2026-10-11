@@ -46,7 +46,7 @@ import expo.modules.bayaanwidgets.ui.playTrackCommand
 import java.util.TimeZone
 
 class OccasionWidget : GlanceAppWidget() {
-  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.MEDIUM, WidgetSizes.LARGE))
+  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.MEDIUM, WidgetSizes.MEDIUM_TALL, WidgetSizes.LARGE))
   override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -66,24 +66,26 @@ fun OccasionContent(context: Context, nowMs: Long) {
   val data = ContentStaticData.occasions(context)
   val hijri = ContentLogic.hijri(nowMs, tz, IcuHijri)
   if (data == null || hijri == null) {
-    ContentMessage(contentRoot(), "Open Bayaan", null)
+    ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", null)
     return
   }
   val size = LocalSize.current
   val large = size.height >= WidgetSizes.LARGE.height
+  val tall = size.height >= WidgetSizes.MEDIUM_TALL.height
   val hijriText = ContentLogic.hijriLine(hijri, data.months)
   val occasion = data.occasion(ContentLogic.occasionAt(nowMs, tz, IcuHijri))
   val ayah = occasion?.ayat?.getOrNull(DayMath.ayahIndex(nowMs, tz, occasion.ayat.size))
   if (occasion != null && ayah != null) {
     // Jumu'ah plays Surah Al-Kahf from the start; other occasions play from the ayah onward.
-    val command = occasion.listenSurahId?.let { playTrackCommand(it, null, null, null) }
+    val command = occasion.listenSurahId?.let { playTrackCommand(it, null, null, 1) }
       ?: playTrackCommand(ayah.surahId, null, null, ayah.ayah)
+    val listenLabel = if (occasion.listenSurahId == null) "Listen" else "Listen to Al-Kahf"
     val listen = commandAction(context, command, "occasion/${occasion.id}/${ayah.key}")
     val open = deepLink(context, "bayaan://quran/${ayah.surahId}?ayah=${ayah.ayah}")
     val pad = if (large) 16 else 14
     Column(contentRoot().padding(pad.dp).clickable(open)) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        RoundButton(android.R.drawable.ic_media_play, "Listen", listen)
+        RoundButton(android.R.drawable.ic_media_play, listenLabel, listen)
         Spacer(GlanceModifier.width(8.dp))
         Column(GlanceModifier.defaultWeight()) {
           Text(occasion.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
@@ -93,16 +95,16 @@ fun OccasionContent(context: Context, nowMs: Long) {
       }
       if (large) Spacer(GlanceModifier.defaultWeight()) else Spacer(GlanceModifier.height(6.dp))
       ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, size.width.value - pad * 2,
-        if (large) 130f else 44f, if (large) 32f else 24f, 12f, if (large) 6 else 2, center = true)
+        if (large) 130f else if (tall) 80f else 44f, if (large) 32f else 24f, 12f, if (large) 6 else if (tall) 3 else 2, center = true)
       Spacer(GlanceModifier.height(4.dp))
-      Text(ayah.translation, maxLines = if (large) 4 else 2,
+      Text(ayah.translation, maxLines = if (large) 4 else if (tall) 3 else 2,
         style = TextStyle(color = WidgetColors.SECONDARY, fontSize = if (large) 14.sp else 12.sp))
       if (large) Spacer(GlanceModifier.defaultWeight())
     }
     return
   }
   val upcoming = ContentLogic.nextOccasions(DayMath.dayNumber(nowMs, tz), if (large) 3 else 2, IcuHijri)
-  Column(contentRoot().padding(14.dp)) {
+  Column(contentRoot().padding(14.dp).clickable(deepLink(context, "bayaan://"))) {
     Row(GlanceModifier.fillMaxWidth()) {
       Text(hijriText, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
         style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))

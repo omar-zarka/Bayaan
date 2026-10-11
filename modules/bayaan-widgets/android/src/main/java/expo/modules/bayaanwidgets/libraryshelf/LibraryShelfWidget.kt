@@ -120,7 +120,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
       }
       LibraryShelfState.PlaylistUnavailable ->
         ContentMessage(contentRoot().clickable(configure(context, appWidgetId)), "Playlist unavailable", "Tap to choose another")
-      LibraryShelfState.NoContent -> ContentMessage(contentRoot(), "Open Bayaan", "to load your library")
+      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", "to load your library")
     }
   }
 
@@ -136,7 +136,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
         Row(GlanceModifier.fillMaxWidth().padding(bottom = 8.dp)) {
           row.forEachIndexed { i, item ->
             if (i > 0) Spacer(GlanceModifier.defaultWeight())
-            SurahTile(context, item.surahId, if (large) 48 else 52, action(item), if (large) item.surahName else null)
+            SurahTile(context, item.surahId, if (large) 48 else 44, action(item), if (large) item.surahName else null)
           }
         }
       }

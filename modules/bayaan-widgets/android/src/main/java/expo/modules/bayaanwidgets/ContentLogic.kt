@@ -84,11 +84,17 @@ object ContentLogic {
    * generatedAt + remaining / rate). Bayaan Now only; it ignores the tap override.
    */
   fun playingAt(snapshot: WidgetSnapshot?, nowMs: Long): Boolean {
-    val np = snapshot?.nowPlaying ?: return false
-    if (!np.isPlaying) return false
+    val endMs = trackEndMs(snapshot) ?: return false
+    return nowMs < endMs
+  }
+
+  /** When the snapshot's playing track ends (generatedAt + remaining / rate), or null when nothing is playing. */
+  fun trackEndMs(snapshot: WidgetSnapshot?): Long? {
+    val np = snapshot?.nowPlaying ?: return null
+    if (!np.isPlaying) return null
     val rate = if (np.rate > 0 && np.rate.isFinite()) np.rate else 1.0
     val remainingMs = ((np.durationSec - np.positionSec).coerceAtLeast(0.0) / rate * 1000).toLong()
-    return nowMs < snapshot.generatedAt + remainingMs
+    return snapshot.generatedAt + remainingMs
   }
 
   fun mode(hour: Int, isPlaying: Boolean, occasion: String?): BayaanNowMode = when {

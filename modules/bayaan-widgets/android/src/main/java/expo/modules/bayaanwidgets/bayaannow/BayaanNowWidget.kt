@@ -69,6 +69,9 @@ class BayaanNowWidget : GlanceAppWidget() {
       listOfNotNull(track?.surahId?.takeIf { it in 1..114 }, ContentConfigJson.DEFAULT_BEDTIME_SURAH),
       emptyList(),
     )
+    runCatching {
+      BayaanNowTrackEndWorker.schedule(context, ContentLogic.trackEndMs(snapshot), System.currentTimeMillis())
+    }
     provideContent {
       val inputs = GlanceState.current(currentState(), stored)
       // A push after new artwork lands must redraw the card whose inputs did not change.
