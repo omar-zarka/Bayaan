@@ -24,4 +24,10 @@ class CarRequestGateTest {
     assertEquals(GateDecision.WAIT, CarRequestGate.decide(false, true, waitingSinceMs = 0, nowMs = 9_999))
     assertEquals(GateDecision.FAIL, CarRequestGate.decide(false, true, waitingSinceMs = 0, nowMs = 10_000))
   }
+
+  @Test fun headlessCarRootGetsTheLongestGrace() {
+    assertEquals(GateDecision.WAIT, CarRequestGate.decide(false, false, waitingSinceMs = 0, nowMs = 19_999, headlessBooting = true))
+    assertEquals(GateDecision.WAIT, CarRequestGate.decide(false, true, waitingSinceMs = 0, nowMs = 15_000, headlessBooting = true))
+    assertEquals(GateDecision.FAIL, CarRequestGate.decide(false, true, waitingSinceMs = 0, nowMs = 20_000, headlessBooting = true))
+  }
 }

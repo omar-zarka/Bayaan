@@ -132,6 +132,7 @@ class BayaanLibraryService : MediaLibraryService() {
     CarBridge.onJsUnavailableChanged.remove(jsUnavailableListener)
     carControllers.clear()
     CarBridge.setConnected(false)
+    CarReactRoot.stop(this)
     subscriptions.clear()
     player?.detach()
     player?.release()
@@ -154,10 +155,11 @@ class BayaanLibraryService : MediaLibraryService() {
       if (isCar) {
         carControllers.add(controller)
         CarBridge.setConnected(true)
-        // No headless JS boot here: ReactHost.start() loads the bundle but mounts no React
-        // tree, so there is no player or car bridge. Play requests wait a short grace period
-        // and then show "Open Bayaan on your phone" (CarRequestGate). Follow-up: a player
-        // outside the React tree.
+        // With no Activity there is no React tree (player, car bridge), and with no resumed
+        // Activity JS timers pause. Start the headless car root and its keep-alive task; if
+        // the phone app is running the root shares that runtime and renders nothing.
+        // Requests queue meanwhile (CarRequestGate).
+        CarReactRoot.onCarConnected(this@BayaanLibraryService)
       }
       val commands = MediaSession.ConnectionResult.DEFAULT_SESSION_AND_LIBRARY_COMMANDS.buildUpon()
         .add(rateCommand)
@@ -173,6 +175,7 @@ class BayaanLibraryService : MediaLibraryService() {
       subscriptions.removeAll { it.first == controller }
       if (carControllers.remove(controller) && carControllers.isEmpty()) {
         CarBridge.setConnected(false)
+        CarReactRoot.onCarDisconnected()
       }
     }
 

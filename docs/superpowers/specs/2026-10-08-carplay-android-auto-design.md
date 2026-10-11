@@ -224,7 +224,11 @@ type CarPlayRequest =
   - The host window has no scene until a phone scene adopts it, and UIKit never lays such a window out, so the bridge lays it out on a timer; otherwise the safe area provider never reports insets and the React tree never mounts.
   - While CarPlay is foreground the app stays active even with the phone locked, but React Native's timers run from the phone screen's display link. A `RCTTiming` guard keeps timers in background (NSTimer) mode whenever no phone scene is foreground active.
   - `CPTemplateApplicationScene` gets an empty `windows` so `RCTAppearance.setColorScheme` (called at launch for a chosen theme) does not abort.
-- **Android:** Android Auto binds `BayaanLibraryService` with no Activity. The service serves the browse tree from the snapshot immediately. Playback needs the phone app's React tree (the player and `CarPlaybackBridge` live there), so a play request or transport waits a short grace period (3 s, 10 s if a JS runtime is already booting) for `markJsReady()`. If JS is still not ready, the request is dropped and Android Auto shows "Open Bayaan on your phone to get started" as a player error (plus a `SessionError`). See deviation 10.
+- **Android:** Android Auto binds `BayaanLibraryService` with no Activity. The service serves the browse tree from the snapshot immediately, and on a car connection `CarReactRoot`:
+  - starts a headless React surface for `BayaanCarRoot` (`services/car/CarRoot.tsx`, registered in `entry.ts`), which runs `bootApp()` (the app's boot, shared with the phone layout and memoized per JS runtime) and mounts `ExpoAudioProvider` with no UI;
+  - runs the `BayaanCarKeepAlive` headless JS task while a car is connected, because React Native pauses JS timers whenever no Activity is resumed (the player's load wait and the car bridge use timers).
+  - The player is one module-level expo-audio player per JS runtime (never released). When the phone layout mounts its provider, the car root unmounts its own and the phone's takes over the same player; when the phone layout closes, the car root takes it back. Lock-screen sync is shared across the handover.
+  - Play requests queue meanwhile; the gate waits up to 20 s for a headless cold boot (3 s with no runtime, 10 s for a booting phone app), then shows "Open Bayaan on your phone to get started" as a player error (plus a `SessionError`).
 
 ### 4.4 Android media session coexistence (risk)
 
@@ -281,4 +285,4 @@ If either spike fails, stop and revisit the design with the project owner before
 7. The details header and `CPPlaybackConfiguration` are iOS 26.4 in the SDK, not 27. `CPPlaybackConfiguration` is skipped.
 8. iOS uses multiple scenes; a second phone scene on iPad is refused.
 9. Android: legacy browser service action only, hardened artwork provider, pagination with a 500 cap.
-10. Android Auto cold start without the phone app cannot play in v1. `ReactHost.start()` loads the bundle but mounts no React tree, so there is no player and no car bridge listeners. The headless boot was removed. Browsing still works from the persisted snapshot; play requests and transports fail after the grace period with "Open Bayaan on your phone to get started" instead of staying queued. Follow-up: a player outside the React tree.
+10. Android Auto cold start runs a headless React surface (`BayaanCarRoot`), not just `ReactHost.start()` (which loads the bundle but mounts no tree), plus a keep-alive headless task so JS timers run with no resumed Activity. Verified on an emulator with no Activity: a car play request booted JS and played; the phone-layout handover is unit tested (`services/car/__tests__/CarRoot.test.tsx`) and needs a release-build device check.

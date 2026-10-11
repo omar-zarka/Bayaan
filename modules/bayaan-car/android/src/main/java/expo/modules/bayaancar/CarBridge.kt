@@ -186,18 +186,18 @@ object CarBridge {
     }
   }
 
-  // Main only. Requests only succeed once the phone app's React tree runs (see
-  // BayaanLibraryService). Follow-up: a player outside the React tree.
+  // Main only. Requests succeed once a React root (the phone app's, or the headless
+  // car root BayaanLibraryService starts) has booted the player and car bridge.
   private fun scheduleGraceCheck(now: Long) {
     val since = waitingSinceMs ?: return
     main.removeCallbacks(graceCheck)
-    val delay = since + CarRequestGate.graceMs(emit != null) - now
+    val delay = since + CarRequestGate.graceMs(emit != null, CarReactRoot.isRunning) - now
     main.postDelayed(graceCheck, delay.coerceAtLeast(0L))
   }
 
   private fun checkGrace() {
     val now = SystemClock.elapsedRealtime()
-    when (CarRequestGate.decide(jsReady && emit != null, emit != null, waitingSinceMs, now)) {
+    when (CarRequestGate.decide(jsReady && emit != null, emit != null, waitingSinceMs, now, CarReactRoot.isRunning)) {
       GateDecision.DELIVER -> Unit
       GateDecision.WAIT -> scheduleGraceCheck(now)
       GateDecision.FAIL -> {
