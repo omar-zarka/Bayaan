@@ -14,6 +14,8 @@ import androidx.glance.appwidget.state.updateAppWidgetState
 /** The stored inputs a Phase 1b widget composes from. */
 data class WidgetInputs(
   val snapshotJson: String?, val catalogJson: String?, val configJson: String?, val pendingTasbeehJson: String?,
+  /** Changes on every push. Artwork is read from disk, not from these inputs, so widgets showing it key on this. */
+  val pushedAt: Long? = null,
 )
 
 /**
@@ -38,7 +40,7 @@ object GlanceState {
   /** State after the first push; the stored values before it. */
   fun current(prefs: Preferences, fallback: WidgetInputs): WidgetInputs =
     if (prefs[PUSHED_AT] == null) fallback
-    else WidgetInputs(prefs[SNAPSHOT], prefs[CATALOG], prefs[CONFIG], prefs[PENDING_TASBEEH])
+    else WidgetInputs(prefs[SNAPSHOT], prefs[CATALOG], prefs[CONFIG], prefs[PENDING_TASBEEH], prefs[PUSHED_AT])
 
   suspend fun push(context: Context, widget: GlanceAppWidget) {
     val manager = GlanceAppWidgetManager(context)

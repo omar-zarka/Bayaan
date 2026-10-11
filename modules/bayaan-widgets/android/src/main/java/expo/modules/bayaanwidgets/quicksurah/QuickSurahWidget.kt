@@ -3,6 +3,7 @@ package expo.modules.bayaanwidgets.quicksurah
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -62,14 +63,17 @@ class QuickSurahWidget : GlanceAppWidget() {
       val catalog = remember(inputs.catalogJson) { inputs.catalogJson?.let { CatalogModels.decode(it) } }
       val snapshot = remember(inputs.snapshotJson) { inputs.snapshotJson?.let { SnapshotModels.decode(it) } }
       val reciter = catalog?.reciter(config.reciterId)
-      Content(
-        context,
-        surahs = config.surahIds.mapNotNull { StaticData.surah(context, it) },
-        reciterId = reciter?.id,
-        reciterName = reciter?.name ?: snapshot?.defaultReciter?.name ?: "Default reciter",
-        photoId = reciter?.id ?: snapshot?.defaultReciter?.id,
-        photoFile = reciter?.artworkFile ?: snapshot?.defaultReciter?.artworkFile,
-      )
+      // A push after new artwork lands must redraw cards whose inputs did not change.
+      key(inputs.pushedAt) {
+        Content(
+          context,
+          surahs = config.surahIds.mapNotNull { StaticData.surah(context, it) },
+          reciterId = reciter?.id,
+          reciterName = reciter?.name ?: snapshot?.defaultReciter?.name ?: "Default reciter",
+          photoId = reciter?.id ?: snapshot?.defaultReciter?.id,
+          photoFile = reciter?.artworkFile ?: snapshot?.defaultReciter?.artworkFile,
+        )
+      }
     }
   }
 

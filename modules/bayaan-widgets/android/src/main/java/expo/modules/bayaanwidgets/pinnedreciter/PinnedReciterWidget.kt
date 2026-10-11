@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -68,7 +69,8 @@ class PinnedReciterWidget : GlanceAppWidget() {
     provideContent {
       val inputs = GlanceState.current(currentState(), stored)
       val state = remember(inputs) { resolve(inputs) }
-      Content(context, appWidgetId, state)
+      // A push after new artwork lands must redraw even when the state did not change.
+      key(inputs.pushedAt) { Content(context, appWidgetId, state) }
     }
   }
 

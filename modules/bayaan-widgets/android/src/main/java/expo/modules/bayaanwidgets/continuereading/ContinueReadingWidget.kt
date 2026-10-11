@@ -3,6 +3,7 @@ package expo.modules.bayaanwidgets.continuereading
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -55,7 +56,8 @@ class ContinueReadingWidget : GlanceAppWidget() {
     provideContent {
       val inputs = GlanceState.current(currentState(), stored)
       val lastRead = remember(inputs.snapshotJson) { inputs.snapshotJson?.let { SnapshotModels.decode(it) }?.lastRead }
-      Content(context, lastRead)
+      // A push after new artwork lands must redraw even when lastRead did not change.
+      key(inputs.pushedAt) { Content(context, lastRead) }
     }
   }
 
