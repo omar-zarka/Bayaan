@@ -84,8 +84,27 @@ jest.mock('@/services/timestamps/TimestampService', () => ({
     ]),
   },
 }));
+const mockEnsureRewayahLoaded = jest.fn(async (_rewayah: string) => undefined);
+const mockGetVerseText = jest.fn(
+  (_key: string, _rewayah?: string) => 'ayah text',
+);
 jest.mock('@/services/mushaf/DigitalKhattDataService', () => ({
-  digitalKhattDataService: {initialized: true, getVerseText: () => 'ayah text'},
+  digitalKhattDataService: {
+    initialized: true,
+    getVerseText: (key: string, rewayah?: string) =>
+      mockGetVerseText(key, rewayah),
+    ensureRewayahLoaded: (rewayah: string) => mockEnsureRewayahLoaded(rewayah),
+  },
+}));
+// A Hafs-numbered set: entry N is Hafs ayah N.
+jest.mock('@/services/timestamps/TimingNumberingService', () => ({
+  timingNumberingService: {
+    resolve: jest.fn(async (_rw: string, surah: number) => ({
+      surah,
+      mode: 'hafs',
+      hafsKeysForEntry: (entryAyah: number) => [`${surah}:${entryAyah}`],
+    })),
+  },
 }));
 
 type SyncModule = typeof import('../syncLiveActivity');
@@ -339,5 +358,8 @@ describe('syncLiveActivity', () => {
     expect(mockLog[mockLog.length - 1]).toMatch(
       /^(start|update):Al-Kahf:playing:1$/,
     );
+    // The ayah line is Hafs text, whatever rewayah the mushaf shows.
+    expect(mockEnsureRewayahLoaded).toHaveBeenCalledWith('hafs');
+    expect(mockGetVerseText).toHaveBeenCalledWith('18:1', 'hafs');
   });
 });

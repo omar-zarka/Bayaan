@@ -3,11 +3,11 @@
 // until the next ayah boundary instead of polling; restarts on every snapshot.
 import type {AyahTimestamp} from '@/types/timestamps';
 import type {NowPlayingAyah, WidgetSnapshot} from 'bayaan-widgets';
+import type {TimingNumbering} from '@/utils/timestampNumbering';
 import {
   BOUNDARY_SLACK_MS,
-  ayahCount,
-  buildActivityAyah,
   currentAyahTimestamp,
+  hafsActivityAyah,
   msUntilNextAyah,
   positionAt,
 } from './ayahLayer';
@@ -17,6 +17,15 @@ export interface AyahTickerDeps {
     rewayatId: string,
     surahId: number,
   ) => Promise<AyahTimestamp[] | null>;
+  /** The surah's timing numbering (entry numbers to Hafs ayahs). */
+  resolveNumbering: (
+    rewayatId: string,
+    surahId: number,
+    timestamps: AyahTimestamp[],
+  ) => Promise<TimingNumbering>;
+  /** Hafs verse count of a surah (the "of N" in the ayah line). */
+  hafsVerseCount: (surahId: number) => number;
+  /** Hafs text of a Hafs verse key. */
   verseText: (verseKey: string) => string;
   setAyah: (ayah: NowPlayingAyah | null) => void;
   now: () => number;
@@ -32,6 +41,7 @@ export function createAyahTicker(deps: AyahTickerDeps): AyahTicker {
   let snapshot: WidgetSnapshot | null = null;
   let trackKey: string | null = null;
   let timestamps: AyahTimestamp[] | null = null;
+  let numbering: TimingNumbering | null = null;
   let lastNumber: number | null = null;
   let stopped = false;
 
@@ -50,17 +60,30 @@ export function createAyahTicker(deps: AyahTickerDeps): AyahTicker {
   function tick(): void {
     clear();
     const np = snapshot?.nowPlaying;
-    if (stopped || !snapshot || !np || !timestamps || timestamps.length === 0) {
+    if (
+      stopped ||
+      !snapshot ||
+      !np ||
+      !timestamps ||
+      timestamps.length === 0 ||
+      !numbering
+    ) {
+      return;
+    }
+    // No verse-level timing: stay on the surah-level activity.
+    if (numbering.mode === 'disabled') {
+      publish(null);
       return;
     }
     const position = positionAt(np, snapshot.generatedAt, deps.now());
     const current = currentAyahTimestamp(timestamps, position);
     publish(
       current
-        ? buildActivityAyah(
+        ? hafsActivityAyah(
+            numbering,
             current,
-            ayahCount(timestamps),
-            deps.verseText(`${current.surahNumber}:${current.ayahNumber}`),
+            deps.hafsVerseCount(numbering.surah),
+            deps.verseText,
           )
         : null,
     );
@@ -85,14 +108,19 @@ export function createAyahTicker(deps: AyahTickerDeps): AyahTicker {
     }
     trackKey = key;
     timestamps = null;
+    numbering = null;
     clear();
     publish(null);
     if (!key || !track || !rewayatId) return;
+    const surahId = track.surahId;
     deps
-      .loadTimestamps(rewayatId, track.surahId)
-      .then(list => {
+      .loadTimestamps(rewayatId, surahId)
+      .then(async list => {
+        if (!list || list.length === 0) return;
+        const resolved = await deps.resolveNumbering(rewayatId, surahId, list);
         if (stopped || trackKey !== key) return;
         timestamps = list;
+        numbering = resolved;
         tick();
       })
       .catch((error: unknown) => {

@@ -7,6 +7,7 @@ import {
   type WidgetNowPlaying,
 } from 'bayaan-widgets';
 import {binarySearchAyah} from '@/utils/timestampUtils';
+import type {TimingNumbering} from '@/utils/timestampNumbering';
 
 // ActivityKit caps the whole content state at 4 KB; leave room for the rest.
 export const MAX_AYAH_TEXT_BYTES = 600;
@@ -87,17 +88,36 @@ export function msUntilNextAyah(
   return (next.timestampFrom - positionMs) / safeActivityRate(rate);
 }
 
-export function ayahCount(timestamps: AyahTimestamp[]): number {
-  return timestamps.reduce((max, t) => Math.max(max, t.ayahNumber), 0);
+/**
+ * The Hafs ayah being recited while timing entry `t` plays. A timing set's
+ * entry numbers are its own (rewayah) numbers, so translate through the
+ * surah's numbering. Null hides the ayah line (surah-level activity): a
+ * disabled numbering, or an entry that recites no Hafs verse (a pre-roll).
+ */
+export function hafsActivityAyah(
+  numbering: TimingNumbering,
+  t: AyahTimestamp,
+  hafsVerseCount: number,
+  verseText: (verseKey: string) => string,
+): NowPlayingAyah | null {
+  if (numbering.mode === 'disabled') return null;
+  const first = numbering.hafsKeysForEntry(t.ayahNumber)[0];
+  const ayah = first ? Number(first.split(':')[1]) : NaN;
+  if (!Number.isInteger(ayah) || ayah < 1) return null;
+  return buildActivityAyah(
+    ayah,
+    hafsVerseCount,
+    verseText(`${numbering.surah}:${ayah}`),
+  );
 }
 
 export function buildActivityAyah(
-  t: AyahTimestamp,
+  number: number,
   count: number,
   verseText: string,
 ): NowPlayingAyah {
   return {
-    number: t.ayahNumber,
+    number,
     count,
     text: truncateUtf8Words(verseText, MAX_AYAH_TEXT_BYTES),
   };
