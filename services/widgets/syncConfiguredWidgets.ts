@@ -24,17 +24,11 @@ import {
   surahArtworkUrl,
 } from './buildSnapshot';
 import {buildCatalog, TASBEEH_ADHKAR} from './buildCatalog';
-import {flushWidgetSnapshot} from './syncWidgets';
+import {ARTWORK_KINDS, flushWidgetSnapshot} from './syncWidgets';
 
 // Quick Surah defaults, Pinned Reciter's popular rows, Continue Reading's empty state.
 export const ALWAYS_CACHED_SURAHS: readonly number[] = [1, 18, 36, 56, 67];
 const CATALOG_KINDS: WidgetKind[] = ['QuickSurah', 'PinnedReciter', 'Tasbeeh'];
-// Widgets showing artwork that the snapshot does not reference.
-const ARTWORK_KINDS: WidgetKind[] = [
-  'QuickSurah',
-  'PinnedReciter',
-  'ContinueReading',
-];
 const ARTWORK_RETRY_MS = 10 * 60 * 1000;
 
 let lastCatalogJson: string | null = null;

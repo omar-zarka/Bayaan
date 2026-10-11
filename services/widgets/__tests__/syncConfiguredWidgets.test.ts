@@ -58,7 +58,10 @@ jest.mock('@/services/dataService', () => ({
 jest.mock('@/utils/artworkUtils', () => ({
   getReciterArtwork: (r: Reciter) => r.image_url ?? 'data:image/png;base64,x',
 }));
-jest.mock('../syncWidgets', () => ({flushWidgetSnapshot: () => mockFlush()}));
+jest.mock('../syncWidgets', () => ({
+  ARTWORK_KINDS: ['QuickSurah', 'PinnedReciter', 'ContinueReading'],
+  flushWidgetSnapshot: () => mockFlush(),
+}));
 
 type SyncModule = typeof import('../syncConfiguredWidgets');
 
