@@ -55,3 +55,12 @@ public final class CarPlaySceneDelegate: UIResponder, CPTemplateApplicationScene
     CarBridge.shared.setConnected(false)
   }
 }
+
+extension CPTemplateApplicationScene {
+  /// React Native's `RCTAppearance.setColorScheme` (and the dev menu) treat every
+  /// connected scene as a `UIWindowScene` and read `windows`. A CarPlay template
+  /// scene is not a window scene, so without this the app aborts with an
+  /// unrecognized selector whenever the theme is applied while CarPlay is
+  /// connected (for example at launch, when the user chose light or dark).
+  @objc var windows: [UIWindow] { [] }
+}
