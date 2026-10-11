@@ -13,6 +13,7 @@
     "test": "jest --watchAll",
     "test:ci": "jest --watchAll=false --ci --reporters=default",
     "test:widget-fixtures": "bash scripts/check-widget-fixtures.sh",
+    "generate:widget-data": "tsx scripts/generate-widget-data.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "apply:timestamps-coverage": "tsx scripts/apply-timestamps-coverage.ts",
