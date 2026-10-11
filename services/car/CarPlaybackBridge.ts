@@ -11,6 +11,7 @@ import {
 } from '@/utils/track';
 import type {UploadedRecitation} from '@/types/uploads';
 import {lockScreenService} from '@/services/audio/LockScreenService';
+import {startCarAyahTracker} from '@/services/car/carAyah';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {
   RecentlyPlayedTrack,
@@ -76,13 +77,14 @@ export function toNowPlaying(
   playback: PlaybackView,
   repeatMode: RepeatMode,
   isLoved: boolean,
+  ayahLabel: string | null = null,
 ): CarNowPlaying | null {
   const track = queue.tracks[queue.currentIndex];
   if (!track) return null;
   const surahId = surahNumber(track);
   return {
     title: track.title,
-    subtitle: track.artist,
+    subtitle: ayahLabel ? `${track.artist} · ${ayahLabel}` : track.artist,
     reciterId: track.reciterId || null,
     surahId,
     isPlaying: playback.state === 'playing',
@@ -225,6 +227,9 @@ export async function executeCarRequest(
   }
 }
 
+// "Ayah 12 of 110" while a car is connected and the reciter has timestamps.
+let currentAyahLabel: string | null = null;
+
 function pushNowPlaying(): void {
   const player = usePlayerStore.getState();
   const track = player.queue.tracks[player.queue.currentIndex];
@@ -240,6 +245,7 @@ function pushNowPlaying(): void {
       player.playback,
       player.settings.repeatMode,
       isLoved,
+      currentAyahLabel,
     ),
   );
 }
@@ -287,6 +293,7 @@ export function startCarPlaybackBridge(
   if (!BayaanCar.isAvailable) return () => {};
   let lastKey = '';
   let lastTracks: Track[] | null = null;
+  let stopAyahTracker: (() => void) | null = null;
   let tracksKey = '';
   const unsubscribers = [
     BayaanCar.addPlayRequestListener(request => {
@@ -320,9 +327,18 @@ export function startCarPlaybackBridge(
       pushNowPlaying();
     }),
     useLovedStore.subscribe(pushNowPlaying),
-    BayaanCar.addConnectionListener(connected =>
-      lockScreenService.setCarMode(connected),
-    ),
+    BayaanCar.addConnectionListener(connected => {
+      lockScreenService.setCarMode(connected);
+      stopAyahTracker?.();
+      stopAyahTracker = connected
+        ? startCarAyahTracker(label => {
+            currentAyahLabel = label;
+            lockScreenService.setCarAyahLabel(label);
+            pushNowPlaying();
+          })
+        : null;
+    }),
+    () => stopAyahTracker?.(),
   ];
   pushNowPlaying();
   // Listeners are attached; only now let native flush queued cold-start

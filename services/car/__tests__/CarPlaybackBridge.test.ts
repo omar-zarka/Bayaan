@@ -55,6 +55,27 @@ describe('CarPlaybackBridge helpers', () => {
     ).toBeNull();
   });
 
+  it('adds the current ayah after the reciter, not to queue rows', () => {
+    const track = {
+      id: 'a',
+      url: 'u',
+      title: 'Al-Kahf',
+      artist: 'Mishary',
+      reciterId: 'r1',
+      reciterName: 'Mishary',
+      surahId: '18',
+    };
+    const np = toNowPlaying(
+      {tracks: [track], currentIndex: 0},
+      {state: 'playing', position: 10, duration: 100, rate: 1},
+      'none',
+      false,
+      'Ayah 12 of 110',
+    );
+    expect(np?.subtitle).toBe('Mishary · Ayah 12 of 110');
+    expect(np?.queue[0].subtitle).toBe('Mishary');
+  });
+
   it('maps the current track', () => {
     const np = toNowPlaying(
       {

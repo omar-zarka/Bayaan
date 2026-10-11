@@ -7,6 +7,7 @@
  * This service only manages: which player is active for lock screen, and metadata updates.
  */
 
+import {Platform} from 'react-native';
 import type {AudioPlayer, AudioMetadata} from 'expo-audio';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
@@ -22,6 +23,7 @@ class LockScreenService {
   private isMushafActive = false;
   private lastMushafVerseKey: string | null = null;
   private carMode = false;
+  private carAyahLabel: string | null = null;
 
   private constructor() {}
 
@@ -90,6 +92,29 @@ class LockScreenService {
     if (track) this.activateMainPlayer(track);
   }
 
+  /**
+   * Car mode only: the current ayah ("Ayah 12 of 110") shown after the
+   * reciter on CarPlay's Now Playing, which reads the lock screen metadata.
+   * iOS only: Android Auto reads the car bridge's now playing instead, and
+   * expo-audio on Android reloads the artwork on every metadata update.
+   * Null clears it.
+   */
+  setCarAyahLabel(label: string | null): void {
+    if (Platform.OS !== 'ios') return;
+    if (this.carAyahLabel === label) return;
+    this.carAyahLabel = label;
+    if (this.isMushafActive) return;
+    const player = expoAudioService.getPlayer();
+    const {queue} = usePlayerStore.getState();
+    const track = queue.tracks[queue.currentIndex];
+    if (!player || !track) return;
+    try {
+      player.updateLockScreenMetadata(this.mainMetadata(track));
+    } catch {
+      // Player may not be active for the lock screen yet
+    }
+  }
+
   // ========== PRIVATE ==========
 
   private clearPlayer(player: AudioPlayer | null): void {
@@ -111,6 +136,19 @@ class LockScreenService {
     }
   }
 
+  private mainMetadata(track: {
+    title: string;
+    artist: string;
+    artwork?: string;
+  }): AudioMetadata {
+    const label = this.carMode ? this.carAyahLabel : null;
+    return {
+      title: track.title,
+      artist: label ? `${track.artist} · ${label}` : track.artist,
+      artworkUrl: track.artwork,
+    };
+  }
+
   private activateMainPlayer(track: {
     title: string;
     artist: string;
@@ -120,11 +158,7 @@ class LockScreenService {
     const player = expoAudioService.getPlayer();
     if (!player) return;
 
-    const metadata: AudioMetadata = {
-      title: track.title,
-      artist: track.artist,
-      artworkUrl: track.artwork,
-    };
+    const metadata = this.mainMetadata(track);
 
     try {
       player.setActiveForLockScreen(true, metadata, {

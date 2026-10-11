@@ -48,10 +48,12 @@ Four root tabs on both platforms (Android Auto caps root children at 4; CarPlay 
   - Situational slot 1 and 2 (from the rules below)
 - **For right now**: situational cards (CarPlay: `CPListImageRowItemCardElement`, iOS 26+; fallback image row).
 - **Jump back in**: recently played, with progress (iOS `CPListItem.playbackProgress`; Android `COMPLETION_PERCENTAGE` extra). Includes recently played uploads whose recitation still exists; tapping one resumes that upload on its own at its saved position, like the phone's recent card. Resume plays the first Jump back in row. Items also carry `duration` (seconds); on iOS 26.4+ each row also gets a `CPPlaybackConfiguration` (elapsed time and duration), because `playbackProgress` alone drew no bar on an iOS 26 device.
+- **On repeat**: the most played surahs (`playCountStore`, at least 2 plays, up to 8), as cards, each with the reciter the user last played it with (else the top reciter).
+- **More from <top reciter>**: up to 8 well-known surahs (`POPULAR_SURAH_IDS`) the top reciter recites and the user has not played among their last 10, as cards. A new install sees it for the default reciter.
 - **Your reciters**: favorite reciters, circular portraits (`CPListImageRowItemImageGridElement` circular, iOS 26+). The Library group is titled "Favorite reciters".
 - **Your playlists**: user playlists, then system playlists.
 
-Empty sections are omitted. A brand-new user sees Quick start (situational only), For right now, and system playlists.
+Empty sections are omitted. A brand-new user sees Quick start (situational only), For right now, More from <default reciter>, and system playlists. There is no khatmah section: the app has no user-facing khatmah to continue (only unused analytics plumbing).
 
 ### Situational rules
 
@@ -86,14 +88,15 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Uplo
 
 ### Surahs
 
-- All 114 surahs (surah artwork tiles), plus a Juz grouping.
+- All 114 surahs (surah artwork tiles), grouped by the juz each starts in. A juz that starts no surah is folded into the previous group's title ("Juz 1–2", then "Juz 3"); the snapshot carries the title.
 - Tapping a surah opens a short list with "Play with <top reciter>" and "Choose reciter" (not direct play). "Choose reciter" lists favorites first, then all reciters that have that surah.
 
 ### Now Playing
 
 - CarPlay `CPNowPlayingTemplate.shared`:
   - Buttons: playback rate, repeat, love (`CPNowPlayingImageButton`).
-  - `isUpNextButtonEnabled = true` (queue list).
+  - `isUpNextButtonEnabled = true`: like Apple Music, a "Now playing" section (the current item, trailing playing indicator) then "Next"; the visible list updates live on skips and queue changes.
+  - With ayah timestamps for the reciter, the subtitle reads "<reciter> · Ayah 12 of 110" while a car is connected (iOS through the lock screen metadata; Android Auto through the car bridge's now playing). Timestamps load per rewayah and surah when the track changes.
   - `isAlbumArtistButtonEnabled = true` (opens the reciter).
   - Transport from `MPRemoteCommandCenter`: `nextTrackCommand` and `previousTrackCommand` registered by `bayaan-car` (expo-audio registers play, pause, scrub, and 10s skip only).
 - Android Auto: system player driven by our `MediaLibrarySession`; custom actions for speed and repeat; love as a custom action.
