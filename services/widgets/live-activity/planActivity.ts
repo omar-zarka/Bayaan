@@ -14,7 +14,7 @@ import {
 // Seconds the playback anchor may drift before a playing activity is updated
 // (a seek). Shared with changedWidgetKinds.
 export {SEEK_TOLERANCE_SEC};
-// A paused track this close to its end has finished (last track ended).
+// A track this close to its end has finished (last track ended).
 export const END_TOLERANCE_SEC = 1;
 export const PAUSED_STALE_MS = 15 * 60 * 1000;
 export const ENDED_GRACE_MS = 60 * 1000;
@@ -43,13 +43,18 @@ export type ActivityPlan =
 export function activityStateFromSnapshot(
   snapshot: WidgetSnapshot,
   ayah: NowPlayingAyah | null,
+  nowMs: number,
 ): NowPlayingActivityState | null {
   const np = snapshot.nowPlaying;
   if (!np) return null;
+  // The player can keep reporting isPlaying at the end of the queue, so a
+  // playing track is extrapolated from its anchor before the end check.
+  const elapsedSec = np.isPlaying
+    ? Math.max(nowMs - snapshot.generatedAt, 0) / 1000
+    : 0;
+  const positionNow = np.positionSec + elapsedSec * safeActivityRate(np.rate);
   const finished =
-    !np.isPlaying &&
-    np.durationSec > 0 &&
-    np.positionSec >= np.durationSec - END_TOLERANCE_SEC;
+    np.durationSec > 0 && positionNow >= np.durationSec - END_TOLERANCE_SEC;
   if (finished) return null;
   return {
     surahId: np.track.surahId,

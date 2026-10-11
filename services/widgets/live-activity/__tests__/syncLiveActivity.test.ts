@@ -1,7 +1,9 @@
 import type {
   ActivityStartResult,
   NowPlayingActivityState,
+  WidgetNowPlaying,
 } from 'bayaan-widgets';
+import {activityStateFromSnapshot} from '../planActivity';
 import {
   MULK_TRACK,
   YASIN_TRACK,
@@ -18,6 +20,7 @@ const mockUpdate = jest.fn<
   [NowPlayingActivityState, number]
 >();
 const mockEnd = jest.fn<Promise<void>, []>();
+let mockSurvivor: NowPlayingActivityState | null = null;
 let mockSupported = true;
 let mockPlatformOS = 'ios';
 let mockMode: 'off' | 'surah' | 'ayah' = 'surah';
@@ -40,6 +43,7 @@ jest.mock('bayaan-widgets', () => ({
     mockLog.push(`update:${mockDescribe(s)}`);
     return mockUpdate(s, at);
   },
+  currentNowPlayingActivity: () => mockSurvivor,
   endNowPlayingActivities: () => {
     mockLog.push('end');
     return mockEnd();
@@ -95,6 +99,16 @@ function loadModule(): SyncModule {
   return mod;
 }
 
+function survivorFor(np: Partial<WidgetNowPlaying>): NowPlayingActivityState {
+  const state = activityStateFromSnapshot(
+    nowPlayingSnapshot(np),
+    null,
+    1_000_000,
+  );
+  if (!state) throw new Error('expected a state');
+  return state;
+}
+
 describe('syncLiveActivity', () => {
   beforeEach(() => {
     mockLog.length = 0;
@@ -105,6 +119,13 @@ describe('syncLiveActivity', () => {
     mockPlatformOS = 'ios';
     mockMode = 'surah';
     mockAppStateListener = null;
+    mockSurvivor = null;
+    // Snapshots are generated at 1_000_000 ms; keep "now" at their anchor.
+    jest.spyOn(Date, 'now').mockReturnValue(1_000_000);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('does nothing off iOS, when unsupported, or when the mode is off', async () => {
@@ -125,7 +146,31 @@ describe('syncLiveActivity', () => {
     expect(mockLog).toEqual([]);
   });
 
-  it('ends orphans before the first start', async () => {
+  it('starts without ending anything when no activity survived', async () => {
+    const sync = loadModule();
+    sync.startLiveActivitySync();
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}));
+    await sync.reconcileLiveActivity();
+    expect(mockLog).toEqual(['start:Al-Kahf:playing:-']);
+  });
+
+  it('adopts a surviving activity that matches the restored track', async () => {
+    mockSurvivor = survivorFor({isPlaying: false, positionSec: 100});
+    const sync = loadModule();
+    sync.startLiveActivitySync();
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({isPlaying: false}));
+    await sync.reconcileLiveActivity();
+    expect(mockLog).toEqual([]);
+    // Playback resumes: the adopted activity is updated, not recreated.
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}, 2_000_000));
+    await sync.reconcileLiveActivity();
+    expect(mockLog).toEqual(['update:Al-Kahf:playing:-']);
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(mockEnd).not.toHaveBeenCalled();
+  });
+
+  it('ends a surviving activity for a different track, then starts', async () => {
+    mockSurvivor = survivorFor({track: YASIN_TRACK});
     const sync = loadModule();
     sync.startLiveActivitySync();
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}));
@@ -133,12 +178,21 @@ describe('syncLiveActivity', () => {
     expect(mockLog).toEqual(['end', 'start:Al-Kahf:playing:-']);
   });
 
+  it('ends a surviving activity when nothing is restored', async () => {
+    mockSurvivor = survivorFor({});
+    const sync = loadModule();
+    sync.startLiveActivitySync();
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot(null));
+    await sync.reconcileLiveActivity();
+    expect(mockLog).toEqual(['end']);
+  });
+
   it('does not start for a paused session', async () => {
     const sync = loadModule();
     sync.startLiveActivitySync();
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({isPlaying: false}));
     await sync.reconcileLiveActivity();
-    expect(mockLog).toEqual(['end']);
+    expect(mockLog).toEqual([]);
   });
 
   it('updates on pause and ends when the queue clears', async () => {
@@ -151,7 +205,6 @@ describe('syncLiveActivity', () => {
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot(null));
     await sync.reconcileLiveActivity();
     expect(mockLog).toEqual([
-      'end',
       'start:Al-Kahf:playing:-',
       'update:Al-Kahf:paused:-',
       'end',
@@ -166,7 +219,7 @@ describe('syncLiveActivity', () => {
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({track: MULK_TRACK}));
     await sync.reconcileLiveActivity();
     expect(mockStart).toHaveBeenCalledTimes(1);
-    expect(mockLog).toEqual(['end', 'start:Al-Mulk:playing:-']);
+    expect(mockLog).toEqual(['start:Al-Mulk:playing:-']);
   });
 
   it('retries a deferred start on foreground', async () => {
@@ -193,7 +246,6 @@ describe('syncLiveActivity', () => {
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({track: YASIN_TRACK}));
     await sync.reconcileLiveActivity();
     expect(mockLog).toEqual([
-      'end',
       'start:Al-Kahf:playing:-',
       'update:Al-Kahf:paused:-',
       'start:Ya-Sin:playing:-',
@@ -210,6 +262,22 @@ describe('syncLiveActivity', () => {
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}, 2_000_000));
     await sync.reconcileLiveActivity();
     expect(mockStart).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the activity again for the same surah after the queue clears', async () => {
+    mockUpdate.mockResolvedValue(false);
+    const sync = loadModule();
+    sync.startLiveActivitySync();
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}));
+    await sync.reconcileLiveActivity();
+    // The user dismisses it: the next update finds it gone, so Al-Kahf is suppressed.
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({isPlaying: false}));
+    await sync.reconcileLiveActivity();
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot(null));
+    await sync.reconcileLiveActivity();
+    sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}, 2_000_000));
+    await sync.reconcileLiveActivity();
+    expect(mockStart).toHaveBeenCalledTimes(2);
   });
 
   it('stops reacting after cleanup', async () => {
@@ -267,7 +335,6 @@ describe('syncLiveActivity', () => {
     for (let i = 0; i < 10; i += 1) await sync.reconcileLiveActivity();
     // The ayah may arrive before or after the start runs; either way there is
     // one activity and the last state sent carries ayah 1.
-    expect(mockLog[0]).toBe('end');
     expect(mockStart).toHaveBeenCalledTimes(1);
     expect(mockLog[mockLog.length - 1]).toMatch(
       /^(start|update):Al-Kahf:playing:1$/,

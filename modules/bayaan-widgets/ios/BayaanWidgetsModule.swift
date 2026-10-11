@@ -102,6 +102,10 @@ public class BayaanWidgetsModule: Module {
       await NowPlayingActivityBridge.update(json, staleAtMs: staleAtMs)
     }
 
+    Function("currentNowPlayingActivity") { () -> String in
+      NowPlayingActivityBridge.currentStateJSON()
+    }
+
     AsyncFunction("endNowPlayingActivities") { () async in
       await NowPlayingActivityBridge.endAll()
     }

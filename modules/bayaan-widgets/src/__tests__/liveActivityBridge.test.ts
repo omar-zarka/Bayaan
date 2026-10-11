@@ -1,6 +1,7 @@
 import type {NativeBayaanWidgetsModule} from '../NativeBayaanWidgets';
 import states from '../__fixtures__/liveActivity.states.json';
 import {
+  currentNowPlayingActivity,
   endNowPlayingActivities,
   isLiveActivitySupported,
   startNowPlayingActivity,
@@ -37,6 +38,18 @@ describe('Live Activity wrappers', () => {
     );
     await expect(updateNowPlayingActivity(state(), 1)).resolves.toBe(false);
     await expect(endNowPlayingActivities()).resolves.toBeUndefined();
+    expect(currentNowPlayingActivity()).toBe(null);
+  });
+
+  it('reads the surviving activity state, or null', () => {
+    mockNative = {currentNowPlayingActivity: () => JSON.stringify(state())};
+    expect(currentNowPlayingActivity()).toEqual(state());
+    mockNative = {currentNowPlayingActivity: () => ''};
+    expect(currentNowPlayingActivity()).toBe(null);
+    mockNative = {currentNowPlayingActivity: () => '{not json'};
+    expect(currentNowPlayingActivity()).toBe(null);
+    mockNative = {currentNowPlayingActivity: () => '{"surahId":1}'};
+    expect(currentNowPlayingActivity()).toBe(null);
   });
 
   it('degrade when the functions are absent (Android)', async () => {

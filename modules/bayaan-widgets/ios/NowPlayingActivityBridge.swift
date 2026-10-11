@@ -60,6 +60,16 @@ enum NowPlayingActivityBridge {
     return true
   }
 
+  /// JSON content state of the activity still on screen, or "" when there is none.
+  /// Lets a new process adopt an activity it did not start.
+  static func currentStateJSON() -> String {
+    guard let activity = current,
+      let data = try? JSONEncoder().encode(activity.content.state),
+      let json = String(data: data, encoding: .utf8)
+    else { return "" }
+    return json
+  }
+
   static func endAll() async {
     for activity in Activity<NowPlayingAttributes>.activities {
       await activity.end(nil, dismissalPolicy: .immediate)

@@ -3,11 +3,13 @@
 // syncWidgets hands over each written snapshot; native calls are serialized.
 import {AppState, Platform} from 'react-native';
 import {
+  currentNowPlayingActivity,
   endNowPlayingActivities,
   isLiveActivitySupported,
   startNowPlayingActivity,
   updateNowPlayingActivity,
   type ActivityStartResult,
+  type NowPlayingActivityState,
   type NowPlayingAyah,
   type WidgetSnapshot,
 } from 'bayaan-widgets';
@@ -21,6 +23,7 @@ import {
   afterEnd,
   afterStart,
   afterUpdate,
+  activityTrackKey,
   planActivity,
   type ActivityMemory,
 } from './planActivity';
@@ -32,6 +35,9 @@ let ayah: NowPlayingAyah | null = null;
 // One chain for every native call, so a start cannot race an update or end.
 let chain: Promise<void> = Promise.resolve();
 let ticker: AyahTicker | null = null;
+// An activity left by a previous process is adopted or ended on the first
+// snapshot of this one.
+let adoptPending = false;
 
 function logError(error: unknown): void {
   console.error('[LiveActivity] Failed to sync:', error);
@@ -63,14 +69,30 @@ async function safeUpdate(
   }
 }
 
+// Keeps a surviving activity that shows the restored track (a paused one
+// outlives its process, and its Play button relaunches the app); ends any other.
+async function adoptOrEndSurvivor(
+  restored: NowPlayingActivityState | null,
+): Promise<void> {
+  const survivor = currentNowPlayingActivity();
+  if (!survivor) return;
+  if (restored && activityTrackKey(restored) === activityTrackKey(survivor)) {
+    memory = {live: true, last: survivor, suppressedTrack: null};
+    return;
+  }
+  await endNowPlayingActivities();
+  memory = afterEnd();
+}
+
 // Reads the latest snapshot when it runs, so queued calls collapse.
 async function reconcileOnce(): Promise<void> {
   if (!enabled || !snapshot) return;
-  const plan = planActivity(
-    memory,
-    activityStateFromSnapshot(snapshot, ayah),
-    Date.now(),
-  );
+  const next = activityStateFromSnapshot(snapshot, ayah, Date.now());
+  if (adoptPending) {
+    adoptPending = false;
+    await adoptOrEndSurvivor(next);
+  }
+  const plan = planActivity(memory, next, Date.now());
   switch (plan.kind) {
     case 'start':
       memory = afterStart(
@@ -91,6 +113,10 @@ async function reconcileOnce(): Promise<void> {
       memory = afterEnd();
       return;
     case 'none':
+      // Nothing is loaded any more: replaying the same track may start again.
+      if (!next && memory.suppressedTrack) {
+        memory = {...memory, suppressedTrack: null};
+      }
       return;
   }
 }
@@ -128,8 +154,7 @@ export function startLiveActivitySync(): () => void {
   memory = INITIAL_ACTIVITY_MEMORY;
   snapshot = null;
   ayah = null;
-  // An activity left by a previous process has no owner; start clean.
-  chain = chain.then(() => endNowPlayingActivities()).catch(logError);
+  adoptPending = true;
   ticker =
     liveActivityMode() === 'ayah'
       ? createAyahTicker({

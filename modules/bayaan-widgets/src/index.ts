@@ -10,6 +10,7 @@ import {
 } from './artworkRequests';
 import {
   isActivityStartResult,
+  isNowPlayingActivityState,
   type ActivityStartResult,
   type NowPlayingActivityState,
 } from './liveActivity';
@@ -100,6 +101,18 @@ export async function updateNowPlayingActivity(
   const native = NativeBayaanWidgets;
   if (!native?.updateNowPlayingActivity) return false;
   return native.updateNowPlayingActivity(JSON.stringify(state), staleAt);
+}
+
+/** The activity left on screen by a previous process, or null. */
+export function currentNowPlayingActivity(): NowPlayingActivityState | null {
+  const json = NativeBayaanWidgets?.currentNowPlayingActivity?.();
+  if (!json) return null;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    return isNowPlayingActivityState(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function endNowPlayingActivities(): Promise<void> {

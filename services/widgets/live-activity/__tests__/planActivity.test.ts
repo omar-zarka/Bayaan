@@ -26,6 +26,7 @@ function stateOf(
   const s = activityStateFromSnapshot(
     nowPlayingSnapshot(np, generatedAt),
     null,
+    generatedAt,
   );
   if (!s) throw new Error('expected a state');
   return s;
@@ -40,7 +41,11 @@ const AYAH = {number: 3, count: 110, text: 'x'};
 describe('activityStateFromSnapshot', () => {
   it('maps the playing track and anchors at generatedAt', () => {
     expect(
-      activityStateFromSnapshot(nowPlayingSnapshot({}, 1_000_000), AYAH),
+      activityStateFromSnapshot(
+        nowPlayingSnapshot({}, 1_000_000),
+        AYAH,
+        1_000_000,
+      ),
     ).toEqual({
       surahId: 18,
       surahName: 'Al-Kahf',
@@ -56,15 +61,30 @@ describe('activityStateFromSnapshot', () => {
   });
 
   it('is null with nothing loaded or a finished paused track', () => {
-    expect(activityStateFromSnapshot(nowPlayingSnapshot(null), null)).toBe(
+    expect(activityStateFromSnapshot(nowPlayingSnapshot(null), null, 0)).toBe(
       null,
     );
     expect(
       activityStateFromSnapshot(
         nowPlayingSnapshot({isPlaying: false, positionSec: 1799.5}),
         null,
+        1_000_000,
       ),
     ).toBe(null);
+  });
+
+  it('is null for a playing track at or past its end, even if isPlaying', () => {
+    const atEnd = nowPlayingSnapshot({positionSec: 1800}, 1_000_000);
+    expect(activityStateFromSnapshot(atEnd, null, 1_000_000)).toBe(null);
+    // Extrapolated: 100 s at the anchor, 1700 s later it is over.
+    const playing = nowPlayingSnapshot({}, 1_000_000);
+    expect(activityStateFromSnapshot(playing, null, 1_000_000)).not.toBe(null);
+    expect(activityStateFromSnapshot(playing, null, 2_700_000)).toBe(null);
+    // Faster rate reaches the end sooner.
+    const fast = nowPlayingSnapshot({rate: 2}, 1_000_000);
+    expect(activityStateFromSnapshot(fast, null, 1_000_000 + 850_000)).toBe(
+      null,
+    );
   });
 
   it('keeps a paused track that is not at the end', () => {
@@ -164,6 +184,27 @@ describe('planActivity', () => {
       expect(plan.kind).toBe('update');
       memory = afterUpdate(memory, next, true);
     }
+  });
+
+  it('ends a live activity whose playing track reached the end', () => {
+    const live = liveWith(stateOf({}));
+    const finished = activityStateFromSnapshot(
+      nowPlayingSnapshot({positionSec: 1800}),
+      null,
+      1_000_000,
+    );
+    expect(planActivity(live, finished, 0)).toEqual({kind: 'end'});
+  });
+
+  it('does not start for a playing track at the end', () => {
+    const finished = activityStateFromSnapshot(
+      nowPlayingSnapshot({positionSec: 1800}),
+      null,
+      1_000_000,
+    );
+    expect(planActivity(INITIAL_ACTIVITY_MEMORY, finished, 0)).toEqual({
+      kind: 'none',
+    });
   });
 
   it('ends when nothing is loaded', () => {

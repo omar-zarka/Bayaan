@@ -16,6 +16,8 @@ export interface NativeBayaanWidgetsModule {
   isLiveActivitySupported?(): boolean;
   startNowPlayingActivity?(json: string, staleAtMs: number): Promise<string>;
   updateNowPlayingActivity?(json: string, staleAtMs: number): Promise<boolean>;
+  // JSON content state of the activity on screen, or "" when there is none.
+  currentNowPlayingActivity?(): string;
   endNowPlayingActivities?(): Promise<void>;
   addListener(
     event: 'onCommandQueued',
