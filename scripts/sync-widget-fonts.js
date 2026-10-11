@@ -17,6 +17,14 @@ const copies = [
     'assets/fonts/surah_names.ttf',
     'modules/bayaan-widgets/android/src/main/assets/fonts/surah_names.ttf',
   ],
+  [
+    'assets/fonts/ScheherazadeNew-Regular.ttf',
+    'targets/widgets/ScheherazadeNew-Regular.ttf',
+  ],
+  [
+    'assets/fonts/ScheherazadeNew-Regular.ttf',
+    'modules/bayaan-widgets/android/src/main/assets/fonts/ScheherazadeNew-Regular.ttf',
+  ],
 ];
 
 for (const [from, to] of copies) {
