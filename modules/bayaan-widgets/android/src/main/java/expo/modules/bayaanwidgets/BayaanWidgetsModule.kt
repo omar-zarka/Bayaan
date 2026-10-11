@@ -1,6 +1,7 @@
 package expo.modules.bayaanwidgets
 
 import android.content.Context
+import androidx.glance.appwidget.GlanceAppWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -42,6 +43,8 @@ class BayaanWidgetsModule : Module() {
 
     Function("takeQueuedCommands") { WidgetStorage.takeQueue(context) }
     Function("takePendingTasbeeh") { WidgetStorage.takeTasbeeh(context) }
+    Function("writeCatalog") { json: String -> WidgetStorage.writeCatalog(context, json) }
+    Function("readArtworkRequests") { WidgetStorage.readArtworkRequestsJson(context) }
 
     Function("hasArtwork") { fileName: String ->
       java.io.File(WidgetStorage.artworkDir(context), fileName).exists()
@@ -57,5 +60,11 @@ class BayaanWidgetsModule : Module() {
     CoroutineScope(Dispatchers.Default).launch {
       runCatching { ContinueListeningWidget.pushState(ctx) }
     }
+  }
+
+  /** Pushes stored inputs into every instance of a Phase 1b widget. */
+  private fun push(widget: GlanceAppWidget) {
+    val ctx = context
+    CoroutineScope(Dispatchers.Default).launch { runCatching { GlanceState.push(ctx, widget) } }
   }
 }
