@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/TasbeehLogic.kt
 package expo.modules.bayaanwidgets
 
 import org.json.JSONArray

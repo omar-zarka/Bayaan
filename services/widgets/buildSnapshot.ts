@@ -33,6 +33,8 @@ export interface SnapshotInput {
   defaultReciter: Reciter | null;
   lastReadPage: number | null;
   openingTextForPage: (page: number) => string;
+  /** Surah the mushaf header shows for a page; null falls back to the first surah on the page. */
+  surahIdForPage?: (page: number) => number | null;
   tasbeeh: Record<string, WidgetTasbeehEntry>;
   artworkFileFor: (reciterId: string) => string | null;
   surahArtworkFileFor: (surahId: number) => string | null;
@@ -123,7 +125,12 @@ function toWidgetReciter(
 
 function buildLastRead(input: SnapshotInput): WidgetLastRead | null {
   if (input.lastReadPage === null) return null;
-  const surah = getSurahForPage(input.lastReadPage);
+  const headerSurahId = input.surahIdForPage?.(input.lastReadPage) ?? null;
+  const surah =
+    (headerSurahId === null
+      ? undefined
+      : SURAHS.find(s => s.id === headerSurahId)) ??
+    getSurahForPage(input.lastReadPage);
   if (!surah) return null;
   return {
     page: input.lastReadPage,

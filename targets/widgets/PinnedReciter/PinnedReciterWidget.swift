@@ -112,7 +112,7 @@ struct PinnedReciterView: View {
           Spacer(minLength: 0)
           BayaanLogo(size: 14)
         }
-        ForEach(rows, id: \.self) { row in
+        ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
           if let surah = StaticData.surah(row.surahId) {
             Button(intent: PlayTrackIntent(surahId: surah.id, reciterId: id, rewayatId: row.rewayatId)) {
               HStack(spacing: 8) {

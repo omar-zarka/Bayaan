@@ -73,7 +73,13 @@
     </receiver>
     <receiver
       android:name="expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver"
-      android:exported="false" />
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.TIME_SET" />
+        <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+        <action android:name="android.intent.action.DATE_CHANGED" />
+      </intent-filter>
+    </receiver>
     <receiver
       android:name="expo.modules.bayaanwidgets.continuereading.ContinueReadingReceiver"
       android:exported="true"

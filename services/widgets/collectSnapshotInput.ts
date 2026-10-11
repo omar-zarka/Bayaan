@@ -34,6 +34,11 @@ function openingTextForPage(page: number): string {
     .join(' ');
 }
 
+function surahIdForPage(page: number): number | null {
+  if (!digitalKhattDataService.initialized) return null;
+  return digitalKhattDataService.getPageToSurah()[page] ?? null;
+}
+
 export function collectSnapshotInput(now: Date): SnapshotInput {
   const player = usePlayerStore.getState();
   const reciter = useReciterStore.getState().defaultReciter;
@@ -50,6 +55,7 @@ export function collectSnapshotInput(now: Date): SnapshotInput {
     defaultReciter: reciter.id === '' ? null : reciter,
     lastReadPage: mushafSessionStore.getLastReadPage(),
     openingTextForPage,
+    surahIdForPage,
     tasbeeh: buildTasbeehEntries(
       TASBEEH_ADHKAR,
       countsForToday(useAdhkarStore.getState().dhikrCounts, localDayKey(now)),

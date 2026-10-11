@@ -133,11 +133,15 @@ struct TasbeehView: View {
         default: medium(dhikr)
         }
       } else {
-        VStack(spacing: 6) {
+        if family == .accessoryCircular {
           BayaanLogo(size: 20)
-          Text("Open Bayaan to set up Tasbeeh").font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+        } else {
+          VStack(spacing: 6) {
+            BayaanLogo(size: 20)
+            Text("Open Bayaan to set up Tasbeeh").font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+          }
+          .padding(12)
         }
-        .padding(12)
       }
     }
     .foregroundStyle(.white)

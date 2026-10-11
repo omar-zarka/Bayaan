@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/ui/WidgetUi.kt
 package expo.modules.bayaanwidgets.ui
 
 import android.content.Context

@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/CatalogModels.kt
 package expo.modules.bayaanwidgets
 
 import org.json.JSONObject

@@ -20,6 +20,8 @@ import java.util.TimeZone
 /**
  * Re-renders the date-driven widgets just after local midnight. Inexact and
  * permission free (setAndAllowWhileIdle); spec 7: no reliance on updatePeriodMillis.
+ * Also runs on TIME_SET, TIMEZONE_CHANGED and DATE_CHANGED: the alarm is an absolute
+ * wall-clock time, so any of those makes it stale. Every run pushes and re-arms.
  */
 class MidnightReceiver : BroadcastReceiver() {
   override fun onReceive(context: Context, intent: Intent) {

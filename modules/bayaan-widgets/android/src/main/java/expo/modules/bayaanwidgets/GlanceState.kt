@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/GlanceState.kt
 package expo.modules.bayaanwidgets
 
 import android.content.Context

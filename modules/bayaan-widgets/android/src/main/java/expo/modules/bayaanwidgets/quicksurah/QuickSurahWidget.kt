@@ -28,6 +28,8 @@ import androidx.glance.layout.fillMaxWidth
 import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.layout.width
+import androidx.glance.semantics.contentDescription
+import androidx.glance.semantics.semantics
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
@@ -142,7 +144,9 @@ class QuickSurahWidget : GlanceAppWidget() {
       return
     }
     val play = commandAction(context, playTrackCommand(surah.id, reciterId, null, null), "quick/${surah.id}/${reciterId ?: "default"}")
-    Row(GlanceModifier.defaultWeight().clickable(play), verticalAlignment = Alignment.CenterVertically) {
+    Row(
+      GlanceModifier.defaultWeight().semantics { contentDescription = "Play ${surah.name}" }.clickable(play),
+      verticalAlignment = Alignment.CenterVertically) {
       SurahCard(context, surah, 36)
       Spacer(GlanceModifier.width(8.dp))
       Text(surah.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 13.sp, fontWeight = FontWeight.Bold))

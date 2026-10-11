@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/ArabicBitmap.kt
 package expo.modules.bayaanwidgets
 
 import android.content.Context

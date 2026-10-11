@@ -146,6 +146,9 @@ export async function consumeTasbeehIncrements(
 }
 
 function refresh(): void {
+  // Ayah of the Day depends only on the date; a push is cheap and repairs a
+  // stale ayah (and, on Android, a lost midnight alarm).
+  reloadWidgets(['AyahOfTheDay']);
   syncCatalog();
   consumeTasbeehIncrements().catch(error => {
     console.error('[WidgetSync] Tasbeeh sync failed:', error);

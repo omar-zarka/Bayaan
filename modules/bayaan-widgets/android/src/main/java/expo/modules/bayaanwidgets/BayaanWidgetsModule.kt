@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayWidget
+import expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.bayaanwidgets.continuereading.ContinueReadingWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
@@ -44,8 +45,14 @@ class BayaanWidgetsModule : Module() {
           "ContinueReading" -> push(ContinueReadingWidget())
           "QuickSurah" -> push(QuickSurahWidget())
           "PinnedReciter" -> push(PinnedReciterWidget())
-          "AyahOfTheDay" -> push(AyahOfTheDayWidget())
-          "Tasbeeh" -> push(TasbeehWidget())
+          "AyahOfTheDay" -> {
+            push(AyahOfTheDayWidget())
+            rearmMidnight()
+          }
+          "Tasbeeh" -> {
+            push(TasbeehWidget())
+            rearmMidnight()
+          }
           else -> Unit // widget kinds register here as they are added
         }
       }
@@ -70,6 +77,12 @@ class BayaanWidgetsModule : Module() {
     CoroutineScope(Dispatchers.Default).launch {
       runCatching { ContinueListeningWidget.pushState(ctx) }
     }
+  }
+
+  /** Any app push re-arms a midnight alarm that was lost (force stop, task killer). */
+  private fun rearmMidnight() {
+    val ctx = context
+    if (MidnightReceiver.hasWidgets(ctx)) MidnightReceiver.schedule(ctx)
   }
 
   /** Pushes stored inputs into every instance of a Phase 1b widget. */

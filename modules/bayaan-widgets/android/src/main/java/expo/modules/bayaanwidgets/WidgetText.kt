@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/WidgetText.kt
 package expo.modules.bayaanwidgets
 
 /** Small text helpers, mirrored by WidgetLogic.swift. */

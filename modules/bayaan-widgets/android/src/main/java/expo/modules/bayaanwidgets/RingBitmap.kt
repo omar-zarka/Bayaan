@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/RingBitmap.kt
 package expo.modules.bayaanwidgets
 
 import android.graphics.Bitmap

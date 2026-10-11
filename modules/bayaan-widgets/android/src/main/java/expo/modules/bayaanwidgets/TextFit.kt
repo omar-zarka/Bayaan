@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/TextFit.kt
 package expo.modules.bayaanwidgets
 
 object TextFit {

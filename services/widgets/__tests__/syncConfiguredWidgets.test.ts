@@ -229,6 +229,7 @@ describe('startConfiguredWidgetSync', () => {
     const stop = sync.startConfiguredWidgetSync();
     await new Promise(resolve => setImmediate(resolve));
     expect(mockWriteCatalog).toHaveBeenCalledTimes(1);
+    expect(mockReloadWidgets).toHaveBeenCalledWith(['AyahOfTheDay']);
     stop();
     expect(mockUnsubs).toHaveLength(2);
     mockUnsubs.forEach(u => expect(u).toHaveBeenCalled());

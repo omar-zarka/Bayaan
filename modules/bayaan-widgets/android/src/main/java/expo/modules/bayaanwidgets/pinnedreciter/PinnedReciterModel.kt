@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/pinnedreciter/PinnedReciterModel.kt
 package expo.modules.bayaanwidgets.pinnedreciter
 
 import expo.modules.bayaanwidgets.PinnedReciterConfig

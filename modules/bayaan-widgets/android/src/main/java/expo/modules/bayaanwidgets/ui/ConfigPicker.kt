@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/ui/ConfigPicker.kt
 package expo.modules.bayaanwidgets.ui
 
 import android.app.Activity

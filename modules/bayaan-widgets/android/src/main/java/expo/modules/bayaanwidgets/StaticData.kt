@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/StaticData.kt
 package expo.modules.bayaanwidgets
 
 import android.content.Context

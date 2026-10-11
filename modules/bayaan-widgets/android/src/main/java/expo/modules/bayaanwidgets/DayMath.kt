@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/DayMath.kt
 package expo.modules.bayaanwidgets
 
 import java.util.Calendar

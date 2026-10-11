@@ -1,4 +1,3 @@
-// main/java/expo/modules/bayaanwidgets/WidgetConfig.kt
 package expo.modules.bayaanwidgets
 
 import org.json.JSONArray
