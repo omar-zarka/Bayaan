@@ -26,7 +26,7 @@ Ship CarPlay and Android Auto together, at a quality bar comparable to Spotify o
 
 ### Out of scope (v1)
 
-- Siri / App Intents (`.audio.playAudio` schema). Good v2.
+- App Intents (`.audio.playAudio` schema). Siri "play" is covered by SiriKit `INPlayMediaIntent` (see Voice).
 - Adhkar audio (separate player, `AdhkarAudioProvider`).
 - Synced verse text on the car screen.
 - Android Car App Library templated media (`MediaPlaybackTemplate`); still beta, not allowed on production tracks as of 2026-10-02.
@@ -98,9 +98,15 @@ Loved, Playlists, Downloads (offline-only items; playable without network), Uplo
   - Transport from `MPRemoteCommandCenter`: `nextTrackCommand` and `previousTrackCommand` registered by `bayaan-car` (expo-audio registers play, pause, scrub, and 10s skip only).
 - Android Auto: system player driven by our `MediaLibrarySession`; custom actions for speed and repeat; love as a custom action.
 
-### Voice (Android only in v1)
+### Voice
 
-`onSearch` / `onGetSearchResult` and play-from-search on the library session, required by Android Auto quality guideline VC-1. Parses "surah name" and optional "by reciter name" against the snapshot's search index (surah names in English transliteration and Arabic, reciter names).
+**Android:** `onSearch` / `onGetSearchResult` and play-from-search on the library session, required by Android Auto quality guideline VC-1. Parses "surah name" and optional "by reciter name" against the snapshot (surah names in English transliteration and Arabic, reciter names).
+
+**iOS (Siri):** SiriKit `INPlayMediaIntent`, handled in the app (no Intents extension). The plugin adds `INIntentsSupported` (`INPlayMediaIntent`), `INSupportedMediaCategories` (`INMediaCategoryGeneral`), the `com.apple.developer.siri` entitlement (plugin option `siri`, default `true`) and two AppDelegate methods that forward to `BayaanCarSiri`. `CarVoiceSearch` (pure Swift over the snapshot) resolves `mediaSearch`:
+- Surah by English or Arabic name, translation ("the cave"), number ("surah 18") or a common spelling ("Yaseen", "Baqara", "Ikhlaas"), with an optional reciter ("by Mishary", or Siri's `artistName`). Without a reciter it uses the top reciter, then favorites, then any reciter that has the surah.
+- Lists by title: playlists, Loved (also "favorites", "liked"), Downloads, Uploads ("my recitations"). "Shuffle" shuffles Loved.
+- A reciter alone plays their latest Jump back in entry, else their first surah. Nothing named ("play Bayaan") resumes.
+- Resolution answers with the best match; `handle` returns `.handleInApp`, and the app delegate sends the same play request a CarPlay tap sends, so a cold Siri launch plays once JS is ready. Reciter names and list titles are donated with `INVocabulary`, and `INMediaUserContext` reports the library size.
 
 ## 3. Artwork
 
@@ -215,6 +221,9 @@ type CarPlayRequest =
 ### 4.3 Cold start
 
 - **iOS:** CarPlay connecting launches the app process. The AppDelegate no longer creates the window; `BayaanCarSceneBridge` starts React Native into a host window on whichever scene connects first (phone or CarPlay), so JS runs either way. Templates render from the snapshot immediately; play requests queue until `markJsReady()`.
+  - The host window has no scene until a phone scene adopts it, and UIKit never lays such a window out, so the bridge lays it out on a timer; otherwise the safe area provider never reports insets and the React tree never mounts.
+  - While CarPlay is foreground the app stays active even with the phone locked, but React Native's timers run from the phone screen's display link. A `RCTTiming` guard keeps timers in background (NSTimer) mode whenever no phone scene is foreground active.
+  - `CPTemplateApplicationScene` gets an empty `windows` so `RCTAppearance.setColorScheme` (called at launch for a chosen theme) does not abort.
 - **Android:** Android Auto binds `BayaanLibraryService` with no Activity. The service serves the browse tree from the snapshot immediately. Playback needs the phone app's React tree (the player and `CarPlaybackBridge` live there), so a play request or transport waits a short grace period (3 s, 10 s if a JS runtime is already booting) for `markJsReady()`. If JS is still not ready, the request is dropped and Android Auto shows "Open Bayaan on your phone to get started" as a player error (plus a `SessionError`). See deviation 10.
 
 ### 4.4 Android media session coexistence (risk)
