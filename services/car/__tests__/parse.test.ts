@@ -33,6 +33,7 @@ describe('parse', () => {
       startIndex: undefined,
     });
     expect(parseCarPlayRequest('{"kind":"resume"}')).toEqual({kind: 'resume'});
+    expect(parseCarPlayRequest('{"kind":"random"}')).toEqual({kind: 'random'});
     expect(
       parseCarPlayRequest('{"kind":"resume","recitationId":"u1"}'),
     ).toEqual({kind: 'resume', recitationId: 'u1'});

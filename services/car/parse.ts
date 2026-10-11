@@ -65,6 +65,8 @@ export function parseCarPlayRequest(json: string): CarPlayRequest | null {
       const recitationId = str(v.recitationId);
       return recitationId ? {kind: 'resume', recitationId} : {kind: 'resume'};
     }
+    case 'random':
+      return {kind: 'random'};
     default:
       return null;
   }

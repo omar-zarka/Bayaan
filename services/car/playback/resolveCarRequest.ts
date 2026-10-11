@@ -10,6 +10,7 @@ import {
   availableSurahIds,
   findRewayat,
 } from '@/services/car/snapshot/buildCarSnapshot';
+import {pickRandomRecitations} from '@/utils/randomRecitation';
 import {
   isCarRecent,
   playableUploads,
@@ -55,6 +56,8 @@ export interface CarResolveContext {
 }
 
 const SURAH_COUNT = 114;
+/** Same queue length as the phone's Random Recitation card. */
+const RANDOM_COUNT = 15;
 
 function isKnownSurah(surahId: number): boolean {
   return Number.isInteger(surahId) && surahId >= 1 && surahId <= SURAH_COUNT;
@@ -226,6 +229,16 @@ export function resolveCarRequest(
       // entry for the one played.
       const tracks = playableUploads(ctx.uploads).map(u => ({uploadId: u.id}));
       const plan = listPlan(tracks, request.startIndex, false);
+      return plan ? {...plan, chain: 'new'} : null;
+    }
+    case 'random': {
+      const tracks = compact(
+        pickRandomRecitations(RANDOM_COUNT, ctx.reciters).map(p =>
+          spec(ctx, p.reciter.id, p.rewayatId, p.surah.id),
+        ),
+      );
+      // Like the phone card: the first pick starts a new listening chain.
+      const plan = listPlan(tracks, 0, false);
       return plan ? {...plan, chain: 'new'} : null;
     }
     case 'playlist': {

@@ -104,6 +104,23 @@ function ctx(o: Partial<CarResolveContext> = {}): CarResolveContext {
 }
 
 describe('resolveCarRequest', () => {
+  it('plays 15 random picks, each in a rewayah that has the surah', () => {
+    const plan = resolveCarRequest({kind: 'random'}, ctx());
+    expect(plan?.tracks).toHaveLength(15);
+    expect(plan?.startIndex).toBe(0);
+    expect(plan?.chain).toBe('new');
+    plan?.tracks.forEach(track => {
+      if (isUploadSpec(track)) throw new Error('expected a surah');
+      const reciter = [r1, r2].find(r => r.id === track.reciterId);
+      const rewayah = reciter?.rewayat.find(w => w.id === track.rewayatId);
+      expect(rewayah?.surah_list).toContain(track.surahId);
+    });
+  });
+
+  it('returns null for random with no reciters', () => {
+    expect(resolveCarRequest({kind: 'random'}, ctx({reciters: []}))).toBeNull();
+  });
+
   it('queues the rest of the rewayah starting at the chosen surah, wrapping around', () => {
     const plan = resolveCarRequest(
       {kind: 'surah', reciterId: 'r1', rewayatId: 'h', surahId: 3},

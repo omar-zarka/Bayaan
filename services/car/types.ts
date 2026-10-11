@@ -5,6 +5,7 @@ export type CarIconName =
   | 'downloads'
   | 'uploads'
   | 'reciters'
+  | 'shuffle'
   | 'playlist';
 
 export type CarArtwork =
@@ -28,7 +29,9 @@ export type CarPlayRequest =
   | {kind: 'downloads'; startIndex?: number}
   | {kind: 'uploads'; startIndex?: number}
   /** Without `recitationId`, the first Jump back in entry; with it, that upload's entry. */
-  | {kind: 'resume'; recitationId?: string};
+  | {kind: 'resume'; recitationId?: string}
+  /** Random Recitation, the same picks as the phone's Home card. */
+  | {kind: 'random'};
 
 export type CarBrowseTarget =
   | {kind: 'list'; listId: string}

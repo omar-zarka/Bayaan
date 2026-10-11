@@ -179,9 +179,12 @@ describe('buildCarSnapshot', () => {
     );
     expect(snap.version).toBe(1);
     expect(snap.home.sections.map(s => s.id)).toEqual([
+      'for-now',
       'more-from',
       'your-playlists',
     ]);
+    // A new user still gets something to play: Random.
+    expect(forNow(snap).map(i => i.id)).toEqual(['now:random']);
     expect(snap.library.map(i => i.id)).toEqual([
       'lib:loved',
       'lib:playlists',
@@ -247,7 +250,7 @@ describe('buildCarSnapshot', () => {
       }),
     );
     const ids = forNow(snap).map(i => i.id);
-    expect(ids[0]).toBe('now:resume');
+    expect(ids.slice(0, 2)).toEqual(['now:resume', 'now:random']);
     expect(ids[ids.length - 1]).toBe('now:shuffle-loved');
     expect(forNow(snap)[ids.length - 1].subtitle).toBe('Shuffle');
     expect(snap.home.sections[0].id).toBe('for-now');
@@ -528,8 +531,12 @@ describe('buildCarSnapshot', () => {
     const done = buildCarSnapshot(
       input({recentTracks: [recent(sudais, 1, 0.95)]}),
     );
-    expect(forNow(almost).map(i => i.id)).toEqual(['now:resume']);
-    expect(forNow(done).map(i => i.id)).toEqual(['now:resume', 'now:upnext']);
+    expect(forNow(almost).map(i => i.id)).toEqual(['now:resume', 'now:random']);
+    expect(forNow(done).map(i => i.id)).toEqual([
+      'now:resume',
+      'now:random',
+      'now:upnext',
+    ]);
   });
 
   it('excludes system playlist items the top reciter lacks', () => {
@@ -565,7 +572,7 @@ describe('buildCarSnapshot', () => {
     );
     expect(snap.lists['system:p1']).toBeUndefined();
     expect(snap.lists.playlists.items).toEqual([]);
-    expect(snap.home.sections.map(s => s.id)).toEqual(['more-from']);
+    expect(snap.home.sections.map(s => s.id)).toEqual(['for-now', 'more-from']);
   });
 
   it('skips a situational playlist pick that resolves to no items', () => {
