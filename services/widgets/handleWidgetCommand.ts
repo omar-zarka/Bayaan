@@ -7,8 +7,10 @@ import {getReciterByIdSync, getSurahById} from '@/services/dataService';
 import {useReciterStore} from '@/store/reciterStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
-import type {AyahTimestamp} from '@/types/timestamps';
 import {timestampService} from '@/services/timestamps/TimestampService';
+import {timingNumberingService} from '@/services/timestamps/TimingNumberingService';
+import type {TimingNumbering} from '@/utils/timestampNumbering';
+import {resolveRewayahFromName} from '@/services/rewayah/RewayahIdentity';
 import {expoAudioService} from '@/services/audio/ExpoAudioService';
 import {resumeRecent} from '@/services/player/utils/resumeRecent';
 import {pendingRestoreLoad} from '@/services/player/utils/restoreSession';
@@ -80,12 +82,15 @@ export interface CommandDeps {
   ) => Promise<number | null>;
 }
 
-export function ayahStartSecFrom(
-  list: AyahTimestamp[] | null,
+// The widget sends a Hafs ayah; a timing set's entry numbers are its own
+// (rewayah) numbers, so translate through the surah's numbering.
+export function ayahStartSecFromNumbering(
+  numbering: TimingNumbering,
   ayah: number,
 ): number | null {
-  const hit = list?.find(t => t.ayahNumber === ayah);
-  return hit ? hit.timestampFrom / 1000 : null;
+  if (numbering.mode === 'disabled') return null;
+  const entry = numbering.startEntryForHafsAyah(ayah);
+  return entry ? entry.timestampFrom / 1000 : null;
 }
 
 export function defaultDeps(): CommandDeps {
@@ -185,22 +190,33 @@ export function defaultDeps(): CommandDeps {
         rewayatId,
         surahId,
       );
-      return ayahStartSecFrom(list, ayah);
+      if (!list) return null;
+      const numbering = await timingNumberingService.resolve(
+        rewayatId,
+        surahId,
+        list,
+      );
+      return ayahStartSecFromNumbering(numbering, ayah);
     },
   };
 }
 
 // Widgets send rewayatId null for the default reciter. rewayat[0] may not have
 // the surah (Mishary's first rewayah has 6), so pick the fullest one that does.
+// A command with an ayah carries a Hafs verse number, so prefer a Hafs set.
 function rewayatForSurah(
   reciter: Reciter,
   surahId: number,
+  hafsAyah: boolean,
 ): string | undefined {
   const withSurah = reciter.rewayat.filter(r => r.surah_list.includes(surahId));
   if (withSurah.length === 0) return undefined;
-  return withSurah.reduce((best, r) =>
-    r.surah_total > best.surah_total ? r : best,
-  ).id;
+  const hafs = hafsAyah
+    ? withSurah.filter(r => resolveRewayahFromName(r.name) === 'hafs')
+    : [];
+  const pool = hafs.length > 0 ? hafs : withSurah;
+  return pool.reduce((best, r) => (r.surah_total > best.surah_total ? r : best))
+    .id;
 }
 
 export async function playSurah(
@@ -215,7 +231,7 @@ export async function playSurah(
   const track = await createTrack(
     reciter,
     surah,
-    rewayatId ?? rewayatForSurah(reciter, surahId),
+    rewayatId ?? rewayatForSurah(reciter, surahId, ayah !== null),
   );
   const resolvedRewayat = track.rewayatId ?? reciter.rewayat[0]?.id;
   // Ayah 1 means the start of the surah (a widget's "from the beginning").
