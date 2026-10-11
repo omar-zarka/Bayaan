@@ -5,9 +5,9 @@ import WidgetKit
 
 private let deepLinkPlayer = URL(string: "bayaan://player")!
 
-// Dark neutral used when there is no artwork tint, in both appearances, so the
-// white foreground always has contrast.
-private let fallbackBackground = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
+// Fixed near-black in both appearances, like Podcasts and Spotify, so the
+// reciter photo is the only color and white text always has contrast.
+private let widgetBackground = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
 
 /// Playback as the widget should render it at `now`: prefers a tap override
 /// newer than the snapshot and younger than the TTL, and treats playback as stopped past the end
@@ -63,18 +63,22 @@ struct ContinueListeningView: View {
         case .systemSmall:
           SmallView(track: track, playback: entry.playback)
         case .systemMedium:
-          MediumView(track: track, playback: entry.playback, side: sideList(limit: 3))
+          MediumView(track: track, playback: entry.playback, side: sideList(limit: 3),
+                     sideTitle: sideTitle)
         default:
-          LargeView(track: track, playback: entry.playback, rows: sideList(limit: 6))
+          LargeView(track: track, playback: entry.playback, rows: sideList(limit: 4),
+                    rowsTitle: sideTitle)
         }
       } else {
         EmptyStateView()
       }
     }
-    .containerBackground(for: .widget) {
-      (ArtworkTint.color(for: current?.artworkFile) ?? fallbackBackground)
-    }
+    .containerBackground(for: .widget) { widgetBackground }
     .widgetURL(deepLinkPlayer)
+  }
+
+  private var sideTitle: String {
+    entry.snapshot?.upNext.isEmpty == false ? "Up next" : "Recent"
   }
 
   private func sideList(limit: Int) -> [WidgetTrack] {
@@ -114,33 +118,49 @@ struct PlayPauseGlyph: View {
   let isPlaying: Bool
   var body: some View {
     Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-      .font(.system(size: 16, weight: .bold))
-      .foregroundStyle(.white)
-      .frame(width: 34, height: 34)
-      .background(.white.opacity(0.18), in: Circle())
+      .font(.system(size: 11, weight: .bold))
   }
 }
 
-/// Play/pause for the current item. With nothing loaded (the hero is a recent
-/// item or the surah of the day), it starts that track instead.
-struct HeroPlayButton: View {
+/// Podcasts-style pill: play/pause plus time left. With nothing loaded (the
+/// hero is a recent item or the surah of the day), it starts that track.
+struct PlayPill: View {
   let track: WidgetTrack
   let playback: EffectivePlayback?
 
   var body: some View {
     if let playback {
       Button(intent: SetPlaybackIntent(playing: !playback.isPlaying)) {
-        PlayPauseGlyph(isPlaying: playback.isPlaying)
+        label(isPlaying: playback.isPlaying) { TimeLeft(playback: playback) }
       }
       .buttonStyle(.plain)
     } else if !track.isUserUpload && track.surahId != 0 {
       Button(intent: PlayTrackIntent(surahId: track.surahId, reciterId: track.reciterId,
                                      rewayatId: track.rewayatId)) {
-        PlayPauseGlyph(isPlaying: false)
+        label(isPlaying: false) { Text("Play") }
       }
       .buttonStyle(.plain)
     }
   }
+
+  private func label<Content: View>(isPlaying: Bool, @ViewBuilder text: () -> Content) -> some View {
+    HStack(spacing: 5) {
+      PlayPauseGlyph(isPlaying: isPlaying)
+      text()
+    }
+    .font(.caption.weight(.semibold))
+    .lineLimit(1)
+    .foregroundStyle(.white)
+    .padding(.horizontal, 10)
+    .frame(height: 26)
+    .background(.white.opacity(0.18), in: Capsule())
+  }
+}
+
+/// "47m left" or "1h 58m left", in whole minutes.
+func minutesLeftLabel(_ seconds: Double) -> String {
+  let minutes = max(1, Int((seconds / 60).rounded(.up)))
+  return minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m left" : "\(minutes)m left"
 }
 
 struct TimeLeft: View {
@@ -149,16 +169,19 @@ struct TimeLeft: View {
   var body: some View {
     if let p = playback, p.durationSec > 0 {
       if p.isPlaying {
+        // A timer Text claims all available width; cap it to the digits.
         Text(timerInterval: Date.now...max(p.end, .now), countsDown: true)
           .monospacedDigit()
+          .frame(maxWidth: p.remainingWallSec >= 3600 ? 58 : 40)
       } else {
-        Text("\(Int(p.remainingWallSec / 60)) min left")
+        Text(minutesLeftLabel(p.remainingWallSec))
       }
     }
   }
 }
 
-/// Animates from the snapshot while playing, so no timeline reloads are needed.
+/// Spotify-style thin bar on a faint track, visible even at 0%. Animates from
+/// the snapshot while playing, so no timeline reloads are needed.
 struct PlaybackProgress: View {
   let playback: EffectivePlayback?
 
@@ -177,6 +200,11 @@ struct PlaybackProgress: View {
       }
       .progressViewStyle(.linear)
       .tint(.white)
+      // The timer variant lays out taller than the value one; pin both to a
+      // thin bar so they match.
+      .frame(height: 4)
+      .background(Capsule().fill(.white.opacity(0.22)))
+      .clipShape(Capsule())
     }
   }
 }
@@ -186,19 +214,17 @@ struct SmallView: View {
   let playback: EffectivePlayback?
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 6) {
+    VStack(alignment: .leading, spacing: 4) {
       HStack(alignment: .top) {
-        Artwork(file: track.artworkFile, size: 58)
-        Spacer()
-        HeroPlayButton(track: track, playback: playback)
+        Artwork(file: track.artworkFile, size: 44)
+        Spacer(minLength: 0)
+        BayaanLogo(size: 14)
       }
       Spacer(minLength: 0)
       Text(track.surahName).font(.headline).lineLimit(1)
-      HStack(spacing: 4) {
-        Text(track.reciterName).lineLimit(1)
-        TimeLeft(playback: playback)
-      }
-      .font(.caption).opacity(0.75)
+      Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
+      PlaybackProgress(playback: playback).padding(.vertical, 2)
+      PlayPill(track: track, playback: playback)
     }
     .foregroundStyle(.white)
     .padding(14)
@@ -209,28 +235,26 @@ struct MediumView: View {
   let track: WidgetTrack
   let playback: EffectivePlayback?
   let side: [WidgetTrack]
+  let sideTitle: String
 
   var body: some View {
     HStack(spacing: 14) {
-      // Fits the 130 pt content height: art and button share the top row.
-      VStack(alignment: .leading, spacing: 6) {
-        HStack(alignment: .top) {
-          Artwork(file: track.artworkFile, size: 56)
+      // Fits the 130 pt content height: art and pill share the top row.
+      VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .bottom, spacing: 6) {
+          Artwork(file: track.artworkFile, size: 52)
           Spacer(minLength: 0)
-          HeroPlayButton(track: track, playback: playback)
+          PlayPill(track: track, playback: playback)
         }
         Spacer(minLength: 0)
         Text(track.surahName).font(.headline).lineLimit(1)
-        HStack(spacing: 4) {
-          Text(track.reciterName).lineLimit(1)
-          TimeLeft(playback: playback)
-        }
-        .font(.caption).opacity(0.75)
-        PlaybackProgress(playback: playback)
+        Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
+        PlaybackProgress(playback: playback).padding(.top, 2)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
-      VStack(alignment: .leading, spacing: 8) {
-        ForEach(side, id: \.self) { t in TrackRow(track: t, artSize: 30) }
+      VStack(alignment: .leading, spacing: 6) {
+        ListHeader(title: side.isEmpty ? nil : sideTitle)
+        ForEach(side, id: \.self) { t in TrackRow(track: t, artSize: 28) }
         Spacer(minLength: 0)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -244,24 +268,45 @@ struct LargeView: View {
   let track: WidgetTrack
   let playback: EffectivePlayback?
   let rows: [WidgetTrack]
+  let rowsTitle: String
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 12) {
-      HStack(spacing: 12) {
+    VStack(alignment: .leading, spacing: 10) {
+      HStack(alignment: .top, spacing: 12) {
         Artwork(file: track.artworkFile, size: 76)
         VStack(alignment: .leading, spacing: 4) {
           Text(track.surahName).font(.title3.bold()).lineLimit(1)
           Text(track.reciterName).font(.subheadline).opacity(0.75).lineLimit(1)
         }
-        Spacer()
-        HeroPlayButton(track: track, playback: playback)
+        .padding(.top, 6)
+        Spacer(minLength: 0)
+        BayaanLogo(size: 16)
+      }
+      HStack(spacing: 12) {
+        PlayPill(track: track, playback: playback)
+        PlaybackProgress(playback: playback)
       }
       Divider().overlay(.white.opacity(0.2))
-      ForEach(rows, id: \.self) { t in TrackRow(track: t, artSize: 36) }
+      if !rows.isEmpty {
+        Text(rowsTitle).font(.caption2.weight(.semibold)).opacity(0.6)
+      }
+      ForEach(rows, id: \.self) { t in TrackRow(track: t, artSize: 32) }
       Spacer(minLength: 0)
     }
     .foregroundStyle(.white)
     .padding(16)
+  }
+}
+
+/// Side list title with the logo in the widget's top-right corner.
+struct ListHeader: View {
+  let title: String?
+  var body: some View {
+    HStack {
+      if let title { Text(title).font(.caption2.weight(.semibold)).opacity(0.6) }
+      Spacer(minLength: 0)
+      BayaanLogo(size: 14)
+    }
   }
 }
 
@@ -287,8 +332,8 @@ struct TrackRow: View {
 
 struct EmptyStateView: View {
   var body: some View {
-    VStack(spacing: 6) {
-      Image(systemName: "headphones").font(.title2)
+    VStack(spacing: 8) {
+      BayaanLogo(size: 24)
       Text("Start listening").font(.caption.weight(.semibold))
     }
     .foregroundStyle(.white)

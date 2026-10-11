@@ -5,6 +5,8 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.SystemClock
+import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -22,8 +24,10 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
+import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.LinearProgressIndicator
 import androidx.glance.appwidget.SizeMode
 import androidx.glance.appwidget.action.actionStartActivity
 import androidx.glance.appwidget.cornerRadius
@@ -50,10 +54,10 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
-import expo.modules.bayaanwidgets.ArtworkStore
 import expo.modules.bayaanwidgets.WidgetCommandActivity
 import expo.modules.bayaanwidgets.PlaybackOverride
 import expo.modules.bayaanwidgets.PlaybackState
+import expo.modules.bayaanwidgets.R
 import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.WidgetSnapshot
 import expo.modules.bayaanwidgets.WidgetStorage
@@ -82,11 +86,21 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
   )
 }
 
+/** "47m left" or "1h 58m left", in whole minutes. Mirrors the iOS widget. */
+internal fun minutesLeftLabel(seconds: Double): String {
+  val minutes = maxOf(1, kotlin.math.ceil(seconds / 60).toInt())
+  return if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m left" else "${minutes}m left"
+}
+
 class ContinueListeningWidget : GlanceAppWidget() {
   companion object {
     private val SMALL = DpSize(110.dp, 110.dp)
     private val MEDIUM = DpSize(250.dp, 110.dp)
     private val LARGE = DpSize(250.dp, 250.dp)
+
+    // Fixed near-black, like Podcasts and Spotify: the artwork is the only color.
+    private val BACKGROUND = ColorProvider(Color(0xFF1C1C1E))
+    private val WHITE = ColorProvider(Color.White)
 
     val SNAPSHOT_KEY = stringPreferencesKey("snapshot")
     val OVERRIDE_KEY = stringPreferencesKey("playbackOverride")
@@ -140,38 +154,54 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val openPlayer = actionStartActivity(
       Intent(Intent.ACTION_VIEW, Uri.parse("bayaan://player")).setPackage(context.packageName),
     )
-    val tint = track?.artworkFile?.let { ArtworkStore.tint(context, it) }
-    val bg = ColorProvider(Color(tint ?: 0xFF1C1C1E.toInt()))
 
     Box(
-      modifier = GlanceModifier.fillMaxSize().background(bg).cornerRadius(20.dp)
+      modifier = GlanceModifier.fillMaxSize().background(BACKGROUND).cornerRadius(20.dp)
         .padding(14.dp).clickable(openPlayer),
     ) {
       if (s == null || track == null) {
-        Text("Start listening", style = TextStyle(color = ColorProvider(Color.White), fontWeight = FontWeight.Medium))
+        Column(GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
+          verticalAlignment = Alignment.CenterVertically) {
+          Logo(24)
+          Spacer(GlanceModifier.height(8.dp))
+          Text("Start listening", style = TextStyle(color = WHITE, fontWeight = FontWeight.Medium))
+        }
         return@Box
       }
       val size = LocalSize.current
-      val playback = s.nowPlaying?.let {
-        PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis())
-      }
-      val isPlaying = playback?.isPlaying ?: false
-      // Static value, refreshed whenever state is pushed (spec 5.1). Paused
-      // only: while playing it would go stale between pushes.
-      val minutesLeft = playback?.takeIf { !it.isPlaying && (s.nowPlaying?.durationSec ?: 0.0) > 0 }
-        ?.let { (it.remainingWallSec / 60).toInt() }
+      val np = s.nowPlaying
+      val playback = np?.let { PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis()) }
+      val hero = Hero(
+        track = track,
+        hasNowPlaying = np != null,
+        isPlaying = playback?.isPlaying ?: false,
+        remainingSec = playback?.takeIf { (np?.durationSec ?: 0.0) > 0 }?.remainingWallSec,
+        progress = if (np != null && playback != null && np.durationSec > 0) {
+          val rate = if (np.rate > 0 && np.rate.isFinite()) np.rate else 1.0
+          (1 - playback.remainingWallSec * rate / np.durationSec).toFloat().coerceIn(0f, 1f)
+        } else null,
+      )
       // Drop the side list's first item when it is already the hero.
       val sideSource =
         if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0)
         else s.upNext.drop(if (s.nowPlaying == null && s.recent.isEmpty()) 1 else 0)
-      val side = sideSource.take(if (size.height >= LARGE.height) 6 else 3)
+      val sideTitle = if (s.upNext.isEmpty()) "Recent" else "Up next"
       when {
-        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, track, s.nowPlaying != null, isPlaying, side)
-        size.width >= MEDIUM.width -> Medium(context, track, s.nowPlaying != null, isPlaying, minutesLeft, side)
-        else -> Small(context, track, s.nowPlaying != null, isPlaying)
+        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, hero, sideSource.take(4), sideTitle)
+        size.width >= MEDIUM.width -> Medium(context, hero, sideSource.take(3), sideTitle)
+        else -> Small(context, hero)
       }
     }
   }
+
+  /** Everything the hero needs, resolved once per composition. */
+  private class Hero(
+    val track: WidgetTrack,
+    val hasNowPlaying: Boolean,
+    val isPlaying: Boolean,
+    val remainingSec: Double?,
+    val progress: Float?,
+  )
 
   @Composable
   private fun Art(context: Context, file: String?, size: Int) {
@@ -193,89 +223,151 @@ class ContinueListeningWidget : GlanceAppWidget() {
     }
   }
 
+  @Composable
+  private fun Logo(height: Int) {
+    Image(
+      ImageProvider(R.drawable.bayaan_mark), contentDescription = null,
+      modifier = GlanceModifier.width((height * 6 / 5).dp).height(height.dp),
+    )
+  }
+
   /**
-   * Play/pause for the current item. With nothing loaded (the hero is a recent
-   * item or the surah of the day), it starts that track instead.
+   * Podcasts-style pill: play/pause plus time left. With nothing loaded (the
+   * hero is a recent item or the surah of the day), it starts that track.
    */
   @Composable
-  private fun PlayPause(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean) {
+  private fun PlayPill(context: Context, hero: Hero) {
+    val track = hero.track
     val cmd = when {
       // Absolute target: the opposite of what is rendered.
-      hasNowPlaying -> JSONObject().put("type", "setPlayback").put("playing", !isPlaying)
+      hero.hasNowPlaying -> JSONObject().put("type", "setPlayback").put("playing", !hero.isPlaying)
       track.isUserUpload || track.surahId == 0 -> return
       else -> playTrackCommand(track)
     }
-    Image(
-      ImageProvider(if (isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
-      contentDescription = if (isPlaying) "Pause" else "Play",
-      modifier = GlanceModifier.size(34.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(17.dp)
-        .padding(7.dp).clickable(
+    Row(
+      GlanceModifier.height(26.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(13.dp)
+        .padding(horizontal = 10.dp).clickable(
           actionStartActivity(
             WidgetCommandActivity.intent(context, cmd)
               .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
           ),
         ),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Image(
+        ImageProvider(if (hero.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
+        contentDescription = if (hero.isPlaying) "Pause" else "Play",
+        modifier = GlanceModifier.size(16.dp),
+      )
+      Spacer(GlanceModifier.width(4.dp))
+      val remaining = hero.remainingSec
+      when {
+        remaining == null && !hero.hasNowPlaying -> PillText("Play")
+        remaining == null -> Unit
+        // Counts down on its own between pushes.
+        hero.isPlaying -> AndroidRemoteViews(
+          RemoteViews(context.packageName, R.layout.bayaan_widget_countdown).apply {
+            setChronometer(
+              R.id.bayaan_widget_countdown,
+              SystemClock.elapsedRealtime() + (remaining * 1000).toLong(), null, true,
+            )
+          },
+        )
+        else -> PillText(minutesLeftLabel(remaining))
+      }
+    }
+  }
+
+  @Composable
+  private fun PillText(text: String) {
+    Text(text, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+  }
+
+  /** Spotify-style thin bar on a faint track. Static: refreshed on each push. */
+  @Composable
+  private fun Progress(progress: Float?, modifier: GlanceModifier) {
+    if (progress == null) return
+    LinearProgressIndicator(
+      progress = progress, modifier = modifier.height(3.dp),
+      color = WHITE, backgroundColor = ColorProvider(Color(0x38FFFFFF)),
     )
   }
 
   @Composable
   private fun Titles(track: WidgetTrack, titleSp: Int) {
-    val white = ColorProvider(Color.White)
-    Text(track.surahName, maxLines = 1, style = TextStyle(color = white, fontSize = titleSp.sp, fontWeight = FontWeight.Bold))
+    Text(track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = titleSp.sp, fontWeight = FontWeight.Bold))
     Text(track.reciterName, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0xBFFFFFFF)), fontSize = 12.sp))
   }
 
   @Composable
-  private fun Small(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean) {
-    Column(GlanceModifier.fillMaxSize()) {
-      Row(GlanceModifier.fillMaxWidth()) {
-        Art(context, track.artworkFile, 56)
-        Spacer(GlanceModifier.defaultWeight())
-        PlayPause(context, track, hasNowPlaying, isPlaying)
+  private fun ListHeader(title: String?) {
+    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+      if (title != null) {
+        Text(title, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0x99FFFFFF)), fontSize = 11.sp, fontWeight = FontWeight.Bold))
       }
       Spacer(GlanceModifier.defaultWeight())
-      Titles(track, 15)
+      Logo(14)
     }
   }
 
   @Composable
-  private fun Medium(
-    context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean, minutesLeft: Int?,
-    side: List<WidgetTrack>,
-  ) {
+  private fun Small(context: Context, hero: Hero) {
+    Column(GlanceModifier.fillMaxSize()) {
+      Row(GlanceModifier.fillMaxWidth()) {
+        Art(context, hero.track.artworkFile, 44)
+        Spacer(GlanceModifier.defaultWeight())
+        Logo(14)
+      }
+      Spacer(GlanceModifier.defaultWeight())
+      Titles(hero.track, 15)
+      Spacer(GlanceModifier.height(6.dp))
+      Progress(hero.progress, GlanceModifier.fillMaxWidth())
+      Spacer(GlanceModifier.height(6.dp))
+      PlayPill(context, hero)
+    }
+  }
+
+  @Composable
+  private fun Medium(context: Context, hero: Hero, side: List<WidgetTrack>, sideTitle: String) {
     Row(GlanceModifier.fillMaxSize()) {
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
-        Art(context, track.artworkFile, 60)
+        Art(context, hero.track.artworkFile, 52)
         Spacer(GlanceModifier.defaultWeight())
-        Titles(track, 15)
+        Titles(hero.track, 15)
         Spacer(GlanceModifier.height(6.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-          PlayPause(context, track, hasNowPlaying, isPlaying)
-          if (minutesLeft != null) {
-            Spacer(GlanceModifier.width(8.dp))
-            Text(
-              "$minutesLeft min left", maxLines = 1,
-              style = TextStyle(color = ColorProvider(Color(0xBFFFFFFF)), fontSize = 11.sp),
-            )
-          }
-        }
+        Progress(hero.progress, GlanceModifier.fillMaxWidth())
+        Spacer(GlanceModifier.height(6.dp))
+        PlayPill(context, hero)
       }
       Spacer(GlanceModifier.width(12.dp))
-      Column(GlanceModifier.defaultWeight()) { side.forEach { t -> TrackRow(context, t, 30) } }
+      Column(GlanceModifier.defaultWeight()) {
+        ListHeader(if (side.isEmpty()) null else sideTitle)
+        Spacer(GlanceModifier.height(2.dp))
+        side.forEach { t -> TrackRow(context, t, 30) }
+      }
     }
   }
 
   @Composable
-  private fun Large(context: Context, track: WidgetTrack, hasNowPlaying: Boolean, isPlaying: Boolean, rows: List<WidgetTrack>) {
+  private fun Large(context: Context, hero: Hero, rows: List<WidgetTrack>, rowsTitle: String) {
     Column(GlanceModifier.fillMaxSize()) {
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Art(context, track.artworkFile, 72)
+      Row(GlanceModifier.fillMaxWidth()) {
+        Art(context, hero.track.artworkFile, 72)
         Spacer(GlanceModifier.width(12.dp))
-        Column(GlanceModifier.defaultWeight()) { Titles(track, 18) }
-        PlayPause(context, track, hasNowPlaying, isPlaying)
+        Column(GlanceModifier.defaultWeight().padding(top = 6.dp)) { Titles(hero.track, 18) }
+        Logo(16)
       }
       Spacer(GlanceModifier.height(12.dp))
-      rows.forEach { t -> TrackRow(context, t, 36) }
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        PlayPill(context, hero)
+        Spacer(GlanceModifier.width(12.dp))
+        Progress(hero.progress, GlanceModifier.defaultWeight())
+      }
+      Spacer(GlanceModifier.height(12.dp))
+      if (rows.isNotEmpty()) {
+        Text(rowsTitle, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0x99FFFFFF)), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+      }
+      rows.forEach { t -> TrackRow(context, t, 34) }
     }
   }
 

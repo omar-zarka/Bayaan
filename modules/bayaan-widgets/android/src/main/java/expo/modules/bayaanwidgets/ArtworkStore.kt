@@ -3,10 +3,7 @@ package expo.modules.bayaanwidgets
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.net.Uri
-import androidx.core.graphics.ColorUtils
-import androidx.palette.graphics.Palette
 import java.io.File
 import java.io.FileOutputStream
 import java.io.InputStream
@@ -16,7 +13,6 @@ import java.net.URL
 object ArtworkStore {
   private const val SIDE = 300
   private const val TIMEOUT_MS = 10_000
-  private val tintCache = HashMap<String, Int>()
 
   /** Downloads or copies, center-crops to 300x300, writes JPEG. Runs off the main thread. */
   fun cache(context: Context, sourceUrl: String, fileName: String): Boolean = try {
@@ -34,7 +30,6 @@ object ArtworkStore {
     FileOutputStream(File(WidgetStorage.artworkDir(context), fileName)).use {
       scaled.compress(Bitmap.CompressFormat.JPEG, 85, it)
     }
-    synchronized(tintCache) { tintCache.remove(fileName) }
     true
   } catch (e: Exception) {
     false
@@ -50,20 +45,5 @@ object ArtworkStore {
     } finally {
       conn.disconnect()
     }
-  }
-
-  /** Muted dark color from the artwork, darkened so white text stays legible. */
-  fun tint(context: Context, fileName: String): Int? {
-    synchronized(tintCache) { tintCache[fileName]?.let { return it } }
-    val file = File(WidgetStorage.artworkDir(context), fileName)
-    val bmp = BitmapFactory.decodeFile(file.path) ?: return null
-    val palette = Palette.from(bmp).generate()
-    val base = palette.darkMutedSwatch?.rgb ?: palette.dominantSwatch?.rgb ?: return null
-    val hsl = FloatArray(3)
-    ColorUtils.colorToHSL(base, hsl)
-    hsl[2] = minOf(hsl[2], 0.3f)
-    val color = ColorUtils.HSLToColor(hsl) or Color.BLACK
-    synchronized(tintCache) { tintCache[fileName] = color }
-    return color
   }
 }

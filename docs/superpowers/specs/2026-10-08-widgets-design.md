@@ -19,7 +19,7 @@ Starting point is Apple Podcasts: artwork is the hero, the background is tinted 
 
 1. Content is the design. No decorative shapes, chips or gratuitous gradients.
 2. Every widget is either a one tap action or a glance worth having.
-3. Listening widgets tint from reciter artwork. Reading and ayah widgets use a quiet paper/ink palette that follows light/dark mode.
+3. Listening widgets sit on a fixed near-black (#1C1C1E), like Podcasts and Spotify, so the reciter photo is the only color. Reading and ayah widgets use a quiet paper/ink palette that follows light/dark mode.
 4. Quran text is always Digital Khatt. Surah names use the existing surah glyph font (`utils/surahGlyphMap.ts`).
 5. One source of truth for data (a TS schema); native code on each platform only renders it.
 6. iOS 26 tinted/clear modes are supported; artwork is marked full color.
@@ -116,7 +116,6 @@ interface WidgetTrack {
   reciterName: string;
   rewayatId?: string;
   artworkFile?: string;           // file name in shared storage
-  tint?: string;                  // hex, extracted natively and cached
   isUserUpload: boolean;
 }
 ```
@@ -181,11 +180,12 @@ All widgets support light and dark. iOS families listed; Android equivalents are
 └──────────────┘
 ```
 
-- Background tinted from current reciter artwork.
-- Small: play/pause button toggles in place; any other tap opens `bayaan://player`.
+- Fixed near-black background on every size; the Bayaan mark sits in the top-right corner.
+- Progress on every size: a thin Spotify-style bar on a faint track plus a Podcasts-style play pill showing time left ("47m left", "1h 58m left").
+- Small: the play pill toggles in place; any other tap opens `bayaan://player`.
 - Medium: right column shows `upNext`, falling back to `recent`. Tapping a row sends `playTrack`.
-- Large: current item header, then up to 6 `recent` rows.
-- iOS time left uses `Text(timerInterval:)` / `ProgressView(timerInterval:)` while playing, so it animates without timeline reloads. Android shows a static value refreshed on state change.
+- Large: current item header, play pill beside the progress bar, then up to 4 `upNext` rows (falling back to `recent`).
+- iOS time left uses `Text(timerInterval:)` / `ProgressView(timerInterval:)` while playing, so it animates without timeline reloads. Android counts time left down live with an embedded `Chronometer`; its progress bar is a static value refreshed on state change.
 - Empty state: surah of the day (existing day-of-year logic in `ContinueReadingHero.tsx`, extracted to a util) with the default reciter.
 
 ### 5.2 Quick Surah (small, medium; configurable)
