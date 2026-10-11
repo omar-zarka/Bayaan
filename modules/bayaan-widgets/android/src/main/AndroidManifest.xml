@@ -60,5 +60,19 @@
         <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
       </intent-filter>
     </activity>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_ayah_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/ayah_of_the_day_info" />
+    </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver"
+      android:exported="false" />
   </application>
 </manifest>

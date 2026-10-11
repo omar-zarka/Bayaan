@@ -5,6 +5,7 @@ import androidx.glance.appwidget.GlanceAppWidget
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayWidget
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
@@ -40,6 +41,7 @@ class BayaanWidgetsModule : Module() {
           "ContinueListening" -> updateContinueListening()
           "QuickSurah" -> push(QuickSurahWidget())
           "PinnedReciter" -> push(PinnedReciterWidget())
+          "AyahOfTheDay" -> push(AyahOfTheDayWidget())
           else -> Unit // widget kinds register here as they are added
         }
       }

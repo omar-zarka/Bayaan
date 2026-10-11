@@ -6,4 +6,6 @@
   <string name="bayaan_widget_quick_surah_desc">Play a favorite surah in one tap.</string>
   <string name="bayaan_widget_pinned_reciter_label">Pinned Reciter</string>
   <string name="bayaan_widget_pinned_reciter_desc">Play a favorite reciter in one tap.</string>
+  <string name="bayaan_widget_ayah_label">Ayah of the Day</string>
+  <string name="bayaan_widget_ayah_desc">A new ayah every day, in Digital Khatt.</string>
 </resources>
