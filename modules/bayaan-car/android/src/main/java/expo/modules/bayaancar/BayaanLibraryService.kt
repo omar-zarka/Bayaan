@@ -279,16 +279,12 @@ class BayaanLibraryService : MediaLibraryService() {
       pageSize: Int,
       params: LibraryParams?,
     ): ListenableFuture<LibraryResult<ImmutableList<MediaItem>>> {
-      val s = CarBridge.snapshot
-      val results = CarSearch.search(s, query).mapNotNull { json ->
-        val o = JSONObject(json)
-        val surah = s?.surahs?.firstOrNull { it.id == o.getInt("surahId") } ?: return@mapNotNull null
-        val reciter = s.reciters.firstOrNull { it.id == o.getString("reciterId") } ?: return@mapNotNull null
-        MediaItem.Builder().setMediaId(CarBrowseTree.playId(json)).setMediaMetadata(
+      val results = CarSearch.search(CarBridge.snapshot, query).map { match ->
+        MediaItem.Builder().setMediaId(CarBrowseTree.playId(match.request)).setMediaMetadata(
           MediaMetadata.Builder()
-            .setTitle(surah.name).setSubtitle(reciter.name)
+            .setTitle(match.title).setSubtitle(match.subtitle)
             .setIsBrowsable(false).setIsPlayable(true)
-            .setArtworkUri(CarArtworkProvider.uriFor(CarArtwork.Surah(surah.id)))
+            .setArtworkUri(CarArtworkProvider.uriFor(match.artwork))
             .build(),
         ).build()
       }
@@ -302,7 +298,7 @@ class BayaanLibraryService : MediaLibraryService() {
     CarBrowseTree.requestFromPlayId(item.mediaId)?.let { return it }
     val query = item.requestMetadata.searchQuery ?: return null
     if (query.isBlank()) return RESUME_REQUEST
-    return CarSearch.search(query).firstOrNull()
+    return CarSearch.search(query).firstOrNull()?.request
   }
 
   private companion object {
