@@ -102,8 +102,9 @@ class CarArtworkKeysTest {
     fun item(id: String, a: CarArtwork) = CarItem(id, "t", null, a, null, false, CarItemAction.BrowseList("x"))
     val snap = CarSnapshot(
       topReciterId = null,
-      quickStart = listOf(item("1", CarArtwork.Url("https://a.com/1.png"))),
-      sections = listOf(CarSection("s", "S", "grid", listOf(item("2", CarArtwork.Url("http://insecure.com/2.png"))))),
+      sections = listOf(
+        CarSection("s", "S", "grid", listOf(item("1", CarArtwork.Url("https://a.com/1.png")), item("2", CarArtwork.Url("http://insecure.com/2.png")))),
+      ),
       library = listOf(item("3", CarArtwork.Asset("https://a.com/3.png")), item("4", CarArtwork.Asset("icon_name"))),
       lists = mapOf("l" to CarList("l", "L", listOf(item("5", CarArtwork.Url("https://a.com/5.png"))))),
       reciters = listOf(CarReciter("r", "R", CarArtwork.Url("https://a.com/r.png"), false, emptyList())),
@@ -162,7 +163,7 @@ class CarArtworkKeysTest {
   }
 
   @Test fun snapshotParsesOptionalSurahArtworkBase() {
-    val base = """{"version":1,"topReciterId":null,"home":{"quickStart":[],"sections":[]},"library":[],"lists":{},"reciters":[],"surahs":[],"juz":[],"downloadedKeys":[]"""
+    val base = """{"version":1,"topReciterId":null,"home":{"sections":[]},"library":[],"lists":{},"reciters":[],"surahs":[],"juz":[],"downloadedKeys":[]"""
     assertNull(CarSnapshot.parse("$base}")!!.surahArtworkBase)
     assertEquals(
       "https://cdn.fork.example/surah/",
@@ -171,7 +172,7 @@ class CarArtworkKeysTest {
   }
 
   @Test fun snapshotDecodesTheUploadsLibraryEntryAndList() {
-    val json = """{"version":1,"topReciterId":null,"home":{"quickStart":[],"sections":[]},
+    val json = """{"version":1,"topReciterId":null,"home":{"sections":[]},
       "library":[{"id":"lib:uploads","title":"Uploads","artwork":{"kind":"icon","name":"uploads"},
         "action":{"kind":"browse","target":{"kind":"list","listId":"uploads"}}}],
       "lists":{"uploads":{"id":"uploads","title":"Uploads","items":[{"id":"upload:u1","title":"Al-Kahf",

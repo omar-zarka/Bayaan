@@ -64,7 +64,6 @@ object CarBrowseTree {
 
   private fun home(s: CarSnapshot): List<MediaItem> {
     val out = mutableListOf<MediaItem>()
-    s.quickStart.forEach { out.add(item(it, "Quick start", grid = true)) }
     s.sections.forEach { section -> section.items.forEach { out.add(item(it, section.title, grid = true)) } }
     return out
   }

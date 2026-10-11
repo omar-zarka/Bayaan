@@ -9,9 +9,6 @@ final class CarTemplateBuilder {
   private let style: () -> UIUserInterfaceStyle
   private let displayScale: () -> CGFloat
   private var builtStyle: UIUserInterfaceStyle?
-  /// Identity of the Quick start header buttons currently set (ids, titles,
-  /// artwork, style), so unrelated snapshot changes do not reset them.
-  private var quickStartSignature: String?
   /// What each non-Home tab was last built from. Playback rebuilds the
   /// snapshot every 10% for Jump back in progress; only Home needs that, so
   /// the other tabs keep their rows (and scroll position) unless their own
@@ -72,21 +69,9 @@ final class CarTemplateBuilder {
         $0.updateSections([emptyState(Self.emptyCopy)])
       }
       tabSignatures.removeAll()
-      if #available(iOS 26.0, *) {
-        homeTemplate.headerGridButtons = nil
-        quickStartSignature = nil
-      }
       return
     }
     homeTemplate.updateSections(clamp(homeSections(snapshot)))
-    if #available(iOS 26.0, *) {
-      let signature = snapshot.home.quickStart.map { "\($0.id)|\($0.title)|\($0.artwork)" }.joined(separator: "\n")
-        + "|\(currentStyle.rawValue)"
-      if signature != quickStartSignature {
-        quickStartSignature = signature
-        homeTemplate.headerGridButtons = quickStartButtons(snapshot.home.quickStart)
-      }
-    }
     let style = "#\(currentStyle.rawValue)"
     updateTab(libraryTemplate, signature: Self.librarySignature(snapshot) + style) { librarySections(snapshot) }
     updateTab(recitersTemplate, signature: Self.recitersSignature(snapshot) + style) { reciterSections(snapshot) }
@@ -180,10 +165,6 @@ final class CarTemplateBuilder {
 
   private func homeSections(_ s: CarSnapshot) -> [CPListSection] {
     var sections: [CPListSection] = []
-    // On iOS 26+ Quick start is shown as header grid buttons instead of a row.
-    if !s.home.quickStart.isEmpty, !Self.usesElementRows {
-      sections.append(CPListSection(items: [imageRow(title: "Quick start", items: s.home.quickStart)]))
-    }
     for section in s.home.sections where !section.items.isEmpty {
       switch section.style {
       case "circles", "cards":
@@ -192,8 +173,7 @@ final class CarTemplateBuilder {
         sections.append(CPListSection(items: section.items.map(listItem), header: section.title, sectionIndexTitle: nil))
       }
     }
-    let hasHeaderButtons = Self.usesElementRows && !s.home.quickStart.isEmpty
-    if sections.isEmpty, !hasHeaderButtons {
+    if sections.isEmpty {
       sections.append(emptyState(Self.nothingYet))
     }
     return sections
@@ -201,11 +181,6 @@ final class CarTemplateBuilder {
 
   private static var hasDetailsHeader: Bool {
     if #available(iOS 26.4, *) { return true }
-    return false
-  }
-
-  private static var usesElementRows: Bool {
-    if #available(iOS 26.0, *) { return true }
     return false
   }
 
@@ -269,25 +244,6 @@ final class CarTemplateBuilder {
     }
     row.handler = { _, completion in completion() }
     return row
-  }
-
-  /// iOS 26+ Quick start header buttons. `CPGridButton.updateImage` updates in
-  /// place, so late artwork never rebuilds the template.
-  @available(iOS 26.0, *)
-  private func quickStartButtons(_ items: [CarItem]) -> [CPGridButton]? {
-    let limited = Array(items.prefix(CPListTemplate.maximumHeaderGridButtonCount))
-    guard !limited.isEmpty else { return nil }
-    let size = CPListTemplate.maximumGridButtonImageSize.width
-    let (scale, style) = (self.scale, currentStyle)
-    return limited.map { item in
-      let button = CPGridButton(titleVariants: [item.title], image: peek(item.artwork, size: size)) { [weak self] _ in
-        self?.perform(item)
-      }
-      CarArtworkCache.shared.load(for: item.artwork, size: size, scale: scale, style: style) { [weak button] image in
-        button?.updateImage(image)
-      }
-      return button
-    }
   }
 
   private func imageRow(title: String, items: [CarItem]) -> CPListImageRowItem {

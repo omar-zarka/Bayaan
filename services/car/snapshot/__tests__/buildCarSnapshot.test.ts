@@ -12,6 +12,11 @@ import {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
 import {SystemPlaylist} from '@/data/systemPlaylists';
 import type {UploadedRecitation} from '@/types/uploads';
 import {resolveCarRequest} from '@/services/car/playback/resolveCarRequest';
+import type {CarItem, CarSnapshot} from '@/services/car/types';
+
+function forNow(snap: CarSnapshot): CarItem[] {
+  return snap.home.sections.find(s => s.id === 'for-now')?.items ?? [];
+}
 
 function upload(
   id: string,
@@ -172,7 +177,6 @@ describe('buildCarSnapshot', () => {
       }),
     );
     expect(snap.version).toBe(1);
-    expect(snap.home.quickStart).toEqual([]);
     expect(snap.home.sections.map(s => s.id)).toEqual([
       'more-from',
       'your-playlists',
@@ -222,12 +226,10 @@ describe('buildCarSnapshot', () => {
     expect(
       snap.home.sections.find(s => s.id === 'jump-back-in'),
     ).toBeUndefined();
-    expect(
-      snap.home.quickStart.find(i => i.id === 'quick:resume'),
-    ).toBeUndefined();
+    expect(forNow(snap).find(i => i.id === 'now:resume')).toBeUndefined();
   });
 
-  it('puts Resume and Shuffle Loved in quick start when available', () => {
+  it('leads For right now with Resume and ends it with Shuffle Loved', () => {
     const snap = buildCarSnapshot(
       input({
         recentTracks: [recent(mishary, 1, 0.1)],
@@ -236,10 +238,11 @@ describe('buildCarSnapshot', () => {
         ],
       }),
     );
-    expect(snap.home.quickStart.map(i => i.id).slice(0, 2)).toEqual([
-      'quick:resume',
-      'quick:shuffle-loved',
-    ]);
+    const ids = forNow(snap).map(i => i.id);
+    expect(ids[0]).toBe('now:resume');
+    expect(ids[ids.length - 1]).toBe('now:shuffle-loved');
+    expect(forNow(snap)[ids.length - 1].subtitle).toBe('1 surah');
+    expect(snap.home.sections[0].id).toBe('for-now');
   });
 
   it('draws Library, Shuffle Loved and playlists with the Collection icon tiles', () => {
@@ -281,7 +284,7 @@ describe('buildCarSnapshot', () => {
       {kind: 'icon', name: 'reciters'},
     ]);
     expect(
-      snap.home.quickStart.find(i => i.id === 'quick:shuffle-loved')?.artwork,
+      forNow(snap).find(i => i.id === 'now:shuffle-loved')?.artwork,
     ).toEqual({kind: 'icon', name: 'loved'});
     expect(snap.lists.playlists.items.map(i => i.artwork)).toEqual([
       {kind: 'icon', name: 'playlist', hex: '#22C55E'},
@@ -434,8 +437,9 @@ describe('buildCarSnapshot', () => {
       kind: 'play',
       request: {kind: 'resume', recitationId: 'u1'},
     });
-    const resume = snap.home.quickStart.find(i => i.id === 'quick:resume');
-    expect(resume?.subtitle).toBe('Surah 36');
+    const resume = forNow(snap).find(i => i.id === 'now:resume');
+    expect(resume?.title).toBe('Surah 36');
+    expect(resume?.subtitle).toBe('Resume');
 
     // The top reciter still ignores uploads.
     expect(snap.topReciterId).toBe('r1');
@@ -516,11 +520,8 @@ describe('buildCarSnapshot', () => {
     const done = buildCarSnapshot(
       input({recentTracks: [recent(sudais, 1, 0.95)]}),
     );
-    expect(almost.home.quickStart.map(i => i.id)).toEqual(['quick:resume']);
-    expect(done.home.quickStart.map(i => i.id)).toEqual([
-      'quick:resume',
-      'now:upnext',
-    ]);
+    expect(forNow(almost).map(i => i.id)).toEqual(['now:resume']);
+    expect(forNow(done).map(i => i.id)).toEqual(['now:resume', 'now:upnext']);
   });
 
   it('excludes system playlist items the top reciter lacks', () => {

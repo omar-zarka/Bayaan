@@ -90,7 +90,6 @@ object CarArtworkKeys {
     add(nowPlaying?.artwork)
     if (snapshot == null) return out
     snapshot.reciters.forEach { add(it.artwork) }
-    snapshot.quickStart.forEach { add(it.artwork) }
     snapshot.library.forEach { add(it.artwork) }
     snapshot.sections.forEach { s -> s.items.forEach { add(it.artwork) } }
     snapshot.lists.values.forEach { l -> l.items.forEach { add(it.artwork) } }

@@ -97,7 +97,6 @@ data class CarJuz(val number: Int, val surahIds: List<Int>, val title: String? =
 
 data class CarSnapshot(
   val topReciterId: String?,
-  val quickStart: List<CarItem>,
   val sections: List<CarSection>,
   val library: List<CarItem>,
   val lists: Map<String, CarList>,
@@ -126,7 +125,6 @@ data class CarSnapshot(
       val listsObj = o.getJSONObject("lists")
       CarSnapshot(
         topReciterId = if (o.isNull("topReciterId")) null else o.getString("topReciterId"),
-        quickStart = home.getJSONArray("quickStart").mapObjects(CarItem::parse),
         sections = home.getJSONArray("sections").mapObjects {
           CarSection(it.getString("id"), it.getString("title"), it.getString("style"), it.getJSONArray("items").mapObjects(CarItem::parse))
         },

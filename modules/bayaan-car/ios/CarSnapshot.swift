@@ -203,13 +203,11 @@ struct CarSurah: Decodable {
 }
 
 struct CarHome: Decodable {
-  let quickStart: [CarItem]
   let sections: [CarSection]
 
-  private enum Keys: String, CodingKey { case quickStart, sections }
+  private enum Keys: String, CodingKey { case sections }
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: Keys.self)
-    quickStart = try c.decodeLossy([CarItem].self, forKey: .quickStart)
     sections = try c.decodeLossy([CarSection].self, forKey: .sections)
   }
 }

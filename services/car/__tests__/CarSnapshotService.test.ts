@@ -58,7 +58,7 @@ jest.mock('@/services/car/snapshot/buildCarSnapshot', () => ({
     version: 1,
     generatedAt: mockGeneratedAt,
     topReciterId: mockTopReciterId,
-    home: {quickStart: [], sections: []},
+    home: {sections: []},
     library: [],
     lists: {},
     reciters: [],

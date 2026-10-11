@@ -93,7 +93,7 @@ export interface CarSnapshot {
   version: 1;
   generatedAt: string;
   topReciterId: string | null;
-  home: {quickStart: CarItem[]; sections: CarSection[]};
+  home: {sections: CarSection[]};
   library: CarItem[];
   lists: Record<string, CarList>;
   reciters: CarReciter[];

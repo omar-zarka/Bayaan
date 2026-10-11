@@ -9,7 +9,6 @@ class CarSearchTest {
   private val art = CarArtwork.Color("", "#333333")
   private val snapshot = CarSnapshot(
     topReciterId = "alafasy",
-    quickStart = emptyList(),
     sections = emptyList(),
     library = emptyList(),
     lists = emptyMap(),

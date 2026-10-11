@@ -77,7 +77,10 @@ export function normalizeSurahArtworkBase(raw: string | undefined): string {
 
 const ALL_SURAH_IDS = Array.from({length: 114}, (_, i) => i + 1);
 const JUMP_BACK_IN_LIMIT = 10;
-const QUICK_START_LIMIT = 4;
+
+function surahCount(count: number): string {
+  return count === 1 ? '1 surah' : `${count} surahs`;
+}
 
 export function availableSurahIds(rewayat: Rewayat | undefined): number[] {
   if (!rewayat || rewayat.surah_list.length === 0) return [...ALL_SURAH_IDS];
@@ -326,7 +329,7 @@ function playlistEntries(
     .map(p => ({
       id: `playlist:${p.id}`,
       title: p.name,
-      subtitle: `${p.itemCount} surahs`,
+      subtitle: surahCount(p.itemCount),
       artwork: {kind: 'icon', name: 'playlist', hex: p.color},
       action: {
         kind: 'browse',
@@ -522,30 +525,31 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const uploads = buildUploadsList(input);
   const playlists = playlistEntries(input, nonEmptyListIds);
 
-  const quickStart: CarItem[] = [];
+  // Resume leads the top row, then the time-of-day picks, then Shuffle Loved.
+  // Like the picks, each card's title is what plays and its subtitle why.
+  const forNow: CarItem[] = [];
   if (jumpBackIn.length > 0) {
-    quickStart.push({
-      id: 'quick:resume',
-      title: 'Resume',
-      subtitle: jumpBackIn[0].title,
+    forNow.push({
+      id: 'now:resume',
+      title: jumpBackIn[0].title,
+      subtitle: 'Resume',
       artwork: jumpBackIn[0].artwork,
       action: {kind: 'play', request: {kind: 'resume'}},
     });
   }
+  forNow.push(...situational);
   if (loved.items.length > 0) {
-    quickStart.push({
-      id: 'quick:shuffle-loved',
+    forNow.push({
+      id: 'now:shuffle-loved',
       title: 'Shuffle Loved',
+      subtitle: surahCount(loved.items.length),
       artwork: {kind: 'icon', name: 'loved'},
       action: {kind: 'play', request: {kind: 'loved', shuffle: true}},
     });
   }
-  situational.forEach(item => {
-    if (quickStart.length < QUICK_START_LIMIT) quickStart.push(item);
-  });
 
   const allSections: CarSection[] = [
-    {id: 'for-now', title: 'For right now', style: 'cards', items: situational},
+    {id: 'for-now', title: 'For right now', style: 'cards', items: forNow},
     {
       id: 'jump-back-in',
       title: 'Jump back in',
@@ -636,7 +640,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
     version: 1,
     generatedAt: input.now.toISOString(),
     topReciterId: top?.reciterId ?? null,
-    home: {quickStart, sections},
+    home: {sections},
     library,
     lists,
     reciters,
