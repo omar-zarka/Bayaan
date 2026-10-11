@@ -47,7 +47,7 @@ Four root tabs on both platforms (Android Auto caps root children at 4; CarPlay 
   - Shuffle Loved (hidden if no loved tracks)
   - Situational slot 1 and 2 (from the rules below)
 - **For right now**: situational cards (CarPlay: `CPListImageRowItemCardElement`, iOS 26+; fallback image row).
-- **Jump back in**: recently played, with progress (iOS `CPListItem.playbackProgress`; Android `COMPLETION_PERCENTAGE` extra). Includes recently played uploads whose recitation still exists; tapping one resumes that upload on its own at its saved position, like the phone's recent card. Resume plays the first Jump back in row. `CPPlaybackConfiguration` (iOS 26.4) is not used because the snapshot carries only a progress fraction, not elapsed time and duration.
+- **Jump back in**: recently played, with progress (iOS `CPListItem.playbackProgress`; Android `COMPLETION_PERCENTAGE` extra). Includes recently played uploads whose recitation still exists; tapping one resumes that upload on its own at its saved position, like the phone's recent card. Resume plays the first Jump back in row. Items also carry `duration` (seconds); on iOS 26.4+ each row also gets a `CPPlaybackConfiguration` (elapsed time and duration), because `playbackProgress` alone drew no bar on an iOS 26 device.
 - **Your reciters**: favorite reciters, circular portraits (`CPListImageRowItemImageGridElement` circular, iOS 26+). The Library group is titled "Favorite reciters".
 - **Your playlists**: user playlists, then system playlists.
 
@@ -61,19 +61,21 @@ Computed in TypeScript (one implementation, both platforms) by a pure function `
 |---|---|---|
 | Friday Kahf | Thursday 18:00 through Friday 19:00 local time (approximates the sunnah window, Maghrib Thursday to Maghrib Friday) | Surah 18 by top reciter |
 | Morning | 04:00 to 10:59 | System playlist `morning-reflections` |
+| Afternoon | 11:00 to 16:59 | System playlist `quick-listen` |
+| Evening | 17:00 to 20:59 | System playlist `evening-serenity` |
 | Night | 21:00 to 03:59 | Surah 67 (Al-Mulk) by top reciter, then system playlist `evening-serenity` (no "before sleep" playlist exists) |
 | Up next | Most recent recently-played item completed (progress >= 95%) and surah < 114 | Next surah, same reciter and rewayah |
 
 - **Top reciter** = the most recently played reciter in `recentlyPlayedStore` (non-upload), else `useReciterStore.getState().defaultReciter`. `playCountStore` counts per surah, not per reciter, so it is not used.
 - Rules are ordered as listed; at most 4 picks; duplicates removed.
-- Card text stays short: the title is the surah or playlist name ("Al-Kahf", "Morning Reflections") and the subtitle is the reason ("Friday", "Morning", "Before sleep", "Evening", "Up next"). The reciter shows on Now Playing.
+- Card text stays short: the title is the surah or playlist name ("Al-Kahf", "Morning Reflections") and the subtitle is the reason ("Friday", "Morning", "Afternoon", "Evening", "Before sleep", "Up next"). The reciter shows on Now Playing.
 - Time windows use the device's local clock. No prayer-time data exists in the app; these are fixed windows.
 
 ### Library
 
 Loved, Playlists, Downloads (offline-only items; playable without network), Uploads, Favorite reciters. Every entry is always shown; an empty list shows "Nothing here yet".
 
-- **Uploads** (list id `uploads`): the user's uploaded recitations in the phone's Uploads order (newest first). Title is the tagged surah's name, else the upload's title, else its file name without the extension. Subtitle matches the phone: the catalogue or custom reciter name, "Untagged" for an untagged upload, else the file name. Artwork is the surah card for a surah upload, else the Uploads icon tile. Tapping a row queues every upload from that row (`{ kind: 'uploads', startIndex }`) and records it in recently played, as the phone's Uploads screen does.
+- **Uploads** (list id `uploads`): the user's uploaded recitations in the phone's Uploads order (newest first). Title is the tagged surah's name, else the upload's title, else its file name without the extension. Subtitle matches the phone: the catalogue or custom reciter name, "Untagged" for an untagged upload, else the file name. When two rows would show the same title and subtitle, each gets its upload date appended ("Hazem Hassan · Mar 18, 2025"). Artwork is the surah card for a surah upload, else the Uploads icon tile. Tapping a row queues every upload from that row (`{ kind: 'uploads', startIndex }`) and records it in recently played, as the phone's Uploads screen does.
 
 ### Reciters
 
@@ -192,6 +194,7 @@ interface CarItem {
   subtitle?: string;
   artwork: CarArtwork;     // { kind: 'surah', surahId } | { kind: 'url', url } | { kind: 'file', uri } | { kind: 'color', hex, label } | { kind: 'icon', name, hex? }
   progress?: number;       // 0..1
+  duration?: number;       // seconds, Jump back in only
   isDownloaded?: boolean;
   action: { kind: 'play'; request: CarPlayRequest } | { kind: 'browse'; target: CarBrowseTarget };
 }
