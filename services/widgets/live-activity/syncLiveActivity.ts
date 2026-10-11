@@ -11,7 +11,10 @@ import {
   type NowPlayingAyah,
   type WidgetSnapshot,
 } from 'bayaan-widgets';
+import {timestampService} from '@/services/timestamps/TimestampService';
+import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {liveActivityMode} from './config';
+import {createAyahTicker, type AyahTicker} from './ayahTicker';
 import {
   INITIAL_ACTIVITY_MEMORY,
   activityStateFromSnapshot,
@@ -28,6 +31,7 @@ let snapshot: WidgetSnapshot | null = null;
 let ayah: NowPlayingAyah | null = null;
 // One chain for every native call, so a start cannot race an update or end.
 let chain: Promise<void> = Promise.resolve();
+let ticker: AyahTicker | null = null;
 
 function logError(error: unknown): void {
   console.error('[LiveActivity] Failed to sync:', error);
@@ -100,6 +104,7 @@ export function reconcileLiveActivity(): Promise<void> {
 export function noteSnapshotForLiveActivity(next: WidgetSnapshot): void {
   if (!enabled) return;
   snapshot = next;
+  ticker?.onSnapshot(next);
   reconcileLiveActivity().catch(logError);
 }
 
@@ -125,6 +130,19 @@ export function startLiveActivitySync(): () => void {
   ayah = null;
   // An activity left by a previous process has no owner; start clean.
   chain = chain.then(() => endNowPlayingActivities()).catch(logError);
+  ticker =
+    liveActivityMode() === 'ayah'
+      ? createAyahTicker({
+          loadTimestamps: (rewayatId, surahId) =>
+            timestampService.getTimestampsForSurah(rewayatId, surahId),
+          verseText: key =>
+            digitalKhattDataService.initialized
+              ? digitalKhattDataService.getVerseText(key)
+              : '',
+          setAyah: setLiveActivityAyah,
+          now: () => Date.now(),
+        })
+      : null;
   const appState = AppState.addEventListener('change', state => {
     if (state === 'active') reconcileLiveActivity().catch(logError);
   });
@@ -132,6 +150,8 @@ export function startLiveActivitySync(): () => void {
     enabled = false;
     snapshot = null;
     ayah = null;
+    ticker?.stop();
+    ticker = null;
     appState.remove();
   };
 }

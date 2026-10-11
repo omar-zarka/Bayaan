@@ -67,6 +67,22 @@ jest.mock('react-native', () => {
   });
 });
 jest.mock('../config', () => ({liveActivityMode: () => mockMode}));
+jest.mock('@/services/timestamps/TimestampService', () => ({
+  timestampService: {
+    getTimestampsForSurah: jest.fn(async () => [
+      {
+        surahNumber: 18,
+        ayahNumber: 1,
+        timestampFrom: 0,
+        timestampTo: 600000,
+        durationMs: 600000,
+      },
+    ]),
+  },
+}));
+jest.mock('@/services/mushaf/DigitalKhattDataService', () => ({
+  digitalKhattDataService: {initialized: true, getVerseText: () => 'ayah text'},
+}));
 
 type SyncModule = typeof import('../syncLiveActivity');
 
@@ -239,5 +255,22 @@ describe('syncLiveActivity', () => {
     sync.startLiveActivitySync();
     sync.noteSnapshotForLiveActivity(nowPlayingSnapshot({}));
     await expect(sync.reconcileLiveActivity()).resolves.toBeUndefined();
+  });
+
+  it('adds the current ayah in ayah mode', async () => {
+    mockMode = 'ayah';
+    const sync = loadModule();
+    sync.startLiveActivitySync();
+    sync.noteSnapshotForLiveActivity(
+      nowPlayingSnapshot({positionSec: 10}, Date.now()),
+    );
+    for (let i = 0; i < 10; i += 1) await sync.reconcileLiveActivity();
+    // The ayah may arrive before or after the start runs; either way there is
+    // one activity and the last state sent carries ayah 1.
+    expect(mockLog[0]).toBe('end');
+    expect(mockStart).toHaveBeenCalledTimes(1);
+    expect(mockLog[mockLog.length - 1]).toMatch(
+      /^(start|update):Al-Kahf:playing:1$/,
+    );
   });
 });
