@@ -47,6 +47,16 @@ public class BayaanWidgetsModule: Module {
     Name("BayaanWidgets")
     Events("onCommandQueued")
 
+    // App Shortcuts live in the app target (plugins/withAppShortcuts.js).
+    // Refresh their surah parameters so Siri knows every surah name.
+    OnCreate {
+      if let cls = NSClassFromString("BayaanAppShortcutsRefresher") {
+        let target = cls as AnyObject
+        let selector = NSSelectorFromString("refresh")
+        if target.responds(to: selector) { _ = target.perform(selector) }
+      }
+    }
+
     OnStartObserving {
       self.observer = NotificationCenter.default.addObserver(
         forName: commandQueuedNotification, object: nil, queue: .main
