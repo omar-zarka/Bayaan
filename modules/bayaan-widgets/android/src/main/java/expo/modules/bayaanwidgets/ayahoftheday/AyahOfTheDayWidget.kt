@@ -48,7 +48,7 @@ import expo.modules.bayaanwidgets.ui.playTrackCommand
 import java.util.TimeZone
 
 class AyahOfTheDayWidget : GlanceAppWidget() {
-  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.MEDIUM, MEDIUM_TALL, WidgetSizes.LARGE))
+  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, SMALL_TALL, WidgetSizes.MEDIUM, MEDIUM_TALL, WidgetSizes.LARGE))
   override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -85,7 +85,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
       size.width >= WidgetSizes.MEDIUM.width -> Column(root.padding(14.dp).clickable(open)) {
         Header(ayah, listen)
         Spacer(GlanceModifier.height(6.dp))
-        // A 2-row widget is often taller than the 110 dp bucket; MEDIUM_TALL gives the ayah that room.
+        // A 2-row widget is often taller than the 110 dp bucket; the TALL buckets give the ayah that room.
         val arabicHeight = maxOf(44f, size.height.value - MEDIUM_CHROME_DP)
         ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 28, arabicHeight, 24f, 12f, 3, center = true)
         Spacer(GlanceModifier.height(4.dp))
@@ -97,7 +97,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
           Logo(12)
         }
         Spacer(GlanceModifier.defaultWeight())
-        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 24, size.height.value - 24 - 20, 26f, 12f, 4, center = true)
+        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 24, size.height.value - 24 - 20, 26f, 10f, 6, center = true)
         Spacer(GlanceModifier.defaultWeight())
       }
     }
@@ -116,6 +116,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
   }
 
   private companion object {
+    val SMALL_TALL = DpSize(110.dp, 180.dp)
     val MEDIUM_TALL = DpSize(250.dp, 180.dp)
     /** Padding, header, spacers and a two-line translation around the medium ayah. */
     const val MEDIUM_CHROME_DP = 104f
