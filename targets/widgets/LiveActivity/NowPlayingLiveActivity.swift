@@ -35,6 +35,8 @@ struct NowPlayingLiveActivity: Widget {
             }
             ActivityProgress(state: state)
           }
+          // Keep the countdown clear of the island's rounded corners.
+          .padding(.horizontal, 8)
         }
       } compactLeading: {
         ActivityArtwork(file: state.artworkFile, size: 22)
@@ -162,15 +164,19 @@ struct ActivityProgress: View {
 
       Group {
         if live {
+          // A timer Text takes all offered width, so it needs a fixed frame.
           Text(timerInterval: state.wallStart...state.wallEnd, countsDown: true)
+            .multilineTextAlignment(.trailing)
+            .frame(width: 52, alignment: .trailing)
         } else {
+          // "2h 6m left" is wider than 52 pt; size the static label to fit.
           Text(WidgetLogic.minutesLeftLabel(state.remainingWallSec))
+            .lineLimit(1)
+            .fixedSize()
         }
       }
       .font(.caption2.monospacedDigit())
       .foregroundStyle(.white.opacity(0.6))
-      .multilineTextAlignment(.trailing)
-      .frame(width: 52, alignment: .trailing)
     }
   }
 }
