@@ -11,5 +11,6 @@ struct BayaanWidgetsBundle: WidgetBundle {
     PinnedReciterWidget()
     AyahOfTheDayWidget()
     TasbeehWidget()
+    ListeningAccessoryWidget()
   }
 }

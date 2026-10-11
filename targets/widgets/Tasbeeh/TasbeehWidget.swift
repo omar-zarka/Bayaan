@@ -93,7 +93,7 @@ struct TasbeehWidget: Widget {
     }
     .configurationDisplayName("Tasbeeh")
     .description("Count a dhikr without opening the app.")
-    .supportedFamilies([.systemSmall, .systemMedium])
+    .supportedFamilies([.systemSmall, .systemMedium, .accessoryCircular])
     .contentMarginsDisabled()
   }
 }
@@ -127,7 +127,11 @@ struct TasbeehView: View {
   var body: some View {
     Group {
       if let dhikr = entry.dhikr {
-        if family == .systemSmall { small(dhikr) } else { medium(dhikr) }
+        switch family {
+        case .accessoryCircular: circular(dhikr)
+        case .systemSmall: small(dhikr)
+        default: medium(dhikr)
+        }
       } else {
         VStack(spacing: 6) {
           BayaanLogo(size: 20)
@@ -137,7 +141,9 @@ struct TasbeehView: View {
       }
     }
     .foregroundStyle(.white)
-    .containerBackground(for: .widget) { WidgetPalette.background }
+    .containerBackground(for: .widget) {
+      if family == .accessoryCircular { AccessoryWidgetBackground() } else { WidgetPalette.background }
+    }
     .widgetURL(URL(string: "bayaan://adhkar"))
   }
 
@@ -148,6 +154,16 @@ struct TasbeehView: View {
       .lineLimit(2)
       .minimumScaleFactor(0.6)
       .environment(\.layoutDirection, .rightToLeft)
+  }
+
+  // Lock Screen: no buttons, the tap opens the adhkar screen.
+  private func circular(_ dhikr: WidgetCatalogDhikr) -> some View {
+    Gauge(value: WidgetLogic.tasbeehProgress(count: entry.count, target: dhikr.repeatCount)) {
+      EmptyView()
+    } currentValueLabel: {
+      Text("\(entry.count)").font(.system(.body, design: .rounded).weight(.bold)).minimumScaleFactor(0.5)
+    }
+    .gaugeStyle(.accessoryCircularCapacity)
   }
 
   private func small(_ dhikr: WidgetCatalogDhikr) -> some View {
@@ -202,4 +218,10 @@ struct TasbeehView: View {
   TasbeehWidget()
 } timeline: {
   TasbeehEntry(date: .now, dhikr: WidgetCatalogDhikr(id: "91", arabic: "سُبْحَانَ اللَّهِ وَبِحَمْدِهِ", translation: "How perfect Allah is and I praise Him.", repeatCount: 100), count: 100)
+}
+
+#Preview("Lock Screen", as: .accessoryCircular) {
+  TasbeehWidget()
+} timeline: {
+  TasbeehEntry(date: .now, dhikr: WidgetCatalogDhikr(id: "33", arabic: "سُبْحانَ رَبِّيَ الْعَظِيمِ", translation: nil, repeatCount: 3), count: 2)
 }

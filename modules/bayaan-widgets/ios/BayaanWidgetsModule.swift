@@ -66,8 +66,14 @@ public class BayaanWidgetsModule: Module {
         to: dir.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
+    // ListeningAccessory reads the same snapshot slice as ContinueListening.
     Function("reloadWidgets") { (kinds: [String]) in
-      for kind in kinds { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
+      for kind in kinds {
+        WidgetCenter.shared.reloadTimelines(ofKind: kind)
+        if kind == "ContinueListening" {
+          WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
+        }
+      }
     }
 
     Function("takeQueuedCommands") { () -> String in takeString("widgets.commandQueue") }

@@ -26,6 +26,7 @@ struct SetPlaybackIntent: AudioPlaybackIntent {
     // Optimistic render first, then hand the command to the app.
     PlaybackOverrideStore.write(isPlaying: playing)
     WidgetCenter.shared.reloadTimelines(ofKind: "ContinueListening")
+    WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
     WidgetCommandQueue.enqueue(["type": "setPlayback", "playing": playing])
     return .result()
   }

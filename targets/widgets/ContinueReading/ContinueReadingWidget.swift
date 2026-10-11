@@ -34,7 +34,7 @@ struct ContinueReadingWidget: Widget {
     }
     .configurationDisplayName("Continue Reading")
     .description("Return to the page you were reading.")
-    .supportedFamilies([.systemSmall, .systemMedium])
+    .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     .contentMarginsDisabled()
   }
 }
@@ -51,12 +51,20 @@ struct ContinueReadingView: View {
   var body: some View {
     content
       .foregroundStyle(.white)
-      .containerBackground(for: .widget) { WidgetPalette.background }
+      .containerBackground(for: .widget) {
+        if family == .accessoryRectangular { Color.clear } else { WidgetPalette.background }
+      }
       .widgetURL(URL(string: "bayaan://mushaf/\(page)"))
   }
 
   @ViewBuilder private var content: some View {
-    if family == .systemMedium {
+    if family == .accessoryRectangular {
+      VStack(alignment: .leading, spacing: 1) {
+        Text("Page \(page)").font(.headline).widgetAccentable()
+        Text(entry.lastRead.map { "\(surahName) · Juz \($0.juz)" } ?? "Start reading").font(.caption).lineLimit(1)
+      }
+      .frame(maxWidth: .infinity, alignment: .leading)
+    } else if family == .systemMedium {
       HStack(spacing: 14) {
         pageColumn(showLogo: false)
         VStack(alignment: .trailing, spacing: 6) {
@@ -111,4 +119,10 @@ struct ContinueReadingView: View {
 } timeline: {
   ContinueReadingEntry(date: .now, lastRead: WidgetLastRead(page: 293, surahId: 18, surahName: "Al-Kahf", juz: 15, openingText: "ٱلْحَمْدُ لِلَّهِ ٱلَّذِىٓ أَنزَلَ"))
   ContinueReadingEntry(date: .now, lastRead: nil)
+}
+
+#Preview("Lock Screen", as: .accessoryRectangular) {
+  ContinueReadingWidget()
+} timeline: {
+  ContinueReadingEntry(date: .now, lastRead: WidgetLastRead(page: 293, surahId: 18, surahName: "Al-Kahf", juz: 15, openingText: ""))
 }
