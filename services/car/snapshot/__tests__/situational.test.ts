@@ -22,6 +22,7 @@ function ctx(
         color: '#F59E0B',
       },
       {id: 'evening-serenity', title: 'Evening Serenity', color: '#1E3A8A'},
+      {id: 'quick-listen', title: 'Quick Listen', color: '#10B981'},
     ],
     surahName: (id: number): string => `Surah ${id}`,
     ...overrides,
@@ -144,7 +145,7 @@ describe('buildSituationalPicks', () => {
         surahIds: [1, 2, 3],
       },
     });
-    expect(buildSituationalPicks(c)).toEqual([]);
+    expect(buildSituationalPicks(c).map(p => p.id)).not.toContain('now:upnext');
   });
 
   it('skips up next when the last surah is not completed', () => {
@@ -158,7 +159,7 @@ describe('buildSituationalPicks', () => {
         surahIds: [1, 2, 3],
       },
     });
-    expect(buildSituationalPicks(c)).toEqual([]);
+    expect(buildSituationalPicks(c).map(p => p.id)).not.toContain('now:upnext');
   });
 
   it('returns nothing reciter-based without a top reciter', () => {
@@ -186,16 +187,43 @@ describe('buildSituationalPicks', () => {
     expect(buildSituationalPicks(ctx(at1059)).map(p => p.id)).toEqual([
       'now:morning',
     ]);
-    expect(buildSituationalPicks(ctx(at1100)).map(p => p.id)).toEqual([]);
+    expect(buildSituationalPicks(ctx(at1100)).map(p => p.id)).toEqual([
+      'now:afternoon',
+    ]);
   });
 
-  it('treats 20:59 as outside night and 21:00 as night', () => {
+  it('treats 20:59 as evening and 21:00 as night', () => {
     const at2059 = new Date(2026, 9, 10, 20, 59);
     const at2100 = new Date(2026, 9, 10, 21, 0);
-    expect(buildSituationalPicks(ctx(at2059)).map(p => p.id)).toEqual([]);
+    expect(buildSituationalPicks(ctx(at2059)).map(p => p.id)).toEqual([
+      'now:evening',
+    ]);
     expect(buildSituationalPicks(ctx(at2100)).map(p => p.id)).toEqual([
       'now:mulk',
       'now:evening',
     ]);
+  });
+
+  it('offers Quick Listen in the afternoon until 16:59', () => {
+    const at1659 = new Date(2026, 9, 10, 16, 59);
+    const at1700 = new Date(2026, 9, 10, 17, 0);
+    const afternoon = buildSituationalPicks(ctx(at1659));
+    expect(afternoon.map(p => p.id)).toEqual(['now:afternoon']);
+    expect(afternoon[0].title).toBe('Quick Listen');
+    expect(afternoon[0].subtitle).toBe('Afternoon');
+    expect(afternoon[0].action).toEqual({
+      kind: 'play',
+      request: {kind: 'playlist', playlistId: 'quick-listen', system: true},
+    });
+    expect(buildSituationalPicks(ctx(at1700)).map(p => p.id)).toEqual([
+      'now:evening',
+    ]);
+  });
+
+  it('has a pick at every hour of a weekday', () => {
+    for (let hour = 0; hour < 24; hour++) {
+      const at = new Date(2026, 9, 10, hour, 30);
+      expect(buildSituationalPicks(ctx(at)).length).toBeGreaterThan(0);
+    }
   });
 });

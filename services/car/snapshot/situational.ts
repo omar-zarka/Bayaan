@@ -47,6 +47,16 @@ function isMorning(now: Date): boolean {
   return hour >= 4 && hour < 11;
 }
 
+function isAfternoon(now: Date): boolean {
+  const hour = now.getHours();
+  return hour >= 11 && hour < 17;
+}
+
+function isEvening(now: Date): boolean {
+  const hour = now.getHours();
+  return hour >= 17 && hour < 21;
+}
+
 function isNight(now: Date): boolean {
   const hour = now.getHours();
   return hour >= 21 || hour < 4;
@@ -136,6 +146,26 @@ export function buildSituationalPicks(ctx: SituationalContext): CarItem[] {
         ctx.systemPlaylists,
         'morning-reflections',
         'Morning',
+      ),
+    );
+  }
+  if (isAfternoon(ctx.now)) {
+    candidates.push(
+      playlistPick(
+        'now:afternoon',
+        ctx.systemPlaylists,
+        'quick-listen',
+        'Afternoon',
+      ),
+    );
+  }
+  if (isEvening(ctx.now)) {
+    candidates.push(
+      playlistPick(
+        'now:evening',
+        ctx.systemPlaylists,
+        'evening-serenity',
+        'Evening',
       ),
     );
   }
