@@ -78,6 +78,10 @@ jest.mock('@/utils/artworkUtils', () => ({
 jest.mock('../buildSnapshot', () => ({
   buildSnapshot: () => mockBuildSnapshot(),
   artworkFileName: (id: string) => `reciter-${id}.jpg`,
+  cardSurahId: (id: number, upload: boolean) =>
+    !upload && id >= 1 && id <= 114 ? id : null,
+  surahArtworkFileName: (id: number) => `surah-${id}.jpg`,
+  surahArtworkUrl: (id: number) => `https://cdn/surah/${id}.png`,
 }));
 jest.mock('../collectSnapshotInput', () => ({
   collectSnapshotInput: () => mockCollect(),
@@ -353,6 +357,24 @@ describe('widget snapshot flush', () => {
     );
     // Artwork added for B triggers a second flush.
     expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it('caches the surah card of every track but not of uploads', async () => {
+    const sync = loadModule();
+    mockBuildSnapshot.mockReturnValue({
+      nowPlaying: {track: {surahId: 18, reciterId: '', isUserUpload: false}},
+      upNext: [{surahId: 36, reciterId: '', isUserUpload: true}],
+      recent: [],
+      defaultReciter: null,
+    });
+    mockCacheArtwork.mockResolvedValue(false);
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockCacheArtwork).toHaveBeenCalledTimes(1);
+    expect(mockCacheArtwork).toHaveBeenCalledWith(
+      'https://cdn/surah/18.png',
+      'surah-18.jpg',
+    );
   });
 
   it('does not retry a failing artwork URL within the window, then does', async () => {

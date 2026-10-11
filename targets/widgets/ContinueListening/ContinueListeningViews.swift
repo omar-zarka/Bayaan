@@ -6,7 +6,7 @@ import WidgetKit
 private let deepLinkPlayer = URL(string: "bayaan://player")!
 
 // Fixed near-black in both appearances, like Podcasts and Spotify, so the
-// reciter photo is the only color and white text always has contrast.
+// artwork is the only color and white text always has contrast.
 private let widgetBackground = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
 
 /// Playback as the widget should render it at `now`: prefers a tap override
@@ -114,75 +114,35 @@ struct Artwork: View {
   }
 }
 
-struct PlayPauseGlyph: View {
-  let isPlaying: Bool
-  var body: some View {
-    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
-      .font(.system(size: 11, weight: .bold))
-  }
-}
-
-/// Podcasts-style pill: play/pause plus time left. With nothing loaded (the
-/// hero is a recent item or the surah of the day), it starts that track.
-struct PlayPill: View {
+/// Round play/pause button. With nothing loaded (the hero is a recent item or
+/// the surah of the day), it starts that track.
+struct PlayButton: View {
   let track: WidgetTrack
   let playback: EffectivePlayback?
 
   var body: some View {
     if let playback {
       Button(intent: SetPlaybackIntent(playing: !playback.isPlaying)) {
-        label(isPlaying: playback.isPlaying) { TimeLeft(playback: playback) }
+        glyph(isPlaying: playback.isPlaying)
       }
       .buttonStyle(.plain)
+      .accessibilityLabel(playback.isPlaying ? "Pause" : "Play")
     } else if !track.isUserUpload && track.surahId != 0 {
       Button(intent: PlayTrackIntent(surahId: track.surahId, reciterId: track.reciterId,
                                      rewayatId: track.rewayatId)) {
-        // The "Play" text already names the button.
-        label(isPlaying: false, glyphHidden: true) { Text("Play") }
+        glyph(isPlaying: false)
       }
       .buttonStyle(.plain)
+      .accessibilityLabel("Play")
     }
   }
 
-  private func label<Content: View>(
-    isPlaying: Bool, glyphHidden: Bool = false, @ViewBuilder text: () -> Content
-  ) -> some View {
-    HStack(spacing: 5) {
-      PlayPauseGlyph(isPlaying: isPlaying).accessibilityHidden(glyphHidden)
-      text()
-    }
-    .font(.caption.weight(.semibold))
-    .lineLimit(1)
-    // "1h 58m left" on the narrowest widgets.
-    .minimumScaleFactor(0.85)
-    .foregroundStyle(.white)
-    .padding(.horizontal, 10)
-    .frame(height: 26)
-    .background(.white.opacity(0.18), in: Capsule())
-  }
-}
-
-/// "47m left" or "1h 58m left", in whole minutes.
-func minutesLeftLabel(_ seconds: Double) -> String {
-  let minutes = max(1, Int((seconds / 60).rounded(.up)))
-  return minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m left" : "\(minutes)m left"
-}
-
-struct TimeLeft: View {
-  let playback: EffectivePlayback?
-
-  var body: some View {
-    if let p = playback, p.durationSec > 0 {
-      if p.isPlaying {
-        // A timer Text claims all available width; cap it to the digits.
-        Text(timerInterval: Date.now...max(p.end, .now), countsDown: true)
-          .monospacedDigit()
-          .frame(maxWidth: p.remainingWallSec >= 3600 ? 58 : 40)
-      } else if p.remainingWallSec >= 1 {
-        // A finished track shows no time left.
-        Text(minutesLeftLabel(p.remainingWallSec))
-      }
-    }
+  private func glyph(isPlaying: Bool) -> some View {
+    Image(systemName: isPlaying ? "pause.fill" : "play.fill")
+      .font(.system(size: 12, weight: .bold))
+      .foregroundStyle(.white)
+      .frame(width: 30, height: 30)
+      .background(.white.opacity(0.18), in: Circle())
   }
 }
 
@@ -223,15 +183,17 @@ struct SmallView: View {
     // Fits the 120 pt content height of the smallest phones.
     VStack(alignment: .leading, spacing: 3) {
       HStack(alignment: .top) {
-        Artwork(file: track.artworkFile, size: 40)
+        Artwork(file: track.artworkFile, size: 44)
         Spacer(minLength: 0)
         BayaanLogo(size: 14)
       }
       Spacer(minLength: 0)
       Text(track.surahName).font(.headline).lineLimit(1)
       Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
-      PlaybackProgress(playback: playback)
-      PlayPill(track: track, playback: playback)
+      HStack(spacing: 8) {
+        PlayButton(track: track, playback: playback)
+        PlaybackProgress(playback: playback)
+      }
     }
     .foregroundStyle(.white)
     .padding(14)
@@ -246,13 +208,12 @@ struct MediumView: View {
 
   var body: some View {
     HStack(spacing: 14) {
-      // Fits the 130 pt content height: art and pill share the top row. The
-      // pill wins the width so "1h 58m left" and hour countdowns stay whole.
+      // Fits the 130 pt content height: art and button share the top row.
       VStack(alignment: .leading, spacing: 4) {
         HStack(alignment: .bottom, spacing: 6) {
-          Artwork(file: track.artworkFile, size: 44)
+          Artwork(file: track.artworkFile, size: 52)
           Spacer(minLength: 0)
-          PlayPill(track: track, playback: playback).layoutPriority(1)
+          PlayButton(track: track, playback: playback)
         }
         Spacer(minLength: 0)
         Text(track.surahName).font(.headline).lineLimit(1)
@@ -291,7 +252,7 @@ struct LargeView: View {
         BayaanLogo(size: 16)
       }
       HStack(spacing: 12) {
-        PlayPill(track: track, playback: playback)
+        PlayButton(track: track, playback: playback)
         PlaybackProgress(playback: playback)
       }
       Divider().overlay(.white.opacity(0.2))

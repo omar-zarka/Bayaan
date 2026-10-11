@@ -18,7 +18,13 @@ import {useReciterStore} from '@/store/reciterStore';
 import {useThemeStore} from '@/store/themeStore';
 import {getReciterByIdSync} from '@/services/dataService';
 import {getReciterArtwork} from '@/utils/artworkUtils';
-import {buildSnapshot, artworkFileName} from './buildSnapshot';
+import {
+  buildSnapshot,
+  artworkFileName,
+  cardSurahId,
+  surahArtworkFileName,
+  surahArtworkUrl,
+} from './buildSnapshot';
 import {collectSnapshotInput} from './collectSnapshotInput';
 import {handleWidgetCommand} from './handleWidgetCommand';
 
@@ -34,25 +40,37 @@ let sessionRestored = false;
 const artworkFailures = new Map<string, number>();
 const artworkInFlight = new Set<string>();
 
-async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
-  const ids = new Set<string>();
+// Surah cards for every track, plus reciter photos as their fallback.
+function artworkJobs(snapshot: WidgetSnapshot): Map<string, string> {
+  const jobs = new Map<string, string>();
+  const reciterIds = new Set<string>();
   const tracks = [
     ...(snapshot.nowPlaying ? [snapshot.nowPlaying.track] : []),
     ...snapshot.upNext,
     ...snapshot.recent,
   ];
-  for (const t of tracks)
-    if (!t.isUserUpload && t.reciterId) ids.add(t.reciterId);
-  if (snapshot.defaultReciter) ids.add(snapshot.defaultReciter.id);
-
-  let added = false;
-  for (const id of ids) {
+  for (const t of tracks) {
+    const cardId = cardSurahId(t.surahId, t.isUserUpload);
+    if (cardId !== null)
+      jobs.set(surahArtworkFileName(cardId), surahArtworkUrl(cardId));
+    if (!t.isUserUpload && t.reciterId) reciterIds.add(t.reciterId);
+  }
+  if (snapshot.defaultReciter) reciterIds.add(snapshot.defaultReciter.id);
+  for (const id of reciterIds) {
     const file = artworkFileName(id);
     if (hasArtwork(file)) continue;
     const reciter = getReciterByIdSync(id);
     if (!reciter) continue;
     const url = getReciterArtwork(reciter);
-    if (url.startsWith('data:')) continue;
+    if (!url.startsWith('data:')) jobs.set(file, url);
+  }
+  return jobs;
+}
+
+async function ensureArtwork(snapshot: WidgetSnapshot): Promise<boolean> {
+  let added = false;
+  for (const [file, url] of artworkJobs(snapshot)) {
+    if (hasArtwork(file)) continue;
     const failedAt = artworkFailures.get(url);
     if (failedAt !== undefined && Date.now() - failedAt < ARTWORK_RETRY_MS)
       continue;

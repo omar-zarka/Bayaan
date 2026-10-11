@@ -1,5 +1,10 @@
 // services/widgets/__tests__/buildSnapshot.test.ts
-import {buildSnapshot, artworkFileName, SnapshotInput} from '../buildSnapshot';
+import {
+  buildSnapshot,
+  artworkFileName,
+  surahArtworkFileName,
+  SnapshotInput,
+} from '../buildSnapshot';
 import {isWidgetSnapshot} from 'bayaan-widgets';
 import type {Track} from '@/types/audio';
 import type {Reciter} from '@/data/reciterData';
@@ -44,6 +49,7 @@ function input(overrides: Partial<SnapshotInput> = {}): SnapshotInput {
     openingTextForPage: () => 'opening',
     tasbeeh: {},
     artworkFileFor: id => artworkFileName(id),
+    surahArtworkFileFor: () => null,
     surahOfTheDayId: 36,
     ...overrides,
   };
@@ -89,6 +95,33 @@ describe('buildSnapshot', () => {
     expect(snap.nowPlaying?.rate).toBe(1.5);
     expect(snap.upNext.map(t => t.surahId)).toEqual([36, 67, 55]);
     expect(snap.nowPlaying?.track.artworkFile).toBe('reciter-r1.jpg');
+  });
+
+  it('uses the cached surah card, else the reciter photo', () => {
+    const snap = buildSnapshot(
+      input({
+        queueTracks: [track(18), track(36)],
+        surahArtworkFileFor: id =>
+          id === 18 ? surahArtworkFileName(id) : null,
+      }),
+    );
+    expect(snap.nowPlaying?.track.artworkFile).toBe('surah-18.jpg');
+    expect(snap.upNext[0]?.artworkFile).toBe('reciter-r1.jpg');
+  });
+
+  it('keeps the reciter photo for uploads and the surah card for the empty state', () => {
+    const upload = track(18, {isUserUpload: true});
+    const withUpload = buildSnapshot(
+      input({
+        queueTracks: [upload],
+        surahArtworkFileFor: id => surahArtworkFileName(id),
+      }),
+    );
+    expect(withUpload.nowPlaying?.track.artworkFile).toBe('reciter-r1.jpg');
+    const empty = buildSnapshot(
+      input({surahArtworkFileFor: id => surahArtworkFileName(id)}),
+    );
+    expect(empty.upNext[0]?.artworkFile).toBe('surah-36.jpg');
   });
 
   it('clamps non-finite playback numbers', () => {

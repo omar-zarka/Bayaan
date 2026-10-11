@@ -33,11 +33,48 @@ export interface SnapshotInput {
   openingTextForPage: (page: number) => string;
   tasbeeh: Record<string, WidgetTasbeehEntry>;
   artworkFileFor: (reciterId: string) => string | null;
+  surahArtworkFileFor: (surahId: number) => string | null;
   surahOfTheDayId: number;
 }
 
 export function artworkFileName(reciterId: string): string {
   return `reciter-${reciterId.replace(/[^a-zA-Z0-9_-]/g, '_')}.jpg`;
+}
+
+// The dark surah cards shared with CarPlay and Android Auto (512 px PNGs).
+const SURAH_ARTWORK_BASE = 'https://cdn.thebayaan.com/assets/car/surah/';
+
+export function surahArtworkFileName(surahId: number): string {
+  return `surah-${surahId}.jpg`;
+}
+
+export function surahArtworkUrl(surahId: number): string {
+  return `${SURAH_ARTWORK_BASE}${surahId}.png`;
+}
+
+/** The surah a track shows a card for, or null for uploads and unknown ids. */
+export function cardSurahId(
+  surahId: number,
+  isUserUpload: boolean,
+): number | null {
+  return !isUserUpload &&
+    Number.isInteger(surahId) &&
+    surahId >= 1 &&
+    surahId <= 114
+    ? surahId
+    : null;
+}
+
+// Surah card when cached, else the reciter photo.
+function trackArtwork(
+  surahId: number,
+  reciterId: string | undefined,
+  isUserUpload: boolean,
+  input: SnapshotInput,
+): string | null {
+  const cardId = cardSurahId(surahId, isUserUpload);
+  const card = cardId === null ? null : input.surahArtworkFileFor(cardId);
+  return card ?? (reciterId ? input.artworkFileFor(reciterId) : null);
 }
 
 function surahName(surahId: number): string {
@@ -58,7 +95,12 @@ function fromQueueTrack(t: Track, input: SnapshotInput): WidgetTrack {
     reciterId: t.reciterId,
     reciterName: t.reciterName,
     rewayatId: t.rewayatId ?? null,
-    artworkFile: t.reciterId ? input.artworkFileFor(t.reciterId) : null,
+    artworkFile: trackArtwork(
+      surahId,
+      t.reciterId,
+      t.isUserUpload ?? false,
+      input,
+    ),
     isUserUpload: t.isUserUpload ?? false,
   };
 }
@@ -70,7 +112,12 @@ function fromRecent(r: RecentlyPlayedTrack, input: SnapshotInput): WidgetTrack {
     reciterId: r.reciter.id,
     reciterName: r.reciter.name,
     rewayatId: r.rewayatId || null,
-    artworkFile: input.artworkFileFor(r.reciter.id),
+    artworkFile: trackArtwork(
+      r.surah.id,
+      r.reciter.id,
+      r.isUserUpload ?? false,
+      input,
+    ),
     isUserUpload: r.isUserUpload ?? false,
   };
 }
@@ -134,7 +181,12 @@ export function buildSnapshot(input: SnapshotInput): WidgetSnapshot {
         reciterId: defaultReciter.id,
         reciterName: defaultReciter.name,
         rewayatId: null,
-        artworkFile: defaultReciter.artworkFile,
+        artworkFile: trackArtwork(
+          input.surahOfTheDayId,
+          defaultReciter.id,
+          false,
+          input,
+        ),
         isUserUpload: false,
       },
     ];

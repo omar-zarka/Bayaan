@@ -8,7 +8,11 @@ import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService
 import {mushafVerseMapService} from '@/services/mushaf/MushafVerseMapService';
 import {getSurahOfTheDay} from '@/utils/quranPages';
 import {hasArtwork} from 'bayaan-widgets';
-import {artworkFileName, SnapshotInput} from './buildSnapshot';
+import {
+  artworkFileName,
+  surahArtworkFileName,
+  SnapshotInput,
+} from './buildSnapshot';
 
 const OPENING_WORDS = 6;
 
@@ -42,6 +46,10 @@ export function collectSnapshotInput(now: Date): SnapshotInput {
     tasbeeh: {}, // filled in Plan 1b
     artworkFileFor: id => {
       const file = artworkFileName(id);
+      return hasArtwork(file) ? file : null;
+    },
+    surahArtworkFileFor: id => {
+      const file = surahArtworkFileName(id);
       return hasArtwork(file) ? file : null;
     },
     surahOfTheDayId: getSurahOfTheDay(now).id,

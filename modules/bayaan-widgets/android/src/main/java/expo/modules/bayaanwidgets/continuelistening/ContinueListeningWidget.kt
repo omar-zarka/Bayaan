@@ -5,8 +5,6 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.SystemClock
-import android.widget.RemoteViews
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
@@ -24,7 +22,6 @@ import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalSize
 import androidx.glance.action.clickable
-import androidx.glance.appwidget.AndroidRemoteViews
 import androidx.glance.appwidget.GlanceAppWidget
 import androidx.glance.appwidget.GlanceAppWidgetManager
 import androidx.glance.appwidget.LinearProgressIndicator
@@ -85,12 +82,6 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
   return Bitmap.createScaledBitmap(
     bmp, maxOf(1, (bmp.width * scale).roundToInt()), maxOf(1, (bmp.height * scale).roundToInt()), true,
   )
-}
-
-/** "47m left" or "1h 58m left", in whole minutes. Mirrors the iOS widget. */
-internal fun minutesLeftLabel(seconds: Double): String {
-  val minutes = maxOf(1, kotlin.math.ceil(seconds / 60).toInt())
-  return if (minutes >= 60) "${minutes / 60}h ${minutes % 60}m left" else "${minutes}m left"
 }
 
 class ContinueListeningWidget : GlanceAppWidget() {
@@ -191,7 +182,6 @@ class ContinueListeningWidget : GlanceAppWidget() {
         track = track,
         hasNowPlaying = np != null,
         isPlaying = playback?.isPlaying ?: false,
-        remainingSec = playback?.takeIf { (np?.durationSec ?: 0.0) > 0 }?.remainingWallSec,
         progress = if (np != null && playback != null && np.durationSec > 0) {
           val rate = if (np.rate > 0 && np.rate.isFinite()) np.rate else 1.0
           (1 - playback.remainingWallSec * rate / np.durationSec).toFloat().coerceIn(0f, 1f)
@@ -215,7 +205,6 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val track: WidgetTrack,
     val hasNowPlaying: Boolean,
     val isPlaying: Boolean,
-    val remainingSec: Double?,
     val progress: Float?,
   )
 
@@ -248,11 +237,11 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   /**
-   * Podcasts-style pill: play/pause plus time left. With nothing loaded (the
-   * hero is a recent item or the surah of the day), it starts that track.
+   * Round play/pause button. With nothing loaded (the hero is a recent item or
+   * the surah of the day), it starts that track.
    */
   @Composable
-  private fun PlayPill(context: Context, hero: Hero) {
+  private fun PlayButton(context: Context, hero: Hero) {
     val track = hero.track
     val cmd = when {
       // Absolute target: the opposite of what is rendered.
@@ -260,46 +249,21 @@ class ContinueListeningWidget : GlanceAppWidget() {
       track.isUserUpload || track.surahId == 0 -> return
       else -> playTrackCommand(track)
     }
-    Row(
-      GlanceModifier.height(26.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(13.dp)
-        .padding(horizontal = 10.dp).clickable(
-          actionStartActivity(
-            WidgetCommandActivity.intent(context, cmd)
-              .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
-          ),
+    Box(
+      GlanceModifier.size(30.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(15.dp).clickable(
+        actionStartActivity(
+          WidgetCommandActivity.intent(context, cmd)
+            .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
         ),
-      verticalAlignment = Alignment.CenterVertically,
+      ),
+      contentAlignment = Alignment.Center,
     ) {
-      val remaining = hero.remainingSec
-      val showsPlayText = remaining == null && !hero.hasNowPlaying
       Image(
         ImageProvider(if (hero.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
-        // The "Play" text already says it.
-        contentDescription = if (showsPlayText) null else if (hero.isPlaying) "Pause" else "Play",
-        modifier = GlanceModifier.size(16.dp),
+        contentDescription = if (hero.isPlaying) "Pause" else "Play",
+        modifier = GlanceModifier.size(18.dp),
       )
-      Spacer(GlanceModifier.width(4.dp))
-      when {
-        showsPlayText -> PillText("Play")
-        // Nothing left to count (a finished track).
-        remaining == null || remaining < 1 -> Unit
-        // Counts down on its own between pushes.
-        hero.isPlaying -> AndroidRemoteViews(
-          RemoteViews(context.packageName, R.layout.bayaan_widget_countdown).apply {
-            setChronometer(
-              R.id.bayaan_widget_countdown,
-              SystemClock.elapsedRealtime() + (remaining * 1000).toLong(), null, true,
-            )
-          },
-        )
-        else -> PillText(minutesLeftLabel(remaining))
-      }
     }
-  }
-
-  @Composable
-  private fun PillText(text: String) {
-    Text(text, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
   }
 
   /** Spotify-style thin bar on a faint track. Static: refreshed on each push. */
@@ -340,9 +304,17 @@ class ContinueListeningWidget : GlanceAppWidget() {
       Spacer(GlanceModifier.defaultWeight())
       Titles(hero.track, 15)
       Spacer(GlanceModifier.height(6.dp))
-      Progress(hero.progress, GlanceModifier.fillMaxWidth())
-      Spacer(GlanceModifier.height(6.dp))
-      PlayPill(context, hero)
+      PlayerRow(context, hero)
+    }
+  }
+
+  /** Play button beside the progress bar. */
+  @Composable
+  private fun PlayerRow(context: Context, hero: Hero) {
+    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+      PlayButton(context, hero)
+      Spacer(GlanceModifier.width(10.dp))
+      Progress(hero.progress, GlanceModifier.defaultWeight())
     }
   }
 
@@ -354,9 +326,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
         Spacer(GlanceModifier.defaultWeight())
         Titles(hero.track, 15)
         Spacer(GlanceModifier.height(6.dp))
-        Progress(hero.progress, GlanceModifier.fillMaxWidth())
-        Spacer(GlanceModifier.height(6.dp))
-        PlayPill(context, hero)
+        PlayerRow(context, hero)
       }
       Spacer(GlanceModifier.width(12.dp))
       Column(GlanceModifier.defaultWeight()) {
@@ -377,11 +347,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
         Logo(16)
       }
       Spacer(GlanceModifier.height(12.dp))
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        PlayPill(context, hero)
-        Spacer(GlanceModifier.width(12.dp))
-        Progress(hero.progress, GlanceModifier.defaultWeight())
-      }
+      PlayerRow(context, hero)
       Spacer(GlanceModifier.height(12.dp))
       if (rows.isNotEmpty()) {
         Text(rowsTitle, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0x99FFFFFF)), fontSize = 11.sp, fontWeight = FontWeight.Bold))
