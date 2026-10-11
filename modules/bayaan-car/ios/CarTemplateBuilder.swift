@@ -172,6 +172,11 @@ final class CarTemplateBuilder {
     CPListTemplate(title: title, sections: clamp(sections))
   }
 
+  /// Replaces a pushed list's rows, clamped and with their artwork started.
+  func update(_ template: CPListTemplate, sections: [CPListSection]) {
+    template.updateSections(clamp(sections))
+  }
+
   private func peek(_ art: CarArtwork, size: CGFloat) -> UIImage {
     CarArtworkCache.shared.peek(for: art, size: size, scale: scale, style: currentStyle)
   }

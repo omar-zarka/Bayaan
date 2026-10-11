@@ -161,8 +161,17 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     upNextKey = Self.upNextKey(np)
     upNextTemplate = template
     isPushing = true
-    ic.pushTemplate(template, animated: true) { [weak self] _, _ in
-      self?.isPushing = false
+    let push: () -> Void = { [weak self] in
+      ic.pushTemplate(template, animated: true) { _, _ in self?.isPushing = false }
+    }
+    // Deep in Library (list, reciter, rewayah, surahs, Now Playing) one more
+    // template would pass the limit: restart from the tab root instead.
+    guard ic.templates.count + 1 > Self.maxTemplateDepth else {
+      push()
+      return
+    }
+    ic.popToRootTemplate(animated: false) { _, _ in
+      ic.pushTemplate(CPNowPlayingTemplate.shared, animated: false) { _, _ in push() }
     }
   }
 
@@ -178,7 +187,7 @@ final class CarNowPlayingController: NSObject, CPNowPlayingTemplateObserver {
     let key = Self.upNextKey(np)
     guard key != upNextKey else { return }
     upNextKey = key
-    template.updateSections(upNextSections(np))
+    builder.update(template, sections: upNextSections(np))
   }
 
   /// Like Apple Music: the current item, then what plays next.
