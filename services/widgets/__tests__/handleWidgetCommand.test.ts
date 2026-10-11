@@ -335,7 +335,7 @@ describe('handleWidgetCommand', () => {
       },
       d,
     );
-    expect(d.calls).toEqual(['playTracks:2@0']);
+    expect(d.calls).toEqual(['playTracks:2@0', 'startNewChain:2:rw1']);
   });
 
   it('does nothing when the default reciter is a placeholder', async () => {
