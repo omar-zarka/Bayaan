@@ -1,6 +1,8 @@
 import {NativeBayaanWidgets} from './NativeBayaanWidgets';
 import type {WidgetSnapshot} from './snapshot';
 import type {WidgetKind} from './widgetKinds';
+import type {WidgetContent} from './content';
+import type {ContentWidgetKind} from './contentKinds';
 import {parseQueuedCommands, type QueuedWidgetCommand} from './commands';
 import type {WidgetCatalog} from './catalog';
 import {
@@ -24,6 +26,8 @@ export * from './catalog';
 export * from './artworkRequests';
 export * from './dayMath';
 export * from './liveActivity';
+export * from './content';
+export * from './contentKinds';
 
 export function isWidgetsAvailable(): boolean {
   return NativeBayaanWidgets !== null;
@@ -33,9 +37,11 @@ export function writeSnapshot(snapshot: WidgetSnapshot): void {
   NativeBayaanWidgets?.writeSnapshot(JSON.stringify(snapshot));
 }
 
-export function reloadWidgets(kinds: WidgetKind[]): void {
+export function reloadWidgets(
+  kinds: ReadonlyArray<WidgetKind | ContentWidgetKind>,
+): void {
   if (kinds.length === 0) return;
-  NativeBayaanWidgets?.reloadWidgets(kinds);
+  NativeBayaanWidgets?.reloadWidgets([...kinds]);
 }
 
 export function takeQueuedCommands(): QueuedWidgetCommand[] {
@@ -62,6 +68,10 @@ export function hasArtwork(fileName: string): boolean {
 
 export function writeCatalog(catalog: WidgetCatalog): void {
   NativeBayaanWidgets?.writeCatalog(JSON.stringify(catalog));
+}
+
+export function writeContent(content: WidgetContent): void {
+  NativeBayaanWidgets?.writeContent(JSON.stringify(content));
 }
 
 export function readArtworkRequests(): WidgetArtworkRequests {
