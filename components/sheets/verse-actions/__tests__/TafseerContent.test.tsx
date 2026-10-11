@@ -1,6 +1,13 @@
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock'),
 );
+// tafseerStore imports contentSync, whose analytics and notices need native modules.
+jest.mock('@/services/content/contentSync', () => ({
+  getOfferedTafsirIds: async () => null,
+  installContent: jest.fn(),
+  removeContent: jest.fn(),
+  isEngineManagingTafsir: () => false,
+}));
 jest.mock('@/components/share/SkiaVersePreview', () => () => null);
 jest.mock('react-native-actions-sheet', () => ({
   SheetManager: {hide: jest.fn()},

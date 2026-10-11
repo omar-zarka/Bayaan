@@ -46,6 +46,7 @@ import {useShareIntent} from 'expo-share-intent';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {SheetManager} from 'react-native-actions-sheet';
 import {showToast} from '@/utils/toastUtils';
+import {startContentSyncAfterInit} from '@/services/startContentSync';
 import {useMushafResumeRestore} from '@/hooks/useMushafResumeRestore';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import Constants from 'expo-constants';
@@ -345,7 +346,10 @@ function RootLayout() {
 
         // Initialize all SQLite services, adhkar, playlists, mushaf, fonts, stores, etc.
         // This blocks splash screen so everything is ready when the user sees the app
-        await appInitializer.initialize();
+        const appInitPromise = appInitializer.initialize();
+        // Content sync starts only after initialize() resolves; never blocks splash.
+        void startContentSyncAfterInit(appInitPromise);
+        await appInitPromise;
         markBoot('app-initializer-ready');
         if (__DEV__) console.log('[App] AppInitializer complete');
 

@@ -433,7 +433,6 @@ appInitializer.registerService({
   critical: false,
   initialize: async () => {
     await tafseerDbService.initialize();
-    await tafseerDbService.importBundledIbnKathir();
     await useTafseerStore.getState().loadDownloadedMeta();
   },
 });
