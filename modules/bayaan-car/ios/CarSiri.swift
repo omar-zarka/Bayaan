@@ -80,7 +80,34 @@ import UIKit
   /// this is a library app, so "play ... on Bayaan" routes here.
   private static var donatedKey = ""
 
+  /// INVocabulary raises an uncatchable exception (and the app aborts) when
+  /// the build lacks the Siri entitlement, e.g. `siri: false` in the plugin
+  /// or a team without the capability. Donate only when Siri is declared in
+  /// Info.plist and, on development and ad hoc builds, the embedded profile
+  /// grants it. App Store builds carry no profile; there the plugin adds the
+  /// entitlement together with the Info.plist keys.
+  static let isSiriEnabled: Bool = {
+    let intents = Bundle.main.object(forInfoDictionaryKey: "INIntentsSupported") as? [String] ?? []
+    guard intents.contains("INPlayMediaIntent") else { return false }
+    guard let url = Bundle.main.url(forResource: "embedded", withExtension: "mobileprovision") else { return true }
+    return provisionGrantsSiri(url)
+  }()
+
+  private static func provisionGrantsSiri(_ url: URL) -> Bool {
+    // The profile is a signed envelope around a plist.
+    guard let data = try? Data(contentsOf: url),
+          let start = data.range(of: Data("<?xml".utf8)),
+          let end = data.range(of: Data("</plist>".utf8), in: start.lowerBound..<data.endIndex),
+          let plist = try? PropertyListSerialization.propertyList(
+            from: data.subdata(in: start.lowerBound..<end.upperBound), format: nil
+          ) as? [String: Any],
+          let entitlements = plist["Entitlements"] as? [String: Any]
+    else { return false }
+    return entitlements["com.apple.developer.siri"] as? Bool == true
+  }
+
   static func donateVocabulary(_ snapshot: CarSnapshot) {
+    guard isSiriEnabled else { return }
     let key = (snapshot.reciters.map(\.name) + snapshot.lists.values.map(\.title)).joined(separator: "|")
     guard key != donatedKey else { return }
     donatedKey = key
