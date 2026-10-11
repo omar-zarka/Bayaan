@@ -44,6 +44,18 @@ describe('Live Activity wrappers', () => {
   it('reads the surviving activity state, or null', () => {
     mockNative = {currentNowPlayingActivity: () => JSON.stringify(state())};
     expect(currentNowPlayingActivity()).toEqual(state());
+    // Swift omits nil optionals from the JSON.
+    const omitted: Record<string, unknown> = {...state()};
+    delete omitted.artworkFile;
+    delete omitted.ayah;
+    mockNative = {
+      currentNowPlayingActivity: () => JSON.stringify(omitted),
+    };
+    expect(currentNowPlayingActivity()).toEqual({
+      ...omitted,
+      artworkFile: null,
+      ayah: null,
+    });
     mockNative = {currentNowPlayingActivity: () => ''};
     expect(currentNowPlayingActivity()).toBe(null);
     mockNative = {currentNowPlayingActivity: () => '{not json'};

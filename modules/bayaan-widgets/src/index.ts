@@ -109,7 +109,10 @@ export function currentNowPlayingActivity(): NowPlayingActivityState | null {
   if (!json) return null;
   try {
     const parsed: unknown = JSON.parse(json);
-    return isNowPlayingActivityState(parsed) ? parsed : null;
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    // Swift's Encodable omits nil optionals; the TS shape wants explicit nulls.
+    const normalized: unknown = {artworkFile: null, ayah: null, ...parsed};
+    return isNowPlayingActivityState(normalized) ? normalized : null;
   } catch {
     return null;
   }
