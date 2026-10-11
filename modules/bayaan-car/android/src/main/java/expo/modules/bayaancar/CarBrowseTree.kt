@@ -1,11 +1,12 @@
 package expo.modules.bayaancar
 
 import android.os.Bundle
-import android.util.Base64
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.session.MediaConstants
 import org.json.JSONObject
+import java.net.URLEncoder
+import java.net.URLDecoder
 
 object CarBrowseTree {
   private const val DOWNLOAD_STATUS = "android.media.extra.DOWNLOAD_STATUS"
@@ -13,12 +14,21 @@ object CarBrowseTree {
 
   val tabs = listOf("tab:home" to "Home", "tab:library" to "Library", "tab:reciters" to "Reciters", "tab:surahs" to "Surahs")
 
-  fun playId(requestJson: String): String =
-    "play:" + Base64.encodeToString(requestJson.toByteArray(), Base64.NO_WRAP or Base64.URL_SAFE)
+  private fun encode(text: String): String = URLEncoder.encode(text, "UTF-8")
+
+  /**
+   * A playable's media id: its request, plus [key] when the same request can
+   * appear twice on one screen (Friday's Al-Kahf card and Al-Kahf in More
+   * from). Android Auto keys items by media id, so ids must be unique.
+   */
+  fun playId(requestJson: String, key: String? = null): String =
+    "play:" + encode(requestJson) + (key?.let { "~" + encode(it) } ?: "")
 
   fun requestFromPlayId(mediaId: String): String? {
     if (!mediaId.startsWith("play:")) return null
-    return runCatching { String(Base64.decode(mediaId.removePrefix("play:"), Base64.NO_WRAP or Base64.URL_SAFE)) }.getOrNull()
+    // URLEncoder always escapes '~', so the key suffix splits off cleanly.
+    val encoded = mediaId.removePrefix("play:").substringBefore('~')
+    return runCatching { URLDecoder.decode(encoded, "UTF-8") }.getOrNull()
   }
 
   fun surahRequest(reciterId: String, rewayatId: String, surahId: Int): String =
@@ -94,11 +104,11 @@ object CarBrowseTree {
     val out = mutableListOf<MediaItem>()
     val top = s.reciters.firstOrNull { it.id == s.topReciterId }
     top?.rewayat?.firstOrNull { it.surahIds.contains(surahId) }?.let { w ->
-      out.add(playable(playId(surahRequest(top.id, w.id, surahId)), "Play with ${top.name}", surah.name, CarArtwork.Surah(surahId), groupTitle(surah.name)))
+      out.add(playable(playId(surahRequest(top.id, w.id, surahId), "top"), "Play with ${top.name}", surah.name, CarArtwork.Surah(surahId), groupTitle(surah.name)))
     }
     s.reciters.forEach { r ->
       val w = r.rewayat.firstOrNull { it.surahIds.contains(surahId) } ?: return@forEach
-      out.add(playable(playId(surahRequest(r.id, w.id, surahId)), r.name, if (r.rewayat.size > 1) w.name else null, r.artwork, groupTitle("Choose reciter")))
+      out.add(playable(playId(surahRequest(r.id, w.id, surahId), r.id), r.name, if (r.rewayat.size > 1) w.name else null, r.artwork, groupTitle("Choose reciter")))
     }
     return out
   }
@@ -121,7 +131,7 @@ object CarBrowseTree {
     }
     if (i.isDownloaded) extras.putLong(DOWNLOAD_STATUS, STATUS_DOWNLOADED)
     return when (val a = i.action) {
-      is CarItemAction.Play -> playable(playId(a.requestJson), i.title, i.subtitle, i.artwork, extras)
+      is CarItemAction.Play -> playable(playId(a.requestJson, i.id), i.title, i.subtitle, i.artwork, extras)
       is CarItemAction.BrowseList -> browsable("list:${a.listId}", i.title, i.subtitle, extras, i.artwork)
       is CarItemAction.BrowseReciter -> browsable("reciter:${a.reciterId}", i.title, i.subtitle, extras, i.artwork)
       is CarItemAction.BrowseSurahReciters -> browsable("surah:${a.surahId}", i.title, i.subtitle, extras, i.artwork)
