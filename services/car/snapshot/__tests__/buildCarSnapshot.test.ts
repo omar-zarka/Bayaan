@@ -369,6 +369,35 @@ describe('buildCarSnapshot', () => {
     ]);
   });
 
+  it('adds the upload date when two uploads would show the same row', () => {
+    const march18 = new Date(2025, 2, 18, 7, 27).getTime();
+    const april2 = new Date(2025, 3, 2, 20, 0).getTime();
+    const snap = buildCarSnapshot(
+      input({
+        uploads: [
+          upload('a', {
+            type: 'surah',
+            surahNumber: 11,
+            reciterId: 'r1',
+            dateAdded: april2,
+          }),
+          upload('b', {type: 'other', title: 'Qunoot', reciterId: 'r1'}),
+          upload('c', {
+            type: 'surah',
+            surahNumber: 11,
+            reciterId: 'r1',
+            dateAdded: march18,
+          }),
+        ],
+      }),
+    );
+    expect(snap.lists.uploads.items.map(i => [i.title, i.subtitle])).toEqual([
+      ['Surah 11', 'Mishary · Apr 2, 2025'],
+      ['Qunoot', 'Mishary'],
+      ['Surah 11', 'Mishary · Mar 18, 2025'],
+    ]);
+  });
+
   it('includes recent uploads in Jump back in and Resume, aligned with the resolver', () => {
     const uploads = [
       upload('u1', {type: 'surah', surahNumber: 36, reciterId: 'r2'}),

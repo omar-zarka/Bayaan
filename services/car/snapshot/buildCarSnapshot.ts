@@ -22,6 +22,7 @@ import {
   uploadIdSet,
   uploadSubtitle,
   uploadSurah,
+  withDuplicateUploadDates,
   uploadTitle,
 } from './uploads';
 
@@ -272,7 +273,8 @@ function buildDownloadsList(input: CarSnapshotInput): CarList {
 }
 
 function buildUploadsList(input: CarSnapshotInput): CarList {
-  const items = playableUploads(input.uploads).map((u, index) =>
+  const uploads = playableUploads(input.uploads);
+  const items = uploads.map((u, index) =>
     uploadItem(
       `upload:${u.id}`,
       u,
@@ -281,7 +283,11 @@ function buildUploadsList(input: CarSnapshotInput): CarList {
       {kind: 'play', request: {kind: 'uploads', startIndex: index}},
     ),
   );
-  return {id: 'uploads', title: 'Uploads', items};
+  return {
+    id: 'uploads',
+    title: 'Uploads',
+    items: withDuplicateUploadDates(items, uploads),
+  };
 }
 
 function playlistEntries(

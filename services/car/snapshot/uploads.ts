@@ -1,5 +1,6 @@
 import type {Reciter} from '@/data/reciterData';
 import type {Surah} from '@/data/surahData';
+import type {CarItem} from '@/services/car/types';
 import type {RecentlyPlayedTrack} from '@/services/player/store/recentlyPlayedStore';
 import type {CustomReciter, UploadedRecitation} from '@/types/uploads';
 
@@ -80,4 +81,48 @@ export function uploadSubtitle(
   return parts.length > 0
     ? parts.join(' · ')
     : stripExtension(upload.originalFilename);
+}
+
+const MONTHS = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
+
+/** "Mar 18, 2025" in the device's time zone. */
+export function formatUploadDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  return `${MONTHS[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`;
+}
+
+/**
+ * Rows whose title and subtitle match another row (two uploads tagged with
+ * the same surah and reciter) get the upload date appended to the subtitle so
+ * the driver can tell them apart. `items[i]` must be built from `uploads[i]`.
+ */
+export function withDuplicateUploadDates(
+  items: CarItem[],
+  uploads: UploadedRecitation[],
+): CarItem[] {
+  const counts = new Map<string, number>();
+  const keys = items.map(item => `${item.title}\u0000${item.subtitle ?? ''}`);
+  keys.forEach(key => counts.set(key, (counts.get(key) ?? 0) + 1));
+  return items.map((item, index) => {
+    const upload = uploads[index];
+    if (!upload || (counts.get(keys[index]) ?? 0) < 2) return item;
+    const date = formatUploadDate(upload.dateAdded);
+    return {
+      ...item,
+      subtitle: item.subtitle ? `${item.subtitle} · ${date}` : date,
+    };
+  });
 }
