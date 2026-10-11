@@ -89,3 +89,45 @@ enum WidgetLogic {
     return minutes >= 60 ? "\(minutes / 60)h \(minutes % 60)m left" : "\(minutes)m left"
   }
 }
+
+struct PinnedRow: Hashable {
+  let surahId: Int
+  let rewayatId: String?
+}
+
+enum PinnedReciterState: Hashable {
+  case ready(id: String, name: String, artworkFile: String?, rows: [PinnedRow])
+  /// The configured reciter is no longer in the catalog.
+  case unavailable
+  /// Nothing configured and no default reciter yet.
+  case unset
+}
+
+/// Mirrors PinnedReciterModel.kt.
+enum PinnedReciterResolver {
+  /// Al-Fatihah, Ya-Sin, Al-Mulk.
+  static let popularSurahIds = [1, 36, 67]
+
+  static func resolve(reciterId: String?, catalog: WidgetCatalog?, snapshot: WidgetSnapshot?) -> PinnedReciterState {
+    let id: String
+    let name: String
+    let file: String?
+    if let reciterId {
+      guard let r = catalog?.reciter(reciterId) else { return .unavailable }
+      id = r.id
+      name = r.name
+      file = r.artworkFile
+    } else {
+      guard let d = snapshot?.defaultReciter else { return .unset }
+      id = d.id
+      name = d.name
+      file = catalog?.reciter(d.id)?.artworkFile ?? d.artworkFile
+    }
+    let recents = (snapshot?.reciterRecents[id] ?? [])
+      .filter { (1...114).contains($0.surahId) }
+      .prefix(3)
+      .map { PinnedRow(surahId: $0.surahId, rewayatId: $0.rewayatId) }
+    let rows = recents.isEmpty ? popularSurahIds.map { PinnedRow(surahId: $0, rewayatId: nil) } : Array(recents)
+    return .ready(id: id, name: name, artworkFile: file, rows: rows)
+  }
+}

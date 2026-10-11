@@ -4,4 +4,6 @@
   <string name="bayaan_widget_continue_listening_desc">Resume your recitation and see what plays next.</string>
   <string name="bayaan_widget_quick_surah_label">Quick Surah</string>
   <string name="bayaan_widget_quick_surah_desc">Play a favorite surah in one tap.</string>
+  <string name="bayaan_widget_pinned_reciter_label">Pinned Reciter</string>
+  <string name="bayaan_widget_pinned_reciter_desc">Play a favorite reciter in one tap.</string>
 </resources>

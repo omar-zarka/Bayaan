@@ -15,7 +15,7 @@ sealed interface PinnedReciterState {
   object Unset : PinnedReciterState
 }
 
-/** Mirrors PinnedReciterResolver in PinnedReciterWidget.swift. */
+/** Mirrors PinnedReciterResolver in WidgetLogic.swift. */
 object PinnedReciterModel {
   /** Al-Fatihah, Ya-Sin, Al-Mulk. */
   val POPULAR_SURAHS = listOf(1, 36, 67)

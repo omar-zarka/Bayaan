@@ -81,6 +81,25 @@ precondition(many.reciterIds.count == 50 && many.reciterIds.first == "r11", "mer
 precondition(WidgetLogic.initials("Mishary Rashid Alafasy") == "MR" && WidgetLogic.initials("  ") == "", "initials")
 precondition(WidgetLogic.reference(surahName: "Al-Kahf", key: "18:10") == "Al-Kahf 18:10", "reference")
 precondition(WidgetLogic.minutesLeftLabel(61) == "2m left" && WidgetLogic.minutesLeftLabel(3_900) == "1h 5m left" && WidgetLogic.minutesLeftLabel(0) == "0m left", "minutesLeftLabel")
+// Pinned reciter (same vectors as WidgetLogicTest.pinnedReciterResolve)
+let fullSnapshot = WidgetSnapshot.decode(load("\(dir)/snapshot.full.json"))!
+let recents = WidgetSnapshot(
+  version: fullSnapshot.version, generatedAt: fullSnapshot.generatedAt, theme: fullSnapshot.theme,
+  nowPlaying: fullSnapshot.nowPlaying, upNext: fullSnapshot.upNext, recent: fullSnapshot.recent,
+  defaultReciter: fullSnapshot.defaultReciter, reciterRecents: ["r-alafasi": [fullSnapshot.upNext[0]]],
+  lastRead: fullSnapshot.lastRead, tasbeeh: fullSnapshot.tasbeeh)
+precondition(PinnedReciterResolver.resolve(reciterId: "r-alafasi", catalog: catalog, snapshot: recents)
+  == .ready(id: "r-alafasi", name: "Mishary Alafasi", artworkFile: "reciter-r-alafasi.jpg",
+            rows: [PinnedRow(surahId: 36, rewayatId: "rw-1")]), "pinned configured")
+precondition(PinnedReciterResolver.resolve(reciterId: "gone", catalog: catalog, snapshot: fullSnapshot) == .unavailable, "pinned missing")
+precondition(PinnedReciterResolver.resolve(reciterId: nil, catalog: catalog, snapshot: fullSnapshot)
+  == .ready(id: "r-alafasi", name: "Mishary Alafasi", artworkFile: "reciter-r-alafasi.jpg",
+            rows: [PinnedRow(surahId: 1, rewayatId: nil), PinnedRow(surahId: 36, rewayatId: nil), PinnedRow(surahId: 67, rewayatId: nil)]), "pinned default")
+let noDefault = WidgetSnapshot(
+  version: fullSnapshot.version, generatedAt: fullSnapshot.generatedAt, theme: fullSnapshot.theme,
+  nowPlaying: nil, upNext: [], recent: [], defaultReciter: nil, reciterRecents: [:],
+  lastRead: nil, tasbeeh: [:])
+precondition(PinnedReciterResolver.resolve(reciterId: nil, catalog: nil, snapshot: noDefault) == .unset, "pinned unset")
 print("swift widget logic: OK")
 SWIFT
 

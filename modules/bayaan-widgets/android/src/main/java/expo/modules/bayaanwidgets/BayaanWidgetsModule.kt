@@ -6,6 +6,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
+import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
@@ -38,6 +39,7 @@ class BayaanWidgetsModule : Module() {
         when (kind) {
           "ContinueListening" -> updateContinueListening()
           "QuickSurah" -> push(QuickSurahWidget())
+          "PinnedReciter" -> push(PinnedReciterWidget())
           else -> Unit // widget kinds register here as they are added
         }
       }

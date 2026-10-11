@@ -39,5 +39,26 @@
         <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
       </intent-filter>
     </activity>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_pinned_reciter_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/pinned_reciter_info" />
+    </receiver>
+    <activity
+      android:name="expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterConfigActivity"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+      </intent-filter>
+    </activity>
   </application>
 </manifest>
