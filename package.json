@@ -14,6 +14,7 @@
     "test:ci": "jest --watchAll=false --ci --reporters=default",
     "test:widget-fixtures": "bash scripts/check-widget-fixtures.sh && bash scripts/check-widget-system-surfaces.sh",
     "generate:widget-data": "tsx scripts/generate-widget-data.ts",
+    "generate:widget-vectors": "swift scripts/generate-hijri-table.swift > modules/bayaan-widgets/src/__fixtures__/hijri.table.json && tsx scripts/generate-context-vectors.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "apply:timestamps-coverage": "tsx scripts/apply-timestamps-coverage.ts",

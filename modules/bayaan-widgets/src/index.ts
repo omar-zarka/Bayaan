@@ -28,6 +28,7 @@ export * from './dayMath';
 export * from './liveActivity';
 export * from './content';
 export * from './contentKinds';
+export * from './contextRules';
 
 export function isWidgetsAvailable(): boolean {
   return NativeBayaanWidgets !== null;
