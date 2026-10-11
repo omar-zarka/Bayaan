@@ -8,7 +8,7 @@ import {SURAH_TO_JUZ} from '@/data/juzData';
 import {reciterImages} from '@/utils/reciterImages';
 import {formatReciterName} from '@/utils/artworkUtils';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
-import {usePlayCountStore} from '@/store/playCountStore';
+import {localAggregationStore} from '@/services/analytics/LocalAggregationStore';
 import {useLovedStore} from '@/services/player/store/lovedStore';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {useFavoriteRecitersStore} from '@/services/player/store/favoriteRecitersStore';
@@ -17,6 +17,10 @@ import {useReciterStore} from '@/store/reciterStore';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {PlaylistItem} from '@/services/database/DatabaseService';
 import {buildCarSnapshot} from '@/services/car/snapshot/buildCarSnapshot';
+import {
+  DailySurahListening,
+  playCountsFromDailyListening,
+} from '@/services/car/snapshot/personalized';
 import {CarArtwork} from '@/services/car/types';
 import {CarResolveContext} from '@/services/car/playback/resolveCarRequest';
 import {recentTracksKey, uploadsKey} from '@/services/car/snapshotKeys';
@@ -24,6 +28,8 @@ import {recentTracksKey, uploadsKey} from '@/services/car/snapshotKeys';
 const DEBOUNCE_MS = 2000;
 const MAX_WAIT_MS = 10_000;
 const CONNECTED_REFRESH_MS = 15 * 60 * 1000;
+/** How far back "On repeat" looks. */
+const ON_REPEAT_WINDOW_DAYS = 30;
 const MONOGRAM_COLORS = [
   '#0F766E',
   '#1D4ED8',
@@ -114,7 +120,7 @@ export async function writeCarSnapshotNow(): Promise<void> {
     favoriteReciterIds: useFavoriteRecitersStore.getState().favoriteReciterIds,
     defaultReciterId: useReciterStore.getState().defaultReciter.id || null,
     recentTracks: context.recentTracks,
-    playCounts: usePlayCountStore.getState().playCounts,
+    playCounts: playCountsFromDailyListening(recentDailyListening(new Date())),
     lovedTracks: context.lovedTracks,
     downloads: context.downloads,
     userPlaylists: usePlaylistsStore.getState().playlists,
@@ -203,6 +209,29 @@ function ensureUploadsLoaded(): void {
     .catch(() => undefined);
 }
 
+function localDateKey(day: Date): string {
+  const month = String(day.getMonth() + 1).padStart(2, '0');
+  const date = String(day.getDate()).padStart(2, '0');
+  return `${day.getFullYear()}-${month}-${date}`;
+}
+
+/** The last few weeks of on-device listening, newest first. */
+function recentDailyListening(now: Date): DailySurahListening[] {
+  const days: DailySurahListening[] = [];
+  for (let offset = 0; offset < ON_REPEAT_WINDOW_DAYS; offset++) {
+    const day = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate() - offset,
+    );
+    const aggregate = localAggregationStore.getDailyAggregate(
+      localDateKey(day),
+    );
+    if (aggregate) days.push({date: aggregate.date, surahs: aggregate.surahs});
+  }
+  return days;
+}
+
 export function startCarSnapshotService(): CarSnapshotService {
   if (!BayaanCar.isAvailable) {
     return {stop: () => {}, ready: Promise.resolve()};
@@ -216,7 +245,6 @@ export function startCarSnapshotService(): CarSnapshotService {
       recentTracksKey(s.recentTracks),
     ),
     scheduleOnChange(useLovedStore, s => s.tracks),
-    scheduleOnChange(usePlayCountStore, s => s.playCounts),
     scheduleOnChange(useDownloadStore, s => s.downloads),
     scheduleOnChange(useFavoriteRecitersStore, s => s.favoriteReciterIds),
     scheduleOnChange(usePlaylistsStore, s => s.playlists),

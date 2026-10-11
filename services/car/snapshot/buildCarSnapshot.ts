@@ -39,7 +39,7 @@ export interface CarSnapshotInput {
   favoriteReciterIds: string[];
   defaultReciterId: string | null;
   recentTracks: RecentlyPlayedTrack[];
-  /** Per-surah play counts (playCountStore). */
+  /** Days each surah was listened to recently (on-device history). */
   playCounts: SurahPlayCount[];
   lovedTracks: LovedTrack[];
   downloads: DownloadedSurah[];

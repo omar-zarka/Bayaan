@@ -17,8 +17,49 @@ export interface ReciterRewayahPick {
   reciterName: string;
 }
 
+/** One day of on-device listening history (LocalAggregationStore). */
+export interface DailySurahListening {
+  /** Local date, YYYY-MM-DD. */
+  date: string;
+  /** Milliseconds listened per surah id. */
+  surahs: Record<string, number>;
+}
+
 const ON_REPEAT_LIMIT = 8;
 const ON_REPEAT_MIN_PLAYS = 2;
+/** A surah counts as played on a day once it got this much listening. */
+const MIN_DAY_LISTEN_MS = 60_000;
+
+function localDayStart(date: string): number {
+  const [year, month, day] = date.split('-').map(Number);
+  return new Date(year, month - 1, day).getTime();
+}
+
+/**
+ * Play counts from daily listening history: how many days each surah was
+ * listened to for at least a minute, and the last such day.
+ */
+export function playCountsFromDailyListening(
+  days: DailySurahListening[],
+): SurahPlayCount[] {
+  const counts = new Map<number, SurahPlayCount>();
+  for (const day of days) {
+    const dayStart = localDayStart(day.date);
+    if (Number.isNaN(dayStart)) continue;
+    for (const [id, ms] of Object.entries(day.surahs)) {
+      const surahId = Number(id);
+      if (!Number.isInteger(surahId) || ms < MIN_DAY_LISTEN_MS) continue;
+      const entry = counts.get(surahId);
+      if (!entry) {
+        counts.set(surahId, {surahId, count: 1, lastPlayed: dayStart});
+        continue;
+      }
+      entry.count += 1;
+      entry.lastPlayed = Math.max(entry.lastPlayed, dayStart);
+    }
+  }
+  return [...counts.values()];
+}
 const MORE_FROM_LIMIT = 8;
 /** Recently played surahs left out of "More from", so the row feels new. */
 const MORE_FROM_RECENT_WINDOW = 10;

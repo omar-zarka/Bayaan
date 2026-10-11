@@ -44,6 +44,9 @@ jest.mock('@/store/uploadsStore', () => ({
     getState: () => ({recitations: mockRecitations, customReciters: []}),
   },
 }));
+jest.mock('@/services/analytics/LocalAggregationStore', () => ({
+  localAggregationStore: {getDailyAggregate: () => null},
+}));
 jest.mock('@/store/reciterStore', () => ({
   useReciterStore: {getState: () => ({defaultReciter: {id: ''}})},
 }));
