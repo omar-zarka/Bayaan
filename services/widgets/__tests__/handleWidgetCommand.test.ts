@@ -1,6 +1,6 @@
 import {
   handleWidgetCommand,
-  ayahStartSecFrom,
+  ayahStartSecFromNumbering,
   CommandDeps,
   RecentMatch,
 } from '../handleWidgetCommand';
@@ -9,6 +9,13 @@ import {getSurahById} from '@/services/dataService';
 import type {AyahTimestamp} from '@/types/timestamps';
 import type {Reciter} from '@/data/reciterData';
 import type {Track} from '@/types/audio';
+import {rewayahVerseMapService} from '@/services/mushaf/RewayahVerseMapService';
+import {loadTimings} from '@/services/timestamps/__fixtures__/timingFixtures';
+import {
+  createTimingNumbering,
+  type TimingNumberingMode,
+} from '@/utils/timestampNumbering';
+import type {RewayahId} from '@/services/rewayah/RewayahIdentity';
 
 jest.mock('@/utils/track', () => ({
   createTrack: jest.fn(
@@ -37,6 +44,9 @@ jest.mock('@/services/player/store/recentlyPlayedStore', () => ({
 }));
 jest.mock('@/services/timestamps/TimestampService', () => ({
   timestampService: {},
+}));
+jest.mock('@/services/timestamps/TimingNumberingService', () => ({
+  timingNumberingService: {},
 }));
 jest.mock('@/services/audio/ExpoAudioService', () => ({
   expoAudioService: {},
@@ -259,6 +269,50 @@ describe('handleWidgetCommand', () => {
     expect(createTrack).toHaveBeenLastCalledWith(multi, {id: 2}, 'rwFull');
   });
 
+  it('prefers a Hafs set over a fuller Warsh set when the command has an ayah', async () => {
+    const warsh = {
+      ...reciter.rewayat[0],
+      id: 'rwWarsh',
+      name: "Warsh A'n Nafi' Men Tariq Alazraq",
+      surah_total: 114,
+      surah_list: [2],
+    };
+    const hafs = {
+      ...reciter.rewayat[0],
+      id: 'rwHafs',
+      name: "Hafs A'n Assem",
+      surah_total: 50,
+      surah_list: [2],
+    };
+    const multi: Reciter = {...reciter, rewayat: [warsh, hafs]};
+    const d = deps({getReciter: () => multi});
+    const cmd = {
+      type: 'playTrack' as const,
+      surahId: 2,
+      reciterId: 'r1',
+      rewayatId: null,
+    };
+    await handleWidgetCommand({...cmd, ayah: 183}, d);
+    expect(createTrack).toHaveBeenLastCalledWith(multi, {id: 2}, 'rwHafs');
+    await handleWidgetCommand({...cmd, ayah: null}, d);
+    expect(createTrack).toHaveBeenLastCalledWith(multi, {id: 2}, 'rwWarsh');
+  });
+
+  it('starts at 0 when the ayah start lookup finds nothing', async () => {
+    const d = deps({ayahStartSec: async () => null});
+    await handleWidgetCommand(
+      {
+        type: 'playTrack',
+        surahId: 2,
+        reciterId: 'r1',
+        rewayatId: null,
+        ayah: 183,
+      },
+      d,
+    );
+    expect(d.calls).toEqual(['playTracks:2@0']);
+  });
+
   it('does nothing when the default reciter is a placeholder', async () => {
     const d = deps({getDefaultReciter: () => null});
     await handleWidgetCommand(
@@ -361,23 +415,54 @@ describe('playTrack row taps', () => {
   });
 });
 
-describe('ayahStartSecFrom', () => {
-  const list: AyahTimestamp[] = [
-    {
-      surahNumber: 18,
-      ayahNumber: 10,
-      timestampFrom: 42000,
-      timestampTo: 50000,
-      durationMs: 8000,
-    },
-  ];
+describe('ayahStartSecFromNumbering', () => {
+  function numbering(
+    mode: TimingNumberingMode,
+    rewayah: RewayahId,
+    set: string,
+    surah: number,
+  ) {
+    const entries = loadTimings(set, surah);
+    if (!entries) throw new Error(`missing fixture ${set}/${surah}`);
+    return {
+      entries,
+      numbering: createTimingNumbering({
+        surah,
+        mode,
+        reciterRewayah: rewayah,
+        reason: 'test',
+        entries,
+        verseMap: rewayahVerseMapService,
+      }),
+    };
+  }
 
-  it('converts milliseconds to seconds', () => {
-    expect(ayahStartSecFrom(list, 10)).toBe(42);
+  it('starts a Hafs ayah at the entry the numbering picks, not the same-numbered entry', () => {
+    const {entries, numbering: n} = numbering(
+      'riwayah',
+      'warsh',
+      'warsh-14',
+      2,
+    );
+    const picked = n.startEntryForHafsAyah(5);
+    expect(picked?.ayahNumber).toBe(4);
+    const same = entries.find(e => e.ayahNumber === 5);
+    expect(same?.timestampFrom).not.toBe(picked?.timestampFrom);
+    expect(ayahStartSecFromNumbering(n, 5)).toBe(
+      (picked?.timestampFrom ?? NaN) / 1000,
+    );
   });
 
-  it('returns null for a missing ayah or a null list', () => {
-    expect(ayahStartSecFrom(list, 11)).toBeNull();
-    expect(ayahStartSecFrom(null, 10)).toBeNull();
+  it('uses the same-numbered entry for a Hafs set', () => {
+    const {entries, numbering: n} = numbering('hafs', 'hafs', 'hafs-clean', 2);
+    const same = entries.find(e => e.ayahNumber === 5);
+    expect(ayahStartSecFromNumbering(n, 5)).toBe(
+      (same?.timestampFrom ?? NaN) / 1000,
+    );
+  });
+
+  it('returns null (start at 0) when the numbering is disabled', () => {
+    const {numbering: n} = numbering('disabled', 'warsh', 'warsh-14', 2);
+    expect(ayahStartSecFromNumbering(n, 5)).toBeNull();
   });
 });
