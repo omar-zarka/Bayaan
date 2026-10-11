@@ -34,26 +34,25 @@ Ship CarPlay and Android Auto together, at a quality bar comparable to Spotify o
 
 ## 2. Information architecture
 
-Four root tabs on both platforms (Android Auto caps root children at 4; CarPlay audio apps effectively do too):
+Four browse tabs on both platforms (Android Auto caps root children at 4), plus search:
 
 ```
-[ Home ]  [ Library ]  [ Reciters ]  [ Surahs ]
+[ Home ]  [ Library ]  [ Reciters ]  [ Surahs ]  [ (search) ]
 ```
+
+On CarPlay, search is a fifth, icon-only tab (`tabSystemItem = .search`, no title) whose first row is the Siri media cell (`CPAssistantCellConfiguration`, `.playMedia`), then recent plays. It exists only when the build has Siri. If a head unit allows only four tabs, Reciters gives way. Android Auto draws its own search icon and keyboard/voice search screen.
 
 ### Home
 
-- **Quick start row** (CarPlay: `CPListTemplate.headerGridButtons`, iOS 26+; Android Auto: first section, grid style). Up to 4:
-  - Resume (last played item at its saved position)
-  - Shuffle Loved (hidden if no loved tracks)
-  - Situational slot 1 and 2 (from the rules below)
-- **For right now**: situational cards (CarPlay: `CPListImageRowItemCardElement`, iOS 26+; fallback image row).
+- **For right now**: big cards (CarPlay: `CPListImageRowItemCardElement`, iOS 26+; fallback image row): Resume (last played item at its saved position), then the situational picks (rules below), then Loved on shuffle (hidden if no loved tracks). Card title is what plays; the subtitle says why now for surahs ("Resume", "Bedtime", "Friday", "Up next") or the size for time-of-day playlists ("5 surahs"). Subtitles stay under about ten characters, the width a card shows.
+- **Surprise me**: one untitled row right after For right now that plays Random Recitation, the same picks as the phone Home card (`pickRandomRecitations`: 15 surahs, each from a random reciter). Its artwork is the phone card's ribbon art.
 - **Jump back in**: recently played, with progress (iOS `CPListItem.playbackProgress`; Android `COMPLETION_PERCENTAGE` extra). Includes recently played uploads whose recitation still exists; tapping one resumes that upload on its own at its saved position, like the phone's recent card. Resume plays the first Jump back in row. Items also carry `duration` (seconds); on iOS 26.4+ each row also gets a `CPPlaybackConfiguration` (elapsed time and duration), because `playbackProgress` alone drew no bar on an iOS 26 device.
-- **On repeat**: the most played surahs (`playCountStore`, at least 2 plays, up to 8), as cards, each with the reciter the user last played it with (else the top reciter).
+- **On repeat**: surahs listened to on at least 2 of the last 30 days (at least a minute a day), from `LocalAggregationStore`, up to 8, as cards, each with the reciter the user last played it with (else the top reciter). `playCountStore` is never written by the app, so it is not used.
 - **More from <top reciter>**: up to 8 well-known surahs (`POPULAR_SURAH_IDS`) the top reciter recites and the user has not played among their last 10, as cards. A new install sees it for the default reciter.
 - **Your reciters**: favorite reciters, circular portraits (`CPListImageRowItemImageGridElement` circular, iOS 26+). The Library group is titled "Favorite reciters".
 - **Your playlists**: user playlists, then system playlists.
 
-Empty sections are omitted. A brand-new user sees Quick start (situational only), For right now, More from <default reciter>, and system playlists. There is no khatmah section: the app has no user-facing khatmah to continue (only unused analytics plumbing).
+Empty sections are omitted. A brand-new user sees For right now (situational picks only), Surprise me, More from <default reciter>, and system playlists. There is no khatmah section: the app has no user-facing khatmah to continue (only unused analytics plumbing).
 
 ### Situational rules
 
@@ -185,10 +184,9 @@ interface CarSnapshot {
   generatedAt: string; // ISO
   topReciterId: string | null;
   home: {
-    quickStart: CarItem[];   // max 4
-    sections: CarSection[];  // For right now, Jump back in, Your reciters, Your playlists
+    sections: CarSection[];  // For right now, Surprise me, Jump back in, On repeat, More from, Your reciters, Your playlists
   };
-  library: CarItem[];         // Loved, Playlists, Downloads, Uploads, Favorite reciters (browse entries)
+  library: CarItem[];         // Loved, Playlists, Downloads, Uploads, Favorite reciters (browse entries, subtitled with counts)
   lists: Record<string, CarList>; // browse targets by id (loved, downloads, uploads, playlists, ...)
   reciters: CarReciter[];     // favorites first, then A to Z
   surahs: CarSurah[];         // 114
@@ -214,7 +212,8 @@ type CarPlayRequest =
   | { kind: 'loved'; shuffle?: boolean; startIndex?: number }
   | { kind: 'downloads'; startIndex?: number }
   | { kind: 'uploads'; startIndex?: number }
-  | { kind: 'resume'; recitationId?: string }; // recitationId: a Jump back in upload row
+  | { kind: 'resume'; recitationId?: string } // recitationId: a Jump back in upload row
+  | { kind: 'random' };                          // Random Recitation (Surprise me)
 ```
 
 - Reciter surah lists are not pre-expanded per reciter (that would be thousands of items). Native builds them on demand from `reciters[].rewayat[].surahList` plus `surahs`.
@@ -285,7 +284,11 @@ If either spike fails, stop and revisit the design with the project owner before
 4. iOS React start goes through `BayaanCarSceneBridge`.
 5. Item actions are wrapped (`play` or `browse`).
 6. Surah tap opens "Play with <top reciter>" plus "Choose reciter".
-7. The details header and `CPPlaybackConfiguration` are iOS 26.4 in the SDK, not 27. `CPPlaybackConfiguration` is skipped.
+7. The details header and `CPPlaybackConfiguration` are iOS 26.4 in the SDK, not 27. Jump back in sets `playbackProgress` and, on 26.4+, a `CPPlaybackConfiguration` from the item's `duration`.
 8. iOS uses multiple scenes; a second phone scene on iPad is refused.
 9. Android: legacy browser service action only, hardened artwork provider, pagination with a 500 cap.
 10. Android Auto cold start runs a headless React surface (`BayaanCarRoot`), not just `ReactHost.start()` (which loads the bundle but mounts no tree), plus a keep-alive headless task so JS timers run with no resumed Activity. Verified on an emulator with no Activity: a car play request booted JS and played; the phone-layout handover is unit tested (`services/car/__tests__/CarRoot.test.tsx`) and needs a release-build device check.
+11. No Quick start header: Home leads with the For right now cards (Resume, picks, Loved on shuffle), and Random Recitation is its own Surprise me row.
+12. On repeat reads `LocalAggregationStore` daily listening, not `playCountStore`.
+13. CarPlay search is an icon-only fifth tab with the Siri cell. A `CPBarButton` on a tab root does not render and a search tab stays inside the tab group; Apple Music's detached search circle is not public API.
+14. The full list of implementation deviations (20 items) is in the PR description.
