@@ -21,9 +21,14 @@ final class CarTemplateBuilder {
   private let libraryTemplate = CPListTemplate(title: "Library", sections: [])
   private let recitersTemplate = CPListTemplate(title: "Reciters", sections: [])
   private let surahsTemplate = CPListTemplate(title: "Surahs", sections: [])
+  /// No title: a titled tab shows its title, an untitled one its system
+  /// item's icon (the magnifier).
+  private let searchTemplate = CPListTemplate(title: nil, sections: [])
 
   private static let emptyCopy = "Open Bayaan on your phone to get started"
   private static let nothingYet = "Nothing here yet"
+  /// Recent plays under the Siri cell on the Search tab.
+  private static let searchRecentCount = 6
 
   init(
     interfaceController: CPInterfaceController,
@@ -41,12 +46,24 @@ final class CarTemplateBuilder {
     recitersTemplate.tabImage = UIImage(systemName: "person.2.fill")
     surahsTemplate.tabTitle = "Surahs"
     surahsTemplate.tabImage = UIImage(systemName: "list.number")
+    // The search system item draws as CarPlay's detached search button. Its
+    // first row is the Siri cell for audio apps, which opens Siri to play
+    // something ("Al-Kahf by Mishary"), handled by BayaanCarSiri.
+    searchTemplate.tabSystemItem = .search
+    searchTemplate.assistantCellConfiguration = CPAssistantCellConfiguration(
+      position: .top, visibility: .always, assistantAction: .playMedia)
   }
 
   func tabTemplates() -> [CPTemplate] {
     refresh()
-    return Array(
-      [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate].prefix(CPTabBarTemplate.maximumTabCount))
+    // Search only when the build has Siri, or its one action would lead
+    // nowhere. Over the car's tab limit, Reciters gives way: favorites stay
+    // in Library and on Home, and any reciter is a sentence away by voice.
+    var tabs: [CPTemplate] = [homeTemplate, libraryTemplate, recitersTemplate, surahsTemplate]
+    guard BayaanCarSiri.isSiriEnabled else { return Array(tabs.prefix(CPTabBarTemplate.maximumTabCount)) }
+    tabs.append(searchTemplate)
+    if tabs.count > CPTabBarTemplate.maximumTabCount { tabs.removeAll { $0 === recitersTemplate } }
+    return Array(tabs.prefix(CPTabBarTemplate.maximumTabCount))
   }
 
   /// Called from `contentStyleDidChange` (and as a fallback when the scene
@@ -76,6 +93,17 @@ final class CarTemplateBuilder {
     updateTab(libraryTemplate, signature: Self.librarySignature(snapshot) + style) { librarySections(snapshot) }
     updateTab(recitersTemplate, signature: Self.recitersSignature(snapshot) + style) { reciterSections(snapshot) }
     updateTab(surahsTemplate, signature: Self.surahsSignature(snapshot) + style) { surahSections(snapshot) }
+    let recent = Self.searchRecent(snapshot)
+    let recentSignature = recent.map { "\($0.id)|\($0.title)|\($0.subtitle ?? "")" }.joined(separator: "\n")
+    updateTab(searchTemplate, signature: recentSignature + style) { searchSections(recent) }
+  }
+
+  private static func searchRecent(_ s: CarSnapshot) -> [CarItem] {
+    Array((s.home.sections.first { $0.id == "jump-back-in" }?.items ?? []).prefix(searchRecentCount))
+  }
+
+  private func searchSections(_ recent: [CarItem]) -> [CPListSection] {
+    recent.isEmpty ? [] : [CPListSection(items: recent.map(listItem), header: "Recent", sectionIndexTitle: nil)]
   }
 
   private func updateTab(_ template: CPListTemplate, signature: String, sections: () -> [CPListSection]) {
@@ -170,7 +198,8 @@ final class CarTemplateBuilder {
       case "circles", "cards":
         sections.append(CPListSection(items: [homeImageRow(section)]))
       default:
-        sections.append(CPListSection(items: section.items.map(listItem), header: section.title, sectionIndexTitle: nil))
+        let header = section.title.isEmpty ? nil : section.title
+        sections.append(CPListSection(items: section.items.map(listItem), header: header, sectionIndexTitle: nil))
       }
     }
     if sections.isEmpty {

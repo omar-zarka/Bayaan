@@ -196,7 +196,7 @@ class CarArtworkProvider : ContentProvider() {
     "downloads" -> R.drawable.car_icon_downloads
     "uploads" -> R.drawable.car_icon_uploads
     "reciters" -> R.drawable.car_icon_reciters
-    "shuffle" -> R.drawable.car_icon_shuffle
+    "random" -> R.drawable.car_icon_random
     CarArtworkKeys.PLAYLIST -> R.drawable.car_icon_playlist_glyph
     else -> null
   }

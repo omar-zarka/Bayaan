@@ -529,7 +529,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const uploads = buildUploadsList(input);
   const playlists = playlistEntries(input, nonEmptyListIds);
 
-  // Resume leads the top row, then Random, the time-of-day picks and Loved.
+  // Resume leads the top row, then the time-of-day picks, then Loved.
   // Like the picks, each card's title is what plays and its subtitle why.
   const forNow: CarItem[] = [];
   if (jumpBackIn.length > 0) {
@@ -539,16 +539,6 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
       subtitle: 'Resume',
       artwork: jumpBackIn[0].artwork,
       action: {kind: 'play', request: {kind: 'resume'}},
-    });
-  }
-  // Random Recitation is the phone Home card's car twin: always on offer.
-  if (input.reciters.length > 0) {
-    forNow.push({
-      id: 'now:random',
-      title: 'Random',
-      subtitle: 'Any surah',
-      artwork: {kind: 'icon', name: 'shuffle'},
-      action: {kind: 'play', request: {kind: 'random'}},
     });
   }
   forNow.push(...situational);
@@ -564,6 +554,25 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
 
   const allSections: CarSection[] = [
     {id: 'for-now', title: 'For right now', style: 'cards', items: forNow},
+    {
+      // The phone Home card's car twin, always on offer. One self-explaining
+      // row, so no header.
+      id: 'surprise',
+      title: '',
+      style: 'rows',
+      items:
+        input.reciters.length > 0
+          ? [
+              {
+                id: 'surprise:random',
+                title: 'Surprise me',
+                subtitle: 'Any surah, any reciter',
+                artwork: {kind: 'icon', name: 'random'},
+                action: {kind: 'play', request: {kind: 'random'}},
+              },
+            ]
+          : [],
+    },
     {
       id: 'jump-back-in',
       title: 'Jump back in',

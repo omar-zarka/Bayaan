@@ -64,7 +64,11 @@ object CarBrowseTree {
 
   private fun home(s: CarSnapshot): List<MediaItem> {
     val out = mutableListOf<MediaItem>()
-    s.sections.forEach { section -> section.items.forEach { out.add(item(it, section.title, grid = true)) } }
+    s.sections.forEach { section ->
+      // An untitled section (Surprise me) stands alone, outside any group.
+      val group = section.title.ifEmpty { null }
+      section.items.forEach { out.add(item(it, group, grid = true)) }
+    }
     return out
   }
 

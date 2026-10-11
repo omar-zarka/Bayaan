@@ -21,11 +21,11 @@ object CarArtworkKeys {
   private val payload = Regex("[A-Za-z0-9_-]{1,2048}")
   private val surahKey = Regex("surah-([0-9]{1,3})")
   private val drawableName = Regex("[A-Za-z0-9_]{1,128}")
-  private val iconKeyPattern = Regex("icon-(loved|playlists|downloads|uploads|reciters|shuffle|playlist)(?:-([0-9A-Fa-f]{6}))?")
+  private val iconKeyPattern = Regex("icon-(loved|playlists|downloads|uploads|reciters|random|playlist)(?:-([0-9A-Fa-f]{6}))?")
   private val hex6 = Regex("#?([0-9A-Fa-f]{6})")
 
   /** The bundled icon tiles; nothing else ever reaches a resource lookup. */
-  val ICON_NAMES = setOf("loved", "playlists", "downloads", "uploads", "reciters", "shuffle", "playlist")
+  val ICON_NAMES = setOf("loved", "playlists", "downloads", "uploads", "reciters", "random", "playlist")
   const val PLAYLIST = "playlist"
   /** Used when a playlist colour is missing or malformed (the app's playlist colour). */
   const val DEFAULT_PLAYLIST_HEX = "6366F1"

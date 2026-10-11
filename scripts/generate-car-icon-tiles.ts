@@ -1,8 +1,8 @@
 /**
  * Generates the CarPlay / Android Auto icon tiles: the Collection screen's
  * category icons (Playlists, Reciters, Downloads, Uploads, Loved) on the same
- * tinted rounded square, a Shuffle tile for Random Recitation, plus a white playlist glyph that the natives draw
- * over a playlist's own colour at runtime.
+ * tinted rounded square, the Random Recitation tile, plus a white playlist
+ * glyph that the natives draw over a playlist's own colour at runtime.
  *
  * Usage:
  *   npx tsx scripts/generate-car-icon-tiles.ts [--sheet <dir>]
@@ -12,8 +12,8 @@
  * also writes every tile and a contact sheet to <dir>.
  *
  * The SVG paths are copied verbatim from components/Icons.tsx (PlaylistIcon,
- * ProfileIcon filled, DownloadIcon, MicrophoneIcon, HeartIcon filled,
- * ShuffleIcon). Keep them in sync.
+ * ProfileIcon filled, DownloadIcon, MicrophoneIcon, HeartIcon filled). Keep
+ * them in sync.
  */
 
 import * as fs from 'fs';
@@ -49,21 +49,10 @@ const MICROPHONE_PATHS = [
 ];
 const HEART_PATH =
   'M12 5.95q0.06 0 0.07-0.01c1.75-2.18 5.25-3.94 7.46-1.13 0.97 1.24 0.83 2.98 0.3 4.42-1.19 3.24-4.22 6.13-7.34 7.52q-0.17 0.08-0.48 0.08t-0.48-0.08c-3.12-1.38-6.15-4.28-7.34-7.52c-0.53-1.44-0.67-3.18 0.3-4.42 2.21-2.81 5.71-1.05 7.46 1.13q0.01 0.01 0.07 0.01z';
-const SHUFFLE_PATH =
-  'M44.15 43.95Q44.15 44.33 44.15 44.33Q41.10 48.97 38.28 53.11C33.43 60.24 27.23 59.12 18.84 58.93A0.80 0.80 0.0 0018.02 59.73L18.02 64.07Q18.02 64.87 18.83 64.90Q28.11 65.15 31.52 64.59C39.31 63.32 43.49 56.80 47.31 50.25A0.75 0.75 0.0 0148.60 50.23C52.22 56.06 55.18 61.69 62.66 64.22C65.50 65.18 69.55 64.86 73.39 64.98A0.34 0.34 0.0 0173.62 65.56L67.69 71.48Q67.08 72.09 67.69 72.70L70.60 75.61A0.79 0.79 0.0 0071.69 75.63Q76.62 71.15 79.60 68.17C83.04 64.71 84.89 61.40 81.11 57.44Q76.24 52.33 71.78 48.48A0.93 0.92 -47.1 0 070.52 48.53L67.70 51.35Q67.16 51.88 67.70 52.42L73.55 58.26A0.45 0.45 0.0 0173.26 59.02C67.28 59.38 61.94 59.32 58.25 53.92Q54.72 48.75 51.98 44.48Q51.89 44.33 51.89 43.96Q51.89 43.59 51.98 43.44Q54.73 39.17 58.26 34.00C61.96 28.61 67.30 28.55 73.28 28.92A0.45 0.45 0.0 0173.57 29.68L67.71 35.51Q67.17 36.05 67.71 36.58L70.53 39.41A0.93 0.92 47.2 0 0071.79 39.46Q76.25 35.62 81.13 30.51C84.91 26.56 83.06 23.24 79.63 19.78Q76.65 16.80 71.73 12.31A0.79 0.79 0.0 0070.64 12.33L67.72 15.23Q67.11 15.84 67.72 16.45L73.65 22.38A0.34 0.34 0.0 0173.41 22.96C69.57 23.08 65.53 22.75 62.68 23.71C55.20 26.23 52.23 31.86 48.61 37.68A0.75 0.75 0.0 0147.32 37.66C43.51 31.11 39.33 24.58 31.54 23.30Q28.14 22.74 18.85 22.98Q18.04 23.01 18.04 23.81L18.04 28.15A0.80 0.80 0.0 0018.86 28.95C27.25 28.77 33.45 27.65 38.29 34.79Q41.11 38.93 44.15 43.58Q44.15 43.58 44.15 43.95';
-
 interface IconSpec {
-  name:
-    | 'loved'
-    | 'playlists'
-    | 'downloads'
-    | 'uploads'
-    | 'reciters'
-    | 'shuffle';
+  name: 'loved' | 'playlists' | 'downloads' | 'uploads' | 'reciters';
   color: string;
   svg: (color: string) => string;
-  /** The source icon's viewBox; most are 24 x 24. */
-  viewBox?: string;
 }
 
 function playlistSvg(color: string): string {
@@ -102,15 +91,6 @@ const ICONS: IconSpec[] = [
     color: '#FF6B6B',
     svg: color => `<path d="${HEART_PATH}" fill="${color}"/>`,
   },
-  {
-    name: 'shuffle',
-    color: '#F59E0B',
-    // ShuffleIcon's 101 x 91 canvas, cropped square around the glyph so it
-    // carries the same visual weight as the 24 x 24 icons.
-    viewBox: '6 -1 90 90',
-    svg: color =>
-      `<path d="${SHUFFLE_PATH}" stroke="${color}" stroke-width="2" fill="${color}"/>`,
-  },
 ];
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -131,11 +111,7 @@ function composite(color: string, alpha: number, backdrop: string): string {
   );
 }
 
-function tileHtml(
-  background: string | null,
-  glyph: string,
-  viewBox = '0 0 24 24',
-): string {
+function tileHtml(background: string | null, glyph: string): string {
   const tile = background
     ? `background:${background};border-radius:${RADIUS}px;`
     : '';
@@ -143,8 +119,58 @@ function tileHtml(
 html,body{margin:0;padding:0;background:transparent;}
 #tile{width:${SIZE}px;height:${SIZE}px;display:flex;align-items:center;justify-content:center;${tile}}
 </style></head><body><div id="tile">
-<svg width="${GLYPH}" height="${GLYPH}" viewBox="${viewBox}" fill="none" xmlns="http://www.w3.org/2000/svg">${glyph}</svg>
+<svg width="${GLYPH}" height="${GLYPH}" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">${glyph}</svg>
 </div></body></html>`;
+}
+
+/**
+ * The phone's Random Recitation card art (FWRibbonBackground in
+ * components/hero/random-recitation/backgrounds.tsx): the same three ribbons,
+ * gradients and page colour, cropped square and zoomed in so they read at
+ * thumbnail size. Keep in sync with that component.
+ */
+function ribbonTileHtml(dark: boolean): string {
+  const o = (darkOpacity: number, lightOpacity: number): number =>
+    dark ? darkOpacity : lightOpacity;
+  const stops1 = [
+    ['0%', '#8b5cf6', o(0.4, 0.2)],
+    ['25%', '#ec4899', o(0.35, 0.15)],
+    ['50%', '#38bdf8', o(0.3, 0.15)],
+    ['75%', '#34d399', o(0.35, 0.15)],
+    ['100%', '#fbbf24', o(0.3, 0.15)],
+  ];
+  const stops2 = [
+    ['0%', '#34d399', o(0.2, 0.1)],
+    ['50%', '#8b5cf6', o(0.25, 0.12)],
+    ['100%', '#ec4899', o(0.2, 0.1)],
+  ];
+  // Thumbnails are small: the crop zooms in, and the ribbons are drawn as
+  // bands three times as thick with twice the opacity.
+  const stop = ([offset, color, opacity]: (string | number)[]): string =>
+    `<stop offset="${offset}" stop-color="${color}" stop-opacity="${Math.min(
+      1,
+      Number(opacity) * 2,
+    )}"/>`;
+  const svg = `<svg width="${SIZE}" height="${SIZE}" viewBox="45 0 80 80" xmlns="http://www.w3.org/2000/svg">
+<defs>
+<linearGradient id="rib1" x1="45" y1="0" x2="125" y2="0" gradientUnits="userSpaceOnUse">${stops1
+    .map(stop)
+    .join('')}</linearGradient>
+<linearGradient id="rib2" x1="45" y1="0" x2="125" y2="0" gradientUnits="userSpaceOnUse">${stops2
+    .map(stop)
+    .join('')}</linearGradient>
+</defs>
+<path d="M0 55 Q50 20, 100 40 T200 35 T300 50 T400 30" fill="none" stroke="url(#rib1)" stroke-width="9" opacity="0.9" stroke-linecap="round"/>
+<path d="M0 65 Q80 30, 150 50 T280 45 T400 60" fill="none" stroke="url(#rib2)" stroke-width="6" opacity="0.75" stroke-linecap="round"/>
+<path d="M0 45 Q60 70, 120 45 T240 55 T360 40 T400 50" fill="none" stroke="url(#rib1)" stroke-width="4" opacity="0.5" stroke-linecap="round"/>
+</svg>`;
+  return `<!doctype html><html><head><style>
+html,body{margin:0;padding:0;background:transparent;}
+#tile{width:${SIZE}px;height:${SIZE}px;overflow:hidden;border-radius:${RADIUS}px;background:${
+    dark ? '#111118' : '#f0eff5'
+  };}
+svg{display:block;}
+</style></head><body><div id="tile">${svg}</div></body></html>`;
 }
 
 async function render(page: Page, html: string): Promise<Buffer> {
@@ -209,12 +235,18 @@ async function main(): Promise<void> {
       const suffix = variant === 'light' ? '_light' : '';
       outputs.push({
         file: `car_icon_${icon.name}${suffix}.png`,
-        png: await render(
-          page,
-          tileHtml(background, icon.svg(icon.color), icon.viewBox),
-        ),
+        png: await render(page, tileHtml(background, icon.svg(icon.color))),
       });
     }
+  }
+  for (const [variant, dark] of [
+    ['dark', true],
+    ['light', false],
+  ] as const) {
+    outputs.push({
+      file: `car_icon_random${variant === 'light' ? '_light' : ''}.png`,
+      png: await render(page, ribbonTileHtml(dark)),
+    });
   }
   // White glyph on transparent, sized to sit on a full tile of a playlist's colour.
   outputs.push({

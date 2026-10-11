@@ -5,7 +5,7 @@ export type CarIconName =
   | 'downloads'
   | 'uploads'
   | 'reciters'
-  | 'shuffle'
+  | 'random'
   | 'playlist';
 
 export type CarArtwork =
