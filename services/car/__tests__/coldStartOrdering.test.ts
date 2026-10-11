@@ -152,10 +152,12 @@ jest.mock('@/utils/audioUtils', () => ({
 jest.mock('@/utils/artworkUtils', () => ({getReciterArtwork: () => ''}));
 
 const mockLoadTrack = jest.fn(async (_url: string): Promise<void> => undefined);
+let mockPlayerReady: Promise<void> = Promise.resolve();
 jest.mock('@/services/audio/ExpoAudioService', () => ({
   expoAudioService: {
     loadTrack: (url: string) => mockLoadTrack(url),
     seekTo: jest.fn(async () => undefined),
+    waitForPlayer: () => mockPlayerReady,
   },
 }));
 
@@ -194,6 +196,7 @@ describe('cold-start car request vs restoreSession', () => {
     mockConnectionListeners.length = 0;
     mockQueue.tracks = [];
     mockQueue.currentIndex = 0;
+    mockPlayerReady = Promise.resolve();
   });
 
   afterEach(() => {
@@ -239,6 +242,28 @@ describe('cold-start car request vs restoreSession', () => {
     resolveSnapshot();
     await jest.advanceTimersByTimeAsync(0);
     expect(mockMarkJsReady).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits for the audio player before flushing queued requests', async () => {
+    const {bridge, gate} = loadModules();
+    let attachPlayer: () => void = jest.fn();
+    mockPlayerReady = new Promise<void>(resolve => {
+      attachPlayer = resolve;
+    });
+    mockQueuedRequests.push(surahRequest);
+
+    bridge.startCarPlaybackBridge(Promise.resolve());
+    gate.markSessionRestored();
+    await jest.advanceTimersByTimeAsync(0);
+    // Snapshot and session are ready, but the phone layout has not attached
+    // the player yet (iOS CarPlay cold start).
+    expect(mockMarkJsReady).not.toHaveBeenCalled();
+    expect(mockUpdateQueue).not.toHaveBeenCalled();
+
+    attachPlayer();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockMarkJsReady).toHaveBeenCalledTimes(1);
+    expect(mockUpdateQueue).toHaveBeenCalledTimes(1);
   });
 
   it('times out a hung restore, and the late restore leaves the car queue alone', async () => {

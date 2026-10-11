@@ -11,6 +11,7 @@ import {
 } from '@/utils/track';
 import type {UploadedRecitation} from '@/types/uploads';
 import {lockScreenService} from '@/services/audio/LockScreenService';
+import {expoAudioService} from '@/services/audio/ExpoAudioService';
 import {startCarAyahTracker} from '@/services/car/carAyah';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {
@@ -42,6 +43,11 @@ import {
 const RATES = [1, 1.25, 1.5, 0.75];
 // A hung session restore must not block car requests forever.
 export const SESSION_RESTORE_TIMEOUT_MS = 5000;
+/**
+ * On iOS the player attaches when the phone layout renders, which can be
+ * after boot (fonts); a request flushed before that would fail to load.
+ */
+export const PLAYER_READY_TIMEOUT_MS = 10_000;
 
 export function nextRate(current: number): number {
   const index = RATES.indexOf(current);
@@ -342,8 +348,9 @@ export function startCarPlaybackBridge(
   ];
   pushNowPlaying();
   // Listeners are attached; only now let native flush queued cold-start
-  // requests, and only after the first snapshot exists to resolve against
-  // and the last session has been restored (or the restore timed out).
+  // requests, and only after the first snapshot exists to resolve against,
+  // the last session has been restored and a player is attached (or those
+  // timed out).
   let disposed = false;
   const markReady = (): void => {
     if (!disposed) BayaanCar.markJsReady();
@@ -351,6 +358,7 @@ export function startCarPlaybackBridge(
   Promise.all([
     snapshotReady.catch(() => undefined),
     waitForSessionRestored(SESSION_RESTORE_TIMEOUT_MS),
+    expoAudioService.waitForPlayer(PLAYER_READY_TIMEOUT_MS),
   ]).then(markReady, markReady);
   return () => {
     disposed = true;
