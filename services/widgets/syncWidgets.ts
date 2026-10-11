@@ -49,6 +49,33 @@ let sessionRestored = false;
 const artworkFailures = new Map<string, number>();
 const artworkInFlight = new Set<string>();
 
+type SnapshotListener = (
+  prev: WidgetSnapshot | null,
+  next: WidgetSnapshot,
+) => void;
+const snapshotListeners = new Set<SnapshotListener>();
+
+// Phase 3 widgets reload from the same written snapshots (syncContentWidgets).
+export function addSnapshotListener(listener: SnapshotListener): () => void {
+  snapshotListeners.add(listener);
+  return () => {
+    snapshotListeners.delete(listener);
+  };
+}
+
+function notifySnapshotListeners(
+  prev: WidgetSnapshot | null,
+  next: WidgetSnapshot,
+): void {
+  for (const listener of snapshotListeners) {
+    try {
+      listener(prev, next);
+    } catch (error) {
+      console.error('[WidgetSync] Snapshot listener failed:', error);
+    }
+  }
+}
+
 // Surah cards for every track, plus reciter photos as their fallback.
 function artworkJobs(snapshot: WidgetSnapshot): Map<string, string> {
   const jobs = new Map<string, string>();
@@ -111,7 +138,8 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
   timer = null;
   try {
     const next = buildSnapshot(collectSnapshotInput(new Date()));
-    const changed = changedWidgetKinds(lastSnapshot, next);
+    const prev = lastSnapshot;
+    const changed = changedWidgetKinds(prev, next);
     const kinds =
       forceContinueListening && !changed.includes('ContinueListening')
         ? [...changed, 'ContinueListening' as const]
@@ -120,6 +148,7 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
     writeSnapshot(next);
     reloadWidgets(kinds);
     lastSnapshot = next;
+    notifySnapshotListeners(prev, next);
     noteSnapshotForLiveActivity(next);
     // Artwork arrives async; rebuild once so the snapshot references the
     // files. The diff against lastSnapshot picks up the new artworkFile.

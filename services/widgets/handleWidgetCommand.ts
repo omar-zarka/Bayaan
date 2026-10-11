@@ -15,6 +15,19 @@ import {pendingRestoreLoad} from '@/services/player/utils/restoreSession';
 
 const DEFAULT_SURAH_FOR_RECITER = 1;
 
+export type ContentRunner = (
+  command: Extract<WidgetCommand, {type: 'playPlaylist' | 'startBedtime'}>,
+  playSurahFromStart: (reciter: Reciter, surahId: number) => Promise<boolean>,
+) => Promise<void>;
+
+// Registered by syncContentWidgets so this handler does not import the
+// playlist database or the ambient store itself.
+let contentRunner: ContentRunner | null = null;
+
+export function setContentCommandRunner(runner: ContentRunner): void {
+  contentRunner = runner;
+}
+
 export interface RecentMatch {
   reciterId: string;
   surahId: number;
@@ -181,15 +194,15 @@ function rewayatForSurah(
   ).id;
 }
 
-async function playSurah(
+export async function playSurah(
   reciter: Reciter,
   surahId: number,
   rewayatId: string | null,
   ayah: number | null,
   deps: CommandDeps,
-): Promise<void> {
+): Promise<boolean> {
   const surah = getSurahById(surahId);
-  if (!surah) return;
+  if (!surah) return false;
   const track = await createTrack(
     reciter,
     surah,
@@ -201,6 +214,7 @@ async function playSurah(
       ? (await deps.ayahStartSec(resolvedRewayat, surahId, ayah)) ?? 0
       : 0;
   await deps.playTracks([track], startSec);
+  return true;
 }
 
 // States where audio is playing or about to: a play request is a no-op.
@@ -277,6 +291,13 @@ export async function handleWidgetCommand(
       const surahId =
         deps.lastSurahForReciter(reciter.id) ?? DEFAULT_SURAH_FOR_RECITER;
       await playSurah(reciter, surahId, null, null, deps);
+      return;
+    }
+    case 'playPlaylist':
+    case 'startBedtime': {
+      await contentRunner?.(command, (reciter, surahId) =>
+        playSurah(reciter, surahId, null, null, deps),
+      );
       return;
     }
   }
