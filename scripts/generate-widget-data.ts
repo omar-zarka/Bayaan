@@ -11,6 +11,7 @@ import {surahGlyphMap} from '../utils/surahGlyphMap';
 import {
   buildStaticAyat,
   buildStaticSurahs,
+  buildSurahCatalogSwift,
 } from '../services/widgets/widgetStaticData';
 
 const root = path.resolve(__dirname, '..');
@@ -83,6 +84,10 @@ function main(): void {
       `${JSON.stringify(surahs)}\n`,
     );
   }
+  fs.writeFileSync(
+    path.join(root, 'targets/widgets/_shared/SurahCatalog.swift'),
+    buildSurahCatalogSwift(surahs),
+  );
   console.log(
     `[generate-widget-data] ${ayat.length} ayat, ${surahs.length} surahs`,
   );

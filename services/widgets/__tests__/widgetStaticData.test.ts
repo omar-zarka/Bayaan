@@ -4,6 +4,7 @@ import path from 'path';
 import {
   buildStaticAyat,
   buildStaticSurahs,
+  buildSurahCatalogSwift,
   cleanTranslation,
   parseVerseKey,
   AyahSources,
@@ -64,6 +65,36 @@ describe('buildStaticSurahs', () => {
   });
 });
 
+describe('buildSurahCatalogSwift', () => {
+  it('writes one escaped row per surah', () => {
+    const swift = buildSurahCatalogSwift(
+      buildStaticSurahs(
+        [
+          {id: 1, name: 'Al-Fatihah', translated_name_english: 'The Opener'},
+          {id: 2, name: 'Qaf', translated_name_english: 'The Letter "Qaf"'},
+        ],
+        {},
+      ),
+    );
+    expect(swift).toContain('static let all: [SurahName] = [');
+    expect(swift).toContain(
+      '    SurahName(id: 1, name: "Al-Fatihah", translatedName: "The Opener"),',
+    );
+    expect(swift).toContain('translatedName: "The Letter \\"Qaf\\""');
+  });
+
+  it('rejects control characters', () => {
+    expect(() =>
+      buildSurahCatalogSwift(
+        buildStaticSurahs(
+          [{id: 1, name: 'a\nb', translated_name_english: 'x'}],
+          {},
+        ),
+      ),
+    ).toThrow('control character');
+  });
+});
+
 describe('buildStaticAyat', () => {
   it('joins Digital Khatt words and cleans the translation', () => {
     const [a] = buildStaticAyat(['112:1'], sources());
@@ -120,6 +151,16 @@ describe('generated widget data', () => {
       expect(a.arabic.split(' ').pop()?.startsWith('۝')).toBe(true);
       expect(a.translation.length).toBeGreaterThan(0);
     }
+  });
+
+  it('SurahCatalog.swift matches surahs.json (run npm run generate:widget-data)', () => {
+    const surahs = readJson(iosSurahs) as StaticSurah[];
+    expect(
+      fs.readFileSync(
+        path.join(root, 'targets/widgets/_shared/SurahCatalog.swift'),
+        'utf8',
+      ),
+    ).toBe(buildSurahCatalogSwift(surahs));
   });
 
   it('lists all 114 surahs with the card file name contract', () => {

@@ -1,40 +1,7 @@
 // targets/widgets/Support/Entities.swift
+// SurahEntity lives in _shared/SurahEntity.swift (the app needs it for Siri).
 import AppIntents
 import Foundation
-
-struct SurahEntity: AppEntity {
-  static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Surah")
-  static var defaultQuery = SurahEntityQuery()
-
-  let id: Int
-  let name: String
-
-  var displayRepresentation: DisplayRepresentation {
-    DisplayRepresentation(title: "\(id). \(name)")
-  }
-
-  init(_ surah: StaticSurah) {
-    id = surah.id
-    name = surah.name
-  }
-}
-
-struct SurahEntityQuery: EntityStringQuery {
-  func entities(for identifiers: [Int]) async throws -> [SurahEntity] {
-    identifiers.compactMap { StaticData.surah($0).map(SurahEntity.init) }
-  }
-
-  func suggestedEntities() async throws -> [SurahEntity] {
-    StaticData.surahs.map(SurahEntity.init)
-  }
-
-  func entities(matching string: String) async throws -> [SurahEntity] {
-    let q = string.lowercased().trimmingCharacters(in: .whitespaces)
-    return StaticData.surahs.filter {
-      $0.name.lowercased().contains(q) || $0.translatedName.lowercased().contains(q) || String($0.id) == q
-    }.map(SurahEntity.init)
-  }
-}
 
 struct ReciterEntity: AppEntity {
   static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Reciter")
