@@ -5,7 +5,6 @@ import {useFonts} from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import * as SystemUI from 'expo-system-ui';
 import {usePlayerStore} from '@/services/player/store/playerStore';
-import {useDownloadStore} from '@/services/player/store/downloadStore';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import {SafeAreaProvider} from 'react-native-safe-area-context';
 import {
@@ -33,16 +32,12 @@ import {
   ReanimatedLogLevel,
 } from 'react-native-reanimated';
 import {preloadTajweedData} from '@/utils/tajweedLoader';
-import {appInitializer} from '@/services/AppInitializer';
+import {bootApp} from '@/services/appBoot';
 import {NetworkStatusMonitor} from '@/components/NetworkStatusMonitor';
 import {useNetworkMonitor} from '@/hooks/useNetworkMonitor';
 import {PostHogProvider, usePostHog} from 'posthog-react-native';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {ExpoAudioProvider} from '@/services/audio';
-import {expoAudioService} from '@/services/audio/ExpoAudioService';
-import {restoreSession} from '@/services/player/utils/restoreSession';
-import {markSessionRestored} from '@/services/car/sessionGate';
-import {getAllReciters} from '@/services/dataService';
 import {useShareIntent} from 'expo-share-intent';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {SheetManager} from 'react-native-actions-sheet';
@@ -61,11 +56,6 @@ configureReanimatedLogger({
 
 // Cache for expo-navigation-bar module (Android only)
 let NavigationBarModule: any = null;
-
-// Cold-start budget: if prepare() blows past this, fire a one-shot
-// 'slow-cold-start' Sentry message naming the phase it stalled in. prepare()
-// is gated by initializationRef, so this fires at most once per process.
-const SLOW_BOOT_THRESHOLD_MS = 8000;
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -251,71 +241,13 @@ function RootLayout() {
     }
 
     async function prepare() {
-      // Cold-start observability. Breadcrumb each boot phase so any later
-      // crash/ANR carries the boot trail, and fire a one-shot 'slow-cold-start'
-      // Sentry message if we blow past the budget — turning the otherwise-
-      // invisible splash-screen hang into a queryable signal that names the
-      // phase it stalled in.
-      let lastBootStep = 'start';
-      const markBoot = (step: string): void => {
-        lastBootStep = step;
-        Sentry.addBreadcrumb({category: 'boot', message: step, level: 'info'});
-      };
-      const slowBootWatchdog = setTimeout(() => {
-        Sentry.captureMessage('slow-cold-start', {
-          level: 'warning',
-          tags: {scope: 'cold-start', boot_step: lastBootStep},
-        });
-      }, SLOW_BOOT_THRESHOLD_MS);
       try {
-        markBoot('start');
-        if (__DEV__)
-          console.log('[App] Starting initialization with expo-audio...');
-
-        // Initialize expo-audio service
-        await expoAudioService.initialize();
-        markBoot('expo-audio-ready');
-        if (__DEV__) console.log('[App] expo-audio service initialized');
-
-        // Fetch reciter data from backend API (or fallback if killswitch active)
-        markBoot('catalog-fetch-start');
-        await getAllReciters();
-        markBoot('catalog-ready');
-        if (__DEV__) console.log('[App] Reciter data loaded');
-
-        // Initialize all SQLite services, adhkar, playlists, mushaf, fonts, stores, etc.
-        // This blocks splash screen so everything is ready when the user sees the app
-        await appInitializer.initialize();
-        markBoot('app-initializer-ready');
-        if (__DEV__) console.log('[App] AppInitializer complete');
-
-        // PRE-WARM: Initialize stores BEFORE first play to prevent cold start lag
-        try {
-          useDownloadStore.getState();
-          if (__DEV__) console.log('[App] Download store pre-warmed');
-
-          usePlayerStore.getState();
-          if (__DEV__) console.log('[App] Player store pre-warmed');
-        } catch (error) {
-          console.debug('[App] Failed to pre-warm stores:', error);
-        }
-
-        // Restore last session so floating player + lock screen show last track
-        try {
-          await restoreSession();
-          markBoot('session-restored');
-          if (__DEV__) console.log('[App] Session restored');
-        } catch (error) {
-          console.debug('[App] Failed to restore session:', error);
-        }
-        // Queued cold-start car requests wait for this before they run.
-        markSessionRestored();
+        await bootApp();
 
         // Mark app as ready
         setIsPlayerReady(true);
         setAppIsReady(true);
         initializationRef.current = true;
-        markBoot('ready');
         if (__DEV__) console.log('[App] Initialization complete');
       } catch (error) {
         console.error('[App] Preparation error:', error);
@@ -333,13 +265,10 @@ function RootLayout() {
         setIsPlayerReady(false);
         setAppIsReady(false);
         initializationRef.current = false;
-      } finally {
-        clearTimeout(slowBootWatchdog);
       }
     }
 
     prepare();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Set native root view background + configure Android navigation bar to match theme
