@@ -2,4 +2,6 @@
 <resources>
   <string name="bayaan_widget_continue_listening_label">Continue Listening</string>
   <string name="bayaan_widget_continue_listening_desc">Resume your recitation and see what plays next.</string>
+  <string name="bayaan_widget_quick_surah_label">Quick Surah</string>
+  <string name="bayaan_widget_quick_surah_desc">Play a favorite surah in one tap.</string>
 </resources>
