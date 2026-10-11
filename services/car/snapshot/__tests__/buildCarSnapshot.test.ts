@@ -108,6 +108,7 @@ function input(overrides: Partial<CarSnapshotInput> = {}): CarSnapshotInput {
     favoriteReciterIds: [],
     defaultReciterId: 'r1',
     recentTracks: [],
+    playCounts: [],
     lovedTracks: [],
     downloads: [],
     userPlaylists: [],
@@ -172,7 +173,10 @@ describe('buildCarSnapshot', () => {
     );
     expect(snap.version).toBe(1);
     expect(snap.home.quickStart).toEqual([]);
-    expect(snap.home.sections.map(s => s.id)).toEqual(['your-playlists']);
+    expect(snap.home.sections.map(s => s.id)).toEqual([
+      'more-from',
+      'your-playlists',
+    ]);
     expect(snap.library.map(i => i.id)).toEqual([
       'lib:loved',
       'lib:playlists',
@@ -539,7 +543,7 @@ describe('buildCarSnapshot', () => {
     );
     expect(snap.lists['system:p1']).toBeUndefined();
     expect(snap.lists.playlists.items).toEqual([]);
-    expect(snap.home.sections.map(s => s.id)).toEqual([]);
+    expect(snap.home.sections.map(s => s.id)).toEqual(['more-from']);
   });
 
   it('skips a situational playlist pick that resolves to no items', () => {
@@ -634,5 +638,60 @@ describe('buildCarSnapshot', () => {
       [4, 'Juz 4–29', [4]],
       [30, 'Juz 30', [78, 79]],
     ]);
+  });
+
+  it('builds On repeat from play counts with the reciter last played', () => {
+    const snap = buildCarSnapshot(
+      input({
+        recentTracks: [recent(sudais, 18, 1)],
+        playCounts: [
+          {surahId: 1, count: 1, lastPlayed: 5},
+          {surahId: 2, count: 3, lastPlayed: 1},
+          {surahId: 18, count: 3, lastPlayed: 9},
+        ],
+      }),
+    );
+    const section = snap.home.sections.find(s => s.id === 'on-repeat');
+    expect(section?.style).toBe('cards');
+    expect(section?.items.map(i => [i.id, i.subtitle, i.action])).toEqual([
+      [
+        'repeat:18',
+        'Sudais',
+        {
+          kind: 'play',
+          request: {
+            kind: 'surah',
+            reciterId: 'r2',
+            rewayatId: 'r2-hafs',
+            surahId: 18,
+          },
+        },
+      ],
+      [
+        'repeat:2',
+        'Sudais',
+        {
+          kind: 'play',
+          request: {
+            kind: 'surah',
+            reciterId: 'r2',
+            rewayatId: 'r2-hafs',
+            surahId: 2,
+          },
+        },
+      ],
+    ]);
+  });
+
+  it('offers well-known surahs by the top reciter that were not played recently', () => {
+    const snap = buildCarSnapshot(
+      input({recentTracks: [recent(sudais, 18, 0.5)]}),
+    );
+    const section = snap.home.sections.find(s => s.id === 'more-from');
+    expect(section?.title).toBe('More from Sudais');
+    const ids = section?.items.map(i => i.id) ?? [];
+    expect(ids).not.toContain('more:r2:18');
+    expect(ids.length).toBeGreaterThan(0);
+    expect(ids.every(id => id.startsWith('more:r2:'))).toBe(true);
   });
 });

@@ -8,6 +8,7 @@ import {SURAH_TO_JUZ} from '@/data/juzData';
 import {reciterImages} from '@/utils/reciterImages';
 import {formatReciterName} from '@/utils/artworkUtils';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+import {usePlayCountStore} from '@/store/playCountStore';
 import {useLovedStore} from '@/services/player/store/lovedStore';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {useFavoriteRecitersStore} from '@/services/player/store/favoriteRecitersStore';
@@ -113,6 +114,7 @@ export async function writeCarSnapshotNow(): Promise<void> {
     favoriteReciterIds: useFavoriteRecitersStore.getState().favoriteReciterIds,
     defaultReciterId: useReciterStore.getState().defaultReciter.id || null,
     recentTracks: context.recentTracks,
+    playCounts: usePlayCountStore.getState().playCounts,
     lovedTracks: context.lovedTracks,
     downloads: context.downloads,
     userPlaylists: usePlaylistsStore.getState().playlists,
@@ -214,6 +216,7 @@ export function startCarSnapshotService(): CarSnapshotService {
       recentTracksKey(s.recentTracks),
     ),
     scheduleOnChange(useLovedStore, s => s.tracks),
+    scheduleOnChange(usePlayCountStore, s => s.playCounts),
     scheduleOnChange(useDownloadStore, s => s.downloads),
     scheduleOnChange(useFavoriteRecitersStore, s => s.favoriteReciterIds),
     scheduleOnChange(usePlaylistsStore, s => s.playlists),

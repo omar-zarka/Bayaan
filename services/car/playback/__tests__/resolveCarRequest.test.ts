@@ -568,6 +568,7 @@ describe('resolveCarRequest index alignment with buildCarSnapshot', () => {
     favoriteReciterIds: [],
     defaultReciterId: 'r1',
     recentTracks: resolveCtx.recentTracks,
+    playCounts: [],
     lovedTracks: resolveCtx.lovedTracks,
     downloads: resolveCtx.downloads,
     userPlaylists: [

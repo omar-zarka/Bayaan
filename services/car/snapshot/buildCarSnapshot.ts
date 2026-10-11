@@ -17,6 +17,12 @@ import {
 } from '@/services/car/types';
 import {buildSituationalPicks, SituationalReciter} from './situational';
 import {
+  buildMoreFrom,
+  buildOnRepeat,
+  ReciterRewayahPick,
+  SurahPlayCount,
+} from './personalized';
+import {
   isCarRecent,
   playableUploads,
   uploadIdSet,
@@ -33,6 +39,8 @@ export interface CarSnapshotInput {
   favoriteReciterIds: string[];
   defaultReciterId: string | null;
   recentTracks: RecentlyPlayedTrack[];
+  /** Per-surah play counts (playCountStore). */
+  playCounts: SurahPlayCount[];
   lovedTracks: LovedTrack[];
   downloads: DownloadedSurah[];
   userPlaylists: UserPlaylist[];
@@ -486,6 +494,29 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   });
 
   const jumpBackIn = buildJumpBackIn(input);
+  const findPick = (
+    recentReciter: Reciter,
+    rewayatId: string,
+    surahId: number,
+  ): ReciterRewayahPick | null => {
+    const reciter =
+      input.reciters.find(r => r.id === recentReciter.id) ?? recentReciter;
+    const rewayat = findRewayat(reciter, rewayatId);
+    if (!rewayat || !availableSurahIds(rewayat).includes(surahId)) return null;
+    return {
+      reciterId: reciter.id,
+      rewayatId: rewayat.id,
+      reciterName: reciter.name,
+    };
+  };
+  const onRepeat = buildOnRepeat(
+    input.playCounts,
+    input.surahs,
+    input.recentTracks,
+    top,
+    findPick,
+  );
+  const moreFrom = buildMoreFrom(top, input.surahs, input.recentTracks);
   const loved = buildLovedList(input);
   const downloads = buildDownloadsList(input);
   const uploads = buildUploadsList(input);
@@ -520,6 +551,13 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
       title: 'Jump back in',
       style: 'rows',
       items: jumpBackIn,
+    },
+    {id: 'on-repeat', title: 'On repeat', style: 'cards', items: onRepeat},
+    {
+      id: 'more-from',
+      title: moreFrom.title,
+      style: 'cards',
+      items: moreFrom.items,
     },
     {
       id: 'your-reciters',
