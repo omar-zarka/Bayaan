@@ -20,6 +20,8 @@ export interface SituationalPlaylist {
   id: string;
   title: string;
   color: string;
+  /** Surahs the playlist plays with the top reciter. */
+  surahCount: number;
 }
 
 export interface SituationalContext {
@@ -62,8 +64,10 @@ function isNight(now: Date): boolean {
   return hour >= 21 || hour < 4;
 }
 
-// Card titles stay short (the surah or playlist) and the subtitle gives the
-// reason; the reciter shows on Now Playing once the pick plays.
+// Card titles say what plays (the surah or playlist). A surah's subtitle says
+// why now; a time-of-day playlist already names its moment, so its subtitle
+// gives its size. Subtitles stay under ten characters, the width a card shows
+// before truncating. The reciter shows on Now Playing once the pick plays.
 function surahPick(
   id: string,
   reciter: SituationalReciter,
@@ -89,18 +93,21 @@ function surahPick(
   };
 }
 
+export function surahCount(count: number): string {
+  return count === 1 ? '1 surah' : `${count} surahs`;
+}
+
 function playlistPick(
   id: string,
   playlists: SituationalPlaylist[],
   playlistId: string,
-  reason: string,
 ): CarItem | null {
   const playlist = playlists.find(p => p.id === playlistId);
   if (!playlist) return null;
   return {
     id,
     title: playlist.title,
-    subtitle: reason,
+    subtitle: surahCount(playlist.surahCount),
     artwork: {kind: 'icon', name: 'playlist', hex: playlist.color},
     action: {
       kind: 'play',
@@ -141,47 +148,25 @@ export function buildSituationalPicks(ctx: SituationalContext): CarItem[] {
   }
   if (isMorning(ctx.now)) {
     candidates.push(
-      playlistPick(
-        'now:morning',
-        ctx.systemPlaylists,
-        'morning-reflections',
-        'Morning',
-      ),
+      playlistPick('now:morning', ctx.systemPlaylists, 'morning-reflections'),
     );
   }
   if (isAfternoon(ctx.now)) {
     candidates.push(
-      playlistPick(
-        'now:afternoon',
-        ctx.systemPlaylists,
-        'quick-listen',
-        'Afternoon',
-      ),
+      playlistPick('now:afternoon', ctx.systemPlaylists, 'quick-listen'),
     );
   }
   if (isEvening(ctx.now)) {
     candidates.push(
-      playlistPick(
-        'now:evening',
-        ctx.systemPlaylists,
-        'evening-serenity',
-        'Evening',
-      ),
+      playlistPick('now:evening', ctx.systemPlaylists, 'evening-serenity'),
     );
   }
   if (isNight(ctx.now)) {
     if (reciter) {
-      candidates.push(
-        surahPick('now:mulk', reciter, MULK, 'Before sleep', ctx),
-      );
+      candidates.push(surahPick('now:mulk', reciter, MULK, 'Bedtime', ctx));
     }
     candidates.push(
-      playlistPick(
-        'now:evening',
-        ctx.systemPlaylists,
-        'evening-serenity',
-        'Evening',
-      ),
+      playlistPick('now:evening', ctx.systemPlaylists, 'evening-serenity'),
     );
   }
   candidates.push(upNextPick(ctx));

@@ -15,7 +15,11 @@ import {
   CarSnapshot,
   downloadKey,
 } from '@/services/car/types';
-import {buildSituationalPicks, SituationalReciter} from './situational';
+import {
+  buildSituationalPicks,
+  SituationalReciter,
+  surahCount,
+} from './situational';
 import {
   buildMoreFrom,
   buildOnRepeat,
@@ -77,10 +81,6 @@ export function normalizeSurahArtworkBase(raw: string | undefined): string {
 
 const ALL_SURAH_IDS = Array.from({length: 114}, (_, i) => i + 1);
 const JUMP_BACK_IN_LIMIT = 10;
-
-function surahCount(count: number): string {
-  return count === 1 ? '1 surah' : `${count} surahs`;
-}
 
 export function availableSurahIds(rewayat: Rewayat | undefined): number[] {
   if (!rewayat || rewayat.surah_list.length === 0) return [...ALL_SURAH_IDS];
@@ -491,6 +491,9 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
         id: p.id,
         title: p.title,
         color: p.backgroundColor,
+        surahCount:
+          nonEmptyLists.find(list => list.id === `system:${p.id}`)?.items
+            .length ?? 0,
       })),
     surahName: (id: number): string =>
       input.surahs.find(s => s.id === id)?.name ?? `Surah ${id}`,
@@ -541,8 +544,8 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   if (loved.items.length > 0) {
     forNow.push({
       id: 'now:shuffle-loved',
-      title: 'Shuffle Loved',
-      subtitle: surahCount(loved.items.length),
+      title: 'Loved',
+      subtitle: 'Shuffle',
       artwork: {kind: 'icon', name: 'loved'},
       action: {kind: 'play', request: {kind: 'loved', shuffle: true}},
     });

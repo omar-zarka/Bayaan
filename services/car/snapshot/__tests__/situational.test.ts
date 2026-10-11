@@ -20,9 +20,20 @@ function ctx(
         id: 'morning-reflections',
         title: 'Morning Reflections',
         color: '#F59E0B',
+        surahCount: 12,
       },
-      {id: 'evening-serenity', title: 'Evening Serenity', color: '#1E3A8A'},
-      {id: 'quick-listen', title: 'Quick Listen', color: '#10B981'},
+      {
+        id: 'evening-serenity',
+        title: 'Evening Serenity',
+        color: '#1E3A8A',
+        surahCount: 8,
+      },
+      {
+        id: 'quick-listen',
+        title: 'Quick Listen',
+        color: '#10B981',
+        surahCount: 1,
+      },
     ],
     surahName: (id: number): string => `Surah ${id}`,
     ...overrides,
@@ -93,20 +104,20 @@ describe('buildSituationalPicks', () => {
     expect(ids).toEqual(['now:mulk', 'now:evening']);
   });
 
-  it('titles each card by its surah or playlist and gives the reason below', () => {
+  it('titles each card by what plays; surahs say why now, playlists their size', () => {
     const night = buildSituationalPicks(ctx(sat2200)).map(p => [
       p.title,
       p.subtitle,
     ]);
     expect(night).toEqual([
-      ['Surah 67', 'Before sleep'],
-      ['Evening Serenity', 'Evening'],
+      ['Surah 67', 'Bedtime'],
+      ['Evening Serenity', '8 surahs'],
     ]);
     const morning = buildSituationalPicks(ctx(sat0800)).map(p => [
       p.title,
       p.subtitle,
     ]);
-    expect(morning).toEqual([['Morning Reflections', 'Morning']]);
+    expect(morning).toEqual([['Morning Reflections', '12 surahs']]);
     expect(buildSituationalPicks(ctx(sat0800))[0].artwork).toEqual({
       kind: 'icon',
       name: 'playlist',
@@ -210,7 +221,7 @@ describe('buildSituationalPicks', () => {
     const afternoon = buildSituationalPicks(ctx(at1659));
     expect(afternoon.map(p => p.id)).toEqual(['now:afternoon']);
     expect(afternoon[0].title).toBe('Quick Listen');
-    expect(afternoon[0].subtitle).toBe('Afternoon');
+    expect(afternoon[0].subtitle).toBe('1 surah');
     expect(afternoon[0].action).toEqual({
       kind: 'play',
       request: {kind: 'playlist', playlistId: 'quick-listen', system: true},

@@ -107,7 +107,8 @@ function recent(r: Reciter, s: number, progress: number): RecentlyPlayedTrack {
 
 function input(overrides: Partial<CarSnapshotInput> = {}): CarSnapshotInput {
   return {
-    now: new Date(2026, 9, 10, 14, 0), // Saturday afternoon: no time rules
+    // Saturday afternoon: only the afternoon pick, which needs Quick Listen.
+    now: new Date(2026, 9, 10, 14, 0),
     reciters: [mishary, sudais],
     surahs,
     favoriteReciterIds: [],
@@ -229,7 +230,7 @@ describe('buildCarSnapshot', () => {
     expect(forNow(snap).find(i => i.id === 'now:resume')).toBeUndefined();
   });
 
-  it('leads For right now with Resume and ends it with Shuffle Loved', () => {
+  it('leads For right now with Resume and ends it with Loved on shuffle', () => {
     const snap = buildCarSnapshot(
       input({
         recentTracks: [recent(mishary, 1, 0.1)],
@@ -241,7 +242,7 @@ describe('buildCarSnapshot', () => {
     const ids = forNow(snap).map(i => i.id);
     expect(ids[0]).toBe('now:resume');
     expect(ids[ids.length - 1]).toBe('now:shuffle-loved');
-    expect(forNow(snap)[ids.length - 1].subtitle).toBe('1 surah');
+    expect(forNow(snap)[ids.length - 1].subtitle).toBe('Shuffle');
     expect(snap.home.sections[0].id).toBe('for-now');
   });
 
@@ -532,6 +533,19 @@ describe('buildCarSnapshot', () => {
       }),
     );
     expect(snap.lists['system:p1'].items.map(i => i.id)).toEqual(['sys:p1:18']);
+  });
+
+  it('sizes a time-of-day playlist card by what the top reciter can play', () => {
+    const snap = buildCarSnapshot(
+      input({
+        recentTracks: [recent(sudais, 1, 0.1)],
+        systemPlaylists: [
+          systemPlaylist('quick-listen', [{surahId: 3}, {surahId: 18}]),
+        ],
+      }),
+    );
+    const card = forNow(snap).find(i => i.id === 'now:afternoon');
+    expect(card?.subtitle).toBe('1 surah');
   });
 
   it('leaves out playlists that resolve to no items', () => {
