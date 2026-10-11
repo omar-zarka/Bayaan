@@ -55,6 +55,8 @@ object WidgetColors {
 
 object WidgetSizes {
   val SMALL = DpSize(110.dp, 110.dp)
+  /** A 2x2 cell is often ~180 dp tall; without this bucket it renders at 110 dp and clips tall text. */
+  val SMALL_TALL = DpSize(110.dp, 180.dp)
   val MEDIUM = DpSize(250.dp, 110.dp)
   val LARGE = DpSize(250.dp, 250.dp)
 }
