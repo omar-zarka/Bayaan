@@ -13,7 +13,7 @@ Two earlier widget attempts never shipped because they did not look or feel righ
 - Several widgets showed data with nothing to do (e.g. Listening Stats).
 - Only home screen widgets were considered, ignoring Lock Screen, Live Activities, Control Center and Siri.
 
-Starting point is Apple Podcasts: artwork is the hero, the background is tinted from the artwork, and every widget either does something in one tap or is worth a two second glance. Bayaan extends that with its own content: reciter photos, Digital Khatt calligraphy and the mushaf.
+Starting point is Apple Podcasts: artwork is the hero on a dark surface, and every widget either does something in one tap or is worth a two second glance. Bayaan extends that with its own content: reciter photos, Digital Khatt calligraphy and the mushaf.
 
 ### Design principles
 
@@ -62,7 +62,7 @@ modules/bayaan-widgets/            local Expo module (autolinked)
                                    addCommandListener, drainCommands, consumeTasbeehIncrements
   src/__fixtures__/                JSON fixtures shared with Swift and Kotlin tests
   ios/                             Swift: App Group writer, WidgetCenter reload,
-                                   command queue observer, artwork color extraction
+                                   command queue observer, artwork cache
   android/                         Kotlin: SharedPreferences writer, Glance widgets,
                                    receivers, configuration activities, Media3 controller
 targets/widgets/                   apple-targets widget extension
@@ -128,13 +128,13 @@ The exact field list is settled in the implementation plan; the shape above is b
 
 ```ts
 type WidgetCommand =
-  | { type: 'togglePlayback' }
+  | { type: 'setPlayback'; playing: boolean }       // absolute target, from the rendered state
   | { type: 'playTrack'; surahId: number; reciterId?: string; rewayatId?: string; ayah?: number }
   | { type: 'playReciter'; reciterId: string };   // resume last surah with reciter
 ```
 
 - **iOS:** buttons use `AudioPlaybackIntent`s defined in `targets/_shared/`, so `perform()` runs in the app process. The intent appends the command to a persisted queue in the App Group and posts a notification. If JS is alive, the module observes it and emits `onWidgetCommand`. If not, the app launches and `drainCommands()` runs once the player is mounted.
-- **Android:** play/pause/next go through a Media3 `MediaController` bound to expo-audio's `AudioControlsService` when a session is alive. Otherwise the widget enqueues the command and launches the app via `PendingIntent`.
+- **Android:** every tap starts a translucent `WidgetCommandActivity` (`PendingIntent.getActivity`), because a broadcast receiver cannot open the app on Android 14+. For `setPlayback`, it writes the optimistic override, then enqueues in place when JS is alive, else drives a Media3 `MediaController` bound to expo-audio's `AudioControlsService` when a session is loaded, else enqueues and opens the app. Other commands enqueue and open the app.
 - Queued commands older than 60 s are dropped on drain.
 - Widgets render play/pause optimistically after a tap.
 - The player is currently created inside the `ExpoAudioProvider` component (`useAudioPlayer(null)`), so cold starts must wait for mount. `drainCommands` is called from `ExpoAudioProvider` after the player is ready. Moving player creation to module scope is out of scope here (tracked with RFC-005) but would shorten cold-start latency.
@@ -165,7 +165,7 @@ App Group id, bundle identifiers, URL scheme and widget display names come from 
 
 ## 5. Phase 1 widgets
 
-All widgets support light and dark. iOS families listed; Android equivalents are resizable Glance widgets with the same layouts at the nearest size buckets.
+All widgets support light and dark, except Continue Listening, which is always dark like the Podcasts and Spotify widgets. iOS families listed; Android equivalents are resizable Glance widgets with the same layouts at the nearest size buckets.
 
 ### 5.1 Continue Listening (small, medium, large)
 
@@ -248,12 +248,12 @@ Lock Screen taps open the app (deep link); no in-place actions. Android has no L
 
 - **Empty states:** every widget has a meaningful default (5.1, 5.5, 5.6).
 - **Cold start from a button:** queued, app launched, drained after player mount; 60 s expiry; optimistic UI.
-- **Missing artwork:** bundled reciter image, then neutral tile with initials; tint falls back to theme.
+- **Missing artwork:** bundled reciter image, then neutral tile with initials.
 - **Schema mismatch:** native decoders that fail keep the last good snapshot, else the default state.
 - **User uploads:** shown in Continue Listening, excluded from pickers.
 - **Rewayah:** `rewayatId` carried through every command.
 - **Android update budget:** no reliance on `updatePeriodMillis`; updates are pushed by the app; midnight alarm for Ayah of the Day.
-- **Theme:** widgets follow the app's theme setting when explicit, else system.
+- **Theme:** widgets follow the app's theme setting when explicit, else system. Continue Listening is the exception (always dark).
 
 ## 8. Testing
 

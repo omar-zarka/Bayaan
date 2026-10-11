@@ -14,6 +14,7 @@ const mockReciterById = jest.fn();
 const mockCommandRemove = jest.fn();
 const mockAppStateRemove = jest.fn();
 let mockAppStateCurrent = 'active';
+let mockPlatformOS = 'android';
 const mockUnsubs: jest.Mock[] = [];
 const mockCallbacks: Array<() => void> = [];
 const mockSubscribe = jest.fn((cb: () => void) => {
@@ -43,8 +44,17 @@ jest.mock('react-native', () => {
       return mockAppStateCurrent;
     },
   };
+  const platform = {
+    get OS(): string {
+      return mockPlatformOS;
+    },
+  };
   return new Proxy(actual, {
-    get: (target, prop) => (prop === 'AppState' ? appState : target[prop]),
+    get: (target, prop) => {
+      if (prop === 'AppState') return appState;
+      if (prop === 'Platform') return platform;
+      return target[prop];
+    },
   });
 });
 jest.mock('@/services/player/store/playerStore', () => ({
@@ -255,6 +265,7 @@ describe('widget snapshot flush', () => {
     mockCommandRemove.mockClear();
     mockAppStateRemove.mockClear();
     mockAppStateCurrent = 'active';
+    mockPlatformOS = 'android';
     jest.spyOn(console, 'error').mockImplementation(() => undefined);
     jest.mocked(console.error).mockClear();
   });
@@ -272,7 +283,18 @@ describe('widget snapshot flush', () => {
     stop();
   });
 
-  it('flushes at once while the app is not active (timers may be paused)', () => {
+  it('keeps the debounce in the background on iOS, where timers run', () => {
+    mockAppStateCurrent = 'background';
+    mockPlatformOS = 'ios';
+    const sync = loadModule();
+    const stop = sync.startWidgetSync();
+    expect(mockWriteSnapshot).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1000);
+    expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
+    stop();
+  });
+
+  it('flushes at once in the background on Android (timers are paused)', () => {
     mockAppStateCurrent = 'background';
     const sync = loadModule();
     const stop = sync.startWidgetSync();

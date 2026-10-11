@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
@@ -33,6 +34,11 @@ class WidgetCommandActivity : Activity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    // Recreated after a configuration change: the first instance already ran it.
+    if (savedInstanceState != null) {
+      finish()
+      return
+    }
     val raw = intent.getStringExtra(EXTRA_COMMAND)
     val command = raw?.let { runCatching { JSONObject(it) }.getOrNull() }
     if (command == null) {
@@ -46,7 +52,12 @@ class WidgetCommandActivity : Activity() {
         // nothing else to do; the widget re-renders on the next snapshot
       } finally {
         finish()
-        overridePendingTransition(0, 0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+          overrideActivityTransition(OVERRIDE_TRANSITION_CLOSE, 0, 0)
+        } else {
+          @Suppress("DEPRECATION")
+          overridePendingTransition(0, 0)
+        }
       }
     }
   }

@@ -137,19 +137,24 @@ struct PlayPill: View {
     } else if !track.isUserUpload && track.surahId != 0 {
       Button(intent: PlayTrackIntent(surahId: track.surahId, reciterId: track.reciterId,
                                      rewayatId: track.rewayatId)) {
-        label(isPlaying: false) { Text("Play") }
+        // The "Play" text already names the button.
+        label(isPlaying: false, glyphHidden: true) { Text("Play") }
       }
       .buttonStyle(.plain)
     }
   }
 
-  private func label<Content: View>(isPlaying: Bool, @ViewBuilder text: () -> Content) -> some View {
+  private func label<Content: View>(
+    isPlaying: Bool, glyphHidden: Bool = false, @ViewBuilder text: () -> Content
+  ) -> some View {
     HStack(spacing: 5) {
-      PlayPauseGlyph(isPlaying: isPlaying)
+      PlayPauseGlyph(isPlaying: isPlaying).accessibilityHidden(glyphHidden)
       text()
     }
     .font(.caption.weight(.semibold))
     .lineLimit(1)
+    // "1h 58m left" on the narrowest widgets.
+    .minimumScaleFactor(0.85)
     .foregroundStyle(.white)
     .padding(.horizontal, 10)
     .frame(height: 26)
@@ -173,7 +178,8 @@ struct TimeLeft: View {
         Text(timerInterval: Date.now...max(p.end, .now), countsDown: true)
           .monospacedDigit()
           .frame(maxWidth: p.remainingWallSec >= 3600 ? 58 : 40)
-      } else {
+      } else if p.remainingWallSec >= 1 {
+        // A finished track shows no time left.
         Text(minutesLeftLabel(p.remainingWallSec))
       }
     }
@@ -214,16 +220,17 @@ struct SmallView: View {
   let playback: EffectivePlayback?
 
   var body: some View {
-    VStack(alignment: .leading, spacing: 4) {
+    // Fits the 120 pt content height of the smallest phones.
+    VStack(alignment: .leading, spacing: 3) {
       HStack(alignment: .top) {
-        Artwork(file: track.artworkFile, size: 44)
+        Artwork(file: track.artworkFile, size: 40)
         Spacer(minLength: 0)
         BayaanLogo(size: 14)
       }
       Spacer(minLength: 0)
       Text(track.surahName).font(.headline).lineLimit(1)
       Text(track.reciterName).font(.caption).opacity(0.75).lineLimit(1)
-      PlaybackProgress(playback: playback).padding(.vertical, 2)
+      PlaybackProgress(playback: playback)
       PlayPill(track: track, playback: playback)
     }
     .foregroundStyle(.white)
@@ -239,12 +246,13 @@ struct MediumView: View {
 
   var body: some View {
     HStack(spacing: 14) {
-      // Fits the 130 pt content height: art and pill share the top row.
+      // Fits the 130 pt content height: art and pill share the top row. The
+      // pill wins the width so "1h 58m left" and hour countdowns stay whole.
       VStack(alignment: .leading, spacing: 4) {
         HStack(alignment: .bottom, spacing: 6) {
-          Artwork(file: track.artworkFile, size: 52)
+          Artwork(file: track.artworkFile, size: 44)
           Spacer(minLength: 0)
-          PlayPill(track: track, playback: playback)
+          PlayPill(track: track, playback: playback).layoutPriority(1)
         }
         Spacer(minLength: 0)
         Text(track.surahName).font(.headline).lineLimit(1)

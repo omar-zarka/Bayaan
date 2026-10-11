@@ -54,6 +54,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import expo.modules.bayaanwidgets.OverrideExpiryWorker
 import expo.modules.bayaanwidgets.WidgetCommandActivity
 import expo.modules.bayaanwidgets.PlaybackOverride
 import expo.modules.bayaanwidgets.PlaybackState
@@ -123,6 +124,21 @@ class ContinueListeningWidget : GlanceAppWidget() {
           prefs[PUSHED_AT_KEY] = System.currentTimeMillis()
         }
         ContinueListeningWidget().update(context, id)
+      }
+      syncTrackEndRefresh(context, json, override)
+    }
+
+    /** Schedules a re-render at the computed track end while playing, else cancels it. */
+    fun syncTrackEndRefresh(context: Context, json: String?, overrideJson: String?) {
+      val snapshot = json?.let { SnapshotModels.decode(it) }
+      val np = snapshot?.nowPlaying
+      val playback = np?.let {
+        PlaybackState.effective(it, snapshot.generatedAt, PlaybackState.decodeOverride(overrideJson), System.currentTimeMillis())
+      }
+      if (playback?.isPlaying == true) {
+        OverrideExpiryWorker.scheduleTrackEnd(context, (playback.remainingWallSec * 1000).toLong() + 1_000)
+      } else {
+        OverrideExpiryWorker.cancelTrackEnd(context)
       }
     }
   }
@@ -254,16 +270,19 @@ class ContinueListeningWidget : GlanceAppWidget() {
         ),
       verticalAlignment = Alignment.CenterVertically,
     ) {
+      val remaining = hero.remainingSec
+      val showsPlayText = remaining == null && !hero.hasNowPlaying
       Image(
         ImageProvider(if (hero.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
-        contentDescription = if (hero.isPlaying) "Pause" else "Play",
+        // The "Play" text already says it.
+        contentDescription = if (showsPlayText) null else if (hero.isPlaying) "Pause" else "Play",
         modifier = GlanceModifier.size(16.dp),
       )
       Spacer(GlanceModifier.width(4.dp))
-      val remaining = hero.remainingSec
       when {
-        remaining == null && !hero.hasNowPlaying -> PillText("Play")
-        remaining == null -> Unit
+        showsPlayText -> PillText("Play")
+        // Nothing left to count (a finished track).
+        remaining == null || remaining < 1 -> Unit
         // Counts down on its own between pushes.
         hero.isPlaying -> AndroidRemoteViews(
           RemoteViews(context.packageName, R.layout.bayaan_widget_countdown).apply {

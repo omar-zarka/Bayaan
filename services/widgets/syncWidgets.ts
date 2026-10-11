@@ -1,5 +1,5 @@
 // services/widgets/syncWidgets.ts
-import {AppState} from 'react-native';
+import {AppState, Platform} from 'react-native';
 import {
   changedWidgetKinds,
   isWidgetsAvailable,
@@ -111,8 +111,9 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
 // not reset it, so continuous updates (playback ticks) still flush every
 // DEBOUNCE_MS. Android pauses JS timers while the app is backgrounded, so
 // flush right away then; changedWidgetKinds keeps playback ticks from writing.
+// iOS keeps timers running during background audio, so it keeps the throttle.
 function schedule(): void {
-  if (AppState.currentState === 'background') {
+  if (Platform.OS === 'android' && AppState.currentState === 'background') {
     flushWidgetSnapshot();
     return;
   }

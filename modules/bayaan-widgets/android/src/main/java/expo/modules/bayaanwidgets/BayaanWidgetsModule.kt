@@ -12,12 +12,22 @@ class BayaanWidgetsModule : Module() {
   private val context: Context
     get() = requireNotNull(appContext.reactContext) { "React context unavailable" }
 
+  private val commandListener: () -> Unit = { sendEvent("onCommandQueued", emptyMap<String, Any>()) }
+
+  /** Leaves a listener set by a newer module instance in place. */
+  private fun clearCommandListener() {
+    if (WidgetStorage.onCommandQueued === commandListener) WidgetStorage.onCommandQueued = null
+  }
+
   override fun definition() = ModuleDefinition {
     Name("BayaanWidgets")
     Events("onCommandQueued")
 
-    OnStartObserving { WidgetStorage.onCommandQueued = { sendEvent("onCommandQueued", emptyMap<String, Any>()) } }
-    OnStopObserving { WidgetStorage.onCommandQueued = null }
+    OnStartObserving { WidgetStorage.onCommandQueued = commandListener }
+    OnStopObserving { clearCommandListener() }
+    // A torn-down runtime may skip OnStopObserving; the activity reads a set
+    // listener as "JS is alive".
+    OnDestroy { clearCommandListener() }
 
     Function("writeSnapshot") { json: String -> WidgetStorage.writeSnapshot(context, json) }
 
