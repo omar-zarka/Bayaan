@@ -175,17 +175,18 @@ All widgets support light and dark, except Continue Listening, which is always d
 │ ┌────┐    ▶  │      │ ┌──────┐ Al-Kahf     │ ▪ Yasin    │
 │ │art │       │      │ │ art  │ Alafasi     │ ▪ Al-Mulk  │
 │ └────┘       │      │ └──────┘ ▶  ━━━━──   │ ▪ Ar-Rahman│
-│ Al-Kahf      │      │          12 min left │            │
-│ Alafasi·12m  │      └─────────────────────────────────┘
+│ Al-Kahf      │      └─────────────────────────────────┘
+│ ▶ ━━━━──     │
 └──────────────┘
 ```
 
 - Fixed near-black background on every size; the Bayaan mark sits in the top-right corner.
-- Progress on every size: a thin Spotify-style bar on a faint track plus a Podcasts-style play pill showing time left ("47m left", "1h 58m left").
-- Small: the play pill toggles in place; any other tap opens `bayaan://player`.
+- Artwork is the surah card shared with CarPlay and Android Auto (`https://cdn.thebayaan.com/assets/car/surah/{id}.png`, dark variant), cached as `surah-{id}.jpg`. Until a card is cached, and for uploads, the reciter photo shows instead.
+- Progress on every size: a thin Spotify-style bar on a faint track beside a round play/pause button. No time-left text (user decision, 2026-10-10).
+- Small: the play button toggles in place; any other tap opens `bayaan://player`.
 - Medium: right column shows `upNext`, falling back to `recent`. Tapping a row sends `playTrack`.
-- Large: current item header, play pill beside the progress bar, then up to 4 `upNext` rows (falling back to `recent`).
-- iOS time left uses `Text(timerInterval:)` / `ProgressView(timerInterval:)` while playing, so it animates without timeline reloads. Android counts time left down live with an embedded `Chronometer`; its progress bar is a static value refreshed on state change.
+- Large: current item header, play button beside the progress bar, then up to 4 `upNext` rows (falling back to `recent`).
+- iOS animates the bar with `ProgressView(timerInterval:)` while playing, without timeline reloads. Android's bar is a static value refreshed on state change, and the widget re-renders at the computed track end so the button flips back to play.
 - Empty state: surah of the day (existing day-of-year logic in `ContinueReadingHero.tsx`, extracted to a util) with the default reciter.
 
 ### 5.2 Quick Surah (small, medium; configurable)
