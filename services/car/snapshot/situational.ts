@@ -93,8 +93,14 @@ function surahPick(
   };
 }
 
+/** "1 surah", "3 playlists", or "None yet" for an empty collection. */
+export function countOf(count: number, singular: string): string {
+  if (count === 0) return 'None yet';
+  return count === 1 ? `1 ${singular}` : `${count} ${singular}s`;
+}
+
 export function surahCount(count: number): string {
-  return count === 1 ? '1 surah' : `${count} surahs`;
+  return countOf(count, 'surah');
 }
 
 function playlistPick(

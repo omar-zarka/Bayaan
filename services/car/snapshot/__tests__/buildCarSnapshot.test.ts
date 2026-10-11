@@ -189,6 +189,13 @@ describe('buildCarSnapshot', () => {
       'lib:uploads',
       'lib:favorite-reciters',
     ]);
+    expect(snap.library.map(i => i.subtitle)).toEqual([
+      'None yet',
+      '1 playlist',
+      'None yet',
+      'None yet',
+      'None yet',
+    ]);
   });
 
   it('uses the most recent reciter as top reciter, else the default', () => {

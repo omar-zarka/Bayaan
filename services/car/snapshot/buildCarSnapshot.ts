@@ -17,6 +17,7 @@ import {
 } from '@/services/car/types';
 import {
   buildSituationalPicks,
+  countOf,
   SituationalReciter,
   surahCount,
 } from './situational';
@@ -600,30 +601,35 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
     {
       id: 'lib:loved',
       title: 'Loved',
+      subtitle: surahCount(loved.items.length),
       artwork: {kind: 'icon', name: 'loved'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'loved'}},
     },
     {
       id: 'lib:playlists',
       title: 'Playlists',
+      subtitle: countOf(playlists.length, 'playlist'),
       artwork: {kind: 'icon', name: 'playlists'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'playlists'}},
     },
     {
       id: 'lib:downloads',
       title: 'Downloads',
+      subtitle: surahCount(downloads.items.length),
       artwork: {kind: 'icon', name: 'downloads'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'downloads'}},
     },
     {
       id: 'lib:uploads',
       title: 'Uploads',
+      subtitle: countOf(uploads.items.length, 'recitation'),
       artwork: {kind: 'icon', name: 'uploads'},
       action: {kind: 'browse', target: {kind: 'list', listId: 'uploads'}},
     },
     {
       id: 'lib:favorite-reciters',
       title: 'Favorite reciters',
+      subtitle: countOf(favoriteReciters.length, 'reciter'),
       artwork: {kind: 'icon', name: 'reciters'},
       action: {
         kind: 'browse',
