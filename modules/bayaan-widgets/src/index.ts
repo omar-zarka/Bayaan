@@ -8,6 +8,11 @@ import {
   parseArtworkRequests,
   type WidgetArtworkRequests,
 } from './artworkRequests';
+import {
+  isActivityStartResult,
+  type ActivityStartResult,
+  type NowPlayingActivityState,
+} from './liveActivity';
 import {parsePendingTasbeeh, type PendingTasbeeh} from './tasbeeh';
 
 export * from './snapshot';
@@ -69,4 +74,36 @@ export function addWidgetCommandListener(listener: () => void): {
   if (!NativeBayaanWidgets) return {remove: () => undefined};
   const sub = NativeBayaanWidgets.addListener('onCommandQueued', listener);
   return {remove: () => sub.remove()};
+}
+
+export function isLiveActivitySupported(): boolean {
+  return NativeBayaanWidgets?.isLiveActivitySupported?.() ?? false;
+}
+
+export async function startNowPlayingActivity(
+  state: NowPlayingActivityState,
+  staleAt: number,
+): Promise<ActivityStartResult> {
+  const native = NativeBayaanWidgets;
+  if (!native?.startNowPlayingActivity) return 'unavailable';
+  const result: unknown = await native.startNowPlayingActivity(
+    JSON.stringify(state),
+    staleAt,
+  );
+  return isActivityStartResult(result) ? result : 'error';
+}
+
+export async function updateNowPlayingActivity(
+  state: NowPlayingActivityState,
+  staleAt: number,
+): Promise<boolean> {
+  const native = NativeBayaanWidgets;
+  if (!native?.updateNowPlayingActivity) return false;
+  return native.updateNowPlayingActivity(JSON.stringify(state), staleAt);
+}
+
+export async function endNowPlayingActivities(): Promise<void> {
+  const native = NativeBayaanWidgets;
+  if (!native?.endNowPlayingActivities) return;
+  await native.endNowPlayingActivities();
 }

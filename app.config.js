@@ -47,6 +47,7 @@ module.exports = {
         : {}),
       infoPlist: {
         BayaanAppGroup: `group.${IOS_BUNDLE_ID}`,
+        NSSupportsLiveActivities: true,
         NSMicrophoneUsageDescription:
           'This app uses the microphone to play audio.',
         NSAppleMusicUsageDescription:

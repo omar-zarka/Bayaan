@@ -74,6 +74,8 @@
 	<string>This app uses the microphone to play audio.</string>
 	<key>NSPrivacyPolicyURL</key>
 	<string>https://thebayaan.com/privacy</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>NSUserActivityTypes</key>
 	<array>
 		<string>$(PRODUCT_BUNDLE_IDENTIFIER).expo.index_route</string>

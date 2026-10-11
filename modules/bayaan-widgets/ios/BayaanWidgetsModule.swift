@@ -79,6 +79,20 @@ public class BayaanWidgetsModule: Module {
     Function("takeQueuedCommands") { () -> String in takeString("widgets.commandQueue") }
     Function("takePendingTasbeeh") { () -> String in takeString("widgets.pendingTasbeeh") }
 
+    Function("isLiveActivitySupported") { () -> Bool in NowPlayingActivityBridge.isSupported }
+
+    AsyncFunction("startNowPlayingActivity") { (json: String, staleAtMs: Double) async -> String in
+      await NowPlayingActivityBridge.start(json, staleAtMs: staleAtMs)
+    }
+
+    AsyncFunction("updateNowPlayingActivity") { (json: String, staleAtMs: Double) async -> Bool in
+      await NowPlayingActivityBridge.update(json, staleAtMs: staleAtMs)
+    }
+
+    AsyncFunction("endNowPlayingActivities") { () async in
+      await NowPlayingActivityBridge.endAll()
+    }
+
     Function("writeCatalog") { (json: String) in
       guard let dir = widgetsDir() else { return }
       try? json.data(using: .utf8)?.write(
