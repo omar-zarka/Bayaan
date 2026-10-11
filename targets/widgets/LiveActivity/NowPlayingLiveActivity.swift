@@ -1,6 +1,7 @@
 // targets/widgets/LiveActivity/NowPlayingLiveActivity.swift
 import ActivityKit
 import AppIntents
+import ImageIO
 import SwiftUI
 import WidgetKit
 
@@ -19,7 +20,7 @@ struct NowPlayingLiveActivity: Widget {
       let state = context.state
       return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
-          Artwork(file: state.artworkFile, size: 52).padding(.leading, 4)
+          ActivityArtwork(file: state.artworkFile, size: 52).padding(.leading, 4)
         }
         DynamicIslandExpandedRegion(.center) {
           ActivityTitles(state: state)
@@ -36,7 +37,7 @@ struct NowPlayingLiveActivity: Widget {
           }
         }
       } compactLeading: {
-        Artwork(file: state.artworkFile, size: 22)
+        ActivityArtwork(file: state.artworkFile, size: 22)
       } compactTrailing: {
         CompactProgress(state: state)
       } minimal: {
@@ -54,7 +55,7 @@ struct NowPlayingLockScreenView: View {
   var body: some View {
     VStack(spacing: 10) {
       HStack(spacing: 12) {
-        Artwork(file: state.artworkFile, size: 56)
+        ActivityArtwork(file: state.artworkFile, size: 56)
         ActivityTitles(state: state)
         ActivityPlayButton(state: state)
       }
@@ -67,6 +68,43 @@ struct NowPlayingLockScreenView: View {
     .overlay(alignment: .topTrailing) {
       BayaanLogo(size: 12).padding(8)
     }
+  }
+}
+
+/// Surah card for the activity. The cached cards are 900 px; the system drops
+/// images that large from a Live Activity (the tile renders empty), so decode
+/// a thumbnail at the size shown instead.
+struct ActivityArtwork: View {
+  let file: String?
+  let size: CGFloat
+
+  var body: some View {
+    Group {
+      if let image = Self.thumbnail(file, maxPixels: size * 3) {
+        Image(uiImage: image).resizable()
+      } else {
+        RoundedRectangle(cornerRadius: size * 0.16).fill(.white.opacity(0.15))
+      }
+    }
+    .aspectRatio(1, contentMode: .fill)
+    .frame(width: size, height: size)
+    .clipShape(RoundedRectangle(cornerRadius: size * 0.16, style: .continuous))
+  }
+
+  static func thumbnail(_ file: String?, maxPixels: CGFloat) -> UIImage? {
+    guard let file, let dir = BayaanAppGroup.widgetsDir else { return nil }
+    let url = dir.appendingPathComponent("artwork/\(file)")
+    guard let source = CGImageSourceCreateWithURL(url as CFURL, nil) else { return nil }
+    let options: [CFString: Any] = [
+      kCGImageSourceCreateThumbnailFromImageAlways: true,
+      kCGImageSourceCreateThumbnailWithTransform: true,
+      kCGImageSourceShouldCacheImmediately: true,
+      kCGImageSourceThumbnailMaxPixelSize: Int(maxPixels),
+    ]
+    guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else {
+      return nil
+    }
+    return UIImage(cgImage: image)
   }
 }
 
