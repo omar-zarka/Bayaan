@@ -1,3 +1,4 @@
+import ObjectiveC
 import UIKit
 
 /// Starts React Native exactly once, into a host window that either the phone
@@ -23,6 +24,7 @@ import UIKit
     extraLaunchOptions: [UIApplication.LaunchOptionsKey: Any] = [:]
   ) -> UIWindow {
     if let window = hostWindow { return window }
+    ReactTimingGuard.install()
     let window = UIWindow(frame: UIScreen.main.bounds)
     hostWindow = window
     onWindow?(window)
@@ -47,5 +49,73 @@ import UIKit
       }
       window.layoutIfNeeded()
     }
+  }
+}
+
+/// React Native fires JS timers from a display link on the phone screen and
+/// only switches `RCTTiming` to an `NSTimer` when the app goes to the
+/// background. With CarPlay in the foreground the app stays active even
+/// while the phone is locked, so the display link never fires and every
+/// `setTimeout` stalls (the player's load wait never returns and car taps
+/// never play). Keep `RCTTiming` in background mode whenever no phone scene
+/// is foreground active.
+enum ReactTimingGuard {
+  private static weak var timing: NSObject?
+  private static var installed = false
+  private static let foregroundSelector = NSSelectorFromString("appDidMoveToForeground")
+  private static let backgroundSelector = NSSelectorFromString("appDidMoveToBackground")
+
+  static func install() {
+    guard !installed, let cls = NSClassFromString("RCTTiming") else { return }
+    installed = true
+    guard
+      let setup = class_getInstanceMethod(cls, NSSelectorFromString("setup")),
+      let foreground = class_getInstanceMethod(cls, foregroundSelector)
+    else { return }
+
+    typealias VoidMethod = @convention(c) (AnyObject, Selector) -> Void
+    let setupSelector = NSSelectorFromString("setup")
+    let originalSetup = unsafeBitCast(method_getImplementation(setup), to: VoidMethod.self)
+    let setupBlock: @convention(block) (AnyObject) -> Void = { object in
+      originalSetup(object, setupSelector)
+      DispatchQueue.main.async {
+        timing = object as? NSObject
+        apply()
+      }
+    }
+    method_setImplementation(setup, imp_implementationWithBlock(setupBlock))
+
+    let originalForeground = unsafeBitCast(method_getImplementation(foreground), to: VoidMethod.self)
+    let foregroundBlock: @convention(block) (AnyObject) -> Void = { object in
+      if phoneSceneActive() {
+        originalForeground(object, foregroundSelector)
+      } else {
+        _ = (object as? NSObject)?.perform(backgroundSelector)
+      }
+    }
+    method_setImplementation(foreground, imp_implementationWithBlock(foregroundBlock))
+
+    let center = NotificationCenter.default
+    for name in [
+      UIScene.didActivateNotification,
+      UIScene.willDeactivateNotification,
+      UIScene.didEnterBackgroundNotification,
+    ] {
+      center.addObserver(forName: name, object: nil, queue: .main) { note in
+        guard note.object is UIWindowScene else { return }
+        apply()
+      }
+    }
+  }
+
+  private static func phoneSceneActive() -> Bool {
+    UIApplication.shared.connectedScenes.contains { scene in
+      scene is UIWindowScene && scene.activationState == .foregroundActive
+    }
+  }
+
+  private static func apply() {
+    guard let timing else { return }
+    _ = timing.perform(phoneSceneActive() ? foregroundSelector : backgroundSelector)
   }
 }
