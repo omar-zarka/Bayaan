@@ -1,7 +1,7 @@
 // services/widgets/contentCommands.ts
-// Handlers for the Phase 3 widget commands. handleWidgetCommand loads this
-// module with a dynamic import, so the Phase 1 handler does not pull in the
-// playlist database or the ambient store.
+// Handlers for the Phase 3 widget commands. syncContentWidgets registers
+// runContentCommand with handleWidgetCommand, so the Phase 1 handler does not
+// import the playlist database or the ambient store itself.
 import type {Track} from '@/types/audio';
 import type {Reciter} from '@/data/reciterData';
 import type {PlaylistItem} from '@/services/database/DatabaseService';

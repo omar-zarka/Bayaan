@@ -381,3 +381,20 @@ describe('ayahStartSecFrom', () => {
     expect(ayahStartSecFrom(null, 10)).toBeNull();
   });
 });
+
+describe('content commands without a runner', () => {
+  it('logs instead of dropping silently', async () => {
+    const spy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    await handleWidgetCommand(
+      {type: 'playPlaylist', playlistId: 'p', itemId: null},
+      deps(),
+    );
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('[WidgetCommand]'),
+      'playPlaylist',
+    );
+    spy.mockRestore();
+  });
+});

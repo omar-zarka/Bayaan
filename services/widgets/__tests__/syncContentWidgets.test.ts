@@ -76,7 +76,9 @@ jest.mock('@/utils/artworkUtils', () => ({
 jest.mock('../handleWidgetCommand', () => ({
   setContentCommandRunner: jest.fn(),
 }));
-jest.mock('../contentCommands', () => ({runContentCommand: jest.fn()}));
+jest.mock('../contentCommands', () => ({
+  runContentCommand: jest.fn(),
+}));
 jest.mock('../syncWidgets', () => ({
   addSnapshotListener: jest.fn(() => jest.fn()),
 }));
@@ -224,4 +226,10 @@ it('caches missing cards and spotlight photos, skipping cached files and inline 
     ['surah-67.jpg', 'https://cdn.thebayaan.com/assets/car/surah/67.png'],
     ['reciter-r-a.jpg', 'https://img/r-a.jpg'],
   ]);
+});
+
+it('registers runContentCommand with the command handler on import', () => {
+  const {setContentCommandRunner} = jest.requireMock('../handleWidgetCommand');
+  const {runContentCommand} = jest.requireMock('../contentCommands');
+  expect(setContentCommandRunner).toHaveBeenCalledWith(runContentCommand);
 });

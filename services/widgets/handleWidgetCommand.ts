@@ -295,7 +295,14 @@ export async function handleWidgetCommand(
     }
     case 'playPlaylist':
     case 'startBedtime': {
-      await contentRunner?.(command, (reciter, surahId) =>
+      if (!contentRunner) {
+        console.error(
+          '[WidgetCommand] No content command runner registered; dropped',
+          command.type,
+        );
+        return;
+      }
+      await contentRunner(command, (reciter, surahId) =>
         playSurah(reciter, surahId, null, null, deps),
       );
       return;

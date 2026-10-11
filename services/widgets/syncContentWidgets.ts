@@ -18,6 +18,7 @@ import {
   getFeaturedReciters,
   getTrendingReciters,
 } from '@/data/reciterCollections';
+import type {DownloadedSurah} from '@/services/player/store/downloadStore';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {usePlaylistsStore} from '@/store/playlistsStore';
@@ -196,6 +197,13 @@ export function flushContent(reloadPlaylists = false): Promise<void> {
   return flushing;
 }
 
+function completedKey(downloads: DownloadedSurah[]): string {
+  return downloads
+    .filter(d => d.status === 'completed')
+    .map(d => `${d.reciterId}:${d.surahId}:${d.rewayatId}:${d.downloadDate}`)
+    .join('|');
+}
+
 function runFlush(reloadPlaylists = false): void {
   flushContent(reloadPlaylists).catch(error => {
     console.error('[WidgetSync] Content flush failed:', error);
@@ -221,7 +229,10 @@ export function startContentWidgetSync(): () => void {
       if (kinds.length > 0) reloadWidgets(kinds);
     }),
     useDownloadStore.subscribe((state, prev) => {
-      if (state.downloads !== prev.downloads) schedule();
+      if (state.downloads === prev.downloads) return;
+      // Progress ticks replace the array; only completed downloads matter.
+      if (completedKey(state.downloads) !== completedKey(prev.downloads))
+        schedule();
     }),
     usePlaylistsStore.subscribe((state, prev) => {
       if (state.playlists !== prev.playlists) schedule(true);
