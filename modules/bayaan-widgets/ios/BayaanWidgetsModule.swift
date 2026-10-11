@@ -116,6 +116,12 @@ public class BayaanWidgetsModule: Module {
         to: dir.appendingPathComponent("catalog.json"), options: .atomic)
     }
 
+    Function("writeContent") { (json: String) in
+      guard let dir = widgetsDir() else { return }
+      try? json.data(using: .utf8)?.write(
+        to: dir.appendingPathComponent("content.json"), options: .atomic)
+    }
+
     // Written by the widget extension (ArtworkRequestStore); read only, the
     // app skips files it already cached.
     Function("readArtworkRequests") { () -> String in
