@@ -12,5 +12,6 @@ struct BayaanWidgetsBundle: WidgetBundle {
     AyahOfTheDayWidget()
     TasbeehWidget()
     ListeningAccessoryWidget()
+    NowPlayingLiveActivity()
   }
 }

@@ -12,6 +12,8 @@ fixtures="$root/modules/bayaan-widgets/src/__fixtures__"
 
 cmp "$root/modules/bayaan-widgets/ios/NowPlayingActivityState.swift" \
     "$root/targets/widgets/LiveActivity/NowPlayingActivityState.swift"
+cmp "$root/modules/bayaan-widgets/ios/NowPlayingAttributes.swift" \
+    "$root/targets/widgets/LiveActivity/NowPlayingAttributes.swift"
 
 cat "$root/targets/widgets/LiveActivity/NowPlayingActivityState.swift" > "$tmp/surfaces-test.swift"
 cat >> "$tmp/surfaces-test.swift" <<'SWIFT'
