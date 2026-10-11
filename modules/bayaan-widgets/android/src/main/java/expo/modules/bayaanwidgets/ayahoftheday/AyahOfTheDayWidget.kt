@@ -3,6 +3,7 @@ package expo.modules.bayaanwidgets.ayahoftheday
 
 import android.content.Context
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
@@ -47,7 +48,7 @@ import expo.modules.bayaanwidgets.ui.playTrackCommand
 import java.util.TimeZone
 
 class AyahOfTheDayWidget : GlanceAppWidget() {
-  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.MEDIUM, WidgetSizes.LARGE))
+  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.MEDIUM, MEDIUM_TALL, WidgetSizes.LARGE))
   override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -84,7 +85,9 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
       size.width >= WidgetSizes.MEDIUM.width -> Column(root.padding(14.dp).clickable(open)) {
         Header(ayah, listen)
         Spacer(GlanceModifier.height(6.dp))
-        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 28, 44f, 24f, 12f, 2, center = true)
+        // A 2-row widget is often taller than the 110 dp bucket; MEDIUM_TALL gives the ayah that room.
+        val arabicHeight = maxOf(44f, size.height.value - MEDIUM_CHROME_DP)
+        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 28, arabicHeight, 24f, 12f, 3, center = true)
         Spacer(GlanceModifier.height(4.dp))
         Text(ayah.translation, maxLines = 2, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
       }
@@ -110,5 +113,11 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
       Spacer(GlanceModifier.defaultWeight())
       Logo(14)
     }
+  }
+
+  private companion object {
+    val MEDIUM_TALL = DpSize(250.dp, 180.dp)
+    /** Padding, header, spacers and a two-line translation around the medium ayah. */
+    const val MEDIUM_CHROME_DP = 104f
   }
 }
