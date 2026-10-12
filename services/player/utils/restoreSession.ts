@@ -1,5 +1,8 @@
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
-import {usePlayerStore} from '@/services/player/store/playerStore';
+import {
+  usePlayerStore,
+  currentPlayOpId,
+} from '@/services/player/store/playerStore';
 import {
   getAvailableSurahsForRewayat,
   getSurahById,
@@ -211,13 +214,36 @@ export async function restoreSession(): Promise<void> {
   }
 }
 
-/** Loads the audio source and seeks to position. Runs after store is populated. */
-function loadAudioInBackground(url: string, startPosition: number) {
+// The in-flight phase 2 load, if any.
+let restoreLoad: Promise<void> | null = null;
+
+/** Resolves once restoreSession's background load (if any) has settled. */
+export function pendingRestoreLoad(): Promise<void> {
+  return restoreLoad ?? Promise.resolve();
+}
+
+/**
+ * Loads the audio source and seeks to position. Runs after store is populated.
+ * Skips the load and seek once a newer play claimed a playOpId, so it cannot
+ * replace or rewind a source that play started. Exported for tests.
+ */
+export function loadAudioInBackground(
+  url: string,
+  startPosition: number,
+): void {
+  const opId = currentPlayOpId();
+  let settle: () => void = () => undefined;
+  const load = new Promise<void>(resolve => {
+    settle = resolve;
+  });
+  restoreLoad = load;
   // Use setTimeout to defer off the critical startup path
   setTimeout(async () => {
     if (hasCarReplacedQueue()) return;
     try {
+      if (currentPlayOpId() !== opId) return;
       await expoAudioService.loadTrack(url);
+      if (currentPlayOpId() !== opId) return;
       if (startPosition > 0 && !hasCarReplacedQueue()) {
         await expoAudioService.seekTo(startPosition);
       }
@@ -229,6 +255,9 @@ function loadAudioInBackground(url: string, startPosition: number) {
       if (__DEV__) {
         console.debug('[RestoreSession] Background audio load failed:', error);
       }
+    } finally {
+      if (restoreLoad === load) restoreLoad = null;
+      settle();
     }
   }, 100);
 }

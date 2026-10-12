@@ -36,6 +36,7 @@ import {bootApp} from '@/services/appBoot';
 import {NetworkStatusMonitor} from '@/components/NetworkStatusMonitor';
 import {useNetworkMonitor} from '@/hooks/useNetworkMonitor';
 import {PostHogProvider, usePostHog} from 'posthog-react-native';
+import {startWidgetSync} from '@/services/widgets/syncWidgets';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {ExpoAudioProvider} from '@/services/audio';
 import {useShareIntent} from 'expo-share-intent';
@@ -203,6 +204,13 @@ function RootLayout() {
   useEffect(() => {
     ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
   }, []);
+
+  // Start after init so the first snapshot sees the restored session and
+  // stores instead of overwriting the widgets with an empty state.
+  useEffect(() => {
+    if (!appIsReady) return;
+    return startWidgetSync();
+  }, [appIsReady]);
 
   // Tajweed data — defer until after first frame + interactions complete
   useEffect(() => {
