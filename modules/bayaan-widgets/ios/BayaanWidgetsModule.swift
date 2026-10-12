@@ -47,6 +47,16 @@ public class BayaanWidgetsModule: Module {
     Name("BayaanWidgets")
     Events("onCommandQueued")
 
+    // App Shortcuts live in the app target (plugins/withAppShortcuts.js).
+    // Refresh their surah parameters so Siri knows every surah name.
+    OnCreate {
+      if let cls = NSClassFromString("BayaanAppShortcutsRefresher") {
+        let target = cls as AnyObject
+        let selector = NSSelectorFromString("refresh")
+        if target.responds(to: selector) { _ = target.perform(selector) }
+      }
+    }
+
     OnStartObserving {
       self.observer = NotificationCenter.default.addObserver(
         forName: commandQueuedNotification, object: nil, queue: .main
@@ -66,18 +76,39 @@ public class BayaanWidgetsModule: Module {
         to: dir.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
-    // ListeningAccessory reads the same snapshot slice as ContinueListening.
+    // ListeningAccessory and the play/pause control read the same snapshot slice as ContinueListening.
     Function("reloadWidgets") { (kinds: [String]) in
       for kind in kinds {
         WidgetCenter.shared.reloadTimelines(ofKind: kind)
         if kind == "ContinueListening" {
           WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
+          if #available(iOS 18.0, *) {
+            ControlCenter.shared.reloadControls(ofKind: "PlaybackControl")
+          }
         }
       }
     }
 
     Function("takeQueuedCommands") { () -> String in takeString("widgets.commandQueue") }
     Function("takePendingTasbeeh") { () -> String in takeString("widgets.pendingTasbeeh") }
+
+    Function("isLiveActivitySupported") { () -> Bool in NowPlayingActivityBridge.isSupported }
+
+    AsyncFunction("startNowPlayingActivity") { (json: String, staleAtMs: Double) async -> String in
+      await NowPlayingActivityBridge.start(json, staleAtMs: staleAtMs)
+    }
+
+    AsyncFunction("updateNowPlayingActivity") { (json: String, staleAtMs: Double) async -> Bool in
+      await NowPlayingActivityBridge.update(json, staleAtMs: staleAtMs)
+    }
+
+    Function("currentNowPlayingActivity") { () -> String in
+      NowPlayingActivityBridge.currentStateJSON()
+    }
+
+    AsyncFunction("endNowPlayingActivities") { () async in
+      await NowPlayingActivityBridge.endAll()
+    }
 
     Function("writeCatalog") { (json: String) in
       guard let dir = widgetsDir() else { return }

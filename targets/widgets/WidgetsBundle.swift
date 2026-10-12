@@ -12,5 +12,10 @@ struct BayaanWidgetsBundle: WidgetBundle {
     AyahOfTheDayWidget()
     TasbeehWidget()
     ListeningAccessoryWidget()
+    NowPlayingLiveActivity()
+    if #available(iOS 18.0, *) {
+      PlaybackControl()
+      PlaySurahControl()
+    }
   }
 }

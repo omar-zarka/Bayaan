@@ -8,6 +8,12 @@ import {
   parseArtworkRequests,
   type WidgetArtworkRequests,
 } from './artworkRequests';
+import {
+  isActivityStartResult,
+  isNowPlayingActivityState,
+  type ActivityStartResult,
+  type NowPlayingActivityState,
+} from './liveActivity';
 import {parsePendingTasbeeh, type PendingTasbeeh} from './tasbeeh';
 
 export * from './snapshot';
@@ -17,6 +23,7 @@ export * from './widgetKinds';
 export * from './catalog';
 export * from './artworkRequests';
 export * from './dayMath';
+export * from './liveActivity';
 
 export function isWidgetsAvailable(): boolean {
   return NativeBayaanWidgets !== null;
@@ -68,4 +75,51 @@ export function addWidgetCommandListener(listener: () => void): {
   if (!NativeBayaanWidgets) return {remove: () => undefined};
   const sub = NativeBayaanWidgets.addListener('onCommandQueued', listener);
   return {remove: () => sub.remove()};
+}
+
+export function isLiveActivitySupported(): boolean {
+  return NativeBayaanWidgets?.isLiveActivitySupported?.() ?? false;
+}
+
+export async function startNowPlayingActivity(
+  state: NowPlayingActivityState,
+  staleAt: number,
+): Promise<ActivityStartResult> {
+  const native = NativeBayaanWidgets;
+  if (!native?.startNowPlayingActivity) return 'unavailable';
+  const result: unknown = await native.startNowPlayingActivity(
+    JSON.stringify(state),
+    staleAt,
+  );
+  return isActivityStartResult(result) ? result : 'error';
+}
+
+export async function updateNowPlayingActivity(
+  state: NowPlayingActivityState,
+  staleAt: number,
+): Promise<boolean> {
+  const native = NativeBayaanWidgets;
+  if (!native?.updateNowPlayingActivity) return false;
+  return native.updateNowPlayingActivity(JSON.stringify(state), staleAt);
+}
+
+/** The activity left on screen by a previous process, or null. */
+export function currentNowPlayingActivity(): NowPlayingActivityState | null {
+  const json = NativeBayaanWidgets?.currentNowPlayingActivity?.();
+  if (!json) return null;
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    // Swift's Encodable omits nil optionals; the TS shape wants explicit nulls.
+    const normalized: unknown = {artworkFile: null, ayah: null, ...parsed};
+    return isNowPlayingActivityState(normalized) ? normalized : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function endNowPlayingActivities(): Promise<void> {
+  const native = NativeBayaanWidgets;
+  if (!native?.endNowPlayingActivities) return;
+  await native.endNowPlayingActivities();
 }

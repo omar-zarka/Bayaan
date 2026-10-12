@@ -28,6 +28,7 @@ import {
 } from './buildSnapshot';
 import {collectSnapshotInput} from './collectSnapshotInput';
 import {handleWidgetCommand} from './handleWidgetCommand';
+import {noteSnapshotForLiveActivity} from './live-activity/syncLiveActivity';
 
 const DEBOUNCE_MS = 1000;
 const ARTWORK_RETRY_MS = 10 * 60 * 1000;
@@ -119,6 +120,7 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
     writeSnapshot(next);
     reloadWidgets(kinds);
     lastSnapshot = next;
+    noteSnapshotForLiveActivity(next);
     // Artwork arrives async; rebuild once so the snapshot references the
     // files. The diff against lastSnapshot picks up the new artworkFile.
     ensureArtwork(next)
