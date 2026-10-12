@@ -70,6 +70,9 @@ jest.mock('@/store/mushafPlayerStore', () => ({
 jest.mock('@/services/appBoot', () => ({
   bootApp: () => mockBootApp(),
 }));
+jest.mock('@/services/widgets/syncWidgets', () => ({
+  markPlayerReadyForWidgets: jest.fn(),
+}));
 
 import {ExpoAudioProvider} from '@/services/audio/ExpoAudioProvider';
 import {CarRoot} from '@/services/car/CarRoot';
