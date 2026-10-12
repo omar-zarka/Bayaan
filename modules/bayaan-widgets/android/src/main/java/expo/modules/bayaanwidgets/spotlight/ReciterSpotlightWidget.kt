@@ -1,6 +1,7 @@
 // spotlight/ReciterSpotlightWidget.kt
 package expo.modules.bayaanwidgets.spotlight
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -77,7 +78,7 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
   @Composable
   private fun Content(context: Context, r: WidgetSpotlightReciter?) {
     if (r == null) {
-      ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", "to meet today's reciter")
+      ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", "to meet today's reciter")
       return
     }
     val play = commandAction(context, playReciterCommand(r.id), "spotlight/${r.id}")

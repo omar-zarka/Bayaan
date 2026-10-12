@@ -1,6 +1,7 @@
 // tasbeeh/TasbeehConfigActivity.kt
 package expo.modules.bayaanwidgets.tasbeeh
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
@@ -19,7 +20,7 @@ class TasbeehConfigActivity : Activity() {
     appWidgetId = ConfigPicker.begin(this) ?: return
     val adhkar = WidgetStorage.readCatalogJson(this)?.let { CatalogModels.decode(it) }?.adhkar.orEmpty()
     if (adhkar.isEmpty()) {
-      Toast.makeText(this, "Open Bayaan once to load adhkar", Toast.LENGTH_LONG).show()
+      Toast.makeText(this, "Open ${AppBrand.name(this)} once to load adhkar", Toast.LENGTH_LONG).show()
       save(TasbeehConfig(WidgetConfigJson.DEFAULT_DHIKR_ID))
       return
     }

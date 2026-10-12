@@ -1,6 +1,7 @@
 // ayahoftheday/AyahOfTheDayWidget.kt
 package expo.modules.bayaanwidgets.ayahoftheday
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
@@ -66,7 +67,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
     val root = GlanceModifier.fillMaxSize().background(WidgetColors.BACKGROUND).cornerRadius(20.dp)
     if (ayah == null) {
       Box(root, contentAlignment = Alignment.Center) {
-        Text("Open Bayaan", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
+        Text("Open ${AppBrand.name(context)}", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
       }
       return
     }

@@ -85,7 +85,7 @@ struct ListeningAccessoryView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
     } else {
       VStack(alignment: .leading) {
-        Text("Bayaan").font(.headline)
+        Text(AppBrand.name).font(.headline)
         Text("Start listening").font(.caption)
       }
       .frame(maxWidth: .infinity, alignment: .leading)
@@ -102,7 +102,7 @@ struct ListeningAccessoryView: View {
     } else if let track {
       Text(track.surahName)
     } else {
-      Text("Bayaan")
+      Text(AppBrand.name)
     }
   }
 

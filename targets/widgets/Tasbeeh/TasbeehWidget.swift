@@ -138,7 +138,7 @@ struct TasbeehView: View {
         } else {
           VStack(spacing: 6) {
             BayaanLogo(size: 20)
-            Text("Open Bayaan to set up Tasbeeh").font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+            Text("Open \(AppBrand.name) to set up Tasbeeh").font(.caption.weight(.semibold)).multilineTextAlignment(.center)
           }
           .padding(12)
         }

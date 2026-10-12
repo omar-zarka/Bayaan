@@ -52,7 +52,7 @@ struct HijriDateView: View {
   let entry: HijriDateEntry
 
   private var months: [HijriMonthName] { ContentStaticData.occasions?.months ?? [] }
-  private var line: String { entry.hijri.map { ContentText.hijriLine($0, months: months) } ?? "Bayaan" }
+  private var line: String { entry.hijri.map { ContentText.hijriLine($0, months: months) } ?? AppBrand.name }
 
   var body: some View {
     switch family {
@@ -88,7 +88,7 @@ struct HijriDateView: View {
         Text("\(month?.name ?? "") \(String(h.year)) AH")
           .font(.caption.weight(.semibold)).opacity(0.75).lineLimit(1).minimumScaleFactor(0.8)
       } else {
-        Text("Open Bayaan").font(.caption.weight(.semibold))
+        Text("Open \(AppBrand.name)").font(.caption.weight(.semibold))
       }
       if let o = entry.occasion {
         Text(o.name).font(.caption2.weight(.bold)).lineLimit(1).padding(.top, 2)

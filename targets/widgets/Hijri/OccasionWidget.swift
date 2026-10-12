@@ -67,7 +67,7 @@ struct OccasionView: View {
       } else if entry.hijri != nil {
         upcomingBody
       } else {
-        ContentMessage(title: "Open Bayaan")
+        ContentMessage(title: "Open \(AppBrand.name)")
       }
     }
     .foregroundStyle(.white)

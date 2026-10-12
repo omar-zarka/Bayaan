@@ -1,6 +1,7 @@
 // tasbeeh/TasbeehWidget.kt
 package expo.modules.bayaanwidgets.tasbeeh
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -80,7 +81,7 @@ class TasbeehWidget : GlanceAppWidget() {
       Column(root.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
         Logo(20)
         Spacer(GlanceModifier.height(6.dp))
-        Text("Open Bayaan to set up Tasbeeh", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center))
+        Text("Open ${AppBrand.name(context)} to set up Tasbeeh", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center))
       }
       return
     }

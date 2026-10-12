@@ -1,6 +1,7 @@
 // hijri/OccasionWidget.kt
 package expo.modules.bayaanwidgets.hijri
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -66,7 +67,7 @@ fun OccasionContent(context: Context, nowMs: Long) {
   val data = ContentStaticData.occasions(context)
   val hijri = ContentLogic.hijri(nowMs, tz, IcuHijri)
   if (data == null || hijri == null) {
-    ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", null)
+    ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", null)
     return
   }
   val size = LocalSize.current

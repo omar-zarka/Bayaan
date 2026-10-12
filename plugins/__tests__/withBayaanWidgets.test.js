@@ -33,7 +33,7 @@ function widgetConfigs(pbxproj) {
 describe('resolveWidgetConfig', () => {
   it('defaults to Bayaan', () => {
     expect(resolveWidgetConfig({name: 'Bayaan', scheme: 'bayaan'})).toEqual(
-      expect.objectContaining({scheme: 'bayaan'}),
+      expect.objectContaining({scheme: 'bayaan', name: 'Bayaan'}),
     );
   });
 
@@ -98,10 +98,15 @@ describe('renderAndroidValues', () => {
     ).toBe(committed);
   });
 
-  it('writes a fork scheme', () => {
-    const xml = renderAndroidValues(resolveWidgetConfig({scheme: 'qariah'}));
+  it('writes a fork scheme and name', () => {
+    const xml = renderAndroidValues(
+      resolveWidgetConfig({name: "Qari'ah & Co", scheme: 'qariah'}),
+    );
     expect(xml).toContain(
       '<string name="bayaan_widgets_url_scheme" translatable="false">qariah</string>',
+    );
+    expect(xml).toContain(
+      `<string name="bayaan_widget_now_label">Qari\\'ah &amp; Co Now</string>`,
     );
   });
 });

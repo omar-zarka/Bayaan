@@ -99,7 +99,7 @@ struct QuickSurahView: View {
       if let first = entry.surahs.first {
         if family == .systemSmall { small(first) } else { medium }
       } else {
-        Text("Open Bayaan to set up").font(.caption.weight(.semibold))
+        Text("Open \(AppBrand.name) to set up").font(.caption.weight(.semibold))
       }
     }
     .foregroundStyle(.white)

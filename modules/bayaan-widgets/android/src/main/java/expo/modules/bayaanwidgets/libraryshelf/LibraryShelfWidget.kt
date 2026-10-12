@@ -1,6 +1,7 @@
 // libraryshelf/LibraryShelfWidget.kt
 package expo.modules.bayaanwidgets.libraryshelf
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
@@ -109,7 +110,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
           Column(root.padding(14.dp)) {
             header()
             Spacer(GlanceModifier.defaultWeight())
-            Text("Open the playlist in Bayaan", style = TextStyle(color = WidgetColors.TERTIARY, fontSize = 12.sp))
+            Text("Open the playlist in ${AppBrand.name(context)}", style = TextStyle(color = WidgetColors.TERTIARY, fontSize = 12.sp))
             Spacer(GlanceModifier.defaultWeight())
           }
           return
@@ -120,7 +121,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
       }
       LibraryShelfState.PlaylistUnavailable ->
         ContentMessage(contentRoot().clickable(configure(context, appWidgetId)), "Playlist unavailable", "Tap to choose another")
-      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", "to load your library")
+      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", "to load your library")
     }
   }
 

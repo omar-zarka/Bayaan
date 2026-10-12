@@ -1,6 +1,7 @@
 // recentlyplayed/RecentlyPlayedWidget.kt
 package expo.modules.bayaanwidgets.recentlyplayed
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -60,7 +61,7 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
     val root = contentRoot().clickable(appLink(context, "player"))
     if (shelf.tracks.isEmpty()) {
-      ContentMessage(root, "Open Bayaan", "Your recent surahs show here")
+      ContentMessage(root, "Open ${AppBrand.name(context)}", "Your recent surahs show here")
       return
     }
     Column(root.padding(14.dp)) {

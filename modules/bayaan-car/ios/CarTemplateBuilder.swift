@@ -25,7 +25,7 @@ final class CarTemplateBuilder {
   /// item's icon (the magnifier).
   private let searchTemplate = CPListTemplate(title: nil, sections: [])
 
-  private static let emptyCopy = "Open Bayaan on your phone to get started"
+  private static var emptyCopy: String { "Open \(CarBrand.name) on your phone to get started" }
   private static let nothingYet = "Nothing here yet"
   /// Recent plays under the Siri cell on the Search tab.
   private static let searchRecentCount = 6

@@ -1,6 +1,7 @@
 // hijri/HijriDateWidget.kt
 package expo.modules.bayaanwidgets.hijri
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -67,7 +68,7 @@ fun HijriSmallContent(context: Context, nowMs: Long) {
     }
     Spacer(GlanceModifier.defaultWeight())
     if (hijri == null) {
-      Text("Open Bayaan", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+      Text("Open ${AppBrand.name(context)}", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
     } else {
       Text(hijri.day.toString(), style = TextStyle(color = WidgetColors.WHITE, fontSize = 40.sp, fontWeight = FontWeight.Bold))
       Text("${month?.name ?: ""} ${hijri.year} AH", maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))

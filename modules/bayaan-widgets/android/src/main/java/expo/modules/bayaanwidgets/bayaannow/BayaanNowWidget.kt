@@ -1,6 +1,7 @@
 // bayaannow/BayaanNowWidget.kt
 package expo.modules.bayaanwidgets.bayaannow
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -107,7 +108,7 @@ fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
   val track = np?.track ?: snapshot?.recent?.firstOrNull() ?: snapshot?.upNext?.firstOrNull()
   val root = contentRoot().clickable(appLink(context, "player"))
   if (track == null) {
-    ContentMessage(root, "Open Bayaan", "Start listening")
+    ContentMessage(root, "Open ${AppBrand.name(context)}", "Start listening")
     return
   }
   val playing = ContentLogic.playingAt(snapshot, nowMs)

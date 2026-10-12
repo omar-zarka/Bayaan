@@ -51,7 +51,7 @@ struct AyahOfTheDayView: View {
       if let ayah = entry.ayah {
         content(ayah)
       } else {
-        Text("Open Bayaan").font(.caption.weight(.semibold))
+        Text("Open \(AppBrand.name)").font(.caption.weight(.semibold))
       }
     }
     .foregroundStyle(.white)

@@ -4,6 +4,8 @@
 //   - URL scheme: `BayaanURLScheme` in the app Info.plist, the
 //     `BAYAAN_URL_SCHEME` build setting the widget Info.plist expands, and
 //     the `bayaan_widgets_url_scheme` Android string.
+//   - App name: Android widget-picker labels that carry the brand ("Bayaan
+//     Now"). Runtime copy reads the app label / CFBundleDisplayName instead.
 // The committed ios/ and android/ trees carry this plugin's default output.
 const fs = require('fs');
 const path = require('path');
@@ -17,6 +19,7 @@ const {
 
 const WIDGET_TARGET = 'BayaanWidgetsExtension';
 const DEFAULT_SCHEME = 'bayaan';
+const DEFAULT_NAME = 'Bayaan';
 const SCHEME_PATTERN = /^[A-Za-z][A-Za-z0-9+.-]*$/;
 const ANDROID_VALUES_PATH = ['app', 'src', 'main', 'res', 'values'];
 const ANDROID_VALUES_FILE = 'bayaan_widgets.xml';
@@ -35,8 +38,13 @@ function resolveScheme(config) {
   return DEFAULT_SCHEME;
 }
 
+function resolveName(config) {
+  const name = typeof config.name === 'string' ? config.name.trim() : '';
+  return name || DEFAULT_NAME;
+}
+
 function resolveWidgetConfig(config) {
-  return {scheme: resolveScheme(config)};
+  return {scheme: resolveScheme(config), name: resolveName(config)};
 }
 
 // ─── Xcode project (text edit, so the file's formatting is kept) ────────────
@@ -140,6 +148,9 @@ function renderAndroidValues(widgetConfig) {
     '<resources>',
     `  <string name="bayaan_widgets_url_scheme" translatable="false">${escapeXml(
       widgetConfig.scheme,
+    )}</string>`,
+    `  <string name="bayaan_widget_now_label">${escapeXml(
+      `${widgetConfig.name} Now`,
     )}</string>`,
     '</resources>',
     '',

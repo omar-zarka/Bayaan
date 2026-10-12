@@ -51,7 +51,7 @@ struct RecentlyPlayedView: View {
   var body: some View {
     Group {
       if entry.shelf.tracks.isEmpty {
-        ContentMessage(title: "Open Bayaan", detail: "Your recent surahs show here")
+        ContentMessage(title: "Open \(AppBrand.name)", detail: "Your recent surahs show here")
       } else {
         VStack(alignment: .leading, spacing: 10) {
           ShelfHeader(title: entry.shelf.isSuggestion ? "Start listening" : "Recently Played")

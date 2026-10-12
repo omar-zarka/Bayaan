@@ -56,7 +56,7 @@ struct BayaanNowWidget: Widget {
     StaticConfiguration(kind: kind, provider: BayaanNowProvider()) { entry in
       BayaanNowView(entry: entry)
     }
-    .configurationDisplayName("Bayaan Now")
+    .configurationDisplayName("\(AppBrand.name) Now")
     .description("What fits this moment: listening, adhkar, occasions or bedtime.")
     .supportedFamilies([.systemSmall, .systemMedium])
     .contentMarginsDisabled()

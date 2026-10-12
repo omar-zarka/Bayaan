@@ -1,6 +1,7 @@
 // adhkar/AdhkarWidget.kt
 package expo.modules.bayaanwidgets.adhkar
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -61,7 +62,7 @@ fun AdhkarContent(context: Context, nowMs: Long) {
   val data = ContentStaticData.adhkar(context)?.of(ContentLogic.adhkarPeriod(ContentLogic.hour(nowMs, tz)))
   val dhikr = data?.featured?.getOrNull(DayMath.ayahIndex(nowMs, tz, data.featured.size))
   if (data == null || dhikr == null) {
-    ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", null)
+    ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", null)
     return
   }
   val size = LocalSize.current

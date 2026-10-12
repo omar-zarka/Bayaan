@@ -1,6 +1,7 @@
 // quicksurah/QuickSurahWidget.kt
 package expo.modules.bayaanwidgets.quicksurah
 
+import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -98,7 +99,7 @@ class QuickSurahWidget : GlanceAppWidget() {
     val first = surahs.firstOrNull()
     if (first == null) {
       Box(root.padding(14.dp), contentAlignment = Alignment.Center) {
-        Text("Open Bayaan to set up", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
+        Text("Open ${AppBrand.name(context)} to set up", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
       }
       return
     }

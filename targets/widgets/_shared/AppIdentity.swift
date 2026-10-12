@@ -27,3 +27,21 @@ enum AppLinks {
     return value.unicodeScalars.allSatisfy { $0.isASCII && allowed.contains($0) }
   }
 }
+
+/// The user-visible app name: the bundle's CFBundleDisplayName (the widget
+/// extension's comes from app.config.js `name` via expo-target.config.js),
+/// then CFBundleName (RFC-021).
+enum AppBrand {
+  /// Used only when neither Info.plist key has a value.
+  static let fallbackName = "Bayaan"
+
+  static var name: String {
+    for key in ["CFBundleDisplayName", "CFBundleName"] {
+      if let value = Bundle.main.object(forInfoDictionaryKey: key) as? String {
+        let trimmed = value.trimmingCharacters(in: .whitespaces)
+        if !trimmed.isEmpty && !trimmed.hasPrefix("$(") { return trimmed }
+      }
+    }
+    return fallbackName
+  }
+}
