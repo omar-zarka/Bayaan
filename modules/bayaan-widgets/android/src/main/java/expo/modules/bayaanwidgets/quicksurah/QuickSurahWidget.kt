@@ -1,7 +1,6 @@
 // quicksurah/QuickSurahWidget.kt
 package expo.modules.bayaanwidgets.quicksurah
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -36,6 +35,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.CatalogModels
 import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.SnapshotModels

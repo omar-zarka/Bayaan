@@ -1,10 +1,10 @@
 // tasbeeh/TasbeehConfigActivity.kt
 package expo.modules.bayaanwidgets.tasbeeh
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.CatalogModels
 import expo.modules.bayaanwidgets.TasbeehConfig
 import expo.modules.bayaanwidgets.WidgetConfigJson

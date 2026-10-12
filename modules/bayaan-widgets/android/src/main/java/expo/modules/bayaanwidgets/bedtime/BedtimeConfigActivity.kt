@@ -4,11 +4,11 @@ package expo.modules.bayaanwidgets.bedtime
 import android.app.Activity
 import android.os.Bundle
 import expo.modules.bayaanwidgets.BedtimeConfig
-import expo.modules.bayaanwidgets.WidgetFeatures
 import expo.modules.bayaanwidgets.CatalogModels
 import expo.modules.bayaanwidgets.ContentConfigJson
 import expo.modules.bayaanwidgets.StaticData
 import expo.modules.bayaanwidgets.WidgetCatalog
+import expo.modules.bayaanwidgets.WidgetFeatures
 import expo.modules.bayaanwidgets.WidgetStorage
 import expo.modules.bayaanwidgets.ui.ConfigPicker
 

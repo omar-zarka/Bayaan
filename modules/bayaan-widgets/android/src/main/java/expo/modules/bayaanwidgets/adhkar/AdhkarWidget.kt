@@ -1,7 +1,6 @@
 // adhkar/AdhkarWidget.kt
 package expo.modules.bayaanwidgets.adhkar
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -27,6 +26,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.ContentStaticData

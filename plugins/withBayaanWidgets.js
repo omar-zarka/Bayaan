@@ -6,8 +6,10 @@
 //     the `bayaan_widgets_url_scheme` Android string.
 //   - App name: Android widget-picker labels that carry the brand ("Bayaan
 //     Now"). Runtime copy reads the app label / CFBundleDisplayName instead.
-//   - Enabled widgets: config/branding.js `widgets` plus config/featureFlags.ts
-//     (resolved by config/nativeWidgets.js). iOS gets BAYAAN_NO_WIDGET_* and
+//   - Enabled widgets: config/nativeWidgets.config.js `widgets` plus
+//     config/featureFlags.ts (resolved by config/nativeWidgets.js). Both are
+//     read lazily inside the mods, and config/branding.js is never loaded
+//     (a fork's branding may require TS/TSX that Node cannot run). iOS gets BAYAAN_NO_WIDGET_* and
 //     BAYAAN_NO_FEATURE_* Swift compilation conditions on the widget target
 //     (none for the default config); Android gets `bayaan_widget_enabled_*`
 //     and `bayaan_widgets_feature_*` booleans the library manifest and code read.
@@ -15,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
+const {createRequire} = require('module');
 const {
   IOSConfig,
   withDangerousMod,
@@ -65,7 +68,12 @@ function readFeatureFlags(file) {
     },
   });
   const mod = {exports: {}};
-  vm.runInNewContext(outputText, {module: mod, exports: mod.exports, require});
+  // Relative imports resolve from config/, as they would in the app.
+  vm.runInNewContext(outputText, {
+    module: mod,
+    exports: mod.exports,
+    require: createRequire(file),
+  });
   const flags = mod.exports.featureFlags;
   if (!flags || typeof flags !== 'object') {
     throw new Error(`[withBayaanWidgets] ${file} does not export featureFlags`);
@@ -73,20 +81,54 @@ function readFeatureFlags(file) {
   return flags;
 }
 
-/** The fork seams this plugin reads besides app.config.js. */
+function readWidgetList(file) {
+  // A fresh read each time, so a long-lived `expo start` sees edits.
+  delete require.cache[file];
+  const {widgets} = require(file);
+  if (widgets === undefined) return undefined;
+  if (!Array.isArray(widgets)) {
+    throw new Error(
+      `[withBayaanWidgets] ${file}: \`widgets\` must be an array of widget ids or undefined`,
+    );
+  }
+  const unknown = widgets.filter(id => !NATIVE_WIDGET_IDS.includes(id));
+  if (unknown.length > 0) {
+    console.warn(
+      `[withBayaanWidgets] ${file}: ignoring unknown widget ids ${unknown.join(
+        ', ',
+      )} (known: ${NATIVE_WIDGET_IDS.join(', ')})`,
+    );
+  }
+  return widgets;
+}
+
+/**
+ * The fork seams this plugin reads besides app.config.js:
+ * config/nativeWidgets.config.js (plain CJS) and config/featureFlags.ts.
+ */
 function loadForkSources(projectRoot) {
-  const branding = require(path.resolve(projectRoot, 'config', 'branding.js'));
-  return {
-    widgets: branding.widgets,
-    flags: readFeatureFlags(
-      path.resolve(projectRoot, 'config', 'featureFlags.ts'),
-    ),
-  };
+  const widgetsFile = path.resolve(
+    projectRoot,
+    'config',
+    'nativeWidgets.config.js',
+  );
+  const flagsFile = path.resolve(projectRoot, 'config', 'featureFlags.ts');
+  try {
+    return {
+      widgets: readWidgetList(widgetsFile),
+      flags: readFeatureFlags(flagsFile),
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `[withBayaanWidgets] Could not read the widget seams (${widgetsFile}, ${flagsFile}): ${reason}`,
+    );
+  }
 }
 
 /**
  * @param config the Expo config (`name`, `scheme`)
- * @param sources `{widgets, flags}` from branding.js and featureFlags.ts
+ * @param sources `{widgets, flags}` from nativeWidgets.config.js and featureFlags.ts
  */
 function resolveWidgetConfig(config, sources = {}) {
   const {enabled, features} = resolveNativeWidgets(
@@ -254,12 +296,15 @@ function applyWidgetBuildSettings(pbxproj, widgetConfig) {
 // ─── Android resources ──────────────────────────────────────────────────────
 
 function escapeXml(value) {
-  return value
+  const escaped = value
+    .replace(/\\/g, '\\\\')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/'/g, "\\'")
     .replace(/"/g, '\\"');
+  // A leading @ or ? would make Android read the string as a reference.
+  return /^[@?]/.test(escaped) ? `\\${escaped}` : escaped;
 }
 
 /** The app-module overrides for the bayaan-widgets library's defaults. */
@@ -300,13 +345,19 @@ function withBayaanWidgets(config) {
   const projectRoot =
     (config._internal && config._internal.projectRoot) ||
     path.join(__dirname, '..');
-  const widgetConfig = resolveWidgetConfig(
-    config,
-    loadForkSources(projectRoot),
-  );
+  // The scheme needs no files; the widget list and flags are read only when
+  // a native mod runs (prebuild), never on a plain config evaluation.
+  const scheme = resolveScheme(config);
+  let resolved = null;
+  const widgetConfig = () => {
+    if (!resolved) {
+      resolved = resolveWidgetConfig(config, loadForkSources(projectRoot));
+    }
+    return resolved;
+  };
 
   config = withInfoPlist(config, cfg => {
-    cfg.modResults.BayaanURLScheme = widgetConfig.scheme;
+    cfg.modResults.BayaanURLScheme = scheme;
     return cfg;
   });
 
@@ -319,7 +370,7 @@ function withBayaanWidgets(config) {
         cfg.modRequest.projectRoot,
       );
       const before = fs.readFileSync(file, 'utf8');
-      const after = applyWidgetBuildSettings(before, widgetConfig);
+      const after = applyWidgetBuildSettings(before, widgetConfig());
       if (after !== before) fs.writeFileSync(file, after);
       return cfg;
     },
@@ -335,7 +386,7 @@ function withBayaanWidgets(config) {
       fs.mkdirSync(dir, {recursive: true});
       fs.writeFileSync(
         path.join(dir, ANDROID_VALUES_FILE),
-        renderAndroidValues(widgetConfig),
+        renderAndroidValues(widgetConfig()),
       );
       return cfg;
     },

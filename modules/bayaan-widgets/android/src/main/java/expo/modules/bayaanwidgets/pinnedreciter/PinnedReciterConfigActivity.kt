@@ -1,9 +1,9 @@
 package expo.modules.bayaanwidgets.pinnedreciter
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.app.Activity
 import android.os.Bundle
 import android.widget.Toast
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.CatalogModels
 import expo.modules.bayaanwidgets.PinnedReciterConfig
 import expo.modules.bayaanwidgets.WidgetConfigJson

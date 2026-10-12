@@ -5,6 +5,7 @@
  */
 
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const {
   resolveWidgetConfig,
@@ -15,6 +16,10 @@ const {
 } = require('../withBayaanWidgets');
 
 const ROOT = path.join(__dirname, '..', '..');
+// The committed native trees must match what app.config.js would generate.
+const APP_CONFIG = require('../../app.config.js').expo;
+const COMMITTED = {name: APP_CONFIG.name, scheme: APP_CONFIG.scheme};
+
 const PBXPROJ = fs.readFileSync(
   path.join(ROOT, 'ios', 'Bayaan.xcodeproj', 'project.pbxproj'),
   'utf8',
@@ -54,7 +59,7 @@ describe('resolveWidgetConfig', () => {
 
 describe('applyWidgetBuildSettings', () => {
   it('leaves the committed project unchanged for the default config', () => {
-    const config = resolveWidgetConfig({name: 'Bayaan', scheme: 'bayaan'});
+    const config = resolveWidgetConfig(COMMITTED, loadForkSources(ROOT));
     expect(applyWidgetBuildSettings(PBXPROJ, config)).toBe(PBXPROJ);
   });
 
@@ -75,7 +80,7 @@ describe('applyWidgetBuildSettings', () => {
     const stripped = PBXPROJ.replace(/\t\t\t\tBAYAAN_URL_SCHEME = \w+;\n/g, '');
     const out = applyWidgetBuildSettings(
       stripped,
-      resolveWidgetConfig({scheme: 'bayaan'}),
+      resolveWidgetConfig(COMMITTED, loadForkSources(ROOT)),
     );
     expect(out).toBe(PBXPROJ);
   });
@@ -101,7 +106,7 @@ function swiftSources(dir) {
 }
 
 describe('enabled widgets', () => {
-  it('reads branding.js and featureFlags.ts', () => {
+  it('reads nativeWidgets.config.js and featureFlags.ts', () => {
     const sources = loadForkSources(ROOT);
     expect(sources.widgets).toBeUndefined();
     expect(sources.flags.adhkar).toBe(true);
@@ -161,9 +166,64 @@ describe('enabled widgets', () => {
 
     const restored = applyWidgetBuildSettings(
       out,
-      resolveWidgetConfig({scheme: 'bayaan'}, loadForkSources(ROOT)),
+      resolveWidgetConfig(COMMITTED, loadForkSources(ROOT)),
     );
     expect(restored).toBe(PBXPROJ);
+  });
+});
+
+function forkProject(files) {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'bayaan-widgets-fork-'));
+  fs.mkdirSync(path.join(root, 'config'));
+  for (const [name, contents] of Object.entries(files)) {
+    fs.writeFileSync(path.join(root, 'config', name), contents);
+  }
+  return root;
+}
+
+describe('loadForkSources in a fork', () => {
+  const flags = `import {extra} from './extraFlags';
+export const featureFlags = {adhkar: extra, ambientAudioOverlay: false} as const;
+`;
+
+  it('never loads branding.js and resolves flag imports from config/', () => {
+    const root = forkProject({
+      // Node cannot load this: a plugin that required branding.js would throw.
+      'branding.js':
+        "module.exports = {listenTabTopComponent: require('./Top.tsx').default};",
+      'Top.tsx': 'export default function Top(): JSX.Element { return <></>; }',
+      'extraFlags.js': 'module.exports = {extra: false};',
+      'featureFlags.ts': flags,
+      'nativeWidgets.config.js':
+        "module.exports = {widgets: ['ContinueListening', 'QuickSurah']};",
+    });
+    const sources = loadForkSources(root);
+    expect(sources.widgets).toEqual(['ContinueListening', 'QuickSurah']);
+    expect(sources.flags).toEqual({adhkar: false, ambientAudioOverlay: false});
+  });
+
+  it('warns about unknown widget ids', () => {
+    const warn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+    const root = forkProject({
+      'extraFlags.js': 'module.exports = {extra: true};',
+      'featureFlags.ts': flags,
+      'nativeWidgets.config.js':
+        "module.exports = {widgets: ['QuickSurah', 'QuickSura']};",
+    });
+    loadForkSources(root);
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringContaining('unknown widget ids QuickSura'),
+    );
+    warn.mockRestore();
+  });
+
+  it('explains a missing seam file', () => {
+    const root = forkProject({'featureFlags.ts': flags});
+    expect(() => loadForkSources(root)).toThrow(
+      /Could not read the widget seams/,
+    );
   });
 });
 
@@ -195,12 +255,22 @@ describe('renderAndroidValues', () => {
     );
     expect(
       renderAndroidValues(
-        resolveWidgetConfig(
-          {name: 'Bayaan', scheme: 'bayaan'},
-          loadForkSources(ROOT),
-        ),
+        resolveWidgetConfig(COMMITTED, loadForkSources(ROOT)),
       ),
     ).toBe(committed);
+  });
+
+  it('escapes a name that starts with @ or ?', () => {
+    expect(
+      renderAndroidValues(resolveWidgetConfig({name: '@Qariah'}, {})),
+    ).toContain(
+      '<string name="bayaan_widget_now_label">\\@Qariah Now</string>',
+    );
+    expect(
+      renderAndroidValues(resolveWidgetConfig({name: '?Qariah'}, {})),
+    ).toContain(
+      '<string name="bayaan_widget_now_label">\\?Qariah Now</string>',
+    );
   });
 
   it('writes a fork scheme and name', () => {

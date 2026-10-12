@@ -1,7 +1,6 @@
 // ayahoftheday/AyahOfTheDayWidget.kt
 package expo.modules.bayaanwidgets.ayahoftheday
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.DpSize
@@ -33,6 +32,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.StaticAyah

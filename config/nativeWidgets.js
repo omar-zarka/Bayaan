@@ -1,7 +1,8 @@
 /**
  * Native widget surfaces (iOS WidgetKit, Android Glance) and the feature
- * flags each one needs. A surface ships only when `branding.widgets` lists
- * it (absent = all) and every flag it needs is on.
+ * flags each one needs. A surface ships only when
+ * config/nativeWidgets.config.js `widgets` lists it (absent = all) and every
+ * flag it needs is on.
  *
  * CJS with no imports: plugins/withBayaanWidgets.js requires it at prebuild
  * to compile disabled widgets out (iOS) and hide them from the picker
@@ -60,7 +61,7 @@ function isFlagOn(flags, flag) {
 }
 
 /**
- * @param {readonly string[] | undefined} widgets `branding.widgets`
+ * @param {readonly string[] | undefined} widgets nativeWidgets.config.js `widgets`
  * @param {Readonly<Record<string, boolean>> | undefined} flags `featureFlags`
  */
 function resolveNativeWidgets(widgets, flags) {

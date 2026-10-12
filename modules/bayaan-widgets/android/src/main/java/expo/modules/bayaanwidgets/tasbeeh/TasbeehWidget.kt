@@ -1,7 +1,6 @@
 // tasbeeh/TasbeehWidget.kt
 package expo.modules.bayaanwidgets.tasbeeh
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -39,6 +38,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.CatalogDhikr
 import expo.modules.bayaanwidgets.CatalogModels

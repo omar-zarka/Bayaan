@@ -4,7 +4,6 @@ import type {TranslationProvider} from '@/types/TranslationProvider';
 import type {TafsirProvider} from '@/types/TafsirProvider';
 import type {CommunityReflectionsProvider} from '@/types/CommunityReflection';
 import type {AyahTimestamp} from '@/types/timestamps';
-import type {NativeWidgetId} from './nativeWidgets';
 
 /** Catalog source config for the active branding. */
 export interface BrandingCatalogConfig {
@@ -299,27 +298,6 @@ export interface Branding {
    * back to the default (see utils/surahArtworkBase.ts).
    */
   surahArtworkCdnBase?: string;
-  /**
-   * RFC-021: the native widget surfaces (iOS widgets, Lock Screen widget,
-   * Live Activity and Controls; Android widgets) this build ships.
-   *
-   * Field absent → every surface (Bayaan's default). A surface also drops
-   * out when a feature flag it needs is off: `adhkar: false` removes the
-   * Adhkar and Tasbeeh widgets and Bayaan Now's adhkar cards,
-   * `sleepTimer: false` the Bedtime widget and Bayaan Now's bedtime card,
-   * `ambientAudioOverlay: false` the Bedtime widget's ambient option.
-   * Unknown ids are ignored.
-   *
-   * Read at prebuild by plugins/withBayaanWidgets.js (iOS compiles disabled
-   * widgets out; Android hides them from the picker), so changing it needs
-   * a new native build.
-   *
-   * @example
-   * widgets: ['ContinueListening', 'QuickSurah', 'AyahOfTheDay', 'LiveActivity']
-   *
-   * See docs/rfcs/021-native-widget-seams.md.
-   */
-  widgets?: NativeWidgetId[];
   /**
    * RFC-019 — optional provider for **bundled** ayah-timing data, for forks
    * that ship their own offline-authored timestamps for a reciter rather than

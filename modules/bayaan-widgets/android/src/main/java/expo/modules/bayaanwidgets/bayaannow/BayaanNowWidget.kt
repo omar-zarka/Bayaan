@@ -1,8 +1,6 @@
 // bayaannow/BayaanNowWidget.kt
 package expo.modules.bayaanwidgets.bayaannow
 
-import expo.modules.bayaanwidgets.AppBrand
-import expo.modules.bayaanwidgets.WidgetFeatures
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -30,6 +28,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.BayaanNowMode
 import expo.modules.bayaanwidgets.ContentConfigJson
 import expo.modules.bayaanwidgets.ContentLogic
@@ -37,6 +36,7 @@ import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.IcuHijri
 import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.StaticData
+import expo.modules.bayaanwidgets.WidgetFeatures
 import expo.modules.bayaanwidgets.WidgetInputs
 import expo.modules.bayaanwidgets.WidgetSnapshot
 import expo.modules.bayaanwidgets.adhkar.AdhkarContent

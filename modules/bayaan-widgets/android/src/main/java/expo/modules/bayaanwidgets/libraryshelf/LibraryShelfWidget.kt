@@ -1,7 +1,6 @@
 // libraryshelf/LibraryShelfWidget.kt
 package expo.modules.bayaanwidgets.libraryshelf
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.appwidget.AppWidgetManager
 import android.content.Context
 import android.content.Intent
@@ -31,6 +30,7 @@ import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ContentConfigJson
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.ContentModels

@@ -9,11 +9,15 @@ enum AppLinks {
   static let fallbackScheme = "bayaan"
 
   static var scheme: String {
-    guard let raw = Bundle.main.object(forInfoDictionaryKey: "BayaanURLScheme") as? String else {
-      return fallbackScheme
-    }
-    let value = raw.trimmingCharacters(in: .whitespaces)
-    return isValidScheme(value) ? value : fallbackScheme
+    let raw = Bundle.main.object(forInfoDictionaryKey: "BayaanURLScheme") as? String
+    let value = raw?.trimmingCharacters(in: .whitespaces) ?? ""
+    if isValidScheme(value) { return value }
+    #if DEBUG
+    // A hand-maintained project missing the BAYAAN_URL_SCHEME build setting
+    // (or the app's BayaanURLScheme key) lands here; see RFC-021.
+    NSLog("[AppLinks] BayaanURLScheme is missing or invalid (\"%@\"); using \"%@\"", value, fallbackScheme)
+    #endif
+    return fallbackScheme
   }
 
   /// `path` has no leading slash: "player", "quran/18?ayah=10", or "" for the app root.

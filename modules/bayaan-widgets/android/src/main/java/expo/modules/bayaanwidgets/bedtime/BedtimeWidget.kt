@@ -29,7 +29,6 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import expo.modules.bayaanwidgets.BedtimeConfig
-import expo.modules.bayaanwidgets.WidgetFeatures
 import expo.modules.bayaanwidgets.CatalogModels
 import expo.modules.bayaanwidgets.ContentConfigJson
 import expo.modules.bayaanwidgets.ContentLogic
@@ -38,6 +37,7 @@ import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.R
 import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.StaticData
+import expo.modules.bayaanwidgets.WidgetFeatures
 import expo.modules.bayaanwidgets.WidgetInputs
 import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.RoundButton

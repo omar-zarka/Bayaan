@@ -1,7 +1,6 @@
 // recentlyplayed/RecentlyPlayedWidget.kt
 package expo.modules.bayaanwidgets.recentlyplayed
 
-import expo.modules.bayaanwidgets.AppBrand
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -23,6 +22,7 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.RecentShelf

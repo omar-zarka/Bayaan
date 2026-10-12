@@ -4,7 +4,7 @@ import {
   resolveNativeWidgets,
 } from '@/config/nativeWidgets';
 import {featureFlags} from '@/config/featureFlags';
-import branding from '@/config/branding';
+import nativeWidgetsConfig from '@/config/nativeWidgets.config';
 
 const ALL_ON = {
   adhkar: true,
@@ -15,7 +15,10 @@ const ALL_ON = {
 
 describe('resolveNativeWidgets', () => {
   it('ships every surface and feature for Bayaan', () => {
-    const resolved = resolveNativeWidgets(branding.widgets, featureFlags);
+    const resolved = resolveNativeWidgets(
+      nativeWidgetsConfig.widgets,
+      featureFlags,
+    );
     expect(resolved.enabled).toEqual([...NATIVE_WIDGET_IDS]);
     expect(resolved.features).toEqual({
       adhkar: true,
