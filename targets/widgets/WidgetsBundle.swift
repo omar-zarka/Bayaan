@@ -6,5 +6,17 @@ import WidgetKit
 struct BayaanWidgetsBundle: WidgetBundle {
   var body: some Widget {
     ContinueListeningWidget()
+    ContinueReadingWidget()
+    QuickSurahWidget()
+    PinnedReciterWidget()
+    AyahOfTheDayWidget()
+    TasbeehWidget()
+    ListeningAccessoryWidget()
+    NowPlayingLiveActivity()
+    if #available(iOS 18.0, *) {
+      PlaybackControl()
+      PlaySurahControl()
+    }
+    ContentWidgets().body
   }
 }

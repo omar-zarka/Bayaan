@@ -14,6 +14,8 @@ import {
   WidgetTrack,
 } from 'bayaan-widgets';
 
+export {surahArtworkFileName, surahArtworkUrl} from './artworkNames';
+
 const UP_NEXT_LIMIT = 3;
 const RECENT_LIMIT = 6;
 const RECITER_RECENT_LIMIT = 3;
@@ -31,6 +33,8 @@ export interface SnapshotInput {
   defaultReciter: Reciter | null;
   lastReadPage: number | null;
   openingTextForPage: (page: number) => string;
+  /** Surah the mushaf header shows for a page; null falls back to the first surah on the page. */
+  surahIdForPage?: (page: number) => number | null;
   tasbeeh: Record<string, WidgetTasbeehEntry>;
   artworkFileFor: (reciterId: string) => string | null;
   surahArtworkFileFor: (surahId: number) => string | null;
@@ -39,17 +43,6 @@ export interface SnapshotInput {
 
 export function artworkFileName(reciterId: string): string {
   return `reciter-${reciterId.replace(/[^a-zA-Z0-9_-]/g, '_')}.jpg`;
-}
-
-// The dark surah cards shared with CarPlay and Android Auto (512 px PNGs).
-const SURAH_ARTWORK_BASE = 'https://cdn.thebayaan.com/assets/car/surah/';
-
-export function surahArtworkFileName(surahId: number): string {
-  return `surah-${surahId}.jpg`;
-}
-
-export function surahArtworkUrl(surahId: number): string {
-  return `${SURAH_ARTWORK_BASE}${surahId}.png`;
 }
 
 /** The surah a track shows a card for, or null for uploads and unknown ids. */
@@ -132,7 +125,12 @@ function toWidgetReciter(
 
 function buildLastRead(input: SnapshotInput): WidgetLastRead | null {
   if (input.lastReadPage === null) return null;
-  const surah = getSurahForPage(input.lastReadPage);
+  const headerSurahId = input.surahIdForPage?.(input.lastReadPage) ?? null;
+  const surah =
+    (headerSurahId === null
+      ? undefined
+      : SURAHS.find(s => s.id === headerSurahId)) ??
+    getSurahForPage(input.lastReadPage);
   if (!surah) return null;
   return {
     page: input.lastReadPage,

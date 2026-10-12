@@ -7,7 +7,13 @@ import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {mushafVerseMapService} from '@/services/mushaf/MushafVerseMapService';
 import {getSurahOfTheDay} from '@/utils/quranPages';
-import {hasArtwork} from 'bayaan-widgets';
+import {hasArtwork, localDayKey} from 'bayaan-widgets';
+import {useAdhkarStore} from '@/store/adhkarStore';
+import {
+  buildTasbeehEntries,
+  createCountDayTracker,
+  TASBEEH_ADHKAR,
+} from './buildCatalog';
 import {
   artworkFileName,
   surahArtworkFileName,
@@ -15,6 +21,7 @@ import {
 } from './buildSnapshot';
 
 const OPENING_WORDS = 6;
+const countsForToday = createCountDayTracker();
 
 function openingTextForPage(page: number): string {
   if (!digitalKhattDataService.initialized) return '';
@@ -25,6 +32,11 @@ function openingTextForPage(page: number): string {
     .split(' ')
     .slice(0, OPENING_WORDS)
     .join(' ');
+}
+
+function surahIdForPage(page: number): number | null {
+  if (!digitalKhattDataService.initialized) return null;
+  return digitalKhattDataService.getPageToSurah()[page] ?? null;
 }
 
 export function collectSnapshotInput(now: Date): SnapshotInput {
@@ -43,7 +55,12 @@ export function collectSnapshotInput(now: Date): SnapshotInput {
     defaultReciter: reciter.id === '' ? null : reciter,
     lastReadPage: mushafSessionStore.getLastReadPage(),
     openingTextForPage,
-    tasbeeh: {}, // filled in Plan 1b
+    surahIdForPage,
+    tasbeeh: buildTasbeehEntries(
+      TASBEEH_ADHKAR,
+      countsForToday(useAdhkarStore.getState().dhikrCounts, localDayKey(now)),
+      localDayKey(now),
+    ),
     artworkFileFor: id => {
       const file = artworkFileName(id);
       return hasArtwork(file) ? file : null;

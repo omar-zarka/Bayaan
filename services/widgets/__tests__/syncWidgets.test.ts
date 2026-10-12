@@ -91,6 +91,11 @@ jest.mock('../handleWidgetCommand', () => ({
     mockHandleWidgetCommand(command),
 }));
 
+const mockNoteSnapshot = jest.fn();
+jest.mock('../live-activity/syncLiveActivity', () => ({
+  noteSnapshotForLiveActivity: (s: unknown) => mockNoteSnapshot(s),
+}));
+
 type SyncModule = typeof import('../syncWidgets');
 
 function queued(command: WidgetCommand): QueuedWidgetCommand {
@@ -140,6 +145,22 @@ describe('drainWidgetCommands', () => {
     await sync.drainWidgetCommands();
     expect(mockWriteSnapshot).toHaveBeenCalledTimes(1);
     expect(mockReloadWidgets).toHaveBeenCalledWith(['ContinueListening']);
+  });
+
+  it('hands each written snapshot to the Live Activity', async () => {
+    const sync = loadModule();
+    sync.markSessionRestoredForWidgets();
+    sync.markPlayerReadyForWidgets();
+    await flush();
+    mockWriteSnapshot.mockClear();
+    mockNoteSnapshot.mockClear();
+    mockTakeQueuedCommands.mockReturnValueOnce([queued(toggle)]);
+    mockTakeQueuedCommands.mockReturnValue([]);
+    await sync.drainWidgetCommands();
+    expect(mockNoteSnapshot).toHaveBeenCalledTimes(1);
+    expect(mockNoteSnapshot).toHaveBeenCalledWith(
+      mockWriteSnapshot.mock.calls[0][0],
+    );
   });
 
   it('does not write a snapshot when no command was handled', async () => {
@@ -357,6 +378,28 @@ describe('widget snapshot flush', () => {
     );
     // Artwork added for B triggers a second flush.
     expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
+  });
+
+  it('reloads the configured widgets when it caches artwork they may show', async () => {
+    const sync = loadModule();
+    mockChangedKinds.mockReturnValue(['ContinueListening']);
+    mockBuildSnapshot.mockReturnValue({
+      nowPlaying: {track: {surahId: 55, reciterId: '', isUserUpload: false}},
+      upNext: [],
+      recent: [],
+      defaultReciter: null,
+    });
+    mockCacheArtwork.mockImplementation(async (_url, file) => {
+      mockCachedFiles.add(file);
+      return true;
+    });
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockReloadWidgets).toHaveBeenCalledWith([
+      'QuickSurah',
+      'PinnedReciter',
+      'ContinueReading',
+    ]);
   });
 
   it('caches the surah card of every track but not of uploads', async () => {

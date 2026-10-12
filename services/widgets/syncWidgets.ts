@@ -10,6 +10,7 @@ import {
   addWidgetCommandListener,
   takeQueuedCommands,
   selectFreshCommands,
+  WidgetKind,
   WidgetSnapshot,
 } from 'bayaan-widgets';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -27,9 +28,17 @@ import {
 } from './buildSnapshot';
 import {collectSnapshotInput} from './collectSnapshotInput';
 import {handleWidgetCommand} from './handleWidgetCommand';
+import {noteSnapshotForLiveActivity} from './live-activity/syncLiveActivity';
 
 const DEBOUNCE_MS = 1000;
 const ARTWORK_RETRY_MS = 10 * 60 * 1000;
+// Widgets showing artwork that the snapshot does not reference. They render
+// from the shared artwork cache, so a file cached here can be one they wait on.
+export const ARTWORK_KINDS: WidgetKind[] = [
+  'QuickSurah',
+  'PinnedReciter',
+  'ContinueReading',
+];
 
 let lastSnapshot: WidgetSnapshot | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -39,6 +48,33 @@ let playerReady = false;
 let sessionRestored = false;
 const artworkFailures = new Map<string, number>();
 const artworkInFlight = new Set<string>();
+
+type SnapshotListener = (
+  prev: WidgetSnapshot | null,
+  next: WidgetSnapshot,
+) => void;
+const snapshotListeners = new Set<SnapshotListener>();
+
+// Phase 3 widgets reload from the same written snapshots (syncContentWidgets).
+export function addSnapshotListener(listener: SnapshotListener): () => void {
+  snapshotListeners.add(listener);
+  return () => {
+    snapshotListeners.delete(listener);
+  };
+}
+
+function notifySnapshotListeners(
+  prev: WidgetSnapshot | null,
+  next: WidgetSnapshot,
+): void {
+  for (const listener of snapshotListeners) {
+    try {
+      listener(prev, next);
+    } catch (error) {
+      console.error('[WidgetSync] Snapshot listener failed:', error);
+    }
+  }
+}
 
 // Surah cards for every track, plus reciter photos as their fallback.
 function artworkJobs(snapshot: WidgetSnapshot): Map<string, string> {
@@ -102,7 +138,8 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
   timer = null;
   try {
     const next = buildSnapshot(collectSnapshotInput(new Date()));
-    const changed = changedWidgetKinds(lastSnapshot, next);
+    const prev = lastSnapshot;
+    const changed = changedWidgetKinds(prev, next);
     const kinds =
       forceContinueListening && !changed.includes('ContinueListening')
         ? [...changed, 'ContinueListening' as const]
@@ -111,11 +148,15 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
     writeSnapshot(next);
     reloadWidgets(kinds);
     lastSnapshot = next;
+    notifySnapshotListeners(prev, next);
+    noteSnapshotForLiveActivity(next);
     // Artwork arrives async; rebuild once so the snapshot references the
     // files. The diff against lastSnapshot picks up the new artworkFile.
     ensureArtwork(next)
       .then(added => {
-        if (added) flushWidgetSnapshot();
+        if (!added) return;
+        flushWidgetSnapshot();
+        reloadWidgets(ARTWORK_KINDS);
       })
       .catch(error => {
         console.error('[WidgetSync] Artwork sync failed:', error);

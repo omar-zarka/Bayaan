@@ -37,6 +37,9 @@ import {NetworkStatusMonitor} from '@/components/NetworkStatusMonitor';
 import {useNetworkMonitor} from '@/hooks/useNetworkMonitor';
 import {PostHogProvider, usePostHog} from 'posthog-react-native';
 import {startWidgetSync} from '@/services/widgets/syncWidgets';
+import {startContentWidgetSync} from '@/services/widgets/syncContentWidgets';
+import {startConfiguredWidgetSync} from '@/services/widgets/syncConfiguredWidgets';
+import {startLiveActivitySync} from '@/services/widgets/live-activity/syncLiveActivity';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {ExpoAudioProvider} from '@/services/audio';
 import {useShareIntent} from 'expo-share-intent';
@@ -270,7 +273,16 @@ function RootLayout() {
   // stores instead of overwriting the widgets with an empty state.
   useEffect(() => {
     if (!appIsReady) return;
-    return startWidgetSync();
+    const stopLiveActivity = startLiveActivitySync();
+    const stopSnapshot = startWidgetSync();
+    const stopConfigured = startConfiguredWidgetSync();
+    const stopContent = startContentWidgetSync();
+    return () => {
+      stopSnapshot();
+      stopConfigured();
+      stopContent();
+      stopLiveActivity();
+    };
   }, [appIsReady]);
 
   // Tajweed data — defer until after first frame + interactions complete

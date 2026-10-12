@@ -11,6 +11,10 @@ object WidgetStorage {
   private const val KEY_QUEUE = "commandQueue"
   private const val KEY_TASBEEH = "pendingTasbeeh"
   private const val KEY_PLAYBACK_OVERRIDE = "widgets.playbackOverride"
+  private const val KEY_CATALOG = "catalog"
+  private const val KEY_CONTENT = "content"
+  private const val KEY_ARTWORK_REQUESTS = "artworkRequests"
+  private fun configKey(appWidgetId: Int) = "config.$appWidgetId"
 
   @Volatile var onCommandQueued: (() -> Unit)? = null
 
@@ -48,6 +52,45 @@ object WidgetStorage {
 
   fun takeQueue(context: Context) = take(context, KEY_QUEUE)
   fun takeTasbeeh(context: Context) = take(context, KEY_TASBEEH)
+
+  fun writeCatalog(context: Context, json: String) = prefs(context).edit().putString(KEY_CATALOG, json).apply()
+
+  fun writeContent(context: Context, json: String) = prefs(context).edit().putString(KEY_CONTENT, json).apply()
+
+  fun readContentJson(context: Context): String? = prefs(context).getString(KEY_CONTENT, null)
+
+  fun readCatalogJson(context: Context): String? = prefs(context).getString(KEY_CATALOG, null)
+
+  fun readPendingTasbeehJson(context: Context): String? = prefs(context).getString(KEY_TASBEEH, null)
+
+  /** Same lock as take(), so a tap cannot interleave with the app's read-and-clear. */
+  @Synchronized
+  fun addPendingTasbeeh(context: Context, dhikrId: String, day: String, reset: Boolean) {
+    val next = TasbeehLogic.append(TasbeehLogic.parse(readPendingTasbeehJson(context)), dhikrId, day, reset)
+    prefs(context).edit().putString(KEY_TASBEEH, TasbeehLogic.encode(next)).commit()
+  }
+
+  fun writeConfig(context: Context, appWidgetId: Int, json: String) =
+    prefs(context).edit().putString(configKey(appWidgetId), json).apply()
+
+  fun readConfigJson(context: Context, appWidgetId: Int): String? = prefs(context).getString(configKey(appWidgetId), null)
+
+  fun deleteConfigs(context: Context, appWidgetIds: IntArray) {
+    val edit = prefs(context).edit()
+    for (id in appWidgetIds) edit.remove(configKey(id))
+    edit.apply()
+  }
+
+  /** Records artwork a widget wanted but did not find; writes only when the list changes. */
+  @Synchronized
+  fun recordArtworkRequests(context: Context, surahIds: List<Int>, reciterIds: List<String>) {
+    if (surahIds.isEmpty() && reciterIds.isEmpty()) return
+    val existing = ArtworkRequestsJson.decode(prefs(context).getString(KEY_ARTWORK_REQUESTS, null))
+    val merged = ArtworkRequestsJson.merge(existing, surahIds, reciterIds)
+    if (merged != existing) prefs(context).edit().putString(KEY_ARTWORK_REQUESTS, ArtworkRequestsJson.encode(merged)).apply()
+  }
+
+  fun readArtworkRequestsJson(context: Context): String = prefs(context).getString(KEY_ARTWORK_REQUESTS, null) ?: "{}"
 
   fun artworkDir(context: Context): File =
     File(context.filesDir, "widgets/artwork").apply { mkdirs() }
