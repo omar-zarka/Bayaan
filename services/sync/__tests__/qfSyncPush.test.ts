@@ -143,6 +143,10 @@ class PushStore implements QfSyncPushStore {
   async rebasePendingOperations(): Promise<void> {
     return undefined;
   }
+
+  async settleMissingFavoritesRemoval(): Promise<void> {
+    return undefined;
+  }
 }
 
 class Transport implements QfSyncTransport {

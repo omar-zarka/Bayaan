@@ -3,7 +3,6 @@ import {cleanUpLegacyNotes} from '@/services/database/migrations/legacyNotesClea
 import {migrateUserSyncV1} from '@/services/database/migrations/userSyncV1';
 import {migrateUserSyncV2} from '@/services/database/migrations/userSyncV2';
 import {migrateUserSyncV3} from '@/services/database/migrations/userSyncV3';
-import {migrateUserSyncV4} from '@/services/database/migrations/userSyncV4';
 
 const DEFAULT_DATABASE_NAME = 'verse-annotations.db';
 
@@ -28,7 +27,6 @@ export class VerseAnnotationDatabase {
         await migrateUserSyncV1(this.db);
         await migrateUserSyncV2(this.db);
         await migrateUserSyncV3(this.db);
-        await migrateUserSyncV4(this.db);
         this.ready = true;
       } catch (error) {
         console.error(
