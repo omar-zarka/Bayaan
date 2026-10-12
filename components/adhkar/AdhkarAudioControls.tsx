@@ -23,8 +23,10 @@ import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {Theme} from '@/utils/themeUtils';
 import {PlayIcon, PauseIcon, RepeatIcon} from '@/components/Icons';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {forceLTR} from '@/utils/rtl';
+// @ai-end
 
 // Pre-compute scaled values outside component to avoid worklet issues
 const PROGRESS_BAR_HEIGHT = moderateScale(40);
@@ -40,6 +42,7 @@ interface AdhkarAudioControlsProps {
   isBookmarked: boolean;
 }
 
+// @ai-start
 export const AdhkarAudioControls: React.FC<AdhkarAudioControlsProps> =
   React.memo(
     ({audioFile, onCopy, onBookmark, onShare, onSettings, isBookmarked}) => {
@@ -356,6 +359,7 @@ export const AdhkarAudioControls: React.FC<AdhkarAudioControlsProps> =
       );
     },
   );
+// @ai-end
 
 AdhkarAudioControls.displayName = 'AdhkarAudioControls';
 

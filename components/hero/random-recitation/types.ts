@@ -1,4 +1,6 @@
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 // 5 design families for icon-based cards
 export type DesignFamily = 'arabesque' | 'bloom' | 'aurora' | 'mosaic' | 'mesh';
@@ -79,6 +81,7 @@ export const ALL_VARIANTS: CardVariant[] = [
 ];
 
 // All 6 copy variants
+// @ai-start
 export const COPY_VARIANTS: CopyVariant[] = [
   {
     get label() {
@@ -129,6 +132,7 @@ export const COPY_VARIANTS: CopyVariant[] = [
     },
   },
 ];
+// @ai-end
 
 // Deterministic pick based on seed
 export function pickVariant(seed: number): {

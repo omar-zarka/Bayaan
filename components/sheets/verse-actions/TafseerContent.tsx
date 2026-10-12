@@ -28,14 +28,16 @@ import {
   type TafseerResult,
 } from '@/services/tafseer/TafseerDbService';
 import {TafseerHtmlRenderer} from './TafseerHtmlRenderer';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
-import {currentLanguage} from '@/i18n/language';
-
-function getTafseerDisplayName(meta: {name: string; englishName: string}) {
-  return currentLanguage === 'ar' ? meta.name : meta.englishName;
-}
+import {
+  compareTafaseer,
+  getTafseerDisplayName,
+  getTafseerLanguageDisplayName,
+} from '@/i18n/tafseer';
+// @ai-end
 
 // ─── Data loading (module scope, runs once) ───────────────────────────────
 const quranData = require('@/data/quran.json') as QuranData;
@@ -76,6 +78,7 @@ interface TafseerContentProps {
   onBack: () => void;
 }
 
+// @ai-start
 export const TafseerContent: React.FC<TafseerContentProps> = ({
   surahNumber,
   ayahNumber,
@@ -86,6 +89,10 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
   const styles = useMemo(() => createStyles(theme), [theme]);
   const {t} = useTranslation(['sheets', 'common']);
   const downloadedMeta = useTafseerStore(s => s.downloadedMeta);
+  const sortedTafaseer = useMemo(
+    () => [...downloadedMeta].sort(compareTafaseer),
+    [downloadedMeta],
+  );
   const selectedTafseerId = useTafseerStore(s => s.selectedTafseerId);
   const setSelectedTafseerId = useTafseerStore(s => s.setSelectedTafseerId);
 
@@ -224,7 +231,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
             {/* Selector dropdown */}
             {showSelector && (
               <View style={styles.selectorDropdown}>
-                {downloadedMeta.map(meta => {
+                {sortedTafaseer.map(meta => {
                   const isActive = meta.identifier === selectedTafseerId;
                   return (
                     <Pressable
@@ -243,15 +250,11 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
                           numberOfLines={1}>
                           {getTafseerDisplayName(meta)}
                         </Text>
-                        {meta.name !== meta.englishName && (
-                          <Text
-                            style={styles.selectorOptionNative}
-                            numberOfLines={1}>
-                            {currentLanguage === 'ar'
-                              ? meta.englishName
-                              : meta.name}
-                          </Text>
-                        )}
+                        <Text
+                          style={styles.selectorOptionNative}
+                          numberOfLines={1}>
+                          {getTafseerLanguageDisplayName(meta.language)}
+                        </Text>
                       </View>
                       {isActive && (
                         <Feather
@@ -365,9 +368,11 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // ─── Styles ───────────────────────────────────────────────────────────────
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -540,3 +545,4 @@ const createStyles = (theme: Theme) =>
       letterSpacing: latinLetterSpacing(0.3),
     },
   });
+// @ai-end

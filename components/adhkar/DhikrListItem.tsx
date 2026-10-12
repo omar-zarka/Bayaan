@@ -13,8 +13,11 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Dhikr} from '@/types/adhkar';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 
 interface DhikrListItemProps {
   dhikr: Dhikr;
@@ -22,6 +25,7 @@ interface DhikrListItemProps {
   style?: StyleProp<ViewStyle>;
 }
 
+// @ai-start
 export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
   ({dhikr, index, style}) => {
     const {theme} = useTheme();
@@ -53,7 +57,7 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
         </View>
 
         {/* Translation */}
-        {dhikr.translation ? (
+        {showLatinReadingAids && dhikr.translation ? (
           <View style={styles.annotationContainer}>
             <View style={styles.annotationLine} />
             <Text style={styles.translationText}>{dhikr.translation}</Text>
@@ -74,6 +78,7 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 DhikrListItem.displayName = 'DhikrListItem';
 

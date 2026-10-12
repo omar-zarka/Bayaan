@@ -15,7 +15,9 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {Link} from 'expo-router';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface CircularReciterCardProps {
   imageUrl?: string;
@@ -32,6 +34,7 @@ interface CircularReciterCardProps {
   showFollowAlong?: boolean;
 }
 
+// @ai-start
 export const CircularReciterCard: React.FC<CircularReciterCardProps> = ({
   imageUrl,
   name,
@@ -208,3 +211,4 @@ export const CircularReciterCard: React.FC<CircularReciterCardProps> = ({
     </Pressable>
   );
 };
+// @ai-end

@@ -26,7 +26,9 @@ import {UserPlaylist} from '@/services/database/DatabaseService';
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface PlaylistTrack {
   id: string;
@@ -48,6 +50,7 @@ interface PlaylistDetailProps {
   id: string;
 }
 
+// @ai-start
 const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
   const {theme} = useTheme();
   const router = useRouter();
@@ -452,5 +455,6 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
     </View>
   );
 };
+// @ai-end
 
 export default PlaylistDetail;

@@ -8,8 +8,10 @@ import {useTheme} from '@/hooks/useTheme';
 import {useAdhkar} from '@/hooks/useAdhkar';
 import {Theme} from '@/utils/themeUtils';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 interface TasbeehCounterProps {
   dhikrId: string;
@@ -19,6 +21,7 @@ interface TasbeehCounterProps {
 // Success color constant
 const SUCCESS_COLOR = '#22C55E';
 
+// @ai-start
 export const TasbeehCounter: React.FC<TasbeehCounterProps> = ({
   dhikrId,
   targetCount,
@@ -165,6 +168,7 @@ export const TasbeehCounter: React.FC<TasbeehCounterProps> = ({
     </View>
   );
 };
+// @ai-end
 
 TasbeehCounter.displayName = 'TasbeehCounter';
 

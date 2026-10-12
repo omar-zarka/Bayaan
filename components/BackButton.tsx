@@ -5,7 +5,9 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {flipX} from '@/utils/rtl';
+// @ai-start
+import {flipX, isRTL} from '@/utils/rtl';
+// @ai-end
 
 interface BackButtonProps {
   onPress?: () => void;
@@ -13,6 +15,7 @@ interface BackButtonProps {
   iconSize?: number;
 }
 
+// @ai-start
 export const BackButton: React.FC<BackButtonProps> = ({
   onPress,
   style,
@@ -32,7 +35,11 @@ export const BackButton: React.FC<BackButtonProps> = ({
 
   return (
     <Pressable
-      style={[styles.backButton, style, {marginLeft: insets.left}]}
+      style={[
+        styles.backButton,
+        style,
+        {marginStart: isRTL ? insets.right : insets.left},
+      ]}
       onPress={handlePress}>
       <Feather
         name="arrow-left"
@@ -43,6 +50,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
     </Pressable>
   );
 };
+// @ai-end
 
 const styles = ScaledSheet.create({
   backButton: {

@@ -19,18 +19,24 @@ import {CircularProgress} from '@/components/CircularProgress';
 import {Ionicons} from '@expo/vector-icons';
 import {GradientText} from '@/components/GradientText';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {
   getReciterDisplayName,
   getSurahDisplayName,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const KNOWN_STYLES = ['murattal', 'mojawwad', 'molim'] as const;
+// @ai-end
 
+// @ai-start
 function isKnownStyle(style: string): style is (typeof KNOWN_STYLES)[number] {
   return (KNOWN_STYLES as readonly string[]).includes(style);
 }
+// @ai-end
 
 interface TrackCardProps {
   reciterId: string;
@@ -41,6 +47,7 @@ interface TrackCardProps {
   height?: number;
 }
 
+// @ai-start
 export const TrackCard: React.FC<TrackCardProps> = ({
   reciterId,
   surahId,
@@ -275,3 +282,4 @@ export const TrackCard: React.FC<TrackCardProps> = ({
     </TouchableOpacity>
   );
 };
+// @ai-end

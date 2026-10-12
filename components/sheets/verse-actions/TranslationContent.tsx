@@ -24,9 +24,11 @@ import {
   type BundledTranslationId,
 } from '@/types/translation';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 // ─── Data loading (module scope, runs once) ───────────────────────────────
 const quranData = require('@/data/quran.json') as QuranData;
@@ -73,6 +75,7 @@ interface TranslationContentProps {
   onBack: () => void;
 }
 
+// @ai-start
 export const TranslationContent: React.FC<TranslationContentProps> = ({
   surahNumber,
   ayahNumber,
@@ -313,9 +316,11 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // ─── Styles ───────────────────────────────────────────────────────────────
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -430,3 +435,4 @@ const createStyles = (theme: Theme) =>
       letterSpacing: latinLetterSpacing(0.3),
     },
   });
+// @ai-end

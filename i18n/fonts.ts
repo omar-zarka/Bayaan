@@ -1,3 +1,4 @@
+// @ai-generated
 import {currentLanguage} from './language';
 
 const manrope = {

@@ -15,7 +15,9 @@ import {
   AMBIENT_SOUND_LIST,
   AMBIENT_SOUNDS,
 } from '@/types/ambient';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 /**
  * AmbientSoundsSheet
@@ -24,6 +26,7 @@ import {useTranslation} from 'react-i18next';
  * Displays a 2-column grid of sound cards with "None" as the first option,
  * plus a volume slider at the bottom.
  */
+// @ai-start
 export const AmbientSoundsSheet = (props: SheetProps<'ambient-sounds'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -157,6 +160,7 @@ export const AmbientSoundsSheet = (props: SheetProps<'ambient-sounds'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const ICON_SIZE = moderateScale(34);
 

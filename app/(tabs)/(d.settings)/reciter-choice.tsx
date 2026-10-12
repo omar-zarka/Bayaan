@@ -6,9 +6,12 @@ import {Theme} from '@/utils/themeUtils';
 import {AntDesign, Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {useSettings} from '@/hooks/useSettings';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export default function ReciterChoiceScreen() {
   const {theme} = useTheme();
   const {t} = useTranslation('settings');
@@ -158,7 +161,9 @@ export default function ReciterChoiceScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -256,3 +261,4 @@ const createStyles = (theme: Theme) =>
       lineHeight: moderateScale(17),
     },
   });
+// @ai-end

@@ -31,18 +31,24 @@ import {getSurahById} from '@/services/dataService';
 import {reciterImages} from '@/utils/reciterImages';
 import Header from '@/components/Header';
 import {useSettings} from '@/hooks/useSettings';
+// @ai-start
 import {
   QIRAAT_TEACHERS,
   resolveRewayatName,
   getRewayatPersonLabel,
 } from '@/data/rewayat';
+import {getReciterDisplayName} from '@/i18n/format';
+import {normalizeSearchText, matchesSearchText} from '@/utils/catalogSearch';
+// @ai-end
 import {resolveRewayahFromName} from '@/services/rewayah/RewayahIdentity';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useHeaderHeight} from '@react-navigation/elements';
 import branding from '@/config/branding';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useBottomInset} from '@/hooks/useBottomInset';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface BrowseRecitersProps {
   theme: Theme;
@@ -114,6 +120,7 @@ interface Chip {
   isSelected: boolean;
 }
 
+// @ai-start
 export default function BrowseReciters({
   theme,
   onBack,
@@ -264,11 +271,14 @@ export default function BrowseReciters({
     }
 
     if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+      const query = normalizeSearchText(searchQuery);
       result = result.filter(reciter => {
-        if (reciter.name.toLowerCase().includes(query)) return true;
+        if (matchesSearchText(reciter.name, query)) return true;
+        if (matchesSearchText(getReciterDisplayName(reciter, 'ar'), query)) {
+          return true;
+        }
         return reciter.rewayat.some(rewaya =>
-          rewaya.name?.toLowerCase().includes(query),
+          matchesSearchText(rewaya.name ?? '', query),
         );
       });
     }
@@ -716,6 +726,7 @@ export default function BrowseReciters({
     </TouchableWithoutFeedback>
   );
 }
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

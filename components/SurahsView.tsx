@@ -11,12 +11,16 @@ import {GRADIENT_COLORS} from '@/utils/gradientColors';
 import {Feather} from '@expo/vector-icons';
 import {useSettings} from '@/hooks/useSettings';
 import {useBottomInset} from '@/hooks/useBottomInset';
+// @ai-start
 import {getJuzForSurah} from '@/data/juzData';
+// @ai-end
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {ContinueReadingHero} from '@/components/hero/ContinueReadingHero';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface SurahsViewProps {
   onSurahPress: (surah: Surah) => void;
@@ -42,6 +46,7 @@ function groupSurahsIntoPairs(surahs: Surah[]): Surah[][] {
   return pairs;
 }
 
+// @ai-start
 export default function SurahsView({
   onSurahPress,
   onSurahLongPress,
@@ -306,7 +311,9 @@ export default function SurahsView({
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -363,3 +370,4 @@ const styles = StyleSheet.create({
     letterSpacing: latinLetterSpacing(0.8),
   },
 });
+// @ai-end

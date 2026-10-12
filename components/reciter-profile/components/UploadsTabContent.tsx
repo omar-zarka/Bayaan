@@ -22,11 +22,13 @@ import type {UploadedRecitation, RecordingType} from '@/types/uploads';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
 import {GradientText} from '@/components/GradientText';
+// @ai-start
 import i18n from '@/i18n';
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 import {currentLanguage} from '@/i18n/language';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 
 interface UploadsTabContentProps {
   reciterId: string;
@@ -43,6 +45,7 @@ function stripExtension(filename: string): string {
   return filename.replace(/\.[^/.]+$/, '');
 }
 
+// @ai-start
 function getDisplayTitle(item: UploadedRecitation): string {
   if (item.type === 'surah' && item.surahNumber) {
     const surah = getSurahById(item.surahNumber);
@@ -53,7 +56,9 @@ function getDisplayTitle(item: UploadedRecitation): string {
   }
   return stripExtension(item.originalFilename);
 }
+// @ai-end
 
+// @ai-start
 function getDisplaySubtitle(item: UploadedRecitation): string {
   const parts: string[] = [];
 
@@ -80,14 +85,18 @@ function getDisplaySubtitle(item: UploadedRecitation): string {
 
   return parts.join(' · ');
 }
+// @ai-end
 
+// @ai-start
 function getVerseRangeLabel(item: UploadedRecitation): string | null {
   if (item.startVerse == null) return null;
   if (item.endVerse != null)
     return localizeDigits(`${item.startVerse}-${item.endVerse}`);
   return i18n.t('player:queue.verseShort', {verse: item.startVerse});
 }
+// @ai-end
 
+// @ai-start
 function getRecordingTypeLabel(recordingType: RecordingType): string | null {
   if (recordingType === 'salah')
     return i18n.t('player:uploads.recordingType.salah');
@@ -95,6 +104,7 @@ function getRecordingTypeLabel(recordingType: RecordingType): string | null {
     return i18n.t('player:uploads.recordingType.studio');
   return null;
 }
+// @ai-end
 
 interface ReciterUploadListItemProps {
   item: UploadedRecitation;
@@ -103,6 +113,7 @@ interface ReciterUploadListItemProps {
   onShowOptions: (item: UploadedRecitation, index: number) => void;
 }
 
+// @ai-start
 const ReciterUploadListItem: React.FC<ReciterUploadListItemProps> = React.memo(
   ({item, index, onPlay, onShowOptions}) => {
     const {theme} = useTheme();
@@ -214,9 +225,11 @@ const ReciterUploadListItem: React.FC<ReciterUploadListItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 ReciterUploadListItem.displayName = 'ReciterUploadListItem';
 
+// @ai-start
 export const UploadsTabContent = React.forwardRef<
   Animated.FlatList,
   UploadsTabContentProps
@@ -486,6 +499,7 @@ export const UploadsTabContent = React.forwardRef<
     );
   },
 );
+// @ai-end
 
 UploadsTabContent.displayName = 'UploadsTabContent';
 

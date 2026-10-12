@@ -6,8 +6,11 @@ import {Theme} from '@/utils/themeUtils';
 import {ChangelogContent} from '@/components/changelog/ChangelogContent';
 import changelogData from '@/data/changelog.json';
 import {ChangelogEntry} from '@/types/changelog';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export default function WhatsNewScreen() {
   const {theme} = useTheme();
   const {t} = useTranslation('settings');
@@ -47,6 +50,7 @@ export default function WhatsNewScreen() {
     </View>
   );
 }
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

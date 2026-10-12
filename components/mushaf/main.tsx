@@ -65,10 +65,12 @@ import PageEdgeDecoration, {
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {qcfFontLoader} from '@/services/mushaf/QCFFontLoader';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
-import {forceLTR} from '@/utils/rtl';
+// @ai-start
+import {appLayoutDirection, isRTL} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+// @ai-end
 
 const TOTAL_PAGES = 604;
 const ANIMATION_DURATION = 300;
@@ -100,6 +102,7 @@ function spreadPrimaryPage(spread: Spread): number {
 // Helpers
 // ============================================================================
 
+// @ai-start
 function getSurahNamesForPage(pageNumber: number): string {
   const lines = digitalKhattDataService.getPageLines(pageNumber);
   const seen = new Set<number>();
@@ -121,16 +124,20 @@ function getSurahNamesForPage(pageNumber: number): string {
     return getSurahDisplayName(SURAHS[surahId - 1]);
   return '';
 }
+// @ai-end
 
+// @ai-start
 function getJuzLabelForPage(pageNumber: number): string {
   return i18n.t('common:labels.juzNumber', {
     number: getJuzForPage(pageNumber),
   });
 }
+// @ai-end
 
 // ============================================================================
 // Digital Khatt PageView (Skia-based with DK V1/V2 fonts)
 // ============================================================================
+// @ai-start
 const DKPageView: React.FC<{
   pageNumber: number;
   textColor: string;
@@ -203,6 +210,8 @@ const DKPageView: React.FC<{
     <View
       style={{
         width: metrics.pageWidth,
+        // Page geometry and the Quran canvas use physical book coordinates.
+        direction: 'ltr',
         height: metrics.screenHeight,
         backgroundColor: isBookLayout ? bgColor : cardColor,
         // QCF fonts load async — keep page visible so the background color
@@ -324,6 +333,7 @@ const DKPageView: React.FC<{
     </View>
   );
 };
+// @ai-end
 
 // ============================================================================
 // DKSpreadView: FlatList item that hosts either a single centered page
@@ -333,6 +343,7 @@ const DKPageView: React.FC<{
 //   [ even-page | gap | odd-page ]
 // so RTL reading order (right → left) matches a physical mushaf.
 // ============================================================================
+// @ai-start
 const DKSpreadView: React.FC<{
   /** Primary page (odd / right side in facing mode). */
   pageNumber: number;
@@ -427,6 +438,7 @@ const DKSpreadView: React.FC<{
           height: metrics.screenHeight,
           backgroundColor: spreadBg,
           flexDirection: 'row',
+          direction: 'ltr',
           justifyContent: 'center',
           alignItems: 'center',
         }}>
@@ -489,6 +501,7 @@ const DKSpreadView: React.FC<{
     </View>
   );
 };
+// @ai-end
 
 // ============================================================================
 // MushafViewer (main exported component)
@@ -498,6 +511,7 @@ interface MushafViewerProps {
   initialVerseKey?: string;
 }
 
+// @ai-start
 export default function MushafViewer({
   pageNumber: initialPage,
 }: MushafViewerProps) {
@@ -1105,8 +1119,8 @@ export default function MushafViewer({
             offset: metrics.screenWidth * index,
             index,
           })}
-          inverted
-          style={forceLTR}
+          inverted={!isRTL}
+          style={appLayoutDirection}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           windowSize={7}
@@ -1161,8 +1175,8 @@ export default function MushafViewer({
             offset: metrics.screenWidth * index,
             index,
           })}
-          inverted
-          style={forceLTR}
+          inverted={!isRTL}
+          style={appLayoutDirection}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           windowSize={7}
@@ -1312,6 +1326,7 @@ export default function MushafViewer({
     </View>
   );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

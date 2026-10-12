@@ -21,8 +21,10 @@ import ActionSheet, {
 } from 'react-native-actions-sheet';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -42,6 +44,7 @@ const PLAYLIST_COLORS = [
   '#10B981', // Emerald
 ];
 
+// @ai-start
 export const CreatePlaylistSheet = (props: SheetProps<'create-playlist'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -172,7 +175,9 @@ export const CreatePlaylistSheet = (props: SheetProps<'create-playlist'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     sheetContainer: {
@@ -286,3 +291,4 @@ const createStyles = (theme: Theme) =>
       marginBottom: 0,
     },
   });
+// @ai-end

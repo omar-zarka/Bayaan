@@ -25,8 +25,10 @@ import {useFocusEffect} from '@react-navigation/native';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface CategoryItem {
   id: string;
@@ -38,6 +40,7 @@ interface CategoryItem {
   route: string;
 }
 
+// @ai-start
 export default function CollectionScreen() {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -220,6 +223,7 @@ export default function CollectionScreen() {
     </View>
   );
 }
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

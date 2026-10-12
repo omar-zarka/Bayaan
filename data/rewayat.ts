@@ -1,6 +1,8 @@
 // Bare i18next singleton (initialised by '@/i18n' at app start): keeps this
 // module free of native deps for Jest suites that load it through stores.
+// @ai-start
 import i18n from 'i18next';
+// @ai-end
 import {RECITERS, Reciter} from './reciterData';
 
 export interface RewayatEntry {
@@ -31,6 +33,7 @@ export interface RewayatInfo extends RewayatEntry {
 // renders the same spelling. `displayName` and `description` are getters
 // that resolve in the app language. `teacher` and `student` double as filter
 // keys, so they stay English; render them through getRewayatPersonLabel().
+// @ai-start
 const REWAYAT_REGISTRY: readonly RewayatEntry[] = [
   // Nafi'
   {
@@ -343,6 +346,7 @@ const REWAYAT_REGISTRY: readonly RewayatEntry[] = [
     aliases: [],
   },
 ];
+// @ai-end
 
 export const HAFS_REWAYAT_NAME = "Hafs A'n Assem";
 export const DEFAULT_REWAYAH = "Hafs A'n Assem";
@@ -360,6 +364,7 @@ export const QIRAAT_TEACHERS: readonly string[] = [
   'Khalaf al-Bazzar',
 ];
 
+// @ai-start
 const PERSON_LABEL_KEYS = {
   "Nafi'": 'nafi',
   'Ibn Kathir': 'ibnKathir',
@@ -392,15 +397,18 @@ const PERSON_LABEL_KEYS = {
   Idris: 'idris',
   Ishaq: 'ishaq',
 } as const;
+// @ai-end
 
 /**
  * Display label for a registry `teacher` / `student` value (e.g. "Nafi'"),
  * in the app language. Unknown names are returned unchanged.
  */
+// @ai-start
 export function getRewayatPersonLabel(name: string): string {
   const key = PERSON_LABEL_KEYS[name as keyof typeof PERSON_LABEL_KEYS];
   return key ? i18n.t(`content:rewayat.people.${key}`) : name;
 }
+// @ai-end
 
 // Lazy-built lookup map: DB name (or alias) -> RewayatEntry
 let _nameMap: Map<string, RewayatEntry> | null = null;

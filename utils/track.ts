@@ -9,7 +9,9 @@ import type {UploadedRecitation} from '@/types/uploads';
 import {resolveRecitationPath} from '@/services/uploads/UploadsService';
 import {getSurahById, getReciterName} from '@/services/dataService';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 /**
  * Filters and returns available surahs for a given rewayat
@@ -145,6 +147,7 @@ export function createDownloadedTrack(
 /**
  * Creates a Track object from an uploaded recitation
  */
+// @ai-start
 export function createUserUploadTrack(recitation: UploadedRecitation): Track {
   const url = resolveRecitationPath(recitation.filePath);
 
@@ -209,6 +212,7 @@ export function createUserUploadTrack(recitation: UploadedRecitation): Track {
     rewayahName: recitation.rewayah || undefined,
   };
 }
+// @ai-end
 
 /**
  * Placeholder Reciter used for uploads that aren't tagged to a system reciter.

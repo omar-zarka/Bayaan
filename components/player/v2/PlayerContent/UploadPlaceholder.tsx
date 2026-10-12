@@ -8,12 +8,15 @@ import {MicrophoneIcon} from '@/components/Icons';
 import {SheetManager} from 'react-native-actions-sheet';
 import {FontAwesome5} from '@expo/vector-icons';
 import type {Track} from '@/types/audio';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface UploadPlaceholderProps {
   currentTrack: Track;
 }
 
+// @ai-start
 export const UploadPlaceholder: React.FC<UploadPlaceholderProps> = ({
   currentTrack,
 }) => {
@@ -67,6 +70,7 @@ export const UploadPlaceholder: React.FC<UploadPlaceholderProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

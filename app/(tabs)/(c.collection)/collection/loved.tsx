@@ -39,8 +39,10 @@ import {useCollectionDownloadState} from '@/hooks/useCollectionDownloadState';
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface LovedTrack {
   reciterId: string;
@@ -55,6 +57,7 @@ interface LovedTrackData {
   surah: Surah | null;
 }
 
+// @ai-start
 const LovedScreen = () => {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -790,5 +793,6 @@ const LovedScreen = () => {
     </View>
   );
 };
+// @ai-end
 
 export default LovedScreen;

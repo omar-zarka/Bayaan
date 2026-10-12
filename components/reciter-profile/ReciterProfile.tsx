@@ -67,11 +67,13 @@ import {reciterShareUrl, shareUrl} from '@/utils/shareUtils';
 import branding from '@/config/branding';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 import {currentLanguage} from '@/i18n/language';
 import {forceLTR, isRTL} from '@/utils/rtl';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 
 interface ReciterProfileProps {
   id: string;
@@ -192,6 +194,7 @@ const SurahListSkeleton: React.FC<{theme: any}> = React.memo(({theme}) => {
 // devices get the same custom header/nav buttons as Android.
 const isGlass = USE_GLASS;
 
+// @ai-start
 const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   id: currentReciterId,
   showLoved = false,
@@ -1230,6 +1233,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // Lightweight wrapper — defers mounting the heavy content until the navigation
 // transition finishes so the screen push feels instant.

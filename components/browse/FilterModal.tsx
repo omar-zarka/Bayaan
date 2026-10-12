@@ -14,7 +14,9 @@ import Color from 'color';
 import {Theme} from '@/utils/themeUtils';
 import {RECITERS} from '@/data/reciterData';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {
   ALL_REWAYAH_IDS,
   getShortLabel,
@@ -36,11 +38,13 @@ export interface FilterOptions {
 }
 
 // Define the style options
+// @ai-start
 const STYLE_OPTIONS = [
   {labelKey: 'common:styles.mojawwad', value: 'mojawwad'},
   {labelKey: 'common:styles.molim', value: 'molim'},
   {labelKey: 'common:styles.murattal', value: 'murattal'},
 ] as const;
+// @ai-end
 
 // One chip per rewayah present in the reciter data, keyed by canonical
 // RewayahId slug (or the raw DB name when unresolvable). Dedups tariq
@@ -222,6 +226,7 @@ function createStyles(theme: Theme) {
   });
 }
 
+// @ai-start
 export default function FilterModal({
   visible,
   onClose,
@@ -431,3 +436,4 @@ export default function FilterModal({
     </Modal>
   );
 }
+// @ai-end

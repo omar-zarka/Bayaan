@@ -1,4 +1,6 @@
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import type {MushafAllahNameHighlightColor} from '@/store/mushafSettingsStore';
 
 export interface AllahNameHighlightOption {
@@ -8,6 +10,7 @@ export interface AllahNameHighlightOption {
   dark: string;
 }
 
+// @ai-start
 export const ALLAH_NAME_HIGHLIGHT_OPTIONS: AllahNameHighlightOption[] = [
   {
     id: 'gold',
@@ -42,6 +45,7 @@ export const ALLAH_NAME_HIGHLIGHT_OPTIONS: AllahNameHighlightOption[] = [
     dark: '#FC8181',
   },
 ];
+// @ai-end
 
 export function getAllahNameHighlightColorHex(
   color: MushafAllahNameHighlightColor,

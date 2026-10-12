@@ -57,10 +57,12 @@ import {TranslationContent} from './verse-actions/TranslationContent';
 import {TafseerContent} from './verse-actions/TafseerContent';
 import {ThemeContent} from './verse-actions/ThemeContent';
 import {WBWContent} from './verse-actions/WBWContent';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 const surahData = require('@/data/surahData.json');
 const quranVerses = require('@/data/quran.json');
@@ -78,6 +80,7 @@ type ActiveScreen =
   | 'wbw'
   | null;
 
+// @ai-start
 const SCREEN_TITLE_KEYS = {
   highlight: 'verseActions.highlight',
   note: 'verseActions.addNote',
@@ -89,6 +92,7 @@ const SCREEN_TITLE_KEYS = {
   theme: 'verseActions.theme',
   wbw: 'verseActions.wordByWord',
 } as const;
+// @ai-end
 
 const SHEET_HEIGHT = Dimensions.get('window').height * 0.85;
 
@@ -100,6 +104,7 @@ if (
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+// @ai-start
 export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -936,6 +941,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

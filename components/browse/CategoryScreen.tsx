@@ -9,10 +9,12 @@ import {TouchableOpacity} from 'react-native-gesture-handler';
 import Animated, {FadeInDown} from 'react-native-reanimated';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
 import {SURAHS} from '@/data/surahData';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+// @ai-end
 
 interface CategoryScreenProps {
   category: Category;
@@ -23,6 +25,7 @@ interface CategoryScreenProps {
   };
 }
 
+// @ai-start
 export function CategoryScreen({
   category,
   backgroundColor,
@@ -146,6 +149,7 @@ export function CategoryScreen({
     </View>
   );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

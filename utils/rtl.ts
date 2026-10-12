@@ -1,7 +1,12 @@
-import {I18nManager, type ViewStyle} from 'react-native';
-import {currentLanguage} from '@/i18n/language';
+// @ai-generated
+import {type ViewStyle} from 'react-native';
+import {currentLanguage, isRTLLanguage} from '@/i18n/language';
 
-export const isRTL = I18nManager.isRTL;
+// The selected language is the source of truth, including the first frame
+// before a native direction reload completes.
+export const isRTL = isRTLLanguage(currentLanguage);
+export const appDirection = isRTL ? 'rtl' : 'ltr';
+export const appLayoutDirection: ViewStyle = {direction: appDirection};
 
 /**
  * Letter spacing breaks Arabic cursive joining, so it is dropped when the UI
@@ -21,7 +26,8 @@ export const flipX: ViewStyle | undefined = isRTL
 
 /**
  * Keeps a subtree laid out left-to-right in RTL. Use for media transport
- * controls, progress sliders, and the mushaf pager, which already encodes
- * right-to-left page order itself.
+ * controls, progress sliders, and content with physical canvas coordinates.
+ * Do not use on horizontal FlatLists: their scroll/index calculations use
+ * the native app direction, regardless of the view's direction style.
  */
 export const forceLTR: ViewStyle = {direction: 'ltr'};

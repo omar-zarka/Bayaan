@@ -13,8 +13,11 @@ import Color from 'color';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {usePlaylists} from '@/hooks/usePlaylists';
 import {pickAndImportAudioFiles} from '@/utils/importAudio';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export const AddToCollectionSheet = (
   props: SheetProps<'add-to-collection'>,
 ) => {
@@ -137,6 +140,7 @@ export const AddToCollectionSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

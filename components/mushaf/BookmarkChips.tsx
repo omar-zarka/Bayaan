@@ -7,9 +7,11 @@ import Color from 'color';
 import {SURAHS} from '@/data/surahData';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import type {VerseBookmark} from '@/types/verse-annotations';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
 // Module-level cache — warmed by AppInitializer after DB is ready
 let cachedBookmarks: VerseBookmark[] = [];
@@ -23,6 +25,7 @@ interface BookmarkChipsProps {
   onPress: (surahId: number, ayahNumber: number) => void;
 }
 
+// @ai-start
 export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
   ({onPress}) => {
     const {theme} = useTheme();
@@ -98,9 +101,11 @@ export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 BookmarkChips.displayName = 'BookmarkChips';
 
+// @ai-start
 const styles = StyleSheet.create({
   container: {},
   label: {
@@ -130,3 +135,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Medium',
   },
 });
+// @ai-end

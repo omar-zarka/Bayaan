@@ -30,9 +30,11 @@ import {
 import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {ThemePicker} from '@/components/settings/ThemePicker';
 import branding from '@/config/branding';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import type {TFunction} from 'i18next';
+// @ai-end
 
 const isExternalLink = (type: string): boolean => {
   return [
@@ -45,6 +47,7 @@ const isExternalLink = (type: string): boolean => {
   ].includes(type);
 };
 
+// @ai-start
 const getSettingsSections = (t: TFunction<['settings', 'common']>) => {
   const appName = branding.appName;
   return [
@@ -180,6 +183,7 @@ const getSettingsSections = (t: TFunction<['settings', 'common']>) => {
     },
   ];
 };
+// @ai-end
 
 const customIconMap: Record<string, React.FC<{size: number; color: string}>> = {
   quran: QuranIcon,
@@ -225,6 +229,7 @@ const renderIcon = (
   );
 };
 
+// @ai-start
 export default function SettingsScreen() {
   const router = useRouter();
   const {theme} = useTheme();
@@ -414,7 +419,9 @@ export default function SettingsScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -428,6 +435,7 @@ const createStyles = (theme: Theme) =>
       marginBottom: moderateScale(14),
     },
     sectionHeader: {
+      textAlign: 'left',
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: theme.colors.textSecondary,
@@ -477,11 +485,13 @@ const createStyles = (theme: Theme) =>
       marginRight: moderateScale(10),
     },
     settingsTitle: {
+      textAlign: 'left',
       fontSize: moderateScale(13.5),
       fontFamily: 'Manrope-Medium',
       color: theme.colors.text,
     },
     settingsDescription: {
+      textAlign: 'left',
       fontSize: moderateScale(11),
       fontFamily: 'Manrope-Regular',
       color: theme.colors.textSecondary,
@@ -493,3 +503,4 @@ const createStyles = (theme: Theme) =>
       transform: [{scaleX: 0.8}, {scaleY: 0.8}],
     },
   });
+// @ai-end

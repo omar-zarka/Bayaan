@@ -9,7 +9,9 @@ import {Theme} from '@/utils/themeUtils';
 import {PlaylistIcon, PlayIcon, ShuffleIcon} from '@/components/Icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
+// @ai-end
 
 interface PlaylistHeaderProps {
   title: string;
@@ -20,6 +22,7 @@ interface PlaylistHeaderProps {
   theme: Theme;
 }
 
+// @ai-start
 export const PlaylistHeader: React.FC<PlaylistHeaderProps> = ({
   title,
   subtitle,
@@ -96,7 +99,9 @@ export const PlaylistHeader: React.FC<PlaylistHeaderProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme, insets: EdgeInsets) =>
   ScaledSheet.create({
     headerContainer: {
@@ -183,3 +188,4 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingLeft: moderateScale(4),
     },
   });
+// @ai-end

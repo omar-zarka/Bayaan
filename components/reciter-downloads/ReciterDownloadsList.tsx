@@ -30,17 +30,23 @@ import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {Feather} from '@expo/vector-icons';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const KNOWN_STYLES = ['murattal', 'mojawwad', 'molim'] as const;
+// @ai-end
 
+// @ai-start
 function getStyleLabel(style: string): string {
   const known = KNOWN_STYLES.find(s => s === style.toLowerCase());
   if (known) return i18n.t(`common:styles.${known}`);
   return style.charAt(0).toUpperCase() + style.slice(1);
 }
+// @ai-end
 
 interface DownloadTrackData {
   download: DownloadedSurah;
@@ -53,6 +59,7 @@ interface ReciterDownloadsListProps {
   reciterId: string;
 }
 
+// @ai-start
 export const ReciterDownloadsList: React.FC<ReciterDownloadsListProps> = ({
   reciterId,
 }) => {
@@ -490,3 +497,4 @@ export const ReciterDownloadsList: React.FC<ReciterDownloadsListProps> = ({
     </View>
   );
 };
+// @ai-end

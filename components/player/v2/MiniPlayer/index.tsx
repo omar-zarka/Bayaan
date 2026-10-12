@@ -8,8 +8,12 @@ import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
-import {getTrackDisplayTitle} from '@/i18n/format';
+// @ai-start
+import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
+import {appLayoutDirection} from '@/utils/rtl';
+// @ai-end
 
+// @ai-start
 function MiniPlayerInner() {
   const {theme} = useTheme();
   const {play, pause} = usePlayerActions();
@@ -50,7 +54,7 @@ function MiniPlayerInner() {
   const textColor = theme.colors.text;
 
   return (
-    <Pressable onPress={handlePress} style={styles.row}>
+    <Pressable onPress={handlePress} style={[styles.row, appLayoutDirection]}>
       <ReciterImage
         reciterName={currentTrack.reciterName}
         style={styles.artwork}
@@ -66,7 +70,7 @@ function MiniPlayerInner() {
             {color: Color(textColor).alpha(0.5).toString()},
           ]}
           numberOfLines={1}>
-          {currentTrack.artist}
+          {getTrackArtistDisplay(currentTrack)}
         </Text>
       </View>
 
@@ -85,9 +89,11 @@ function MiniPlayerInner() {
     </Pressable>
   );
 }
+// @ai-end
 
 export const MiniPlayer: React.FC = React.memo(MiniPlayerInner);
 
+// @ai-start
 const styles = StyleSheet.create({
   row: {
     flexDirection: 'row',
@@ -110,10 +116,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
+    textAlign: 'left',
     fontSize: 13,
     fontFamily: 'Manrope-SemiBold',
   },
   subtitle: {
+    textAlign: 'left',
     fontSize: 11,
     fontFamily: 'Manrope-Medium',
   },
@@ -125,3 +133,4 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 });
+// @ai-end

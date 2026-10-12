@@ -28,9 +28,11 @@ import {
   isBundledTranslation,
   getBundledFootnotes,
 } from '@/utils/translationLookup';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
 import {isRTL} from '@/utils/rtl';
+// @ai-end
 
 // Type for processed word data from store
 interface ProcessedTajweedWord {
@@ -100,6 +102,7 @@ const TajweedSegment = memo(({text, color}: {text: string; color: string}) => (
 ));
 TajweedSegment.displayName = 'TajweedSegment';
 
+// @ai-start
 export const VerseItem = memo<VerseItemProps>(
   ({
     verse,
@@ -543,9 +546,11 @@ export const VerseItem = memo<VerseItemProps>(
     );
   },
 );
+// @ai-end
 
 VerseItem.displayName = 'VerseItem';
 
+// @ai-start
 const styles = StyleSheet.create({
   container: {
     paddingVertical: verticalScale(12),
@@ -627,3 +632,4 @@ const styles = StyleSheet.create({
     lineHeight: moderateScale(20),
   },
 });
+// @ai-end

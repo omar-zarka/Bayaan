@@ -7,8 +7,10 @@ import {Reciter} from '@/data/reciterData';
 import {ReciterImage} from '@/components/ReciterImage';
 import {getReciterById} from '@/services/dataService';
 import {Feather} from '@expo/vector-icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
 interface ReciterDownloadsListItemProps {
   reciterId: string;
@@ -18,6 +20,7 @@ interface ReciterDownloadsListItemProps {
   onLongPress?: () => void;
 }
 
+// @ai-start
 export const ReciterDownloadsListItem: React.FC<ReciterDownloadsListItemProps> =
   React.memo(
     ({reciterId, downloadCount, onPress, onOptionsPress, onLongPress}) => {
@@ -86,6 +89,7 @@ export const ReciterDownloadsListItem: React.FC<ReciterDownloadsListItemProps> =
       );
     },
   );
+// @ai-end
 
 ReciterDownloadsListItem.displayName = 'ReciterDownloadsListItem';
 

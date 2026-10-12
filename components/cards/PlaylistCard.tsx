@@ -7,7 +7,9 @@ import Color from 'color';
 import {Link} from 'expo-router';
 import {LinearGradient} from 'expo-linear-gradient';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface PlaylistCardProps {
   name: string;
@@ -20,6 +22,7 @@ interface PlaylistCardProps {
   height?: number;
 }
 
+// @ai-start
 export const PlaylistCard: React.FC<PlaylistCardProps> = ({
   name,
   itemCount,
@@ -139,3 +142,4 @@ export const PlaylistCard: React.FC<PlaylistCardProps> = ({
     </Pressable>
   );
 };
+// @ai-end

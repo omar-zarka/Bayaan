@@ -4,7 +4,9 @@ import {useTheme} from '@/hooks/useTheme';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
 import {HeartIcon} from '@/components/Icons';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface LovedCardProps {
   itemCount: number;
@@ -13,6 +15,7 @@ interface LovedCardProps {
   height?: number;
 }
 
+// @ai-start
 export const LovedCard: React.FC<LovedCardProps> = ({
   itemCount,
   onPress,
@@ -78,3 +81,4 @@ export const LovedCard: React.FC<LovedCardProps> = ({
     </TouchableOpacity>
   );
 };
+// @ai-end

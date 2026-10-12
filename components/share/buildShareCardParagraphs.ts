@@ -38,10 +38,14 @@ import {
   digitalKhattDataService,
 } from '@/services/mushaf/DigitalKhattDataService';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
+// @ai-start
 import i18n from 'i18next';
+// @ai-end
 import type {RewayahId} from '@/store/mushafSettingsStore';
 import branding from '@/config/branding';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
+// @ai-end
 
 interface QuranEntry {
   verse_key: string;
@@ -143,6 +147,7 @@ function addVerseMarker(text: string): string {
   return text.replace(/([\u0660-\u0669]+)$/, '\u06DD$1');
 }
 
+// @ai-start
 export function buildShareCardParagraphs(
   verseKeys: string[],
   contentWidth: number,
@@ -371,3 +376,4 @@ export function buildShareCardParagraphs(
     colors,
   };
 }
+// @ai-end

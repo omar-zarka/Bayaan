@@ -3,7 +3,9 @@ import {useApiHealthStore} from '@/store/apiHealthStore';
 import {useNetworkStore} from '@/store/networkStore';
 import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {showToast} from '@/utils/toastUtils';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 /**
  * Fires non-persistent toasts on connectivity / API-health transitions:
@@ -15,6 +17,7 @@ import i18n from '@/i18n';
  * Renders nothing. Mounts once at the root and listens to the relevant
  * Zustand stores.
  */
+// @ai-start
 export function NetworkStatusMonitor(): null {
   const isOnline = useNetworkStore(s => s.isOnline);
   const {isDisrupted, usingStaleCache} = useApiHealthStore();
@@ -67,3 +70,4 @@ export function NetworkStatusMonitor(): null {
 
   return null;
 }
+// @ai-end

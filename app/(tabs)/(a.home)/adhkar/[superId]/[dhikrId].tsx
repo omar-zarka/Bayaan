@@ -31,8 +31,10 @@ import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {dhikrShareUrl, shareUrl} from '@/utils/shareUtils';
 import branding from '@/config/branding';
+// @ai-start
 import {useTranslation} from 'react-i18next';
-import {forceLTR} from '@/utils/rtl';
+import {appLayoutDirection} from '@/utils/rtl';
+// @ai-end
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -60,6 +62,7 @@ interface CategoryTitleMap {
   [categoryId: string]: string;
 }
 
+// @ai-start
 const DhikrReaderScreen: React.FC = () => {
   const {
     superId,
@@ -343,7 +346,7 @@ const DhikrReaderScreen: React.FC = () => {
         ]}>
         <FlatList
           ref={flatListRef}
-          style={forceLTR}
+          style={appLayoutDirection}
           data={adhkarList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -366,6 +369,7 @@ const DhikrReaderScreen: React.FC = () => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

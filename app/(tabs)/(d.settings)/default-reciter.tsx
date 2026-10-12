@@ -17,10 +17,13 @@ import {ReciterImage} from '@/components/ReciterImage';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export default function DefaultReciterScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Reciter[]>([]);
@@ -142,7 +145,9 @@ export default function DefaultReciterScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -211,3 +216,4 @@ const createStyles = (theme: Theme) =>
       paddingVertical: moderateScale(15),
     },
   });
+// @ai-end

@@ -10,7 +10,9 @@
  */
 
 import branding from '@/config/branding';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 export interface SystemPlaylistItem {
   surahId: number;
@@ -36,6 +38,7 @@ export interface SystemPlaylist {
  * inside the array resolve `branding.appName` at call time.
  * Total: 12 playlists (6 per column).
  */
+// @ai-start
 export function getSystemPlaylists(): SystemPlaylist[] {
   return [
     // ========== LEFT COLUMN ==========
@@ -325,6 +328,7 @@ export function getSystemPlaylists(): SystemPlaylist[] {
     },
   ];
 }
+// @ai-end
 
 /**
  * Get a system playlist by ID

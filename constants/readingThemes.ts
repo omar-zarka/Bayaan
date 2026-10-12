@@ -6,7 +6,9 @@
 
 // The bare i18next singleton (initialised by '@/i18n' at app start) keeps this
 // module free of native dependencies; it is loaded by Jest suites via stores.
+// @ai-start
 import i18n from 'i18next';
+// @ai-end
 
 export interface ReadingThemeColors {
   background: string;
@@ -23,6 +25,7 @@ export interface ReadingTheme {
   colors: ReadingThemeColors;
 }
 
+// @ai-start
 export const LIGHT_READING_THEMES: ReadingTheme[] = [
   {
     id: 'default',
@@ -123,9 +126,11 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
     },
   },
 ];
+// @ai-end
 
 // Order matches LIGHT_READING_THEMES positionally:
 // Cream↔Navy, Parchment↔Sepia, White↔Black, Sage↔Sage, Rose↔Charcoal, Cool↔Indigo, Sand↔Amber
+// @ai-start
 export const DARK_READING_THEMES: ReadingTheme[] = [
   {
     id: 'dark-default',
@@ -226,6 +231,7 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
     },
   },
 ];
+// @ai-end
 
 export const ALL_READING_THEMES = [
   ...LIGHT_READING_THEMES,

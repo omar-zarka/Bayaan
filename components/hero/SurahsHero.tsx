@@ -16,6 +16,7 @@ import {
   MESH_PALETTES,
   SurahGradientMesh,
 } from '@/components/hero/SurahGradientMesh';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {
@@ -23,6 +24,7 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
 // Same SECTION_HEIGHT as ScrollingHero for consistency
 const SECTION_HEIGHT = moderateScale(150);
@@ -43,6 +45,7 @@ interface SurahHeroSectionProps {
  * Individual Surah hero section component that displays surah information
  * with zoom transition to mushaf.
  */
+// @ai-start
 export const SurahHeroSection = ({
   surah,
   onLongPress,
@@ -174,8 +177,10 @@ export const SurahHeroSection = ({
     </Link>
   );
 };
+// @ai-end
 
 // Styles for the SurahHeroSection component
+// @ai-start
 const createStyles = (
   theme: Theme,
   heroTheme: import('@/components/hero/heroThemes').HeroColorTheme,
@@ -271,6 +276,7 @@ const createStyles = (
       textTransform: 'uppercase',
     },
   });
+// @ai-end
 
 interface SurahsHeroProps {
   surahOfTheDay: Surah;

@@ -1,4 +1,6 @@
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 export interface Surah {
   id: number;
@@ -29,6 +31,7 @@ export interface BrowseCategory {
   featured?: boolean;
 }
 
+// @ai-start
 export const FEATURED_COLLECTIONS: Category[] = [
   {
     id: 'juz-amma',
@@ -93,7 +96,9 @@ export const FEATURED_COLLECTIONS: Category[] = [
     ],
   },
 ];
+// @ai-end
 
+// @ai-start
 export const THEMATIC_COLLECTIONS: Category[] = [
   {
     id: 'prophets',
@@ -134,7 +139,9 @@ export const THEMATIC_COLLECTIONS: Category[] = [
     ],
   },
 ];
+// @ai-end
 
+// @ai-start
 export const LENGTH_BASED_COLLECTIONS: Category[] = [
   {
     id: 'short',
@@ -180,7 +187,9 @@ export const LENGTH_BASED_COLLECTIONS: Category[] = [
     ],
   },
 ];
+// @ai-end
 
+// @ai-start
 export const PERIOD_BASED_COLLECTIONS: Category[] = [
   {
     id: 'meccan',
@@ -207,7 +216,9 @@ export const PERIOD_BASED_COLLECTIONS: Category[] = [
     ],
   },
 ];
+// @ai-end
 
+// @ai-start
 export const SPECIAL_COLLECTIONS: Category[] = [
   {
     id: 'most-recited',
@@ -236,7 +247,9 @@ export const SPECIAL_COLLECTIONS: Category[] = [
     ],
   },
 ];
+// @ai-end
 
+// @ai-start
 export const BROWSE_CATEGORIES: BrowseCategory[] = [
   {
     id: 'juz-amma',
@@ -314,3 +327,4 @@ export const BROWSE_CATEGORIES: BrowseCategory[] = [
     route: '/medinan',
   },
 ];
+// @ai-end

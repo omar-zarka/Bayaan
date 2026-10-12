@@ -13,9 +13,11 @@ import {SurahListProps} from '@/components/reciter-profile/types';
 import {SurahItem} from '@/components/SurahItem';
 import {SurahCard} from '@/components/cards/SurahCard';
 import {Surah} from '@/data/surahData';
+// @ai-start
 import {getJuzForSurah} from '@/data/juzData';
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 // Define types matching useSettings and ReciterProfile
 type ReciterProfileViewMode = 'card' | 'list';
@@ -48,6 +50,7 @@ ItemSeparator.displayName = 'ItemSeparator';
  *
  * Displays surahs in either a list or grid view.
  */
+// @ai-start
 export const SurahList = React.forwardRef<
   FlashListRef<FlatItem>,
   UpdatedSurahListProps
@@ -368,10 +371,12 @@ export const SurahList = React.forwardRef<
     );
   },
 );
+// @ai-end
 
 // Add display name
 SurahList.displayName = 'SurahList';
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     surahsContainer: {
@@ -415,3 +420,4 @@ const createStyles = (theme: Theme) =>
       letterSpacing: latinLetterSpacing(0.8),
     },
   });
+// @ai-end

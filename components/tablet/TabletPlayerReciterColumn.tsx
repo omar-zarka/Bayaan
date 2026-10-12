@@ -27,8 +27,10 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {SurahList} from '@/components/reciter-profile/components/SurahList';
 import {ReciterImage} from '@/components/ReciterImage';
 import {Feather} from '@expo/vector-icons';
+// @ai-start
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 
 function sortRewayat(rewayat: Rewayat[]): Rewayat[] {
   return [...rewayat].sort((a, b) => {
@@ -65,6 +67,7 @@ type SortOption = 'asc' | 'desc' | 'revelation';
  * Right column beside the full player on iPad: reciter identity + rewayah chips + surah list.
  * Mirrors reciter profile playback behavior; opens full profile via header action.
  */
+// @ai-start
 export const TabletPlayerReciterColumn: React.FC<{
   reciterId: string;
   initialRewayatId?: string;
@@ -316,6 +319,7 @@ export const TabletPlayerReciterColumn: React.FC<{
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   root: {

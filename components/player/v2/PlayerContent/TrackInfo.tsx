@@ -16,14 +16,19 @@ import {useLoved} from '@/hooks/useLoved';
 import {HeartIcon, MicrophoneIcon} from '@/components/Icons';
 import {getShortLabel} from '@/services/rewayah/RewayahIdentity';
 import {useCurrentTrackResolvedRewayah} from '@/hooks/useCurrentTrackRewayah';
+// @ai-start
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
-import {getTrackDisplayTitle} from '@/i18n/format';
+// @ai-start
+import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export const TrackInfo = () => {
   const {theme} = useTheme();
   const glassColorScheme = useGlassColorScheme();
@@ -129,7 +134,7 @@ export const TrackInfo = () => {
             <Text
               style={[styles.reciterName, {color: theme.colors.text}]}
               numberOfLines={1}>
-              {currentTrack?.artist || ''}
+              {currentTrack ? getTrackArtistDisplay(currentTrack) : ''}
             </Text>
             {resolvedRewayah && (rewayat || currentTrack?.rewayahName) && (
               <Text
@@ -189,6 +194,7 @@ export const TrackInfo = () => {
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

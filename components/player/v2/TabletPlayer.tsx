@@ -43,6 +43,9 @@ import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useProgress} from '@/services/player/store/progressStore';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
+// @ai-start
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 import {useVerseSelectionStore} from '@/store/verseSelectionStore';
 import {useTimestampLoader} from '@/hooks/useTimestampLoader';
 import {useAyahTracker} from '@/hooks/useAyahTracker';
@@ -68,9 +71,15 @@ import {
   QueueIcon,
   AmbientIcon,
 } from '@/components/Icons';
-import {localizeDigits, getTrackDisplayTitle} from '@/i18n/format';
+// @ai-start
+import {
+  localizeDigits,
+  getTrackDisplayTitle,
+  getTrackArtistDisplay,
+} from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
 import {getRecitationStyleLabel} from './recitationStyle';
+// @ai-end
 
 interface TabletPlayerProps {
   onSpeedPress: () => void;
@@ -99,6 +108,7 @@ const formatTime = (s: number) => {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 };
 
+// @ai-start
 const TabletPlayer: React.FC<TabletPlayerProps> = ({
   onSpeedPress,
   onSleepTimerPress,
@@ -152,10 +162,10 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
 
   const progress = useProgress();
 
-  const showTranslation = useMushafSettingsStore(s => s.showTranslation);
-  const showTransliteration = useMushafSettingsStore(
-    s => s.showTransliteration,
-  );
+  const showTranslation =
+    useMushafSettingsStore(s => s.showTranslation) && showLatinReadingAids;
+  const showTransliteration =
+    useMushafSettingsStore(s => s.showTransliteration) && showLatinReadingAids;
   const arabicFontSize = useMushafSettingsStore(s => s.arabicFontSize);
   const translationFontSize = useMushafSettingsStore(
     s => s.translationFontSize,
@@ -501,7 +511,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
             {color: textColor},
           ]}
           numberOfLines={1}>
-          {currentTrack?.artist || ''}
+          {currentTrack ? getTrackArtistDisplay(currentTrack) : ''}
         </Text>
         {resolvedRewayah && (rewayat || currentTrack?.rewayahName) && (
           <Text
@@ -826,6 +836,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   // Layout roots

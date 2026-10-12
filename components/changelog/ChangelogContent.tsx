@@ -5,8 +5,10 @@ import {useTheme} from '@/hooks/useTheme';
 import {Ionicons} from '@expo/vector-icons';
 import Color from 'color';
 import {ChangelogEntry} from '@/types/changelog';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {currentLanguage} from '@/i18n/language';
+// @ai-end
 
 interface ChangelogContentProps {
   changelog: ChangelogEntry;
@@ -14,6 +16,7 @@ interface ChangelogContentProps {
   showFullDetails?: boolean;
 }
 
+// @ai-start
 export function ChangelogContent({
   changelog,
   showVersion = true,
@@ -122,7 +125,9 @@ export function ChangelogContent({
     </ScrollView>
   );
 }
+// @ai-end
 
+// @ai-start
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
@@ -135,6 +140,7 @@ function formatDate(dateString: string): string {
     options,
   );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   scrollView: {

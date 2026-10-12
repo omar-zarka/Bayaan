@@ -12,6 +12,9 @@ import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {useTajweedStore} from '@/store/tajweedStore';
+// @ai-start
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 
 interface WBWContentProps {
   surahNumber: number;
@@ -19,6 +22,7 @@ interface WBWContentProps {
   onBack: () => void;
 }
 
+// @ai-start
 export const WBWContent: React.FC<WBWContentProps> = ({
   surahNumber,
   ayahNumber,
@@ -85,8 +89,8 @@ export const WBWContent: React.FC<WBWContentProps> = ({
           arabicFontSize={arabicFontSize}
           dkFontFamily={dkFontFamily}
           fontMgr={fontMgr}
-          showTranslation={true}
-          showTransliteration={true}
+          showTranslation={showLatinReadingAids}
+          showTransliteration={showLatinReadingAids}
           onWordPress={handleWordPress}
           selectedWordPosition={selectedWordPosition}
           showTajweed={showTajweed}
@@ -100,6 +104,7 @@ export const WBWContent: React.FC<WBWContentProps> = ({
     </ScrollView>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

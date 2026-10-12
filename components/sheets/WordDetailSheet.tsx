@@ -18,8 +18,12 @@ import Color from 'color';
 import {wbwDataService, type WBWWord} from '@/services/wbw/WBWDataService';
 import {createAudioPlayer, AudioPlayer} from 'expo-audio';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 
+// @ai-start
 export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -171,14 +175,14 @@ export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
             ) : null}
 
             {/* Transliteration */}
-            {wbwWord?.transliteration ? (
+            {showLatinReadingAids && wbwWord?.transliteration ? (
               <Text style={styles.transliteration}>
                 {wbwWord.transliteration}
               </Text>
             ) : null}
 
             {/* Translation */}
-            {wbwWord?.translation ? (
+            {showLatinReadingAids && wbwWord?.translation ? (
               <Text style={styles.translation}>
                 &ldquo;{wbwWord.translation}&rdquo;
               </Text>
@@ -232,6 +236,7 @@ export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

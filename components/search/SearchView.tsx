@@ -15,7 +15,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getAllReciters, getAllSurahs} from '@/services/dataService';
 import {Surah} from '@/data/surahData';
 import {Reciter} from '@/data/reciterData';
-import Fuse from 'fuse.js';
+// @ai-start
+import {getReciterDisplayName} from '@/i18n/format';
+import {
+  createCatalogSearch,
+  type CatalogSearchResult,
+} from '@/utils/catalogSearch';
+// @ai-end
 import {Feather} from '@expo/vector-icons';
 import {ReciterItem} from '@/components/ReciterItem';
 import {SurahItem} from '@/components/SurahItem';
@@ -31,8 +37,10 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {ExploreView} from '@/components/search/ExploreView';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const RECENT_SEARCHES_KEY = 'recentSearches';
 const MAX_RECENT_SEARCHES = 10;
@@ -44,11 +52,9 @@ interface RecentSearchItem {
   timestamp: number;
 }
 
-interface SearchResult {
-  type: 'surah' | 'reciter';
-  item: Surah | Reciter;
-  score: number;
-}
+// @ai-start
+type SearchResult = CatalogSearchResult;
+// @ai-end
 
 interface SearchViewProps {
   onClose: () => void;
@@ -61,6 +67,7 @@ interface SearchViewProps {
   skipTopInset?: boolean;
 }
 
+// @ai-start
 export function SearchView({
   onClose,
   visible,
@@ -75,8 +82,9 @@ export function SearchView({
   const [searching, setSearching] = useState(false);
   const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
   const router = useRouter();
-  const [reciterFuse, setReciterFuse] = useState<Fuse<Reciter> | null>(null);
-  const [surahFuse, setSurahFuse] = useState<Fuse<Surah> | null>(null);
+  const [catalogSearch, setCatalogSearch] = useState<ReturnType<
+    typeof createCatalogSearch
+  > | null>(null);
 
   // Fade animation — both views always mounted
   const browseOpacity = useRef(new RNAnimated.Value(1)).current;
@@ -170,42 +178,10 @@ export function SearchView({
           getAllSurahs(),
         ]);
 
-        setReciterFuse(
-          new Fuse(reciterData, {
-            keys: [
-              {name: 'name', weight: 2},
-              {name: 'translated_name', weight: 1.5},
-              {name: 'arabic_name', weight: 2},
-              {name: 'description', weight: 0.7},
-              {name: 'style', weight: 0.5},
-            ],
-            threshold: 0.4,
-            distance: 200,
-            minMatchCharLength: 2,
-            useExtendedSearch: true,
-            ignoreLocation: true,
-            findAllMatches: true,
-            includeScore: true,
-          }),
-        );
-
-        setSurahFuse(
-          new Fuse(surahData, {
-            keys: [
-              {name: 'name', weight: 2},
-              {name: 'name_arabic', weight: 2},
-              {name: 'translated_name_english', weight: 1.5},
-              {name: 'id', weight: 1},
-              {name: 'revelation_type', weight: 0.5},
-            ],
-            threshold: 0.4,
-            distance: 200,
-            minMatchCharLength: 2,
-            useExtendedSearch: true,
-            ignoreLocation: true,
-            findAllMatches: true,
-            includeScore: true,
-          }),
+        setCatalogSearch(
+          createCatalogSearch(reciterData, surahData, reciter =>
+            getReciterDisplayName(reciter, 'ar'),
+          ),
         );
 
         const storedSearches = await AsyncStorage.getItem(RECENT_SEARCHES_KEY);
@@ -233,7 +209,7 @@ export function SearchView({
   }, [visible, isSearchMode]);
 
   const performSearch = useCallback(() => {
-    if (!reciterFuse || !surahFuse || !debouncedQuery.trim()) {
+    if (!catalogSearch || !debouncedQuery.trim()) {
       setSearchResults([]);
       setSearching(false);
       return;
@@ -242,21 +218,7 @@ export function SearchView({
     setSearching(true);
 
     try {
-      const surahResults = surahFuse.search(debouncedQuery).map(result => ({
-        type: 'surah' as const,
-        item: result.item,
-        score: result.score || 1,
-      }));
-
-      const reciterResults = reciterFuse.search(debouncedQuery).map(result => ({
-        type: 'reciter' as const,
-        item: result.item,
-        score: result.score || 1,
-      }));
-
-      const combinedResults = [...surahResults, ...reciterResults].sort(
-        (a, b) => a.score - b.score,
-      );
+      const combinedResults = catalogSearch.search(debouncedQuery);
 
       setSearchResults(combinedResults);
 
@@ -273,7 +235,7 @@ export function SearchView({
     }
 
     setSearching(false);
-  }, [debouncedQuery, reciterFuse, surahFuse]);
+  }, [debouncedQuery, catalogSearch]);
 
   useEffect(() => {
     performSearch();
@@ -606,7 +568,9 @@ export function SearchView({
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -665,3 +629,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Medium',
   },
 });
+// @ai-end

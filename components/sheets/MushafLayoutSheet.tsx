@@ -15,13 +15,16 @@ import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import {MushafSettingsContent} from '@/components/MushafSettingsContent';
 import {ReadingThemeContent} from '@/components/ReadingThemeContent';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 type ActiveScreen = 'theme' | null;
 
+// @ai-start
 export const MushafLayoutSheet = (props: SheetProps<'mushaf-layout'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -94,6 +97,7 @@ export const MushafLayoutSheet = (props: SheetProps<'mushaf-layout'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

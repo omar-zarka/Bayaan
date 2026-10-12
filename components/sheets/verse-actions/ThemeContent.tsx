@@ -10,8 +10,10 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {themeDataService} from '@/services/mushaf/ThemeDataService';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+// @ai-end
 
 const surahData = require('@/data/surahData.json');
 
@@ -23,6 +25,7 @@ interface ThemeContentProps {
   onBack: () => void;
 }
 
+// @ai-start
 export const ThemeContent: React.FC<ThemeContentProps> = ({
   surahNumber,
   ayahNumber,
@@ -99,6 +102,7 @@ export const ThemeContent: React.FC<ThemeContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // ─── Styles ───────────────────────────────────────────────────────────────
 

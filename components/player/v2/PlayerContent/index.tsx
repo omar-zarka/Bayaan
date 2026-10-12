@@ -28,6 +28,9 @@ import {useVerseSelectionStore} from '@/store/verseSelectionStore';
 import {useTheme} from '@/hooks/useTheme';
 import {useReadingThemeColors} from '@/hooks/useReadingThemeColors';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
+// @ai-start
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Color from 'color';
 import {useTimestampLoader} from '@/hooks/useTimestampLoader';
@@ -49,6 +52,7 @@ const ANIMATION_DURATION = 300;
 const DEFAULT_HEADER_HEIGHT = 100;
 const DEFAULT_CONTROLS_HEIGHT = 250;
 
+// @ai-start
 const PlayerContent: React.FC<PlayerContentProps> = ({
   onSpeedPress,
   onSleepTimerPress,
@@ -130,10 +134,10 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
   const [controlsHeight, setControlsHeight] = useState(DEFAULT_CONTROLS_HEIGHT);
 
   // Granular mushaf settings selectors (avoid full-store subscription)
-  const showTranslation = useMushafSettingsStore(s => s.showTranslation);
-  const showTransliteration = useMushafSettingsStore(
-    s => s.showTransliteration,
-  );
+  const showTranslation =
+    useMushafSettingsStore(s => s.showTranslation) && showLatinReadingAids;
+  const showTransliteration =
+    useMushafSettingsStore(s => s.showTransliteration) && showLatinReadingAids;
   const arabicFontSize = useMushafSettingsStore(s => s.arabicFontSize);
   const translationFontSize = useMushafSettingsStore(
     s => s.translationFontSize,
@@ -349,6 +353,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

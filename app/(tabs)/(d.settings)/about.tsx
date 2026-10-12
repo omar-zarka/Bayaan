@@ -5,10 +5,13 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {VersionDisplay} from '@/components/VersionDisplay';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import branding from '@/config/branding';
+// @ai-end
 
+// @ai-start
 const FEATURE_KEYS = [
   'offlineDownloads',
   'customPlaylists',
@@ -18,7 +21,9 @@ const FEATURE_KEYS = [
   'curatedCollections',
   'personalization',
 ] as const;
+// @ai-end
 
+// @ai-start
 const COMING_SOON_KEYS = [
   'translations',
   'wordByWord',
@@ -26,6 +31,7 @@ const COMING_SOON_KEYS = [
   'learningTools',
   'community',
 ] as const;
+// @ai-end
 
 interface FeatureProps {
   title: string;
@@ -40,6 +46,7 @@ const Feature = ({title, description, styles}: FeatureProps) => (
   </View>
 );
 
+// @ai-start
 export default function AboutScreen() {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -128,7 +135,9 @@ export default function AboutScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -212,3 +221,4 @@ const createStyles = (theme: Theme) =>
       lineHeight: moderateScale(17),
     },
   });
+// @ai-end

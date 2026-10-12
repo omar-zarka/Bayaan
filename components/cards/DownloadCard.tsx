@@ -4,7 +4,9 @@ import {useTheme} from '@/hooks/useTheme';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
 import {DownloadIcon} from '@/components/Icons';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface DownloadCardProps {
   itemCount: number;
@@ -13,6 +15,7 @@ interface DownloadCardProps {
   height?: number;
 }
 
+// @ai-start
 export const DownloadCard: React.FC<DownloadCardProps> = ({
   itemCount,
   onPress,
@@ -78,3 +81,4 @@ export const DownloadCard: React.FC<DownloadCardProps> = ({
     </TouchableOpacity>
   );
 };
+// @ai-end

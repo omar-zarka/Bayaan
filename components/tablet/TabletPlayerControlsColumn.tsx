@@ -52,9 +52,15 @@ import {
   QueueIcon,
   AmbientIcon,
 } from '@/components/Icons';
-import {localizeDigits, getTrackDisplayTitle} from '@/i18n/format';
+// @ai-start
+import {
+  localizeDigits,
+  getTrackDisplayTitle,
+  getTrackArtistDisplay,
+} from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 
 interface TabletPlayerControlsColumnProps {
   onSpeedPress: () => void;
@@ -80,6 +86,7 @@ const formatTime = (s: number) => {
   return h > 0 ? `${h}:${mm}:${ss}` : `${m}:${ss}`;
 };
 
+// @ai-start
 export const TabletPlayerControlsColumn: React.FC<
   TabletPlayerControlsColumnProps
 > = ({
@@ -354,7 +361,7 @@ export const TabletPlayerControlsColumn: React.FC<
               <Text
                 style={[styles.trackArtist, {color: textColor}]}
                 numberOfLines={1}>
-                {currentTrack?.artist || ''}
+                {currentTrack ? getTrackArtistDisplay(currentTrack) : ''}
               </Text>
               {resolvedRewayah && (rewayat || currentTrack?.rewayahName) && (
                 <Text
@@ -572,6 +579,7 @@ export const TabletPlayerControlsColumn: React.FC<
     </GestureDetector>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   root: {

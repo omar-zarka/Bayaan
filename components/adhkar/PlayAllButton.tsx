@@ -11,7 +11,9 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface PlayAllButtonProps {
   onPress: () => void;
@@ -19,6 +21,7 @@ interface PlayAllButtonProps {
   disabled?: boolean;
 }
 
+// @ai-start
 export const PlayAllButton: React.FC<PlayAllButtonProps> = React.memo(
   function PlayAllButton({onPress, isPlaying = false, disabled = false}) {
     const {theme} = useTheme();
@@ -52,6 +55,7 @@ export const PlayAllButton: React.FC<PlayAllButtonProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 PlayAllButton.displayName = 'PlayAllButton';
 

@@ -10,7 +10,9 @@
 
 // Bare i18next singleton (initialised by '@/i18n' at app start): keeps this
 // module free of native deps for Jest suites that load it through stores.
+// @ai-start
 import i18n from 'i18next';
+// @ai-end
 import {resolveRewayatName, type RewayatEntry} from '@/data/rewayat';
 
 // ── Canonical slug union ─────────────────────────────────────────────────────
@@ -168,24 +170,30 @@ export function hasDiffData(id: RewayahId): id is RewayahWithDiffs {
 // Labels live in the `content` namespace (`rewayah.short|long|description.<id>`)
 // so they follow the app language.
 
+// @ai-start
 export function getShortLabel(id: RewayahId): string {
   return i18n.t(`content:rewayah.short.${id}`);
 }
+// @ai-end
 
 // Long labels — the "Student 'an Teacher" form used in the mushaf
 // settings picker. Used where the picker UI needs to disambiguate
 // transmitters.
+// @ai-start
 export function getLongLabel(id: RewayahId): string {
   return i18n.t(`content:rewayah.long.${id}`);
 }
+// @ai-end
 
 // One-line descriptions for the picker: the first 8 are the copy that
 // used to live inline in MushafSettingsContent.REWAYAH_OPTIONS; the
 // remaining 12 are short geographic / historical context for the
 // taxonomy-only entries.
+// @ai-start
 export function getDescription(id: RewayahId): string {
   return i18n.t(`content:rewayah.description.${id}`);
 }
+// @ai-end
 
 // Convenience for display sites that hold an API `rewayat` record: maps
 // the record's free-form `name` through the canonical resolver and

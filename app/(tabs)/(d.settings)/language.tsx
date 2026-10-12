@@ -1,3 +1,4 @@
+// @ai-generated
 import React, {useMemo, useState} from 'react';
 import {View, Text, Pressable, ScrollView, Platform} from 'react-native';
 import {useTranslation} from 'react-i18next';
@@ -79,7 +80,7 @@ export default function LanguageScreen() {
                   </View>
                   {isSelected && (
                     <Feather
-                      name="check-circle"
+                      name="check"
                       size={moderateScale(20)}
                       color={Color(theme.colors.text).alpha(0.7).toString()}
                     />
@@ -109,6 +110,7 @@ const createStyles = (theme: Theme) =>
       paddingBottom: moderateScale(160),
     },
     subtitle: {
+      textAlign: 'left',
       fontSize: moderateScale(11.5),
       fontFamily: 'Manrope-Regular',
       color: Color(theme.colors.textSecondary).alpha(0.45).toString(),
@@ -139,17 +141,20 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     optionTitle: {
+      textAlign: 'left',
       fontSize: moderateScale(13.5),
       color: Color(theme.colors.text).alpha(0.85).toString(),
       marginBottom: moderateScale(2),
     },
     optionDescription: {
+      textAlign: 'left',
       fontSize: moderateScale(11.5),
       fontFamily: 'Manrope-Regular',
       color: Color(theme.colors.textSecondary).alpha(0.45).toString(),
       lineHeight: moderateScale(17),
     },
     footnote: {
+      textAlign: 'left',
       fontSize: moderateScale(11),
       fontFamily: 'Manrope-Regular',
       color: Color(theme.colors.textSecondary).alpha(0.45).toString(),

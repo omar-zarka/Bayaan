@@ -1,5 +1,20 @@
+// @ai-generated
 import {SURAHS} from '@/data/surahData';
+import arNamesById from '@/data/reciterNamesAr.json';
+import fallbackReciters from '@/data/reciters-fallback.json';
 import {currentLanguage, type AppLanguage} from './language';
+
+function reciterNameKey(name: string): string {
+  return name.toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+const arNamesByKey = new Map<string, string>();
+for (const reciter of fallbackReciters as {id: string; name: string}[]) {
+  const arabic = (arNamesById as Record<string, string>)[reciter.id];
+  if (arabic) {
+    arNamesByKey.set(reciterNameKey(reciter.name), arabic);
+  }
+}
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
@@ -77,17 +92,44 @@ export function getTrackDisplayTitle(
 }
 
 interface NamedReciter {
+  id?: string;
   name: string;
   name_arabic?: string | null;
 }
 
-/** Reciter name for display; uses the Arabic name when the API provides one. */
+/**
+ * Reciter name for display. Arabic mode prefers an explicit `name_arabic`,
+ * then the bundled Arabic name (matched by id, then by English name).
+ */
 export function getReciterDisplayName(
   reciter: NamedReciter,
   language: AppLanguage = currentLanguage,
 ): string {
-  if (language === 'ar' && reciter.name_arabic) {
+  if (language !== 'ar') {
+    return reciter.name;
+  }
+  if (reciter.name_arabic) {
     return reciter.name_arabic;
   }
-  return reciter.name;
+  if (reciter.id) {
+    const byId = (arNamesById as Record<string, string>)[reciter.id];
+    if (byId) {
+      return byId;
+    }
+  }
+  return arNamesByKey.get(reciterNameKey(reciter.name)) ?? reciter.name;
+}
+
+/** Artist line on a queued track. Uploads keep their own name. */
+export function getTrackArtistDisplay(
+  track: {artist: string; reciterId?: string; isUserUpload?: boolean},
+  language: AppLanguage = currentLanguage,
+): string {
+  if (language !== 'ar' || track.isUserUpload || !track.reciterId) {
+    return track.artist;
+  }
+  return getReciterDisplayName(
+    {id: track.reciterId, name: track.artist},
+    language,
+  );
 }

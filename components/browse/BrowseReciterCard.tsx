@@ -10,9 +10,11 @@ import {GlassView} from 'expo-glass-effect';
 import {Link} from 'expo-router';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
 interface BrowseReciterCardProps {
   reciter: Reciter;
@@ -25,6 +27,7 @@ interface BrowseReciterCardProps {
   rewayatId?: string;
 }
 
+// @ai-start
 function createStyles(theme: Theme, width: number, height: number) {
   return StyleSheet.create({
     container: {
@@ -80,7 +83,9 @@ function createStyles(theme: Theme, width: number, height: number) {
     },
   });
 }
+// @ai-end
 
+// @ai-start
 const BrowseReciterCard = React.memo(
   ({
     reciter,
@@ -174,6 +179,7 @@ const BrowseReciterCard = React.memo(
     prevProps.showFollowAlong === nextProps.showFollowAlong &&
     prevProps.onLongPress === nextProps.onLongPress,
 );
+// @ai-end
 
 BrowseReciterCard.displayName = 'BrowseReciterCard';
 

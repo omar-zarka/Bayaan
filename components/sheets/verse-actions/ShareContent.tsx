@@ -33,14 +33,18 @@ import {verseShareUrl, shareUrl as nativeShareUrl} from '@/utils/shareUtils';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
   name: string;
   name_arabic: string;
 }>;
+// @ai-end
 
 interface QuranEntry {
   verse_key: string;
@@ -64,6 +68,7 @@ interface ShareContentProps {
   onDone: () => void;
 }
 
+// @ai-start
 export const ShareContent: React.FC<ShareContentProps> = ({
   verseKey,
   surahNumber,
@@ -299,6 +304,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
     </ScrollView>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

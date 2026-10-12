@@ -5,8 +5,10 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {MotiView} from 'moti';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {isRTL} from '@/utils/rtl';
+// @ai-end
 
 interface SearchBarProps {
   placeholder: string;
@@ -24,6 +26,7 @@ export interface SearchBarRef {
   focusSearchBar: () => void;
 }
 
+// @ai-start
 const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(
   (
     {
@@ -169,6 +172,7 @@ const SearchBar = forwardRef<SearchBarRef, SearchBarProps>(
     );
   },
 );
+// @ai-end
 
 SearchBar.displayName = 'SearchBar';
 

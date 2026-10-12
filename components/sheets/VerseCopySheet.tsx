@@ -15,7 +15,9 @@ import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface CheckboxRowProps {
   label: string;
@@ -64,6 +66,7 @@ const CheckboxRow: React.FC<CheckboxRowProps> = ({
   );
 };
 
+// @ai-start
 export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -209,6 +212,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

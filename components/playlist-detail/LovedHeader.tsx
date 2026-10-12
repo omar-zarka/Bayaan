@@ -8,7 +8,9 @@ import {PlayIcon, ShuffleIcon, HeartIcon} from '@/components/Icons';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {forceLTR, latinLetterSpacing} from '@/utils/rtl';
+// @ai-end
 
 interface LovedHeaderProps {
   title: string;
@@ -19,6 +21,7 @@ interface LovedHeaderProps {
   theme: Theme;
 }
 
+// @ai-start
 export const LovedHeader: React.FC<LovedHeaderProps> = ({
   title,
   subtitle,
@@ -82,7 +85,9 @@ export const LovedHeader: React.FC<LovedHeaderProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme, insets: EdgeInsets) =>
   ScaledSheet.create({
     headerContainer: {
@@ -162,3 +167,4 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingLeft: moderateScale(4),
     },
   });
+// @ai-end

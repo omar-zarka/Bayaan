@@ -1,3 +1,4 @@
+// @ai-generated
 jest.mock('../language', () => ({currentLanguage: 'en'}));
 
 import {
@@ -55,6 +56,18 @@ describe('surah and reciter names', () => {
         'ar',
       ),
     ).toBe('My Fatiha');
+  });
+
+  it('uses the bundled Arabic reciter name', () => {
+    expect(
+      getReciterDisplayName(
+        {id: 'b3bca7d8-b004-4511-b46e-f3527f6b1f67', name: 'Mishary Alafasi'},
+        'ar',
+      ),
+    ).toBe('مشاري العفاسي');
+    expect(getReciterDisplayName({name: 'Mishary Alafasi'}, 'en')).toBe(
+      'Mishary Alafasi',
+    );
   });
 
   it('falls back to the English reciter name without an Arabic one', () => {

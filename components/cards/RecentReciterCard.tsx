@@ -27,8 +27,10 @@ import {useRouter, Link} from 'expo-router';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {createUserUploadTrack} from '@/utils/track';
+// @ai-start
 import {forceLTR, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface RecentReciterCardProps {
   imageUrl?: string;
@@ -46,6 +48,7 @@ interface RecentReciterCardProps {
   userRecitationId?: string;
 }
 
+// @ai-start
 export const RecentReciterCard = ({
   imageUrl,
   reciterName,
@@ -446,7 +449,9 @@ export const RecentReciterCard = ({
     </CardWrapper>
   );
 };
+// @ai-end
 
+// @ai-start
 function createStyles(theme: {
   colors: {
     border: string;
@@ -531,3 +536,4 @@ function createStyles(theme: {
     },
   });
 }
+// @ai-end

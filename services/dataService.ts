@@ -5,6 +5,14 @@ import {usePlayerStore} from './player/store/playerStore';
 import {useReciterStore} from '../store/reciterStore';
 import {useApiHealthStore} from '../store/apiHealthStore';
 import fallbackReciters from '../data/reciters-fallback.json';
+// @ai-start
+import {getReciterDisplayName} from '@/i18n/format';
+import {
+  normalizeSearchText,
+  matchesSearchText,
+  matchesSurah,
+} from '@/utils/catalogSearch';
+// @ai-end
 
 const BAYAAN_API_URL = process.env.EXPO_PUBLIC_BAYAAN_API_URL;
 const BAYAAN_API_KEY = process.env.EXPO_PUBLIC_BAYAAN_API_KEY;
@@ -77,6 +85,7 @@ function populateReciters(data: Reciter[]): void {
 const API_BASE = BAYAAN_API_URL;
 const API_KEY = BAYAAN_API_KEY;
 
+// @ai-start
 async function fetchAllRecitersFromApi(): Promise<Reciter[]> {
   const PAGE_SIZE = 200;
   let page = 1;
@@ -86,7 +95,7 @@ async function fetchAllRecitersFromApi(): Promise<Reciter[]> {
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
     };
-    if (API_KEY) headers['Authorization'] = `Bearer ${API_KEY}`;
+    if (API_KEY) headers.Authorization = `Bearer ${API_KEY}`;
 
     const res = await fetch(
       `${API_BASE}/v1/reciters?page=${page}&limit=${PAGE_SIZE}`,
@@ -112,6 +121,7 @@ async function fetchAllRecitersFromApi(): Promise<Reciter[]> {
 
   return allReciters;
 }
+// @ai-end
 
 // ── Surah functions ───────────────────────────────────────────────────────────
 
@@ -123,17 +133,11 @@ export function getSurahById(id: number): Surah | undefined {
   return SURAHS.find(surah => surah.id === id);
 }
 
+// @ai-start
 export function searchSurahs(query: string): Surah[] {
-  return SURAHS.filter(
-    surah =>
-      surah.name.toLowerCase().includes(query.toLowerCase()) ||
-      surah.name_arabic.includes(query) ||
-      surah.translated_name_english
-        .toLowerCase()
-        .includes(query.toLowerCase()) ||
-      surah.id.toString() === query,
-  );
+  return SURAHS.filter(surah => matchesSurah(surah, query));
 }
+// @ai-end
 
 // ── Reciter functions ─────────────────────────────────────────────────────────
 
@@ -295,13 +299,14 @@ export async function getAvailableSurahsForRewayat(
   return [];
 }
 
+// @ai-start
 export async function filterReciters(options: {
   style?: string;
   hasSurah?: number;
   query?: string;
 }): Promise<Reciter[]> {
   const reciters = await getAllReciters();
-  const normalizedQuery = options.query?.toLowerCase() ?? '';
+  const normalizedQuery = normalizeSearchText(options.query ?? '');
 
   return reciters.filter(reciter => {
     if (options.style) {
@@ -322,11 +327,15 @@ export async function filterReciters(options: {
 
     if (normalizedQuery) {
       const matchesQuery =
-        reciter.name.toLowerCase().includes(normalizedQuery) ||
+        matchesSearchText(reciter.name, normalizedQuery) ||
+        matchesSearchText(
+          getReciterDisplayName(reciter, 'ar'),
+          normalizedQuery,
+        ) ||
         reciter.rewayat.some(
           r =>
-            r.name.toLowerCase().includes(normalizedQuery) ||
-            r.style.toLowerCase().includes(normalizedQuery),
+            matchesSearchText(r.name, normalizedQuery) ||
+            matchesSearchText(r.style, normalizedQuery),
         );
       if (!matchesQuery) return false;
     }
@@ -334,6 +343,7 @@ export async function filterReciters(options: {
     return true;
   });
 }
+// @ai-end
 
 // ── Audio URL ─────────────────────────────────────────────────────────────────
 
@@ -373,13 +383,17 @@ export async function fetchAudioUrl(
 
 // ── Search ────────────────────────────────────────────────────────────────────
 
+// @ai-start
 export async function searchReciters(query: string): Promise<Reciter[]> {
   const reciters = await getAllReciters();
-  const normalizedQuery = query.toLowerCase();
-  return reciters.filter(reciter =>
-    reciter.name.toLowerCase().includes(normalizedQuery),
+  const normalizedQuery = normalizeSearchText(query);
+  return reciters.filter(
+    reciter =>
+      matchesSearchText(reciter.name, normalizedQuery) ||
+      matchesSearchText(getReciterDisplayName(reciter, 'ar'), normalizedQuery),
   );
 }
+// @ai-end
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 

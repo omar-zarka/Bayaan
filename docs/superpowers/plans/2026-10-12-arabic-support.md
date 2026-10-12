@@ -22,13 +22,13 @@ use Arabic-Indic digits, and Arabic UI text renders in a proper Arabic font.
   MMKV (synchronous, so it is readable at module-evaluation time, before any
   StyleSheet or component is created). `resolveLanguage()` maps preference +
   device locale (`expo-localization`) to `'en' | 'ar'`. `setLanguagePreference()`
-  persists, calls `I18nManager.forceRTL`, and reloads (`expo-updates`
-  `reloadAsync`, falling back to `DevSettings.reload` in dev, otherwise an alert
-  asking the user to restart).
+  persists, calls `I18nManager.forceRTL`, and reloads with Expo's
+  `reloadAppAsync` (also works without OTA updates), with Updates / dev reload
+  fallbacks and a restart message if all supported reload paths fail.
 - `i18n/index.ts` — initialises i18next synchronously with bundled JSON
   resources, `fallbackLng: 'en'`, and a global `arabicDigits` post-processor that
-  converts ASCII digits in Arabic output to Arabic-Indic digits. Also performs the
-  RTL bootstrap: if `I18nManager.isRTL` disagrees with the resolved language
+  converts ASCII digits in Arabic output to Arabic-Indic digits. The root layout
+  performs RTL bootstrap after mounting: if `I18nManager.isRTL` disagrees with the resolved language
   (e.g. first launch on an Arabic device) it forces the direction and reloads
   once (guarded by an MMKV flag against reload loops).
 - `i18n/locales/{en,ar}/<namespace>.json` — one file per feature area so
@@ -48,12 +48,21 @@ use Arabic-Indic digits, and Arabic UI text renders in a proper Arabic font.
   `left/right` automatically once `I18nManager.isRTL` is true.
 - `utils/rtl.ts` exports `isRTL`, `flipX` (a `scaleX: -1` transform for
   directional icons: chevrons, arrows, back buttons), and `forceLTR`
-  (`direction: 'ltr'`).
+  (`direction: 'ltr'`). `appLayoutDirection` and React Navigation's
+  `LocaleDirContext` explicitly set the root/component direction from the
+  selected language, even when a retained native surface has stale constraints.
 - Pinned to LTR (to keep current, already-correct behaviour):
-  - Mushaf pagers (`inverted` horizontal FlatLists + index math already encode
-    right-to-left page order; native RTL would double-flip them).
+  - Quran canvas geometry and facing-page spreads.
   - Media transport controls and progress sliders (platform guidelines: media
     playback controls are not mirrored).
+- Horizontal FlatLists follow native direction so their scroll offsets and
+  viewability calculations agree with their layout. Mushaf pagers invert only
+  in English; Arabic already advances right-to-left. Dhikr pages inherit the
+  app direction, including their child controls.
+- `usePlayerScrollable` isolates the Gorhom vertical scroll viewport in LTR
+  while restoring app direction on its content. Without this boundary,
+  Fabric's RTL x-offset conversion can cause Gorhom's scroll-lock handler to
+  call itself repeatedly and freeze startup with a restored player session.
 - Quran Arabic text and Skia mushaf rendering are already RTL and unaffected.
 
 ### Fonts
@@ -69,16 +78,27 @@ no changes. Plex Sans Arabic includes Latin glyphs, so English names still rende
   app language (enables the per-app language setting in iOS Settings and makes
   native chrome — tab bar, nav bar, alerts — RTL when the system language is Arabic).
 - Android already declares `android:supportsRtl="true"`.
-- `expo-localization` plugin with `supportsRTL: true`.
+- `expo-localization` plugin registers supported locales only. Do not set
+  `supportsRTL` or `forcesRTL`: those static options overwrite the persisted
+  in-app preference on iOS startup. See [Expo dynamic RTL guidance](https://docs.expo.dev/guides/localization/#overriding-rtl-settings).
 - Requires a new native build (new native module + Info.plist change).
 
 ## Known limitations
 
-- iOS native chrome (UIKit tab bar / navigation bar) follows the system or
-  per-app language. Choosing Arabic in-app on an English device translates and
-  mirrors all RN content, but UIKit components may stay LTR. The picker points
-  iOS users to the per-app language setting.
-- Reciter names stay in English until the API provides Arabic names.
+- Tabs retain their existing platform design and mirror in Arabic. The iOS
+  native tab controller uses an RTL trait override through the versioned
+  `patches/react-native-screens+4.23.0.patch`, placing Home on the right and the
+  separate Search tab on the left. This requires a native rebuild. The custom
+  tab row follows app direction, and the tablet rail moves to the leading side.
+  The native tab shell keeps LTR Yoga coordinates to prevent clipping its
+  mini-player accessory; screens and player content use app direction.
+  OS dialogs still follow the system/per-app language.
+- Reciter names use API Arabic names or the bundled Arabic name map, then
+  fall back to the original name when neither is available.
+- Arabic mode opens the Tafaseer catalogue tab first and places Arabic editions
+  before other downloads/languages. The reader selector also sorts Arabic first.
+  Edition titles and language labels are localized, including existing downloads;
+  saved selections and the source text remain unchanged.
 - Changelog / "What's New" release notes and long-form content (tafsir, about page
   prose that comes from data files) are not translated in this pass.
 
@@ -109,6 +129,22 @@ no changes. Plex Sans Arabic includes Latin glyphs, so English names still rende
   ar (accounting for Arabic plural suffixes), identical interpolation variables,
   and no empty values.
 - `i18n/__tests__/format.test.ts`: digit localisation and surah name selection.
-- Manual QA on device (not possible in this environment): switch language,
-  verify reload + mirroring, mushaf paging, player controls, text clipping with
-  Arabic line heights.
+- `utils/__tests__/catalogSearch.test.ts`: Arabic/Persian numeric lookup,
+  diacritics and spelling variants, spaced reciter names, English matching,
+  and preservation of original display text. Browse Surahs now has a connected
+  native iOS search field and a search field on other platforms.
+- `i18n/__tests__/language.test.ts`: switching both directions, System language
+  changes between launches, stale native flags, recovery of disabled style
+  mirroring, reload fallback, and reload-loop prevention.
+- `hooks/__tests__/usePlayerScrollable.test.tsx`: locks scroll coordinates to
+  LTR in both languages while preserving content direction and list props.
+- iOS simulator verification: restored player startup, Arabic → English →
+  Arabic reloads, native direction flags, mirrored screen layouts, and the
+  original native tab design.
+- Native-tab follow-up: built and installed on the iOS 26.5 simulator. Verified
+  English tab order, Arabic Home on the right/Search on the left after an
+  in-app language change, the expanded Search field, tab switching, and the
+  regular mini-player accessory. The language picker uses a plain checkmark.
+  TypeScript and touched-file ESLint checks passed (existing warnings only).
+- Remaining device QA: Android and iPad, physical swipe/paging gestures, and
+  Arabic text clipping with accessibility font sizes.

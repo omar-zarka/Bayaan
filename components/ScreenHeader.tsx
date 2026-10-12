@@ -9,12 +9,15 @@ import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {useRouter} from 'expo-router';
+// @ai-start
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface ScreenHeaderProps {
   title: string;
 }
 
+// @ai-start
 export const ScreenHeader: React.FC<ScreenHeaderProps> = ({title}) => {
   const {theme} = useTheme();
   const router = useRouter();
@@ -34,7 +37,9 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({title}) => {
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     header: {
@@ -45,7 +50,7 @@ const createStyles = (theme: Theme) =>
     },
     backButton: {
       padding: moderateScale(10),
-      marginRight: moderateScale(10),
+      marginEnd: moderateScale(10),
       borderRadius: moderateScale(20),
       color: theme.colors.text,
     },
@@ -55,3 +60,4 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.text,
     },
   });
+// @ai-end

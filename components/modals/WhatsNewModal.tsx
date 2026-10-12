@@ -27,8 +27,10 @@ import {
   getCurrentVersion,
 } from '@/utils/versionUtils';
 import Animated, {FadeIn, ZoomIn} from 'react-native-reanimated';
+// @ai-start
 import {Trans, useTranslation} from 'react-i18next';
 import branding from '@/config/branding';
+// @ai-end
 
 const {width} = Dimensions.get('window');
 
@@ -36,6 +38,7 @@ export interface WhatsNewModalRef {
   show: () => void;
 }
 
+// @ai-start
 export const WhatsNewModal = forwardRef<WhatsNewModalRef>((props, ref) => {
   const {theme} = useTheme();
   const {t} = useTranslation(['settings', 'common']);
@@ -244,6 +247,7 @@ export const WhatsNewModal = forwardRef<WhatsNewModalRef>((props, ref) => {
     </Modal>
   );
 });
+// @ai-end
 
 WhatsNewModal.displayName = 'WhatsNewModal';
 

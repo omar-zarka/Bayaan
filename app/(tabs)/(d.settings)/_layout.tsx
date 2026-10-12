@@ -3,8 +3,11 @@ import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {MaxWidthContainer} from '@/components/layout/MaxWidthContainer';
 import branding from '@/config/branding';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export default function SettingsLayout() {
   const {theme} = useTheme();
   const {t} = useTranslation(['settings', 'common']);
@@ -71,3 +74,4 @@ export default function SettingsLayout() {
     </MaxWidthContainer>
   );
 }
+// @ai-end

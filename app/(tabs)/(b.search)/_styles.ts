@@ -1,8 +1,11 @@
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
+// @ai-end
 
+// @ai-start
 export function createStyles(theme: Theme) {
   return ScaledSheet.create({
     container: {
@@ -130,3 +133,4 @@ export function createStyles(theme: Theme) {
     },
   });
 }
+// @ai-end

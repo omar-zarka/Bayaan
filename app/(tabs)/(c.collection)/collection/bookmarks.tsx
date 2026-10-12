@@ -28,16 +28,19 @@ import type {VerseBookmark} from '@/types/verse-annotations';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import {showToast} from '@/utils/toastUtils';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface BookmarkData {
   bookmark: VerseBookmark;
   surahName: string;
 }
 
+// @ai-start
 const BookmarksScreen = () => {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -316,6 +319,7 @@ const BookmarksScreen = () => {
     </View>
   );
 };
+// @ai-end
 
 export default BookmarksScreen;
 

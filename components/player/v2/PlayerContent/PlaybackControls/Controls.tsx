@@ -12,11 +12,14 @@ import {
   SeekForwardIcon,
   SeekBackwardIcon,
 } from '@/components/Icons';
+// @ai-start
 import {localizeDigits} from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
+// @ai-end
 
 const SEEK_INTERVAL = 15; // seconds
 
+// @ai-start
 export const Controls = () => {
   const {theme} = useTheme();
   const {play, pause, skipToNext, skipToPrevious, seekTo} = usePlayerActions();
@@ -166,6 +169,7 @@ export const Controls = () => {
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

@@ -22,8 +22,10 @@ import Svg, {Path} from 'react-native-svg';
 import {SESSION_SEED, pickHeroTheme} from '@/components/hero/heroThemes';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const TILE_COLORS = [
   '#fbbf24',
@@ -40,6 +42,7 @@ const TILE_COLORS = [
   '#f472b6',
 ];
 
+// @ai-start
 const TITLE_VARIANTS = [
   'browseAllHero.titles.fullCollection',
   'browseAllHero.titles.everyReciter',
@@ -48,7 +51,9 @@ const TITLE_VARIANTS = [
   'browseAllHero.titles.allRecitersAwait',
   'browseAllHero.titles.oneTap',
 ] as const;
+// @ai-end
 
+// @ai-start
 const LABEL_VARIANTS = [
   'browseAllHero.labels.allReciters',
   'browseAllHero.labels.browseVoices',
@@ -57,6 +62,7 @@ const LABEL_VARIANTS = [
   'browseAllHero.labels.explore',
   'browseAllHero.labels.browse',
 ] as const;
+// @ai-end
 
 // Match SurahsHero height
 const CARD_HEIGHT = moderateScale(150);
@@ -210,6 +216,7 @@ interface BrowseAllHeroProps {
   style?: object;
 }
 
+// @ai-start
 export function BrowseAllHero({style}: BrowseAllHeroProps) {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
@@ -304,7 +311,9 @@ export function BrowseAllHero({style}: BrowseAllHeroProps) {
     </Animated.View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -331,12 +340,14 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'flex-end',
     },
     label: {
+      textAlign: 'left',
       fontFamily: 'Manrope-Bold',
       fontSize: moderateScale(9),
       letterSpacing: latinLetterSpacing(1.2),
       marginBottom: moderateScale(2),
     },
     title: {
+      textAlign: 'left',
       fontFamily: 'Manrope-SemiBold',
       fontSize: moderateScale(14),
     },
@@ -345,3 +356,4 @@ const createStyles = (theme: Theme) =>
       marginBottom: moderateScale(2),
     },
   });
+// @ai-end

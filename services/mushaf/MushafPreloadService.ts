@@ -10,6 +10,7 @@ import {rewayahDiffService} from './RewayahDiffService';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {migratePersistedId} from '@/services/rewayah/RewayahIdentity';
 
+// @ai-start
 const FONT_ASSETS: Record<string, number> = {
   DigitalKhattV1: require('@/data/mushaf/legacy/DigitalKhattQuranicV1.otf'),
   DigitalKhattV2: require('@/data/mushaf/digitalkhatt/DigitalKhattFont.otf'),
@@ -21,6 +22,7 @@ const FONT_ASSETS: Record<string, number> = {
   ManropeRegular: require('@/assets/fonts/Manrope-Regular.ttf'),
   PlexSansArabicSemiBold: require('@/assets/fonts/IBMPlexSansArabic-SemiBold.ttf'),
 };
+// @ai-end
 
 /**
  * Preloads everything the Mushaf screen needs at app startup (AppInitializer

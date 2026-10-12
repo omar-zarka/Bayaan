@@ -42,12 +42,16 @@ import {
   digitalKhattDataService,
   BASMALLAH_TEXT,
 } from '@/services/mushaf/DigitalKhattDataService';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const PREVIEW_BA = '\u0628';
 
+// @ai-start
 const SEGMENT_MODES: readonly ThemeMode[] = ['system', 'light', 'dark'];
+// @ai-end
 const MODE_TO_INDEX: Record<ThemeMode, number> = {
   system: 0,
   light: 1,
@@ -79,6 +83,7 @@ interface ReadingThemeContentProps {
   onBack: () => void;
 }
 
+// @ai-start
 export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
   onBack,
 }) => {
@@ -281,9 +286,11 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
     </ScrollView>
   );
 };
+// @ai-end
 
 // --- Android Segment Fallback ---
 
+// @ai-start
 const AndroidSegment: React.FC<{
   themeMode: ThemeMode;
   onPress: (mode: ThemeMode) => void;
@@ -320,6 +327,7 @@ const AndroidSegment: React.FC<{
     </View>
   );
 };
+// @ai-end
 
 const androidStyles = StyleSheet.create({
   segmentContainer: {
@@ -405,6 +413,7 @@ function computeDividerFontSize(
   return (targetWidth / measuredW) * refSize;
 }
 
+// @ai-start
 const MushafPreviewCanvas: React.FC<MushafPreviewCanvasProps> = React.memo(
   ({width, fontMgr, fontFamily, textColor, dividerColor}) => {
     const quranCommonTypeface = mushafPreloadService.quranCommonTypeface;
@@ -612,6 +621,7 @@ const MushafPreviewCanvas: React.FC<MushafPreviewCanvasProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 const PREVIEW_HEIGHT = moderateScale(240);
 

@@ -6,7 +6,9 @@ import {Theme} from '@/utils/themeUtils';
 import {useTheme} from '@/hooks/useTheme';
 import SearchBar from '@/components/SearchBar';
 import {SearchHeaderProps} from '@/components/reciter-profile/types';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 /**
  * SearchHeader component for the ReciterProfile
@@ -16,6 +18,7 @@ import {useTranslation} from 'react-i18next';
  *
  * @component
  */
+// @ai-start
 export const SearchHeader: React.FC<SearchHeaderProps> = ({
   showSearch,
   searchQuery,
@@ -42,6 +45,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

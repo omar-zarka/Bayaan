@@ -8,9 +8,11 @@ import {useStorageBreakdown} from '@/hooks/useStorageBreakdown';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {clearPlayerCache} from '@/services/player/utils/storage';
 import {Feather} from '@expo/vector-icons';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 interface StorageCategoryProps {
   color: string;
@@ -19,6 +21,7 @@ interface StorageCategoryProps {
   styles: ReturnType<typeof createStyles>;
 }
 
+// @ai-start
 const StorageCategory = ({
   color,
   label,
@@ -31,6 +34,7 @@ const StorageCategory = ({
     <Text style={styles.categorySize}>{localizeDigits(size)}</Text>
   </View>
 );
+// @ai-end
 
 interface ActionSectionProps {
   title: string;
@@ -66,6 +70,7 @@ const ActionSection = ({
   </View>
 );
 
+// @ai-start
 export default function StorageScreen() {
   const {theme} = useTheme();
   const {t} = useTranslation(['settings', 'common']);
@@ -299,7 +304,9 @@ export default function StorageScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -422,3 +429,4 @@ const createStyles = (theme: Theme) =>
       height: moderateScale(12),
     },
   });
+// @ai-end

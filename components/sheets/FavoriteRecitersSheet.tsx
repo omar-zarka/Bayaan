@@ -24,9 +24,12 @@ import {SearchInput} from '@/components/SearchInput';
 import {ReciterImage} from '@/components/ReciterImage';
 import {Feather} from '@expo/vector-icons';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export const FavoriteRecitersSheet = (
   props: SheetProps<'favorite-reciters'>,
 ) => {
@@ -174,6 +177,7 @@ export const FavoriteRecitersSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 

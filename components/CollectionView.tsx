@@ -12,7 +12,9 @@ import {ReciterCard} from './cards/ReciterCard';
 import {useFavoriteReciters} from '@/hooks/useFavoriteReciters';
 import {Reciter} from '@/data/reciterData';
 import {useLoved} from '@/hooks/useLoved';
+// @ai-start
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
 interface TrackItem {
   reciterId: string;
@@ -29,6 +31,7 @@ interface CollectionViewProps {
   }) => void;
 }
 
+// @ai-start
 export default function CollectionView({
   onReciterPress,
   onTrackPress,
@@ -111,3 +114,4 @@ export default function CollectionView({
     </View>
   );
 }
+// @ai-end

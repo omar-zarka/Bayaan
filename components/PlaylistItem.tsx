@@ -6,7 +6,9 @@ import {Theme} from '@/utils/themeUtils';
 import {MaterialIcons, Feather} from '@expo/vector-icons';
 import {PlaylistIcon} from '@/components/Icons';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface PlaylistItemProps {
   id: string;
@@ -19,6 +21,7 @@ interface PlaylistItemProps {
   isSelected?: boolean;
 }
 
+// @ai-start
 export const PlaylistItem: React.FC<PlaylistItemProps> = React.memo(
   ({
     name,
@@ -88,6 +91,7 @@ export const PlaylistItem: React.FC<PlaylistItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 PlaylistItem.displayName = 'PlaylistItem';
 

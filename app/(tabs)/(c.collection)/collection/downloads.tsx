@@ -31,9 +31,11 @@ import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHe
 import {shuffleArray} from '@/utils/arrayUtils';
 import Color from 'color';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+// @ai-start
 import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
 interface DownloadDataItem {
   download: DownloadedSurah;
@@ -48,6 +50,7 @@ interface GroupedItem {
   downloadCount?: number;
 }
 
+// @ai-start
 export default function DownloadsScreen() {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -670,3 +673,4 @@ export default function DownloadsScreen() {
     </View>
   );
 }
+// @ai-end

@@ -12,10 +12,13 @@ import Color from 'color';
 import {RewayatIcon} from '@/components/Icons';
 import ReadMore from '@fawazahmed/react-native-read-more';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getStyleLabel} from './sheetLabels';
+// @ai-end
 
+// @ai-start
 export const RewayatInfoSheet = (props: SheetProps<'rewayat-info'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -108,9 +111,11 @@ export const RewayatInfoSheet = (props: SheetProps<'rewayat-info'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     sheetContainer: {
@@ -212,3 +217,4 @@ const createStyles = (theme: Theme) =>
       backgroundColor: theme.colors.text,
     },
   });
+// @ai-end

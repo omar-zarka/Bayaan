@@ -11,6 +11,9 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
+// @ai-start
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 import {useTajweedStore} from '@/store/tajweedStore';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
@@ -148,6 +151,7 @@ interface ContinuousListViewProps {
   onCurrentPageChange?: (page: number) => void;
 }
 
+// @ai-start
 const ContinuousListView = forwardRef<
   ContinuousListViewHandle,
   ContinuousListViewProps
@@ -193,18 +197,18 @@ const ContinuousListView = forwardRef<
     }));
 
     // Settings subscriptions
-    const showTranslation = useMushafSettingsStore(s => s.showTranslation);
-    const showTransliteration = useMushafSettingsStore(
-      s => s.showTransliteration,
-    );
+    const showTranslation =
+      useMushafSettingsStore(s => s.showTranslation) && showLatinReadingAids;
+    const showTransliteration =
+      useMushafSettingsStore(s => s.showTransliteration) &&
+      showLatinReadingAids;
     const showTajweed = useMushafSettingsStore(s => s.showTajweed);
     const showWBW = useMushafSettingsStore(s => s.showWBW);
-    const wbwShowTranslation = useMushafSettingsStore(
-      s => s.wbwShowTranslation,
-    );
-    const wbwShowTransliteration = useMushafSettingsStore(
-      s => s.wbwShowTransliteration,
-    );
+    const wbwShowTranslation =
+      useMushafSettingsStore(s => s.wbwShowTranslation) && showLatinReadingAids;
+    const wbwShowTransliteration =
+      useMushafSettingsStore(s => s.wbwShowTransliteration) &&
+      showLatinReadingAids;
     const arabicFontSize = useMushafSettingsStore(s => s.arabicFontSize);
     const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
     const showAllahNameHighlight = useMushafSettingsStore(
@@ -403,6 +407,7 @@ const ContinuousListView = forwardRef<
     );
   },
 );
+// @ai-end
 ContinuousListView.displayName = 'ContinuousListView';
 
 export default React.memo(ContinuousListView);

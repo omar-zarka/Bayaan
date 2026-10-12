@@ -7,9 +7,11 @@ import Color from 'color';
 import {Link} from 'expo-router';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {getRewayatPersonLabel} from '@/data/rewayat';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface RewayatCardProps {
   rewayat: RewayatInfo;
@@ -18,6 +20,7 @@ interface RewayatCardProps {
   height?: number;
 }
 
+// @ai-start
 function RewayatCard({
   rewayat,
   onPress,
@@ -83,7 +86,9 @@ function RewayatCard({
     </Link>
   );
 }
+// @ai-end
 
+// @ai-start
 function createStyles(
   theme: {
     colors: {
@@ -145,5 +150,6 @@ function createStyles(
     },
   });
 }
+// @ai-end
 
 export default React.memo(RewayatCard);

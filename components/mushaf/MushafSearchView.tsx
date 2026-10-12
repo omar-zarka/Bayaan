@@ -31,10 +31,13 @@ import {BookmarkChips} from './BookmarkChips';
 import {JUZ_START_PAGES} from './constants';
 import {useMushafSettingsStore, RecentRead} from '@/store/mushafSettingsStore';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName, getSurahMeaning} from '@/i18n/format';
+import {normalizeSearchText, matchesSurah} from '@/utils/catalogSearch';
+// @ai-end
 
 // ============================================================================
 // Types
@@ -97,56 +100,60 @@ const MAX_HISTORY = 10;
 // Smart Search Parser
 // ============================================================================
 
+// @ai-start
 function surahNameForId(surahId: number): string {
   return surahId >= 1 && surahId <= 114
     ? getSurahDisplayName(SURAHS[surahId - 1])
     : '';
 }
+// @ai-end
 
+// @ai-start
 function pageLabel(page: number): string {
   return i18n.t('common:labels.pageNumber', {number: page});
 }
+// @ai-end
 
+// @ai-start
 function pageWithSurahLabel(page: number, surahId: number): string {
   return i18n.t('reader:search.pageWithSurah', {
     page,
     surah: surahNameForId(surahId),
   });
 }
+// @ai-end
 
+// @ai-start
 function juzLabel(juz: number): string {
   if (juz === 30) return i18n.t('reader:search.juzAmma');
   if (juz === 29) return i18n.t('reader:search.juzTabarak');
   return i18n.t('common:labels.juzNumber', {number: juz});
 }
+// @ai-end
 
+// @ai-start
 function surahSecondaryLabel(surah: Surah): string {
   const meaning = getSurahMeaning(surah);
   return meaning
     ? i18n.t('reader:search.surahWithMeaning', {number: surah.id, meaning})
     : i18n.t('common:labels.surahNumber', {number: surah.id});
 }
+// @ai-end
 
-/** Maps Arabic-Indic and Persian digits to ASCII so numeric queries parse. */
-function normalizeDigits(text: string): string {
-  return text
-    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
-    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06f0));
-}
-
+// @ai-start
 function parseSearchQuery(
   query: string,
   surahStartPages: Record<number, number>,
   pageToSurah: Record<number, number>,
 ): SearchResultItem[] {
-  const q = normalizeDigits(query.trim());
+  const q = normalizeSearchText(query);
   if (!q) return [];
 
   const lower = q.toLowerCase();
   const results: SearchResultItem[] = [];
 
   // 1. "page N" or "pg N"
-  const pageMatch = q.match(/^(?:page|pg|صفحة|ص)\s*(\d+)$/i);
+  const pageMatch = q.match(/^(?:page|pg|صفحه|ص)\s*(\d+)$/i);
   if (pageMatch) {
     const page = parseInt(pageMatch[1], 10);
     if (page >= 1 && page <= 604) {
@@ -165,7 +172,7 @@ function parseSearchQuery(
     lower === 'juz' ||
     lower === 'jz' ||
     lower === 'جزء' ||
-    lower === 'الأجزاء'
+    lower === 'الاجزاء'
   ) {
     for (let i = 1; i <= 30; i++) {
       const page = JUZ_START_PAGES[i - 1];
@@ -270,11 +277,7 @@ function parseSearchQuery(
 
   // 5. Fuzzy match on surah names
   for (const surah of SURAHS) {
-    if (
-      surah.name.toLowerCase().includes(lower) ||
-      surah.translated_name_english.toLowerCase().includes(lower) ||
-      surah.name_arabic.includes(q)
-    ) {
+    if (matchesSurah(surah, q)) {
       results.push({
         type: 'surah',
         surah,
@@ -286,6 +289,7 @@ function parseSearchQuery(
 
   return results;
 }
+// @ai-end
 
 // ============================================================================
 // Sub-components
@@ -352,6 +356,7 @@ const HistoryRow: React.FC<{
 
 HistoryRow.displayName = 'HistoryRow';
 
+// @ai-start
 const RecentReadChips: React.FC<{
   recentPages: RecentRead[];
   textColor: string;
@@ -431,6 +436,7 @@ const RecentReadChips: React.FC<{
     );
   },
 );
+// @ai-end
 
 RecentReadChips.displayName = 'RecentReadChips';
 
@@ -438,6 +444,7 @@ RecentReadChips.displayName = 'RecentReadChips';
 // Main Component
 // ============================================================================
 
+// @ai-start
 const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   onNavigateToPage,
   onResumeChain,
@@ -1078,6 +1085,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
     </View>
   );
 };
+// @ai-end
 
 export default MushafSearchView;
 
@@ -1085,6 +1093,7 @@ export default MushafSearchView;
 // Styles
 // ============================================================================
 
+// @ai-start
 const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFillObject,
@@ -1292,3 +1301,4 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Medium',
   },
 });
+// @ai-end

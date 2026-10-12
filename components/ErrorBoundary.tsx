@@ -1,6 +1,8 @@
 import React, {Component, ErrorInfo, ReactNode} from 'react';
 import {View, Text} from 'react-native';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 interface Props {
   children: ReactNode;
@@ -10,6 +12,7 @@ interface State {
   hasError: boolean;
 }
 
+// @ai-start
 class ErrorBoundary extends Component<Props, State> {
   public state: State = {
     hasError: false,
@@ -35,5 +38,6 @@ class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
+// @ai-end
 
 export default ErrorBoundary;

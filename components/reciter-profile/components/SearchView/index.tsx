@@ -14,8 +14,10 @@ import {StyleSheet} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {SurahCard} from '@/components/cards/SurahCard';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 
 // Define view mode type
 type ReciterProfileViewMode = 'card' | 'list';
@@ -38,6 +40,7 @@ interface SearchViewProps {
   getColorForSurah: (id: number) => string;
 }
 
+// @ai-start
 export const SearchView: React.FC<SearchViewProps> = ({
   surahs,
   onSurahPress,
@@ -223,6 +226,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
     </Animated.View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

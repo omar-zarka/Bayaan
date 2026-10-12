@@ -13,8 +13,10 @@ import {HIGHLIGHT_COLORS, HighlightColor} from '@/types/verse-annotations';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const COLORS = Object.entries(HIGHLIGHT_COLORS) as [HighlightColor, string][];
 
@@ -27,6 +29,7 @@ interface HighlightContentProps {
   onDone: () => void;
 }
 
+// @ai-start
 export const HighlightContent: React.FC<HighlightContentProps> = ({
   verseKey,
   surahNumber,
@@ -117,7 +120,9 @@ export const HighlightContent: React.FC<HighlightContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     previewCard: {
@@ -178,3 +183,4 @@ const createStyles = (theme: Theme) =>
       color: '#ff4444',
     },
   });
+// @ai-end

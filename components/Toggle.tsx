@@ -7,7 +7,9 @@ import {
 } from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/styles/theme';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface ToggleProps {
   options: ['Reciters', 'Surahs'];
@@ -15,6 +17,7 @@ interface ToggleProps {
   onToggle: (option: 'Reciters' | 'Surahs') => void;
 }
 
+// @ai-start
 const Toggle: React.FC<ToggleProps> = ({options, selectedOption, onToggle}) => {
   const {theme} = useTheme();
   const {t} = useTranslation(['home', 'common']);
@@ -45,6 +48,7 @@ const Toggle: React.FC<ToggleProps> = ({options, selectedOption, onToggle}) => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

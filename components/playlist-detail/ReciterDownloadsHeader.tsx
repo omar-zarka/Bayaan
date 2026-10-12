@@ -10,8 +10,11 @@ import {PlayIcon, ShuffleIcon} from '@/components/Icons';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
+// @ai-end
 
+// @ai-start
 interface ReciterDownloadsHeaderProps {
   reciterId: string;
   reciterName: string;
@@ -23,7 +26,9 @@ interface ReciterDownloadsHeaderProps {
   onOptionsPress?: () => void;
   theme: Theme;
 }
+// @ai-end
 
+// @ai-start
 export const ReciterDownloadsHeader: React.FC<ReciterDownloadsHeaderProps> = ({
   reciterId,
   reciterName,
@@ -112,7 +117,9 @@ export const ReciterDownloadsHeader: React.FC<ReciterDownloadsHeaderProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme, insets: EdgeInsets) =>
   ScaledSheet.create({
     headerContainer: {
@@ -192,3 +199,4 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingLeft: moderateScale(4),
     },
   });
+// @ai-end

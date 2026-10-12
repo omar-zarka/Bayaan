@@ -15,8 +15,10 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import branding from '@/config/branding';
+// @ai-start
 import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const isGlass = USE_GLASS;
@@ -32,6 +34,7 @@ interface SystemPlaylistHeaderProps {
   theme: Theme;
 }
 
+// @ai-start
 export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
   title,
   description,
@@ -157,7 +160,9 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme, insets: EdgeInsets) =>
   ScaledSheet.create({
     headerContainer: {
@@ -263,3 +268,4 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       paddingLeft: moderateScale(4),
     },
   });
+// @ai-end

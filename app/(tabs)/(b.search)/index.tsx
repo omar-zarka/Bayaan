@@ -8,7 +8,9 @@ import {
   Keyboard,
 } from 'react-native';
 import {Stack} from 'expo-router';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {SearchView} from '@/components/search/SearchView';
 import {useTheme} from '@/hooks/useTheme';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -17,6 +19,7 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 
+// @ai-start
 export default function SearchScreen() {
   const {theme} = useTheme();
   const {t} = useTranslation(['home', 'common']);
@@ -127,6 +130,7 @@ export default function SearchScreen() {
     </View>
   );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

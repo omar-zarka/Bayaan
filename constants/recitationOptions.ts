@@ -1,13 +1,16 @@
 // Rewayah and style options for recitations (used in uploads organize sheet and elsewhere)
 
 export {DEFAULT_REWAYAH} from '@/data/rewayat';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import {getRewayahNames} from '@/data/rewayat';
 
 export const DEFAULT_STYLE = 'murattal';
 
 export const REWAYAH_OPTIONS = getRewayahNames();
 
+// @ai-start
 export const STYLE_OPTIONS = [
   {
     id: 'murattal',
@@ -34,7 +37,9 @@ export const STYLE_OPTIONS = [
     },
   },
 ] as const;
+// @ai-end
 
+// @ai-start
 export const RECORDING_TYPE_OPTIONS = [
   {
     id: 'studio',
@@ -51,3 +56,4 @@ export const RECORDING_TYPE_OPTIONS = [
     icon: 'moon' as const,
   },
 ] as const;
+// @ai-end

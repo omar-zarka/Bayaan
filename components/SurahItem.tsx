@@ -21,12 +21,14 @@ import {
 } from '@/services/player/store/downloadSelectors';
 import {CircularProgress} from '@/components/CircularProgress';
 import {GradientText} from '@/components/GradientText';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {
   getSurahDisplayName,
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
 interface SurahItemProps {
   item: Surah;
@@ -41,6 +43,7 @@ interface SurahItemProps {
   rewayatName?: string;
 }
 
+// @ai-start
 export const SurahItem: React.FC<SurahItemProps> = React.memo(
   ({
     item,
@@ -306,9 +309,11 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 SurahItem.displayName = 'SurahItem';
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     surahItem: {
@@ -321,7 +326,7 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: moderateScale(8),
-      paddingLeft: moderateScale(12),
+      paddingStart: moderateScale(12),
     },
     optionsZone: {
       width: '20%',
@@ -330,7 +335,7 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: moderateScale(8),
-      paddingRight: moderateScale(12),
+      paddingEnd: moderateScale(12),
       alignSelf: 'stretch',
     },
     surahGlyphContainer: {
@@ -338,11 +343,11 @@ const createStyles = (theme: Theme) =>
       height: moderateScale(45),
       alignItems: 'center',
       justifyContent: 'center',
-      marginRight: moderateScale(4),
+      marginEnd: moderateScale(4),
     },
     surahInfoContainer: {
       flex: 1,
-      marginLeft: moderateScale(4),
+      marginStart: moderateScale(4),
     },
     nameContainer: {
       flexDirection: 'row',
@@ -398,3 +403,4 @@ const createStyles = (theme: Theme) =>
       marginTop: moderateScale(2),
     },
   });
+// @ai-end

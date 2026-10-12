@@ -18,6 +18,7 @@ import {CircularProgress} from '@/components/CircularProgress';
 import {Feather, Ionicons} from '@expo/vector-icons';
 import {GradientText} from '@/components/GradientText';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {currentLanguage} from '@/i18n/language';
 import {
@@ -25,8 +26,11 @@ import {
   getSurahDisplayName,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const KNOWN_STYLES = ['murattal', 'mojawwad', 'molim'] as const;
+// @ai-end
 
 interface TrackItemProps {
   reciterId: string;
@@ -40,6 +44,7 @@ interface TrackItemProps {
   onLongPress?: () => void;
 }
 
+// @ai-start
 export const TrackItem: React.FC<TrackItemProps> = React.memo(
   ({
     reciterId,
@@ -239,9 +244,11 @@ export const TrackItem: React.FC<TrackItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 TrackItem.displayName = 'TrackItem';
 
+// @ai-start
 const styles = StyleSheet.create({
   trackItem: {
     flexDirection: 'row',
@@ -255,7 +262,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(18),
   },
   imageContainer: {
-    marginRight: moderateScale(12),
+    marginEnd: moderateScale(12),
   },
   reciterImage: {
     width: moderateScale(50),
@@ -277,7 +284,7 @@ const styles = StyleSheet.create({
   surahGlyphInline: {
     fontSize: moderateScale(16),
     fontFamily: 'SurahNames',
-    marginLeft: moderateScale(6),
+    marginStart: moderateScale(6),
   },
   reciterInfoRow: {
     flexDirection: 'row',
@@ -304,7 +311,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: moderateScale(8),
-    paddingRight: moderateScale(12),
+    paddingEnd: moderateScale(12),
     alignSelf: 'stretch' as const,
   },
 });
+// @ai-end

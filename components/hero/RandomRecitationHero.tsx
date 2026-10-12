@@ -26,9 +26,11 @@ import {
 } from './random-recitation/backgrounds';
 import {SESSION_SEED} from '@/components/hero/heroThemes';
 import {COPY_VARIANTS} from './random-recitation/types';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
 function showToast(message: string) {
   if (Platform.OS === 'android') {
@@ -44,6 +46,7 @@ interface RandomRecitationHeroProps {
 const SECTION_HEIGHT = moderateScale(150);
 const RANDOM_HERO_HEIGHT = SECTION_HEIGHT / 2;
 
+// @ai-start
 export function RandomRecitationHero({
   style,
   isCompact = false,
@@ -162,7 +165,9 @@ export function RandomRecitationHero({
     </Animated.View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -180,6 +185,7 @@ const createStyles = (theme: Theme) =>
       justifyContent: 'center',
     },
     title: {
+      textAlign: 'left',
       fontFamily: 'Manrope-Bold',
       fontSize: moderateScale(9),
       letterSpacing: latinLetterSpacing(moderateScale(0.5)),
@@ -187,7 +193,9 @@ const createStyles = (theme: Theme) =>
       textTransform: 'uppercase',
     },
     subtitle: {
+      textAlign: 'left',
       fontFamily: 'Manrope-Medium',
       fontSize: moderateScale(11),
     },
   });
+// @ai-end

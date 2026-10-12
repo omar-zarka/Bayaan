@@ -6,8 +6,11 @@ import {ThemeMode, Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {SunIcon, MoonIcon, AutoThemeIcon} from '@/components/Icons';
 import * as Haptics from 'expo-haptics';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 const THEME_OPTIONS: {
   mode: ThemeMode;
   icon: 'sun' | 'moon' | 'auto';
@@ -16,6 +19,7 @@ const THEME_OPTIONS: {
   {mode: 'dark', icon: 'moon'},
   {mode: 'system', icon: 'auto'},
 ];
+// @ai-end
 
 const IconMap = {
   sun: SunIcon,
@@ -23,6 +27,7 @@ const IconMap = {
   auto: AutoThemeIcon,
 };
 
+// @ai-start
 export const ThemePicker: React.FC = () => {
   const {theme, themeMode, setThemeMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -65,6 +70,7 @@ export const ThemePicker: React.FC = () => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

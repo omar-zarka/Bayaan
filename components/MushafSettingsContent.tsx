@@ -54,9 +54,12 @@ import {
   type MushafAllahNameHighlightColor,
   type RewayahId,
 } from '@/store/mushafSettingsStore';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 
 // --- Pre-cache Translation/Transliteration Data --- //
 interface TransliterationData {
@@ -100,23 +103,29 @@ interface TajweedSampleSegment {
 }
 
 // --- Font option data ---
+// @ai-start
 interface FontOption {
   value: MushafRenderer;
   key: 'dkV1' | 'dkV2' | 'indopak' | 'qcfV2';
 }
+// @ai-end
 
+// @ai-start
 const FONT_OPTIONS: FontOption[] = [
   {value: 'dk_v1', key: 'dkV1'},
   {value: 'dk_v2', key: 'dkV2'},
   {value: 'dk_indopak', key: 'indopak'},
   {value: 'qcf_v2', key: 'qcfV2'},
 ];
+// @ai-end
 
+// @ai-start
 const TEXT_WEIGHT_OPTIONS: readonly MushafArabicTextWeight[] = [
   'normal',
   'medium',
   'bold',
 ];
+// @ai-end
 
 // Internal reusable component for font size control
 interface FontSizeControlProps {
@@ -138,6 +147,7 @@ interface FontSizeControlProps {
   allahNameHighlightColor?: string;
 }
 
+// @ai-start
 const FontSizeControl: React.FC<FontSizeControlProps> = ({
   label,
   currentActualSize,
@@ -326,6 +336,7 @@ const FontSizeControl: React.FC<FontSizeControlProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // Custom TajweedToggle component
 interface TajweedToggleProps {
@@ -335,6 +346,7 @@ interface TajweedToggleProps {
   disabled?: boolean;
 }
 
+// @ai-start
 const TajweedToggle: React.FC<TajweedToggleProps> = ({
   value,
   onValueChange,
@@ -424,6 +436,7 @@ const TajweedToggle: React.FC<TajweedToggleProps> = ({
     </Pressable>
   );
 };
+// @ai-end
 
 interface TextWeightControlProps {
   value: MushafArabicTextWeight;
@@ -432,6 +445,7 @@ interface TextWeightControlProps {
   theme: Theme;
 }
 
+// @ai-start
 const TextWeightControl: React.FC<TextWeightControlProps> = ({
   value,
   onChange,
@@ -485,6 +499,7 @@ const TextWeightControl: React.FC<TextWeightControlProps> = ({
     </View>
   );
 };
+// @ai-end
 
 interface AllahNameColorControlProps {
   value: MushafAllahNameHighlightColor;
@@ -534,6 +549,7 @@ interface MushafSettingsContentProps {
   onOpenThemePicker?: () => void;
 }
 
+// @ai-start
 export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
   containerStyle,
   showTitle = true,
@@ -907,7 +923,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 style={styles.switchStyle}
               />
             </View>
-            {showWBW && (
+            {showWBW && showLatinReadingAids && (
               <>
                 <View style={styles.divider} />
                 <Pressable
@@ -974,68 +990,72 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             />
           </View>
 
-          <View style={styles.card}>
-            <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>
-                {t('mushafSettings.transliteration')}
-              </Text>
-              <Switch
-                trackColor={trackColor}
-                thumbColor="#FFFFFF"
-                ios_backgroundColor={trackColor.false}
-                onValueChange={toggleTransliteration}
-                value={showTransliteration}
-                style={styles.switchStyle}
-              />
-            </View>
-            {showTransliteration && (
-              <>
-                <View style={styles.divider} />
-                <FontSizeControl
-                  label={t('mushafSettings.fontSize')}
-                  currentActualSize={transliterationFontSize}
-                  onChange={setTransliterationFontSize}
-                  theme={theme}
-                  styles={styles}
-                  sampleText={actualTransliterationText}
-                  sampleFontFamily="Manrope-Regular"
+          {showLatinReadingAids && (
+            <View style={styles.card}>
+              <View style={styles.optionRow}>
+                <Text style={styles.optionLabel}>
+                  {t('mushafSettings.transliteration')}
+                </Text>
+                <Switch
+                  trackColor={trackColor}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={trackColor.false}
+                  onValueChange={toggleTransliteration}
+                  value={showTransliteration}
+                  style={styles.switchStyle}
                 />
-              </>
-            )}
-          </View>
+              </View>
+              {showTransliteration && (
+                <>
+                  <View style={styles.divider} />
+                  <FontSizeControl
+                    label={t('mushafSettings.fontSize')}
+                    currentActualSize={transliterationFontSize}
+                    onChange={setTransliterationFontSize}
+                    theme={theme}
+                    styles={styles}
+                    sampleText={actualTransliterationText}
+                    sampleFontFamily="Manrope-Regular"
+                  />
+                </>
+              )}
+            </View>
+          )}
 
-          <View style={styles.card}>
-            <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>
-                {t('mushafSettings.translation')}
-              </Text>
-              <Switch
-                trackColor={trackColor}
-                thumbColor="#FFFFFF"
-                ios_backgroundColor={trackColor.false}
-                onValueChange={toggleTranslation}
-                value={showTranslation}
-                style={styles.switchStyle}
-              />
-            </View>
-            <Text style={styles.helperText}>
-              {t('mushafSettings.translationSource')}
-            </Text>
-            {showTranslation && (
-              <>
-                <View style={styles.divider} />
-                <FontSizeControl
-                  label={t('mushafSettings.fontSize')}
-                  currentActualSize={translationFontSize}
-                  onChange={setTranslationFontSize}
-                  theme={theme}
-                  styles={styles}
-                  sampleText={actualTranslationText}
-                  sampleFontFamily="Manrope-Regular"
+          {showLatinReadingAids && (
+            <View style={styles.card}>
+              <View style={styles.optionRow}>
+                <Text style={styles.optionLabel}>
+                  {t('mushafSettings.translation')}
+                </Text>
+                <Switch
+                  trackColor={trackColor}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={trackColor.false}
+                  onValueChange={toggleTranslation}
+                  value={showTranslation}
+                  style={styles.switchStyle}
                 />
-              </>
-            )}
-          </View>
+              </View>
+              <Text style={styles.helperText}>
+                {t('mushafSettings.translationSource')}
+              </Text>
+              {showTranslation && (
+                <>
+                  <View style={styles.divider} />
+                  <FontSizeControl
+                    label={t('mushafSettings.fontSize')}
+                    currentActualSize={translationFontSize}
+                    onChange={setTranslationFontSize}
+                    theme={theme}
+                    styles={styles}
+                    sampleText={actualTranslationText}
+                    sampleFontFamily="Manrope-Regular"
+                  />
+                </>
+              )}
+            </View>
+          )}
         </>
       )}
 
@@ -1198,6 +1218,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
 interface RewayahAccordionProps {
   selectedId: RewayahId;
@@ -1207,6 +1228,7 @@ interface RewayahAccordionProps {
   disabled?: boolean;
 }
 
+// @ai-start
 const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
   selectedId,
   onSelect,
@@ -1322,6 +1344,7 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
     </View>
   );
 };
+// @ai-end
 
 interface RewayahDiffCardProps {
   rewayah: RewayahWithDiffs;
@@ -1332,6 +1355,7 @@ interface RewayahDiffCardProps {
   theme: Theme;
 }
 
+// @ai-start
 const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
   rewayah,
   showRewayahDiffs,
@@ -1417,7 +1441,9 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 type LegendEntryKey =
   | 'wordVariant'
   | 'genuineWordVariant'
@@ -1427,18 +1453,24 @@ type LegendEntryKey =
   | 'tashil'
   | 'ibdal'
   | 'taghliz';
+// @ai-end
 
+// @ai-start
 interface LegendEntry {
   color: string;
   isBackground?: boolean;
   key: LegendEntryKey;
 }
+// @ai-end
 
+// @ai-start
 interface RewayahLegend {
   summary: 'shubah' | 'ibnKathir' | 'nafi' | 'abuAmr';
   entries: LegendEntry[];
 }
+// @ai-end
 
+// @ai-start
 const WORD_VARIANT: LegendEntry = {
   color: REWAYAH_DIFF_BACKGROUND,
   isBackground: true,
@@ -1454,12 +1486,16 @@ const VOWEL_SHIFT: LegendEntry = {
   key: 'vowelShift',
 };
 const SILAH: LegendEntry = {color: tajweedColors.silah, key: 'silah'};
+// @ai-end
 
+// @ai-start
 const IBN_KATHIR_LEGEND: RewayahLegend = {
   summary: 'ibnKathir',
   entries: [WORD_VARIANT, VOWEL_SHIFT, SILAH],
 };
+// @ai-end
 
+// @ai-start
 const NAFI_LEGEND: RewayahLegend = {
   summary: 'nafi',
   entries: [
@@ -1471,15 +1507,19 @@ const NAFI_LEGEND: RewayahLegend = {
     GENUINE_WORD_VARIANT,
   ],
 };
+// @ai-end
 
+// @ai-start
 const ABU_AMR_LEGEND: RewayahLegend = {
   summary: 'abuAmr',
   entries: [GENUINE_WORD_VARIANT],
 };
+// @ai-end
 
 // Per-rewayah disclosure of what 'Show Differences' actually highlights.
 // The summary is factual; describes which rules we do and don't cover so
 // users can calibrate expectations vs a printed color-coded mushaf.
+// @ai-start
 const REWAYAH_LEGEND: Record<RewayahWithDiffs, RewayahLegend> = {
   shubah: {
     summary: 'shubah',
@@ -1492,6 +1532,7 @@ const REWAYAH_LEGEND: Record<RewayahWithDiffs, RewayahLegend> = {
   'al-duri-abi-amr': ABU_AMR_LEGEND,
   'al-susi': ABU_AMR_LEGEND,
 };
+// @ai-end
 
 // The mushaf-settings picker is generated from ALL_REWAYAH_IDS. IDs with
 // bundled DK text data render in the top section and are selectable; the
@@ -1506,6 +1547,7 @@ const UNAVAILABLE_REWAYAH_IDS: readonly RewayahId[] = ALL_REWAYAH_IDS.filter(
   id => !hasTextData(id),
 );
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -1805,3 +1847,4 @@ const createStyles = (theme: Theme) =>
       marginTop: verticalScale(1),
     },
   });
+// @ai-end

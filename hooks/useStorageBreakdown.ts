@@ -1,5 +1,7 @@
 import {useState, useEffect} from 'react';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import {
   getDownloadsStorage,
   getCacheStorage,
@@ -7,6 +9,7 @@ import {
   formatBytes,
 } from '@/services/storageService';
 
+// @ai-start
 export function useStorageBreakdown() {
   const [data, setData] = useState(() => {
     const zero = formatBytes(0);
@@ -97,3 +100,4 @@ export function useStorageBreakdown() {
     refresh,
   };
 }
+// @ai-end

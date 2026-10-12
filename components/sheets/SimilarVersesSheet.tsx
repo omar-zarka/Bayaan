@@ -30,9 +30,11 @@ import {useTajweedStore} from '@/store/tajweedStore';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import SkiaVerseText from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
 import type {SimilarAyah, MutashabihatPhrase} from '@/types/qul';
+// @ai-start
 import {flipX, isRTL, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+// @ai-end
 
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
@@ -40,10 +42,12 @@ const surahData = require('@/data/surahData.json') as Array<{
   name_arabic: string;
 }>;
 
+// @ai-start
 function getSurahName(surahNumber: number): string {
   const surah = surahData.find(s => s.id === surahNumber);
   return surah ? getSurahDisplayName(surah) : '';
 }
+// @ai-end
 
 function parseVerseKey(verseKey: string): {surah: number; ayah: number} {
   const [s, a] = verseKey.split(':');
@@ -69,6 +73,7 @@ function getVersePreview(verseKey: string): string {
   return digitalKhattDataService.getVerseText(verseKey);
 }
 
+// @ai-start
 export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -427,7 +432,9 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     sheetContainer: {
@@ -596,3 +603,4 @@ const createStyles = (theme: Theme) =>
       marginTop: verticalScale(30),
     },
   });
+// @ai-end

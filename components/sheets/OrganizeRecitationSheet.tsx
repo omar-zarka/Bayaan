@@ -37,6 +37,7 @@ import {
   RECORDING_TYPE_OPTIONS,
 } from '@/constants/recitationOptions';
 import type {RecordingType} from '@/types/uploads';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {resolveRewayatName} from '@/data/rewayat';
 import {useTranslation} from 'react-i18next';
@@ -47,11 +48,13 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
 type RecitationType = 'surah' | 'other';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
+// @ai-start
 const CATEGORY_OPTIONS: {
   id: UploadedRecitation['category'];
   readonly label: string;
@@ -81,7 +84,9 @@ const CATEGORY_OPTIONS: {
     },
   },
 ];
+// @ai-end
 
+// @ai-start
 function formatDuration(seconds: number | null): string {
   if (seconds === null || seconds === undefined)
     return i18n.t('sheets:organize.unknownDuration');
@@ -89,16 +94,22 @@ function formatDuration(seconds: number | null): string {
   const secs = Math.floor(seconds % 60);
   return localizeDigits(`${mins}:${secs.toString().padStart(2, '0')}`);
 }
+// @ai-end
 
+// @ai-start
 function getSystemReciterName(id: string): string {
   const reciter = RECITERS.find(r => r.id === id);
   return reciter ? getReciterDisplayName(reciter) : (getReciterName(id) ?? '');
 }
+// @ai-end
 
+// @ai-start
 function getRewayahOptionLabel(name: string): string {
   return resolveRewayatName(name)?.displayName ?? name;
 }
+// @ai-end
 
+// @ai-start
 export const OrganizeRecitationSheet = (
   props: SheetProps<'organize-recitation'>,
 ) => {
@@ -978,7 +989,9 @@ export const OrganizeRecitationSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     sheetContainer: {
@@ -1264,3 +1277,4 @@ const createStyles = (theme: Theme) =>
       color: '#EF4444',
     },
   });
+// @ai-end

@@ -24,16 +24,19 @@ import {SheetManager} from 'react-native-actions-sheet';
 import Color from 'color';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import type {VerseNote} from '@/types/verse-annotations';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface NoteData {
   note: VerseNote;
   surahName: string;
 }
 
+// @ai-start
 const NotesScreen = () => {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -304,6 +307,7 @@ const NotesScreen = () => {
     </View>
   );
 };
+// @ai-end
 
 export default NotesScreen;
 

@@ -9,7 +9,9 @@ import {View, Text, FlatList, Pressable, StyleSheet} from 'react-native';
 import {useRouter, useNavigation, Link} from 'expo-router';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Ionicons} from '@expo/vector-icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
@@ -23,6 +25,7 @@ import {useBottomInset} from '@/hooks/useBottomInset';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 
+// @ai-start
 const SavedAdhkarScreen: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
@@ -223,6 +226,7 @@ const SavedAdhkarScreen: React.FC = () => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

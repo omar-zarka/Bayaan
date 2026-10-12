@@ -41,8 +41,10 @@ import {UserPlaylist, PlaylistItem} from '@/services/playlist/PlaylistService';
 import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 /**
  * Simplified type for loved tracks from the useLoved hook
  * The hook returns a subset without the timestamp field
@@ -99,6 +101,7 @@ interface CollectionSearchModalProps {
   theme: Theme;
 }
 
+// @ai-start
 export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
   visible,
   onClose,
@@ -811,6 +814,7 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // ============================================
 // STYLES

@@ -2,7 +2,9 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {View, ViewStyle} from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {useFocusEffect} from '@react-navigation/native';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {SURAHS, Surah} from '@/data/surahData';
 import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {HeroSection} from './HeroSection';
@@ -36,6 +38,7 @@ const SECTION_HEIGHT = moderateScale(150);
  * Shows "Continue Reading" with the last-read surah if the user has history,
  * otherwise falls back to Surah of the Day.
  */
+// @ai-start
 export function ContinueReadingHero({
   onSurahLongPress,
 }: ContinueReadingHeroProps) {
@@ -89,3 +92,4 @@ export function ContinueReadingHero({
     />
   );
 }
+// @ai-end

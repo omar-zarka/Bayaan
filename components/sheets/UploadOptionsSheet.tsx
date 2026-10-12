@@ -20,11 +20,13 @@ import ActionSheet, {
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {useUploadsStore, getCustomReciterName} from '@/store/uploadsStore';
+// @ai-start
 import {
   getSurahById,
   getReciterName,
   getReciterByIdSync,
 } from '@/services/dataService';
+// @ai-end
 import {useLoved} from '@/hooks/useLoved';
 import {useReciterNavigation} from '@/hooks/useReciterNavigation';
 import type {UploadedRecitation} from '@/types/uploads';
@@ -33,6 +35,7 @@ import RenderHtml, {
   RenderHTMLProps,
   defaultSystemFonts,
 } from 'react-native-render-html';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {
@@ -41,6 +44,7 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
 const surahInfo = require('@/data/surahInfo.json');
 
@@ -69,6 +73,7 @@ function stripExtension(filename: string): string {
   return filename.replace(/\.[^/.]+$/, '');
 }
 
+// @ai-start
 function getDisplayTitle(item: UploadedRecitation): string {
   if (item.type === 'surah' && item.surahNumber) {
     const surah = getSurahById(item.surahNumber);
@@ -79,7 +84,9 @@ function getDisplayTitle(item: UploadedRecitation): string {
   }
   return stripExtension(item.originalFilename);
 }
+// @ai-end
 
+// @ai-start
 function getDisplaySubtitle(item: UploadedRecitation): string {
   const parts: string[] = [];
 
@@ -133,7 +140,9 @@ function getDisplaySubtitle(item: UploadedRecitation): string {
 
   return parts.join(' \u00B7 ');
 }
+// @ai-end
 
+// @ai-start
 export const UploadOptionsSheet = (props: SheetProps<'upload-options'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -498,6 +507,7 @@ export const UploadOptionsSheet = (props: SheetProps<'upload-options'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

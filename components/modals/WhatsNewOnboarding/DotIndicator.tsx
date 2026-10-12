@@ -7,7 +7,9 @@ import Animated, {
   SharedValue,
 } from 'react-native-reanimated';
 import {useTheme} from '@/hooks/useTheme';
+// @ai-start
 import {forceLTR} from '@/utils/rtl';
+// @ai-end
 
 interface DotIndicatorProps {
   totalPages: number;
@@ -15,6 +17,7 @@ interface DotIndicatorProps {
   pageWidth: number;
 }
 
+// @ai-start
 function DotIndicatorComponent({
   totalPages,
   scrollX,
@@ -36,6 +39,7 @@ function DotIndicatorComponent({
     </View>
   );
 }
+// @ai-end
 
 interface DotProps {
   index: number;

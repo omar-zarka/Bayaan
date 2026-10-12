@@ -8,7 +8,9 @@ import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
-import {getTrackDisplayTitle} from '@/i18n/format';
+// @ai-start
+import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
+// @ai-end
 
 interface TabletDockedPlayerProps {
   /** When true, shows artwork + title + subtitle + play. When false, artwork-only compact mode. */
@@ -21,6 +23,7 @@ interface TabletDockedPlayerProps {
  * Phones never mount this component — they use `FloatingPlayer` (Android)
  * or `MiniPlayer` inside `NativeTabs.BottomAccessory` (iOS).
  */
+// @ai-start
 export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
   function TabletDockedPlayer({expanded}) {
     const {theme} = useTheme();
@@ -108,7 +111,7 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
           <Text
             style={[styles.subtitle, {color: subtitleColor}]}
             numberOfLines={1}>
-            {currentTrack.artist}
+            {getTrackArtistDisplay(currentTrack)}
           </Text>
         </View>
         <Pressable
@@ -127,6 +130,7 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 const styles = StyleSheet.create({
   compact: {

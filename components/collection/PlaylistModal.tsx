@@ -15,8 +15,10 @@ import {PlaylistIcon} from '@/components/Icons';
 import {Input} from '@/components/Input';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface PlaylistModalProps {
   visible: boolean;
@@ -45,6 +47,7 @@ const PLAYLIST_COLORS = [
   '#10B981', // Emerald
 ];
 
+// @ai-start
 export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   visible,
   onClose,
@@ -216,7 +219,9 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
     </Modal>
   );
 };
+// @ai-end
 
+// @ai-start
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -335,3 +340,4 @@ const styles = StyleSheet.create({
     marginBottom: 0,
   },
 });
+// @ai-end

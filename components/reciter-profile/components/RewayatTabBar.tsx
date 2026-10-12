@@ -9,7 +9,9 @@ import {
 } from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {Theme} from '@/utils/themeUtils';
+// @ai-start
 import {forceLTR} from '@/utils/rtl';
+// @ai-end
 
 interface Tab {
   id: string;
@@ -25,6 +27,7 @@ interface RewayatTabBarProps {
   screenWidth: number;
 }
 
+// @ai-start
 export const RewayatTabBar: React.FC<RewayatTabBarProps> = ({
   tabs,
   activeTabId,
@@ -195,6 +198,7 @@ export const RewayatTabBar: React.FC<RewayatTabBarProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   StyleSheet.create({

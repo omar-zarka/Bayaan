@@ -1,6 +1,10 @@
 import React, {useState, useMemo, useCallback, useLayoutEffect} from 'react';
 import {View, FlatList, Text, Pressable} from 'react-native';
-import {useRouter, useNavigation} from 'expo-router';
+// @ai-start
+import {Stack, useRouter, useNavigation} from 'expo-router';
+import {SearchInput} from '@/components/SearchInput';
+import {matchesSurah} from '@/utils/catalogSearch';
+// @ai-end
 import {
   moderateScale,
   verticalScale,
@@ -20,12 +24,16 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {GRADIENT_COLORS} from '@/utils/gradientColors';
 import {useReciterSelection} from '@/hooks/useReciterSelection';
 import {Theme} from '@/utils/themeUtils';
+// @ai-start
 import {getJuzForSurah} from '@/data/juzData';
+// @ai-end
 import {useHeaderHeight} from '@react-navigation/elements';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const isGlass = USE_GLASS;
 
@@ -44,6 +52,7 @@ const ItemSeparator = React.memo(() => {
 });
 ItemSeparator.displayName = 'ItemSeparator';
 
+// @ai-start
 const useStyles = () => {
   return ScaledSheet.create({
     container: {
@@ -151,19 +160,22 @@ const useStyles = () => {
     },
   });
 };
+// @ai-end
 
 interface BrowseSurahsProps {
   theme: Theme;
   onBack: () => void;
 }
 
+// @ai-start
 export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
   const router = useRouter();
   const {t} = useTranslation(['home', 'common']);
   const navigation = useNavigation();
   const glassColorScheme = useGlassColorScheme();
   const insets = useSafeAreaInsets();
-  const iosHeaderHeight = isGlass ? useHeaderHeight() : 0;
+  const headerHeight = useHeaderHeight();
+  const iosHeaderHeight = isGlass ? headerHeight : 0;
   const {askEveryTime, defaultReciterSelection} = useSettings();
   const defaultReciter = useReciterStore(state => state.defaultReciter);
   const {playWithReciter, playWithRandomReciter} = useReciterSelection();
@@ -188,7 +200,7 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
   // Define styles *before* callbacks that use them
   const styles = useStyles();
 
-  const [searchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   // Initialize local state from persisted settings
   const [viewMode, setViewMode] = useState<ViewMode>(browseViewModeSetting);
   const [sortOption, setSortOption] = useState<SortOption>(
@@ -199,13 +211,7 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
   const displaySurahs = useMemo(() => {
     // First filter based on search query
     const result = searchQuery.trim()
-      ? SURAHS.filter(
-          surah =>
-            surah.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            surah.translated_name_english
-              .toLowerCase()
-              .includes(searchQuery.toLowerCase()),
-        )
+      ? SURAHS.filter(surah => matchesSurah(surah, searchQuery))
       : [...SURAHS];
 
     // Then sort based on selected option
@@ -466,6 +472,7 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
     : moderateScale(40 + 4); // optionsRow + margin
 
   const flatListProps = {
+    keyboardShouldPersistTaps: 'handled' as const,
     showsVerticalScrollIndicator: false,
     scrollEnabled: true,
     initialNumToRender: 25,
@@ -478,6 +485,15 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
   return (
     <View
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
+      {isGlass && (
+        <Stack.SearchBar
+          placeholder={t('browse.searchSurahs')}
+          onChangeText={event => setSearchQuery(event.nativeEvent.text)}
+          onCancelButtonPress={() => setSearchQuery('')}
+          onClose={() => setSearchQuery('')}
+          hideWhenScrolling={false}
+        />
+      )}
       {/* Android: custom header | iOS: native header via layout */}
       {!isGlass && (
         <Header title={t('browse.allSurahs')} onBack={onBack} showBlur={true} />
@@ -488,6 +504,18 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
           styles.content,
           !isGlass && {marginTop: insets.top + moderateScale(56)},
         ]}>
+        {!isGlass && (
+          <SearchInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={t('browse.searchSurahs')}
+            showCancelButton={false}
+            iconColor={theme.colors.text}
+            textColor={theme.colors.text}
+            backgroundColor={Color(theme.colors.text).alpha(0.04).toString()}
+            borderColor={Color(theme.colors.text).alpha(0.06).toString()}
+          />
+        )}
         {/* Android: inline options row (normal flow) */}
         {!isGlass && renderOptionsRow()}
 
@@ -553,3 +581,4 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
     </View>
   );
 }
+// @ai-end

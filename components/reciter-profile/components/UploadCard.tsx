@@ -18,8 +18,10 @@ import {GradientText} from '@/components/GradientText';
 import {surahGlyphMap} from '@/utils/surahGlyphMap';
 
 import type {RecordingType} from '@/types/uploads';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 interface UploadCardProps {
   title: string;
@@ -35,6 +37,7 @@ interface UploadCardProps {
   recordingType?: RecordingType;
 }
 
+// @ai-start
 export const UploadCard: React.FC<UploadCardProps> = ({
   title,
   subtitle,
@@ -215,3 +218,4 @@ export const UploadCard: React.FC<UploadCardProps> = ({
     </Pressable>
   );
 };
+// @ai-end

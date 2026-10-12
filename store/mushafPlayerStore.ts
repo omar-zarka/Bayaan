@@ -8,7 +8,9 @@
 import {create} from 'zustand';
 import {createJSONStorage, persist} from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import type {AyahTimestamp} from '@/types/timestamps';
 import {RECITERS} from '@/data/reciterData';
 import {timestampService} from '@/services/timestamps/TimestampService';
@@ -74,6 +76,7 @@ export interface MushafPlayerStoreState {
   computeAvailableReciters: () => Promise<void>;
 }
 
+// @ai-start
 export const useMushafPlayerStore = create<MushafPlayerStoreState>()(
   persist(
     (set, get) => ({
@@ -437,3 +440,4 @@ export const useMushafPlayerStore = create<MushafPlayerStoreState>()(
     },
   ),
 );
+// @ai-end

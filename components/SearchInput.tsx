@@ -13,7 +13,9 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 export interface SearchInputProps extends TextInputProps {
   value: string;
@@ -42,6 +44,7 @@ export interface SearchInputProps extends TextInputProps {
   keyboardShouldPersistTaps?: 'always' | 'handled' | 'never';
 }
 
+// @ai-start
 export const SearchInput = forwardRef<TextInput, SearchInputProps>(
   (
     {
@@ -150,9 +153,11 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(
     );
   },
 );
+// @ai-end
 
 SearchInput.displayName = 'SearchInput';
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -191,12 +196,12 @@ const createStyles = (theme: Theme) =>
       opacity: 0.8,
     },
     clearButton: {
-      paddingLeft: moderateScale(8),
+      paddingStart: moderateScale(8),
       justifyContent: 'center',
       alignItems: 'center',
     },
     closeButton: {
-      marginLeft: moderateScale(12),
+      marginStart: moderateScale(12),
       padding: moderateScale(10),
       width: moderateScale(44),
       height: moderateScale(44),
@@ -204,3 +209,4 @@ const createStyles = (theme: Theme) =>
       alignItems: 'center',
     },
   });
+// @ai-end

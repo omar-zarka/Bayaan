@@ -12,20 +12,27 @@ import ActionSheet, {
 import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
 import {SURAHS} from '@/data/surahData';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+// @ai-end
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
+// @ai-start
 const REPEAT_VALUES = [1, 2, 3, 0];
+// @ai-end
 
+// @ai-start
 function getRepeatLabel(value: number): string {
   return value === 0
     ? i18n.t('sheets:repeat.loop')
     : i18n.t('sheets:repeat.times', {count: value});
 }
+// @ai-end
 
+// @ai-start
 export const MushafRepeatOptionsSheet = (
   props: SheetProps<'mushaf-repeat-options'>,
 ) => {
@@ -289,6 +296,7 @@ export const MushafRepeatOptionsSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

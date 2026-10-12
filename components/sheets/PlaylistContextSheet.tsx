@@ -21,8 +21,11 @@ import {CheckIcon} from '@/components/Icons';
 import {Ionicons} from '@expo/vector-icons';
 import {useCollectionDownloadState} from '@/hooks/useCollectionDownloadState';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export const PlaylistContextSheet = (props: SheetProps<'playlist-context'>) => {
   const {theme} = useTheme();
   const {t} = useTranslation(['sheets', 'common']);
@@ -568,6 +571,7 @@ export const PlaylistContextSheet = (props: SheetProps<'playlist-context'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   sheetContainer: {

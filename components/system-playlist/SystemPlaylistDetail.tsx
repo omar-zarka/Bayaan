@@ -31,7 +31,9 @@ import {createTrack} from '@/utils/track';
 import {moderateScale} from 'react-native-size-matters';
 import {SystemPlaylistHeader} from './SystemPlaylistHeader';
 import {SystemPlaylist} from '@/data/systemPlaylists';
+// @ai-start
 import {getSystemPlaylistEstimatedDuration} from '@/utils/systemPlaylistHelpers';
+// @ai-end
 import Color from 'color';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import {getFeaturedReciters} from '@/data/featuredReciters';
@@ -39,6 +41,7 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {useNavigation} from 'expo-router';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {
@@ -47,7 +50,9 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 function formatDuration(seconds: number): string {
   const hours = Math.floor(seconds / 3600);
   const minutes = Math.floor((seconds % 3600) / 60);
@@ -62,6 +67,7 @@ function formatDuration(seconds: number): string {
   }
   return i18n.t('collection:systemPlaylist.durationMinutes', {minutes});
 }
+// @ai-end
 
 interface PlaylistTrack {
   surahId: number;
@@ -148,6 +154,7 @@ function findBestRewayat(
 
 const isGlass = USE_GLASS;
 
+// @ai-start
 const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
   playlist,
 }) => {
@@ -740,5 +747,6 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
     </View>
   );
 };
+// @ai-end
 
 export default SystemPlaylistDetail;

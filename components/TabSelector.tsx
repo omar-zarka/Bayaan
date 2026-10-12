@@ -13,6 +13,7 @@ import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 
+// @ai-start
 interface TabSelectorProps<T extends string> {
   options: T[];
   selectedOption: T;
@@ -20,7 +21,9 @@ interface TabSelectorProps<T extends string> {
   width?: number;
   getLabel?: (option: T) => string;
 }
+// @ai-end
 
+// @ai-start
 function TabSelector<T extends string>({
   options,
   selectedOption,
@@ -91,6 +94,7 @@ function TabSelector<T extends string>({
     </View>
   );
 }
+// @ai-end
 
 const createStyles = (theme: Theme, _optionCount: number, width: number) =>
   StyleSheet.create({

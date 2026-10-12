@@ -1,8 +1,11 @@
 import {Stack} from 'expo-router';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {MaxWidthContainer} from '@/components/layout/MaxWidthContainer';
 
+// @ai-start
 export default function HomeLayout() {
   const {t} = useTranslation('home');
   return (
@@ -61,3 +64,4 @@ export default function HomeLayout() {
     </MaxWidthContainer>
   );
 }
+// @ai-end

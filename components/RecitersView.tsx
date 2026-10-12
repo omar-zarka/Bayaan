@@ -47,8 +47,10 @@ import {useAdhkarStore} from '@/store/adhkarStore';
 import {AdhkarBentoCard} from '@/components/adhkar/AdhkarBentoCard';
 import {SuperCategory} from '@/types/adhkar';
 import branding, {type HomeRow, type HomeRowId} from '@/config/branding';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
 /**
  * Fallback row order used when `branding.homeRowConfig` is undefined.
@@ -169,6 +171,7 @@ const MemoizedFlatList = React.memo(
 
 MemoizedFlatList.displayName = 'MemoizedFlatList';
 
+// @ai-start
 const RenderSectionItem = React.memo(
   ({
     item,
@@ -312,10 +315,12 @@ const RenderSectionItem = React.memo(
     );
   },
 );
+// @ai-end
 
 RenderSectionItem.displayName = 'RenderSectionItem';
 
 // Memoize the section component
+// @ai-start
 const Section = React.memo(
   ({
     title,
@@ -387,6 +392,7 @@ const Section = React.memo(
     prevProps.onClear === nextProps.onClear &&
     prevProps.theme === nextProps.theme,
 );
+// @ai-end
 
 Section.displayName = 'Section';
 
@@ -408,6 +414,7 @@ function seededShuffle<T>(array: T[], seed: number): T[] {
   return shuffled;
 }
 
+// @ai-start
 function RecitersView({onReciterPress}: RecitersViewProps) {
   const {theme} = useTheme();
   const {t} = useTranslation(['home', 'common']);
@@ -761,6 +768,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     </ScrollView>
   );
 }
+// @ai-end
 
 // Module-level helpers to keep the renderItem/keyExtractor references
 // stable across renders (avoids react/no-unstable-nested-components).

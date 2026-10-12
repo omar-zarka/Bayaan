@@ -1,3 +1,4 @@
+// @ai-generated
 import 'i18next';
 import type {resources, defaultNS} from '@/i18n/resources';
 

@@ -1,5 +1,9 @@
+// @ai-start
 import i18n from '@/i18n';
 import {uiFontFiles} from '@/i18n/fonts';
+import {bootstrapDirection} from '@/i18n/language';
+import {appDirection, appLayoutDirection, isRTL} from '@/utils/rtl';
+// @ai-end
 import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
 import {Stack, useRouter} from 'expo-router';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -21,7 +25,9 @@ import {
   type AppStateStatus,
 } from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
-import {ThemeProvider} from '@react-navigation/native';
+// @ai-start
+import {LocaleDirContext, ThemeProvider} from '@react-navigation/native';
+// @ai-end
 import {PlayerSheet} from '@/components/player/v2/PlayerSheet';
 import {
   WhatsNewModal,
@@ -114,7 +120,11 @@ function AnalyticsConnector(): null {
   return null;
 }
 
+// @ai-start
 function RootLayout() {
+  // Start reloads after the root has mounted, when native reload listeners are
+  // ready, rather than as a side effect of importing translation resources.
+  useEffect(bootstrapDirection, []);
   const [appIsReady, setAppIsReady] = useState(false);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
   const [mushafRestoreHandled, setMushafRestoreHandled] = useState(false);
@@ -443,55 +453,64 @@ function RootLayout() {
           captureScreens: true,
         }}>
         <AnalyticsConnector />
-        <ThemeProvider value={navigationTheme}>
-          <SafeAreaProvider>
-            <ExpoAudioProvider>
-              <GestureHandlerRootView
-                style={{flex: 1, backgroundColor: theme.colors.background}}
-                // @ts-ignore - RN supports this on iOS to override system theme for native UI (keyboard, menus, alerts)
-                overrideUserInterfaceStyle={isDarkMode ? 'dark' : 'light'}
-                onLayout={onLayoutRootView}>
-                <NetworkStatusMonitor />
-                <SheetProvider>
-                  <Stack
-                    screenOptions={{
-                      headerShown: false,
-                      contentStyle: {
-                        paddingTop: 0,
-                        backgroundColor: theme.colors.background,
-                      },
-                      animation: 'fade',
-                    }}>
-                    <Stack.Screen
-                      name="(tabs)"
-                      options={{headerShown: false}}
-                    />
-                    <Stack.Screen
-                      name="mushaf"
-                      options={{
-                        headerShown: USE_GLASS,
-                        headerTransparent: true,
-                        headerStyle: {backgroundColor: 'transparent'},
-                        headerShadowVisible: false,
-                        headerTitle: '',
-                        headerTitleAlign: 'center',
-                        headerBackButtonDisplayMode: 'minimal',
-                        animation: 'slide_from_right',
-                        fullScreenGestureEnabled: false,
-                      }}
-                    />
-                  </Stack>
-                  <PlayerSheet />
-                  <WhatsNewModal ref={whatsNewModalRef} />
-                  <DevMenu whatsNewModalRef={whatsNewModalRef} />
-                </SheetProvider>
-              </GestureHandlerRootView>
-            </ExpoAudioProvider>
-          </SafeAreaProvider>
-        </ThemeProvider>
+        <LocaleDirContext.Provider value={appDirection}>
+          <ThemeProvider value={navigationTheme}>
+            <SafeAreaProvider>
+              <ExpoAudioProvider>
+                <GestureHandlerRootView
+                  style={[
+                    {flex: 1, backgroundColor: theme.colors.background},
+                    appLayoutDirection,
+                  ]}
+                  // @ts-ignore - RN supports this on iOS to override system theme for native UI (keyboard, menus, alerts)
+                  overrideUserInterfaceStyle={isDarkMode ? 'dark' : 'light'}
+                  onLayout={onLayoutRootView}>
+                  <NetworkStatusMonitor />
+                  <SheetProvider>
+                    <Stack
+                      screenOptions={{
+                        headerShown: false,
+                        contentStyle: {
+                          direction: appDirection,
+                          paddingTop: 0,
+                          backgroundColor: theme.colors.background,
+                        },
+                        animation: 'fade',
+                      }}>
+                      <Stack.Screen
+                        name="(tabs)"
+                        options={{headerShown: false}}
+                      />
+                      <Stack.Screen
+                        name="mushaf"
+                        options={{
+                          headerShown: USE_GLASS,
+                          headerTransparent: true,
+                          headerStyle: {backgroundColor: 'transparent'},
+                          headerShadowVisible: false,
+                          headerTitle: '',
+                          headerTitleAlign: 'center',
+                          headerBackButtonDisplayMode: 'minimal',
+                          animation: isRTL
+                            ? 'slide_from_left'
+                            : 'slide_from_right',
+                          fullScreenGestureEnabled: false,
+                        }}
+                      />
+                    </Stack>
+                    <PlayerSheet />
+                    <WhatsNewModal ref={whatsNewModalRef} />
+                    <DevMenu whatsNewModalRef={whatsNewModalRef} />
+                  </SheetProvider>
+                </GestureHandlerRootView>
+              </ExpoAudioProvider>
+            </SafeAreaProvider>
+          </ThemeProvider>
+        </LocaleDirContext.Provider>
       </PostHogProvider>
     </ErrorBoundary>
   );
 }
+// @ai-end
 
 export default Sentry.wrap(RootLayout);

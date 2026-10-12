@@ -43,8 +43,10 @@ import {
   createTextStrokePaint,
   getArabicTextWeightStrokeWidth,
 } from '@/utils/skiaTextWeight';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {forceLTR} from '@/utils/rtl';
+// @ai-end
 
 // --- Constants ---
 
@@ -317,6 +319,7 @@ function computeRTLLayout(
 
 // --- Main component ---
 
+// @ai-start
 export const WBWVerseView = memo<WBWVerseViewProps>(
   ({
     verseKey,
@@ -865,6 +868,7 @@ export const WBWVerseView = memo<WBWVerseViewProps>(
     );
   },
 );
+// @ai-end
 
 WBWVerseView.displayName = 'WBWVerseView';
 

@@ -17,9 +17,14 @@ import {VerseItem} from './VerseItem';
 import BasmalaHeader from './BasmalaHeader';
 import SurahDivider, {computeDividerTotalHeight} from './SurahDivider';
 import {FlashList, type FlashListRef} from '@shopify/flash-list';
-import {useBottomSheetScrollableCreator} from '@gorhom/bottom-sheet';
+// @ai-start
+import {usePlayerScrollable} from '@/hooks/usePlayerScrollable';
+// @ai-end
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
+// @ai-start
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 import type {MushafArabicTextWeight} from '@/store/mushafSettingsStore';
 import {useTajweedStore} from '@/store/tajweedStore';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
@@ -127,6 +132,7 @@ interface QuranViewProps {
   parentContentWidth?: number;
 }
 
+// @ai-start
 export const QuranView: React.FC<QuranViewProps> = ({
   currentSurah,
   onVersePress,
@@ -163,7 +169,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
   // satisfy rules-of-hooks; the factory is discarded when behavior is
   // 'native'. See docs/rfcs/014-player-scroll-strategy-seam.md.
   const scrollBehavior = branding.playerMushafScrollBehavior ?? 'gorhom';
-  const gorhomScrollComponent = useBottomSheetScrollableCreator();
+  const gorhomScrollComponent = usePlayerScrollable();
   const renderScrollComponent =
     scrollBehavior === 'gorhom' ? gorhomScrollComponent : undefined;
   if (__DEV__ && scrollBehavior === 'native') {
@@ -191,10 +197,11 @@ export const QuranView: React.FC<QuranViewProps> = ({
     s => s.selectedTranslationId,
   );
   const showWBW = useMushafSettingsStore(s => s.showWBW);
-  const wbwShowTranslation = useMushafSettingsStore(s => s.wbwShowTranslation);
-  const wbwShowTransliteration = useMushafSettingsStore(
-    s => s.wbwShowTransliteration,
-  );
+  const wbwShowTranslation =
+    useMushafSettingsStore(s => s.wbwShowTranslation) && showLatinReadingAids;
+  const wbwShowTransliteration =
+    useMushafSettingsStore(s => s.wbwShowTransliteration) &&
+    showLatinReadingAids;
   const translationName = getTranslationName(selectedTranslationId);
   const allahNameHighlightColor = useMemo(
     () =>
@@ -488,6 +495,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

@@ -11,9 +11,11 @@ import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import Svg, {Circle, Path, Defs, RadialGradient, Stop} from 'react-native-svg';
 import {pickHeroTheme, HeroColorTheme} from '@/components/hero/heroThemes';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 // Match SurahsHero height
 const SECTION_HEIGHT = moderateScale(150);
@@ -24,6 +26,7 @@ interface TasbihBeadsSvgProps {
 }
 
 /** SVG tasbih bead pattern rendered as card background decoration */
+// @ai-start
 const TasbihBeadsSvg = ({theme, isDarkMode}: TasbihBeadsSvgProps) => {
   const beadOpacity = isDarkMode ? 0.25 : 0.3;
 
@@ -128,6 +131,7 @@ const TasbihBeadsSvg = ({theme, isDarkMode}: TasbihBeadsSvgProps) => {
     </Svg>
   );
 };
+// @ai-end
 
 interface SavedAdhkarCardProps {
   savedCount: number;
@@ -138,6 +142,7 @@ interface SavedAdhkarCardProps {
  * Card component for saved adhkar hero section
  * Matches the SurahHeroSection design pattern exactly
  */
+// @ai-start
 const SavedAdhkarCard = ({savedCount, style}: SavedAdhkarCardProps) => {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
@@ -216,8 +221,10 @@ const SavedAdhkarCard = ({savedCount, style}: SavedAdhkarCardProps) => {
     </Link>
   );
 };
+// @ai-end
 
 // Styles matching SurahHeroSection exactly
+// @ai-start
 const createStyles = (theme: Theme, heroTheme: HeroColorTheme) =>
   StyleSheet.create({
     hero: {
@@ -288,6 +295,7 @@ const createStyles = (theme: Theme, heroTheme: HeroColorTheme) =>
       textAlign: 'center',
     },
   });
+// @ai-end
 
 interface SavedAdhkarHeroProps {
   savedCount: number;

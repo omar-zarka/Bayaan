@@ -19,9 +19,12 @@ import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHe
 import {SheetManager} from 'react-native-actions-sheet';
 import Color from 'color';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export default function PlaylistsScreen() {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -394,3 +397,4 @@ export default function PlaylistsScreen() {
     </View>
   );
 }
+// @ai-end

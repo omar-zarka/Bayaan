@@ -9,7 +9,9 @@ import Color from 'color';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
+// @ai-start
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 interface BookmarkItemProps {
   surahName: string;
@@ -21,6 +23,7 @@ interface BookmarkItemProps {
   onOptionsPress: () => void;
 }
 
+// @ai-start
 export const BookmarkItem = memo<BookmarkItemProps>(
   ({
     surahName,
@@ -80,6 +83,7 @@ export const BookmarkItem = memo<BookmarkItemProps>(
     );
   },
 );
+// @ai-end
 
 BookmarkItem.displayName = 'BookmarkItem';
 

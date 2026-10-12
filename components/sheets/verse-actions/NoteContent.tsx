@@ -13,7 +13,9 @@ import Color from 'color';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface NoteContentProps {
   verseKey: string;
@@ -24,6 +26,7 @@ interface NoteContentProps {
   onDone: () => void;
 }
 
+// @ai-start
 export const NoteContent: React.FC<NoteContentProps> = ({
   verseKey,
   surahNumber,
@@ -112,6 +115,7 @@ export const NoteContent: React.FC<NoteContentProps> = ({
     </ScrollView>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

@@ -33,14 +33,18 @@ import {lightHaptics} from '@/utils/haptics';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
   name: string;
   name_arabic: string;
 }>;
+// @ai-end
 const saheehData =
   require('@/data/SaheehInternational.translation-with-footnote-tags.json') as Record<
     string,
@@ -58,6 +62,7 @@ for (const key of Object.keys(quranRaw)) {
   if (entry?.verse_key) textByKey[entry.verse_key] = entry.text;
 }
 
+// @ai-start
 export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
   const {theme, isDarkMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -273,6 +278,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

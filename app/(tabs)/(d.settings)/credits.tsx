@@ -6,9 +6,11 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {Theme} from '@/utils/themeUtils';
 import branding from '@/config/branding';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import type {TFunction} from 'i18next';
+// @ai-end
 
 interface Credit {
   title: string;
@@ -23,6 +25,7 @@ interface Credit {
  * top-level const arrays evaluate before any `branding` resolution,
  * baking the upstream brand name into the bundle.
  */
+// @ai-start
 function getCredits(
   t: TFunction<'settings'>,
 ): {section: string; items: Credit[]}[] {
@@ -127,7 +130,9 @@ function getCredits(
     },
   ];
 }
+// @ai-end
 
+// @ai-start
 export default function CreditsScreen() {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -201,7 +206,9 @@ export default function CreditsScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     container: {
@@ -277,3 +284,4 @@ const createStyles = (theme: Theme) =>
       marginTop: moderateScale(24),
     },
   });
+// @ai-end

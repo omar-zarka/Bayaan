@@ -1,12 +1,17 @@
 import React, {useLayoutEffect} from 'react';
 import {useRouter, useLocalSearchParams, useNavigation} from 'expo-router';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import BrowseReciters from '@/components/browse/BrowseReciters';
 import {SURAHS} from '@/data/surahData';
+// @ai-start
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export default function BrowseScreen() {
   const router = useRouter();
   const navigation = useNavigation();
@@ -55,3 +60,4 @@ export default function BrowseScreen() {
     />
   );
 }
+// @ai-end

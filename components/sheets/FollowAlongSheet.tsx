@@ -10,8 +10,11 @@ import {useTimestampStore} from '@/store/timestampStore';
 import {ReciterItem} from '@/components/ReciterItem';
 import {useReciterNavigation} from '@/hooks/useReciterNavigation';
 import {SheetManager} from 'react-native-actions-sheet';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export const FollowAlongSheet = (props: SheetProps<'follow-along'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -56,6 +59,7 @@ export const FollowAlongSheet = (props: SheetProps<'follow-along'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

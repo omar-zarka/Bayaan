@@ -23,15 +23,18 @@ import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
 import {mushafAudioService} from '@/services/audio/MushafAudioService';
 import {SURAHS} from '@/data/surahData';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
+// @ai-end
 
 interface MushafPlayerBarProps {
   currentPage: number;
   onSearch?: () => void;
 }
 
+// @ai-start
 export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
   currentPage,
   onSearch,
@@ -266,6 +269,7 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   errorContainer: {

@@ -3,7 +3,9 @@ import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {moderateScale, verticalScale} from '@/utils/scale';
 import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
-import {useBottomSheetScrollableCreator} from '@gorhom/bottom-sheet';
+// @ai-start
+import {usePlayerScrollable} from '@/hooks/usePlayerScrollable';
+// @ai-end
 import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {MaterialCommunityIcons} from '@expo/vector-icons';
@@ -14,8 +16,14 @@ import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
 import {GradientText} from '@/components/GradientText';
 import {useUploadsStore} from '@/store/uploadsStore';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
-import {localizeDigits, getTrackDisplayTitle} from '@/i18n/format';
+import {
+  localizeDigits,
+  getTrackDisplayTitle,
+  getTrackArtistDisplay,
+} from '@/i18n/format';
+// @ai-end
 
 interface UploadQueueItemProps {
   track: Track;
@@ -23,6 +31,7 @@ interface UploadQueueItemProps {
   onPress: () => void;
 }
 
+// @ai-start
 const UploadQueueItem: React.FC<UploadQueueItemProps> = React.memo(
   ({track, index, onPress}) => {
     const {theme} = useTheme();
@@ -147,7 +156,7 @@ const UploadQueueItem: React.FC<UploadQueueItemProps> = React.memo(
               {color: theme.colors.textSecondary},
             ]}
             numberOfLines={1}>
-            {track.artist}
+            {getTrackArtistDisplay(track)}
           </Text>
         </View>
         {isCurrentTrack && (
@@ -163,6 +172,7 @@ const UploadQueueItem: React.FC<UploadQueueItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 UploadQueueItem.displayName = 'UploadQueueItem';
 
@@ -229,6 +239,7 @@ interface IndexedTrack extends Track {
   _queueIndex: number;
 }
 
+// @ai-start
 export const QueueList: React.FC<QueueListProps> = ({
   onQueueItemPress,
   onRemoveQueueItem,
@@ -236,7 +247,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   const {theme} = useTheme();
   const {t} = useTranslation(['player', 'common']);
   const tracks = usePlayerStore(s => s.queue.tracks);
-  const renderScrollComponent = useBottomSheetScrollableCreator();
+  const renderScrollComponent = usePlayerScrollable();
 
   const indexedTracks: IndexedTrack[] = React.useMemo(
     () => tracks.map((t, i) => ({...t, _queueIndex: i})),
@@ -339,6 +350,7 @@ export const QueueList: React.FC<QueueListProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

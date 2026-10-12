@@ -15,8 +15,11 @@ import Color from 'color';
 import {useRouter} from 'expo-router';
 import {Ionicons} from '@expo/vector-icons';
 import {DiscoverIcon} from '@/components/Icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
+// @ai-start
 export const SelectReciterSheet = (props: SheetProps<'select-reciter'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -183,6 +186,7 @@ export const SelectReciterSheet = (props: SheetProps<'select-reciter'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

@@ -8,10 +8,13 @@ import ActionSheet, {
   SheetManager,
 } from 'react-native-actions-sheet';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
+// @ai-start
 export const PlaybackSpeedSheet = (props: SheetProps<'playback-speed'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -62,6 +65,7 @@ export const PlaybackSpeedSheet = (props: SheetProps<'playback-speed'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

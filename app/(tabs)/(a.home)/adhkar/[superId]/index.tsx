@@ -33,14 +33,21 @@ import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {PlayAllButton} from '@/components/adhkar/PlayAllButton';
 import {Dhikr, SuperCategory} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
-import {shortenCategoryTitle} from '@/utils/adhkarUtils';
+// @ai-start
+import {
+  getSuperCategoryDisplayTitle,
+  shortenCategoryTitle,
+} from '@/utils/adhkarUtils';
+// @ai-end
 import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {adhkarShareUrl, shareUrl} from '@/utils/shareUtils';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import branding from '@/config/branding';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface DhikrItem {
   dhikr: Dhikr;
@@ -62,6 +69,7 @@ interface CategoryGroup {
   adhkar: Dhikr[];
 }
 
+// @ai-start
 const SuperCategoryListScreen: React.FC = () => {
   const {superId} = useLocalSearchParams<{superId: string}>();
   const router = useRouter();
@@ -120,10 +128,10 @@ const SuperCategoryListScreen: React.FC = () => {
     return getSuperCategoryById(superId);
   }, [superId, getSuperCategoryById]);
 
-  const displayTitle =
-    superCategory?.title ||
-    storedSuperCategory?.title ||
-    t('common:status.loading');
+  const titled = superCategory ?? storedSuperCategory;
+  const displayTitle = titled
+    ? getSuperCategoryDisplayTitle(titled)
+    : t('common:status.loading');
 
   // Determine if this is a single-category super category
   const isSingleCategory = categoryGroups.length === 1;
@@ -443,6 +451,7 @@ const SuperCategoryListScreen: React.FC = () => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

@@ -1,4 +1,6 @@
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import {AdhkarBroadTag} from '@/types/adhkar';
 
 /**
@@ -30,6 +32,7 @@ export function getTagColor(tag: AdhkarBroadTag | string): string {
 /**
  * Display names for tags (for section headers)
  */
+// @ai-start
 export const ADHKAR_TAG_NAMES: Record<AdhkarBroadTag, string> = {
   get daily() {
     return i18n.t('content:adhkarTags.daily');
@@ -68,6 +71,7 @@ export const ADHKAR_TAG_NAMES: Record<AdhkarBroadTag, string> = {
     return i18n.t('content:adhkarTags.general');
   },
 };
+// @ai-end
 
 /**
  * Order of tags for display (most important first)

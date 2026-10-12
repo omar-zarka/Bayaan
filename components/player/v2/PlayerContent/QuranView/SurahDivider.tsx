@@ -7,14 +7,17 @@ import SkiaSurahHeader from '@/components/mushaf/skia/SkiaSurahHeader';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import type {SkFont} from '@shopify/react-native-skia';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
 const REFERENCE_SIZE = 100;
 const NAME_SCALE = 0.32;
 const DIVIDER_PADDING_V = verticalScale(4);
 
 const fallbackSurahNames: Record<number, string> = {};
+// @ai-start
 (
   require('@/data/surahData.json') as Array<{
     id: number;
@@ -24,6 +27,7 @@ const fallbackSurahNames: Record<number, string> = {};
 ).forEach(s => {
   fallbackSurahNames[s.id] = getSurahDisplayName(s);
 });
+// @ai-end
 
 // Module-scope font cache — recomputed only when width changes (device rotation)
 interface DividerFontCache {
@@ -73,6 +77,7 @@ interface SurahDividerProps {
   variant?: 'withIcon' | 'withoutIcon';
 }
 
+// @ai-start
 const SurahDivider: React.FC<SurahDividerProps> = ({
   width,
   surahNumber,
@@ -123,6 +128,7 @@ const SurahDivider: React.FC<SurahDividerProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

@@ -5,7 +5,9 @@ import {moderateScale} from 'react-native-size-matters';
 import Color from 'color';
 import {useTheme} from '@/hooks/useTheme';
 import {AdhkarCategory} from '@/types/adhkar';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface CategoryCardProps {
   category: AdhkarCategory;
@@ -15,6 +17,7 @@ interface CategoryCardProps {
   height?: number;
 }
 
+// @ai-start
 export const CategoryCard: React.FC<CategoryCardProps> = ({
   category,
   tagColor,
@@ -88,3 +91,4 @@ export const CategoryCard: React.FC<CategoryCardProps> = ({
     </TouchableOpacity>
   );
 };
+// @ai-end

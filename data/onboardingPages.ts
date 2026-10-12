@@ -1,5 +1,7 @@
 import branding from '@/config/branding';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 
 export interface OnboardingPage {
   id: string;
@@ -20,6 +22,7 @@ export interface OnboardingPage {
  * const, but top-level const arrays evaluate before any `branding`
  * resolution, baking the upstream brand name into the bundle.
  */
+// @ai-start
 export function getOnboardingPages(): OnboardingPage[] {
   return [
     {
@@ -147,3 +150,4 @@ export function getOnboardingPages(): OnboardingPage[] {
     },
   ];
 }
+// @ai-end

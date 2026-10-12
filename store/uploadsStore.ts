@@ -1,5 +1,7 @@
 import {create} from 'zustand';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import {uploadsService} from '@/services/uploads/UploadsService';
 import {getReciterName} from '@/services/dataService';
 import type {UploadedRecitation, CustomReciter} from '@/types/uploads';
@@ -48,6 +50,7 @@ interface UploadsState {
   getRecitersWithUploads: () => ReciterWithUploads[];
 }
 
+// @ai-start
 export const useUploadsStore = create<UploadsState>((set, get) => ({
   // Initial state
   recitations: [],
@@ -277,6 +280,7 @@ export const useUploadsStore = create<UploadsState>((set, get) => ({
     return Array.from(map.values());
   },
 }));
+// @ai-end
 
 /** Lookup a custom reciter name by ID from the store's cached state */
 export function getCustomReciterName(id: string): string | null {

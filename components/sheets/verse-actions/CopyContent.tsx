@@ -11,8 +11,10 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import * as Clipboard from 'expo-clipboard';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface CopyContentProps {
   verseKey: string;
@@ -91,6 +93,7 @@ const checkboxStyles = ScaledSheet.create({
   },
 });
 
+// @ai-start
 export const CopyContent: React.FC<CopyContentProps> = ({
   verseKey,
   surahNumber,
@@ -215,7 +218,9 @@ export const CopyContent: React.FC<CopyContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     previewCard: {
@@ -267,3 +272,4 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.text,
     },
   });
+// @ai-end

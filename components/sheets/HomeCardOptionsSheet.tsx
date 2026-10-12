@@ -30,9 +30,12 @@ import {
   shareUrl,
 } from '@/utils/shareUtils';
 import branding from '@/config/branding';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export const HomeCardOptionsSheet = (
   props: SheetProps<'home-card-options'>,
 ) => {
@@ -340,6 +343,7 @@ export const HomeCardOptionsSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

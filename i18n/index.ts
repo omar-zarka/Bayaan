@@ -1,7 +1,8 @@
+// @ai-generated
 import 'intl-pluralrules';
 import i18n, {type PostProcessorModule} from 'i18next';
 import {initReactI18next} from 'react-i18next';
-import {currentLanguage, bootstrapDirection} from './language';
+import {currentLanguage} from './language';
 import {localizeDigits} from './format';
 import {resources, defaultNS, namespaces} from './resources';
 
@@ -26,8 +27,6 @@ i18n
     postProcess: currentLanguage === 'ar' ? ['arabicDigits'] : false,
     react: {useSuspense: false},
   });
-
-bootstrapDirection();
 
 export {currentLanguage};
 export default i18n;

@@ -1,5 +1,7 @@
 import {Alert} from 'react-native';
+// @ai-start
 import i18n from '@/i18n';
+// @ai-end
 import type {UploadedRecitation} from '@/types/uploads';
 
 interface ImportCallbacks {
@@ -17,6 +19,7 @@ interface ImportCallbacks {
  * Opens the document picker for audio files and imports the selected files.
  * Returns the imported recitations, or an empty array if cancelled.
  */
+// @ai-start
 export async function pickAndImportAudioFiles(
   callbacks: ImportCallbacks,
 ): Promise<UploadedRecitation[]> {
@@ -57,3 +60,4 @@ export async function pickAndImportAudioFiles(
   const recitations = await callbacks.importFiles(files);
   return recitations;
 }
+// @ai-end

@@ -4,7 +4,9 @@ import {useTheme} from '@/hooks/useTheme';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
 import {MicrophoneIcon} from '@/components/Icons';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface UploadCardProps {
   itemCount: number;
@@ -13,6 +15,7 @@ interface UploadCardProps {
   height?: number;
 }
 
+// @ai-start
 export const UploadCard: React.FC<UploadCardProps> = ({
   itemCount,
   onPress,
@@ -78,3 +81,4 @@ export const UploadCard: React.FC<UploadCardProps> = ({
     </TouchableOpacity>
   );
 };
+// @ai-end

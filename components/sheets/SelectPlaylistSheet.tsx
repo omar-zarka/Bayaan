@@ -21,12 +21,15 @@ import {useLoved} from '@/hooks/useLoved';
 import {PlaylistItem} from '@/components/PlaylistItem';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, getSurahMeaning} from '@/i18n/format';
+// @ai-end
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
+// @ai-start
 export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -268,7 +271,9 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
     </>
   );
 };
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
     sheetContainer: {
@@ -409,3 +414,4 @@ const createStyles = (theme: Theme) =>
       textAlign: 'center',
     },
   });
+// @ai-end

@@ -8,10 +8,14 @@ import {
   type TafseerNodeType,
 } from '@/utils/tafseerHtmlParser';
 import type {Theme} from '@/utils/themeUtils';
+// @ai-start
 import {isRTL} from '@/utils/rtl';
+// @ai-end
 
 // RN swaps left/right text alignment in RTL layouts.
+// @ai-start
 const rightAlign = isRTL ? ('left' as const) : ('right' as const);
+// @ai-end
 
 interface TafseerHtmlRendererProps {
   html: string;
@@ -75,6 +79,7 @@ export const TafseerHtmlRenderer: React.FC<TafseerHtmlRendererProps> = ({
   );
 };
 
+// @ai-start
 const createStyles = (theme: Theme, isRtl: boolean) =>
   StyleSheet.create({
     heading: {
@@ -136,3 +141,4 @@ const createStyles = (theme: Theme, isRtl: boolean) =>
       ...(isRtl && {writingDirection: 'rtl' as const}),
     },
   });
+// @ai-end

@@ -22,14 +22,18 @@ import {ReciterImage} from '@/components/ReciterImage';
 import {reciterImages} from '@/utils/reciterImages';
 import {Theme} from '@/utils/themeUtils';
 import {Feather} from '@expo/vector-icons';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import Color from 'color';
 import {Link} from 'expo-router';
 import {LinearGradient} from 'expo-linear-gradient';
 import {getRandomColors} from '@/utils/gradientColors';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
+// @ai-end
 
 // Error Boundary for ScrollingHero
 class ScrollingHeroErrorBoundary extends React.Component<{
@@ -153,6 +157,7 @@ interface BrowseButtonProps {
 // Add color palettes
 
 // Update BrowseButton component
+// @ai-start
 const BrowseButton = React.memo(
   ({onPress, theme, styles}: BrowseButtonProps) => {
     const {t} = useTranslation('home');
@@ -183,6 +188,7 @@ const BrowseButton = React.memo(
     prevProps.onPress === nextProps.onPress &&
     prevProps.theme === nextProps.theme,
 );
+// @ai-end
 
 BrowseButton.displayName = 'BrowseButton';
 
@@ -346,6 +352,7 @@ Column.displayName = 'Column';
 
 const SECTION_HEIGHT = moderateScale(150); // Reduced from 400
 
+// @ai-start
 function createStyles(theme: Theme) {
   return StyleSheet.create({
     wrapper: {
@@ -423,7 +430,9 @@ function createStyles(theme: Theme) {
     },
   });
 }
+// @ai-end
 
+// @ai-start
 export const ScrollingHero = React.memo(
   () => {
     const {theme} = useTheme();
@@ -520,5 +529,6 @@ export const ScrollingHero = React.memo(
   },
   () => true,
 );
+// @ai-end
 
 ScrollingHero.displayName = 'ScrollingHero';

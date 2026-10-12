@@ -19,11 +19,13 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {useUploadsStore, getCustomReciterName} from '@/store/uploadsStore';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createUserUploadTrack, addUploadToRecentlyPlayed} from '@/utils/track';
+// @ai-start
 import {
   getSurahById,
   getReciterName,
   getReciterByIdSync,
 } from '@/services/dataService';
+// @ai-end
 import {shuffleArray} from '@/utils/arrayUtils';
 import Color from 'color';
 import type {UploadedRecitation, RecordingType} from '@/types/uploads';
@@ -34,6 +36,7 @@ import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
 import {GradientText} from '@/components/GradientText';
 import {ReciterImage} from '@/components/ReciterImage';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+// @ai-start
 import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
@@ -42,13 +45,17 @@ import {
   getSurahDisplayName,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const KNOWN_STYLES = ['murattal', 'mojawwad', 'molim'] as const;
+// @ai-end
 
 function stripExtension(filename: string): string {
   return filename.replace(/\.[^/.]+$/, '');
 }
 
+// @ai-start
 function getDisplayTitle(item: UploadedRecitation): string {
   if (item.type === 'surah' && item.surahNumber) {
     const surah = getSurahById(item.surahNumber);
@@ -59,7 +66,9 @@ function getDisplayTitle(item: UploadedRecitation): string {
   }
   return stripExtension(item.originalFilename);
 }
+// @ai-end
 
+// @ai-start
 function getDisplaySubtitle(item: UploadedRecitation): string {
   const parts: string[] = [];
 
@@ -79,7 +88,9 @@ function getDisplaySubtitle(item: UploadedRecitation): string {
     ? parts.join(' \u00B7 ')
     : stripExtension(item.originalFilename);
 }
+// @ai-end
 
+// @ai-start
 function getVerseRangeLabel(item: UploadedRecitation): string | null {
   if (item.startVerse == null) return null;
   if (item.endVerse != null) {
@@ -89,7 +100,9 @@ function getVerseRangeLabel(item: UploadedRecitation): string | null {
     verse: item.startVerse,
   });
 }
+// @ai-end
 
+// @ai-start
 function getRecordingTypeLabel(recordingType: RecordingType): string | null {
   if (recordingType === 'salah') {
     return i18n.t('collection:uploadsScreen.recordingType.salah');
@@ -99,18 +112,23 @@ function getRecordingTypeLabel(recordingType: RecordingType): string | null {
   }
   return null;
 }
+// @ai-end
 
+// @ai-start
 function getCategoryLabel(
   category: NonNullable<UploadedRecitation['category']>,
 ): string {
   return i18n.t(`collection:uploadsScreen.category.${category}`);
 }
+// @ai-end
 
+// @ai-start
 function getStyleLabel(style: string): string {
   const known = KNOWN_STYLES.find(s => s === style.toLowerCase());
   if (known) return i18n.t(`common:styles.${known}`);
   return style.charAt(0).toUpperCase() + style.slice(1);
 }
+// @ai-end
 
 interface UploadListItemProps {
   item: UploadedRecitation;
@@ -119,6 +137,7 @@ interface UploadListItemProps {
   onShowOptions: (item: UploadedRecitation, index: number) => void;
 }
 
+// @ai-start
 const UploadListItem: React.FC<UploadListItemProps> = React.memo(
   ({item, index, onPlay, onShowOptions}) => {
     const {theme} = useTheme();
@@ -252,9 +271,11 @@ const UploadListItem: React.FC<UploadListItemProps> = React.memo(
     );
   },
 );
+// @ai-end
 
 UploadListItem.displayName = 'UploadListItem';
 
+// @ai-start
 export default function UploadsScreen() {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -622,7 +643,9 @@ export default function UploadsScreen() {
     </View>
   );
 }
+// @ai-end
 
+// @ai-start
 const createStyles = (theme: {colors: any; fonts: any}) =>
   StyleSheet.create({
     container: {
@@ -870,3 +893,4 @@ const createStyles = (theme: {colors: any; fonts: any}) =>
       color: theme.colors.textSecondary,
     },
   });
+// @ai-end

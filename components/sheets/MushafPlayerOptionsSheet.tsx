@@ -35,11 +35,13 @@ import {
 import {SURAHS} from '@/data/surahData';
 import {mushafVerseMapService} from '@/services/mushaf/MushafVerseMapService';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
 import {getStyleLabel} from './sheetLabels';
+// @ai-end
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -47,13 +49,17 @@ import {getStyleLabel} from './sheetLabels';
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
+// @ai-start
 const REPEAT_VALUES = [1, 2, 3, 0];
+// @ai-end
 
+// @ai-start
 function getRepeatLabel(value: number): string {
   return value === 0
     ? i18n.t('sheets:repeat.loop')
     : i18n.t('sheets:repeat.times', {count: value});
 }
+// @ai-end
 
 type AccordionSection = 'startVerse' | 'endVerse' | 'reciter' | null;
 type VersePick = 'surahList' | 'ayahGrid';
@@ -61,11 +67,13 @@ type VersePick = 'surahList' | 'ayahGrid';
 // ---------------------------------------------------------------------------
 // Verse-key helpers
 // ---------------------------------------------------------------------------
+// @ai-start
 function formatVerseKey(verseKey: string): string {
   const [s, a] = verseKey.split(':').map(Number);
   if (s < 1 || s > 114) return verseKey;
   return `${getSurahDisplayName(SURAHS[s - 1])} ${localizeDigits(`${s}:${a}`)}`;
 }
+// @ai-end
 
 // Negative if a < b, zero if equal, positive if a > b. Used to keep the
 // range from going backwards: a new start past the current end drags end
@@ -118,6 +126,7 @@ const AccordionScrollList: React.FC<{children: React.ReactNode}> = ({
 // Component
 // ---------------------------------------------------------------------------
 
+// @ai-start
 export const MushafPlayerOptionsSheet = (
   props: SheetProps<'mushaf-player-options'>,
 ) => {
@@ -629,6 +638,7 @@ export const MushafPlayerOptionsSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
 // ---------------------------------------------------------------------------
 // Styles

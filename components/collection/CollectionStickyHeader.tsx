@@ -11,7 +11,9 @@ import {useTheme} from '@/hooks/useTheme';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useRouter} from 'expo-router';
 import {Feather} from '@expo/vector-icons';
+// @ai-start
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface CollectionStickyHeaderProps {
   title: string;
@@ -19,6 +21,7 @@ interface CollectionStickyHeaderProps {
   threshold?: number;
 }
 
+// @ai-start
 export const CollectionStickyHeader: React.FC<CollectionStickyHeaderProps> = ({
   title,
   scrollY,
@@ -71,6 +74,7 @@ export const CollectionStickyHeader: React.FC<CollectionStickyHeaderProps> = ({
     </RNAnimated.View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   stickyHeader: {

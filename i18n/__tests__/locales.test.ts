@@ -1,3 +1,4 @@
+// @ai-generated
 import {resources, namespaces} from '../resources';
 
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;

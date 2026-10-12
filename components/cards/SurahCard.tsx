@@ -35,6 +35,7 @@ import {
   useIsDownloaded,
   useIsDownloadedWithRewayat,
 } from '@/services/player/store/downloadSelectors';
+// @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {SURAHS} from '@/data/surahData';
 import {useTranslation} from 'react-i18next';
@@ -43,6 +44,7 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+// @ai-end
 
 interface SurahCardProps {
   id: number;
@@ -68,6 +70,7 @@ interface SurahCardProps {
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
 
+// @ai-start
 export const SurahCard: React.FC<SurahCardProps> = ({
   id,
   name,
@@ -501,3 +504,4 @@ export const SurahCard: React.FC<SurahCardProps> = ({
     </TouchableComponent>
   );
 };
+// @ai-end

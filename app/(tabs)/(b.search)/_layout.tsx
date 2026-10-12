@@ -1,13 +1,16 @@
 import React from 'react';
 import {View} from 'react-native';
 import {Stack} from 'expo-router';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {MaxWidthContainer} from '@/components/layout/MaxWidthContainer';
 
 const EmptyHeaderBackground = () => <View />;
 
+// @ai-start
 export default function SearchLayout() {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
@@ -111,3 +114,4 @@ export default function SearchLayout() {
     </MaxWidthContainer>
   );
 }
+// @ai-end

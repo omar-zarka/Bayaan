@@ -8,10 +8,13 @@ import ActionSheet, {
   SheetManager,
 } from 'react-native-actions-sheet';
 import Color from 'color';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 const TIMER_OPTIONS = [5, 15, 30, 45, 60];
 
+// @ai-start
 export const SleepTimerSheet = (props: SheetProps<'sleep-timer'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -102,6 +105,7 @@ export const SleepTimerSheet = (props: SheetProps<'sleep-timer'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

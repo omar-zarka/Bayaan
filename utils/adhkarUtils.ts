@@ -2,15 +2,20 @@
  * Utility functions for adhkar feature
  */
 
+// @ai-start
 import i18n from '@/i18n';
 import type enContent from '@/i18n/locales/en/content.json';
+// @ai-end
 
+// @ai-start
 type ShortTitleKey = keyof (typeof enContent)['adhkarShortTitles'];
+// @ai-end
 
 /**
  * Mapping of exact category titles to short-title translation keys
  * (`content:adhkarShortTitles.*`)
  */
+// @ai-start
 const TITLE_SHORTENINGS: Record<string, ShortTitleKey> = {
   // Morning & Evening
   'Words of remembrance for morning and evening': 'morningAndEvening',
@@ -210,11 +215,22 @@ const TITLE_SHORTENINGS: Record<string, ShortTitleKey> = {
   // Animals
   'What to say when slaughtering or sacrificing an animal': 'slaughtering',
 };
+// @ai-end
 
-/**
- * Shortens a category title to 1-3 words
- * Uses exact mappings first, then falls back to pattern-based shortening
- */
+/** Super-category label: Arabic title in Arabic mode, English otherwise. */
+// @ai-start
+export function getSuperCategoryDisplayTitle(category: {
+  title: string;
+  arabicTitle?: string | null;
+}): string {
+  if (i18n.language === 'ar' && category.arabicTitle) {
+    return category.arabicTitle;
+  }
+  return category.title;
+}
+// @ai-end
+
+// @ai-start
 export function shortenCategoryTitle(title: string): string {
   // Check exact match first (case-insensitive)
   const exactMatch = TITLE_SHORTENINGS[title];
@@ -275,3 +291,4 @@ export function shortenCategoryTitle(title: string): string {
 
   return shortened || title;
 }
+// @ai-end

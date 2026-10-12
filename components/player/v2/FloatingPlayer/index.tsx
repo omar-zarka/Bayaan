@@ -19,8 +19,11 @@ import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
 import {useResponsive} from '@/hooks/useResponsive';
-import {getTrackDisplayTitle} from '@/i18n/format';
+// @ai-start
+import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
   const {theme} = useTheme();
   const glassColorScheme = useGlassColorScheme();
@@ -116,7 +119,7 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
           <Text
             style={[styles.subtitle, {color: subtitleColor}]}
             numberOfLines={1}>
-            {currentTrack.artist}
+            {getTrackArtistDisplay(currentTrack)}
           </Text>
         </View>
         <Pressable
@@ -138,7 +141,9 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
     </Container>
   );
 });
+// @ai-end
 
+// @ai-start
 const styles = StyleSheet.create({
   content: {
     flexDirection: 'row',
@@ -160,10 +165,12 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   title: {
+    textAlign: 'left',
     fontSize: moderateScale(13, 0.2),
     fontFamily: 'Manrope-SemiBold',
   },
   subtitle: {
+    textAlign: 'left',
     fontSize: moderateScale(11, 0.2),
     fontFamily: 'Manrope-Medium',
   },
@@ -175,3 +182,4 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
 });
+// @ai-end

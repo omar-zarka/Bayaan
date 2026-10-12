@@ -5,7 +5,9 @@ import {ScaledSheet} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Feather} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+// @ai-start
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface NavigationButtonsProps {
   insets: {
@@ -17,6 +19,7 @@ interface NavigationButtonsProps {
   onSharePress?: () => void;
 }
 
+// @ai-start
 export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
   insets,
   iconsOpacity,
@@ -81,6 +84,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
     </>
   );
 };
+// @ai-end
 
 const styles = ScaledSheet.create({
   backButton: {

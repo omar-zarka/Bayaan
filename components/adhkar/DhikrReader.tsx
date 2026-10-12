@@ -17,9 +17,14 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {AdhkarAudioControls} from './AdhkarAudioControls';
 import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
+// @ai-start
+import {showLatinReadingAids} from '@/i18n/language';
+// @ai-end
 import {Dhikr} from '@/types/adhkar';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {isRTL} from '@/utils/rtl';
+// @ai-end
 
 // Enable LayoutAnimation for Android
 if (
@@ -35,6 +40,7 @@ interface DhikrReaderProps {
   onSaveToggle: () => void;
 }
 
+// @ai-start
 export const DhikrReader: React.FC<DhikrReaderProps> = ({
   dhikr,
   isSaved,
@@ -57,12 +63,14 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
 
   // Settings from store
   const {
-    showTranslation,
-    showTransliteration,
+    showTranslation: translationOn,
+    showTransliteration: transliterationOn,
     arabicFontSize,
     translationFontSize,
     transliterationFontSize,
   } = useAdhkarSettingsStore();
+  const showTranslation = translationOn && showLatinReadingAids;
+  const showTransliteration = transliterationOn && showLatinReadingAids;
 
   const styles = createStyles(theme, {
     arabicFontSize,
@@ -86,8 +94,12 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
   const handleShare = useCallback(async () => {
     const content = [
       dhikr.arabic,
-      dhikr.translation ? `\n\n${dhikr.translation}` : '',
-      dhikr.transliteration ? `\n\n${dhikr.transliteration}` : '',
+      showLatinReadingAids && dhikr.translation
+        ? `\n\n${dhikr.translation}`
+        : '',
+      showLatinReadingAids && dhikr.transliteration
+        ? `\n\n${dhikr.transliteration}`
+        : '',
       dhikr.instruction ? `\n\n${dhikr.instruction}` : '',
     ].join('');
 
@@ -206,6 +218,7 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
     </View>
   );
 };
+// @ai-end
 
 DhikrReader.displayName = 'DhikrReader';
 
@@ -219,6 +232,7 @@ interface FontSizes {
   transliterationFontSize: number;
 }
 
+// @ai-start
 const createStyles = (theme: Theme, fontSizes?: FontSizes) =>
   ScaledSheet.create({
     container: {
@@ -336,3 +350,4 @@ const createStyles = (theme: Theme, fontSizes?: FontSizes) =>
       height: moderateScale(40),
     },
   });
+// @ai-end

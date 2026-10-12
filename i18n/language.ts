@@ -1,5 +1,7 @@
+// @ai-generated
 import {Alert, DevSettings, I18nManager} from 'react-native';
 import {createMMKV} from 'react-native-mmkv';
+import {reloadAppAsync} from 'expo';
 import {getLocales} from 'expo-localization';
 import * as Updates from 'expo-updates';
 
@@ -12,7 +14,7 @@ const RTL_LANGUAGES: ReadonlySet<AppLanguage> = new Set(['ar']);
 
 const storage = createMMKV({id: 'i18n'});
 const PREFERENCE_KEY = 'language_preference';
-const RTL_RELOAD_GUARD_KEY = 'rtl_reload_attempted';
+const RTL_RELOAD_GUARD_KEY = 'rtl_reload_attempted_v3';
 
 export function getLanguagePreference(): LanguagePreference {
   const stored = storage.getString(PREFERENCE_KEY);
@@ -49,7 +51,21 @@ export function isRTLLanguage(language: AppLanguage): boolean {
 /** Language for this app session. Fixed until the next JS reload. */
 export const currentLanguage: AppLanguage = resolveLanguage();
 
+/**
+ * English translation and transliteration are for non-Arabic readers.
+ * Arabic mode shows the Arabic text on its own.
+ */
+export const showLatinReadingAids = currentLanguage !== 'ar';
+
 async function reloadApp(): Promise<void> {
+  // Reload the React Native runtime in both development and standalone builds,
+  // including builds with OTA updates disabled.
+  try {
+    await reloadAppAsync('language direction change');
+    return;
+  } catch {
+    // Not available in every runtime.
+  }
   try {
     await Updates.reloadAsync();
     return;
@@ -74,13 +90,15 @@ async function reloadApp(): Promise<void> {
  */
 function applyDirection(language: AppLanguage): boolean {
   const shouldBeRTL = isRTLLanguage(language);
+  const needsReload =
+    I18nManager.isRTL !== shouldBeRTL ||
+    (shouldBeRTL && !I18nManager.doLeftAndRightSwapInRTL);
   I18nManager.allowRTL(shouldBeRTL);
   I18nManager.swapLeftAndRightInRTL(true);
-  if (I18nManager.isRTL !== shouldBeRTL) {
-    I18nManager.forceRTL(shouldBeRTL);
-    return true;
-  }
-  return false;
+  // Write both directions even if the cached JS isRTL already matches. The
+  // native persisted flag may have changed since those constants were read.
+  I18nManager.forceRTL(shouldBeRTL);
+  return needsReload;
 }
 
 export async function setLanguagePreference(
@@ -106,9 +124,9 @@ export function bootstrapDirection(): void {
     storage.remove(RTL_RELOAD_GUARD_KEY);
     return;
   }
-  if (storage.getBoolean(RTL_RELOAD_GUARD_KEY)) {
+  if (storage.getString(RTL_RELOAD_GUARD_KEY) === currentLanguage) {
     return;
   }
-  storage.set(RTL_RELOAD_GUARD_KEY, true);
-  reloadApp();
+  storage.set(RTL_RELOAD_GUARD_KEY, currentLanguage);
+  void reloadApp();
 }

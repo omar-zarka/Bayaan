@@ -1,3 +1,4 @@
+// @ai-generated
 import i18n from '@/i18n';
 import {localizeDigits} from '@/i18n/format';
 

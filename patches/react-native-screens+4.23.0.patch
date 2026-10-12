@@ -1,0 +1,31 @@
+diff --git a/node_modules/react-native-screens/ios/bottom-tabs/host/RNSTabBarController.mm b/node_modules/react-native-screens/ios/bottom-tabs/host/RNSTabBarController.mm
+index 66976f5..3b613a0 100644
+--- a/node_modules/react-native-screens/ios/bottom-tabs/host/RNSTabBarController.mm
++++ b/node_modules/react-native-screens/ios/bottom-tabs/host/RNSTabBarController.mm
+@@ -1,5 +1,6 @@
+ #import "RNSTabBarController.h"
+ #import <React/RCTAssert.h>
++#import <React/RCTI18nUtil.h>
+ #import <React/RCTLog.h>
+ #import "RNSLog.h"
+ #import "RNSScreenWindowTraits.h"
+@@ -37,3 +38,19 @@ - (instancetype)initWithTabsHostComponentView:(nullable RNSBottomTabsHostCompone
++- (void)viewDidLoad
++{
++  [super viewDidLoad];
++
++  // Bayaan's in-app language reloads React Native without changing the device
++  // language. UIKit's tabs (including the separate Search tab) need the same
++  // direction via traits; Yoga direction alone does not update native chrome.
++  // Use the upstream RTL approach from react-native-screens#3613, scoped to
++  // this controller so the accessory's React Native coordinates stay intact.
++  if (@available(iOS 17.0, tvOS 17.0, *)) {
++    self.traitOverrides.layoutDirection = [[RCTI18nUtil sharedInstance] isRTL]
++        ? UITraitEnvironmentLayoutDirectionRightToLeft
++        : UITraitEnvironmentLayoutDirectionLeftToRight;
++  }
++}
++
+ - (void)tabBar:(UITabBar *)tabBar didSelectItem:(UITabBarItem *)item
+ {
+   RNSLog(@"TabBar: %@ didSelectItem: %@", tabBar, item);

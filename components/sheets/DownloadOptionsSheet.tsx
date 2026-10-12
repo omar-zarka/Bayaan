@@ -25,8 +25,10 @@ import RenderHtml, {
   RenderHTMLProps,
   defaultSystemFonts,
 } from 'react-native-render-html';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, getSurahMeaning} from '@/i18n/format';
+// @ai-end
 
 const surahInfo = require('@/data/surahInfo.json');
 
@@ -51,6 +53,7 @@ const renderHtmlDefaultProps: Partial<RenderHTMLProps> = {
   },
 };
 
+// @ai-start
 export const DownloadOptionsSheet = (props: SheetProps<'download-options'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
@@ -341,6 +344,7 @@ export const DownloadOptionsSheet = (props: SheetProps<'download-options'>) => {
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

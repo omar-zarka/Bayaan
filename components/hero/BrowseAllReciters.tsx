@@ -19,7 +19,9 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import {useRouter} from 'expo-router';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 // Create animated TouchableOpacity
 const AnimatedTouchableOpacity =
@@ -32,6 +34,7 @@ interface BrowseAllHeroSectionProps {
   gradientColors?: string[];
 }
 
+// @ai-start
 export const BrowseAllHeroSection: React.FC<BrowseAllHeroSectionProps> =
   React.memo(({onPress, isCompact = false, style, gradientColors}) => {
     const {theme} = useTheme();
@@ -118,6 +121,7 @@ export const BrowseAllHeroSection: React.FC<BrowseAllHeroSectionProps> =
       </AnimatedTouchableOpacity>
     );
   });
+// @ai-end
 
 BrowseAllHeroSection.displayName = 'BrowseAllHeroSection';
 

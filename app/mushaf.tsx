@@ -12,8 +12,10 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {SURAHS} from '@/data/surahData';
 import MushafViewer from '@/components/mushaf/main';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
 export type MushafScreenParams = {
   surah?: string;
@@ -116,6 +118,7 @@ export default function MushafScreen() {
 // iOS Native Toolbar (Stack.Toolbar)
 // ============================================================================
 
+// @ai-start
 function MushafToolbar() {
   const {t} = useTranslation(['reader', 'common']);
   const playbackState = useMushafPlayerStore(s => s.playbackState);
@@ -227,6 +230,7 @@ function MushafToolbar() {
     </Stack.Toolbar>
   );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

@@ -1,3 +1,4 @@
+// @ai-generated
 import enCommon from './locales/en/common.json';
 import enHome from './locales/en/home.json';
 import enCollection from './locales/en/collection.json';

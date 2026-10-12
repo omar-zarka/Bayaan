@@ -5,8 +5,10 @@ import {moderateScale, verticalScale} from 'react-native-size-matters';
 import {ReciterImage} from '@/components/ReciterImage';
 import {getReciterById} from '@/services/dataService';
 import {Reciter} from '@/data/reciterData';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -24,6 +26,7 @@ interface ReciterDownloadsStackCardProps {
 const AnimatedTouchableOpacity =
   Animated.createAnimatedComponent(TouchableOpacity);
 
+// @ai-start
 export const ReciterDownloadsStackCard: React.FC<
   ReciterDownloadsStackCardProps
 > = ({reciterId, downloadCount, onPress, width, height}) => {
@@ -129,3 +132,4 @@ export const ReciterDownloadsStackCard: React.FC<
     </AnimatedTouchableOpacity>
   );
 };
+// @ai-end

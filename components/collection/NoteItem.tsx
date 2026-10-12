@@ -9,7 +9,9 @@ import Color from 'color';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
+// @ai-start
 import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 interface NoteItemProps {
   surahName: string;
@@ -23,6 +25,7 @@ interface NoteItemProps {
   onOptionsPress: () => void;
 }
 
+// @ai-start
 export const NoteItem = memo<NoteItemProps>(
   ({
     surahName,
@@ -111,6 +114,7 @@ export const NoteItem = memo<NoteItemProps>(
     );
   },
 );
+// @ai-end
 
 NoteItem.displayName = 'NoteItem';
 

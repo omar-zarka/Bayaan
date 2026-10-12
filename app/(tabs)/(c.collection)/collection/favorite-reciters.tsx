@@ -22,10 +22,13 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export default function FavoriteRecitersScreen() {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
@@ -465,3 +468,4 @@ export default function FavoriteRecitersScreen() {
     </View>
   );
 }
+// @ai-end

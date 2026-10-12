@@ -14,7 +14,9 @@ import {SuperCategory} from '@/types/adhkar';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {SavedAdhkarHero} from '@/components/hero/SavedAdhkarHero';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 // Gap between cards
 const CARD_GAP = moderateScale(8);
@@ -85,6 +87,7 @@ const CategoryGrid = React.memo(function CategoryGrid({
   );
 });
 
+// @ai-start
 export const AdhkarView: React.FC<AdhkarViewProps> = ({
   onCategoryPress,
   onSavedPress,
@@ -190,6 +193,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({
     </ScrollView>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

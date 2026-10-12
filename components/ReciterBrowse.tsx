@@ -18,14 +18,17 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTracksForReciter} from '@/utils/track';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+// @ai-start
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface ReciterBrowseProps {
   initialView?: string;
   surahId?: string;
 }
 
+// @ai-start
 const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
   const router = useRouter();
   const {theme} = useTheme();
@@ -233,6 +236,7 @@ const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
     </View>
   );
 };
+// @ai-end
 
 export default ReciterBrowse;
 

@@ -14,7 +14,10 @@ import {FloatingPlayer} from '@/components/player/v2/FloatingPlayer';
 import {TabletSidebar} from '@/components/tablet/TabletSidebar';
 import {useResponsive} from '@/hooks/useResponsive';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+import {appLayoutDirection, forceLTR, isRTL} from '@/utils/rtl';
+// @ai-end
 
 // PNG tab icons for NativeTabs (iOS) — template-rendered by the native tab bar
 const tabIcons = {
@@ -44,6 +47,7 @@ const tabletSidebarComponent = (props: BottomTabBarProps) => (
   <TabletSidebar {...props} />
 );
 
+// @ai-start
 function IOSTabs() {
   const {theme} = useTheme();
   const {t} = useTranslation();
@@ -53,71 +57,100 @@ function IOSTabs() {
     return tracks.length > 0 && tracks[index] != null;
   });
 
+  // Keep Yoga accessory coordinates stable. The react-native-screens patch
+  // mirrors UIKit tabs using the language's native layout-direction trait;
+  // screens and mini-player content apply the selected direction themselves.
   return (
-    <NativeTabs
-      tintColor={theme.colors.text}
-      minimizeBehavior="onScrollDown"
-      blurEffect="none"
-      backgroundColor="transparent">
-      {hasTrack && (
-        <NativeTabs.BottomAccessory>
-          <MiniPlayer />
-        </NativeTabs.BottomAccessory>
-      )}
-      <NativeTabs.Trigger
-        name="(a.home)"
-        contentStyle={{backgroundColor: theme.colors.background}}>
-        <NativeTabs.Trigger.Icon src={tabIcons.home} renderingMode="template" />
-        <NativeTabs.Trigger.Label>{t('tabs.home')}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
+    <View style={[{flex: 1}, forceLTR]}>
+      <NativeTabs
+        tintColor={theme.colors.text}
+        minimizeBehavior="onScrollDown"
+        blurEffect="none"
+        backgroundColor="transparent">
+        {hasTrack && (
+          <NativeTabs.BottomAccessory>
+            <MiniPlayer />
+          </NativeTabs.BottomAccessory>
+        )}
+        <NativeTabs.Trigger
+          name="(a.home)"
+          contentStyle={{
+            ...appLayoutDirection,
+            backgroundColor: theme.colors.background,
+          }}>
+          <NativeTabs.Trigger.Icon
+            src={tabIcons.home}
+            renderingMode="template"
+          />
+          <NativeTabs.Trigger.Label>{t('tabs.home')}</NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger
-        name="(b.surahs)"
-        contentStyle={{backgroundColor: theme.colors.background}}>
-        <NativeTabs.Trigger.Icon
-          src={tabIcons.surahs}
-          renderingMode="template"
-        />
-        <NativeTabs.Trigger.Label>{t('tabs.surahs')}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
+        <NativeTabs.Trigger
+          name="(b.surahs)"
+          contentStyle={{
+            ...appLayoutDirection,
+            backgroundColor: theme.colors.background,
+          }}>
+          <NativeTabs.Trigger.Icon
+            src={tabIcons.surahs}
+            renderingMode="template"
+          />
+          <NativeTabs.Trigger.Label>
+            {t('tabs.surahs')}
+          </NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger
-        name="(b.search)"
-        role="search"
-        contentStyle={{backgroundColor: theme.colors.background}}>
-        <NativeTabs.Trigger.Icon
-          src={tabIcons.search}
-          renderingMode="template"
-        />
-        <NativeTabs.Trigger.Label>{t('tabs.search')}</NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
+        <NativeTabs.Trigger
+          name="(b.search)"
+          role="search"
+          contentStyle={{
+            ...appLayoutDirection,
+            backgroundColor: theme.colors.background,
+          }}>
+          <NativeTabs.Trigger.Icon
+            src={tabIcons.search}
+            renderingMode="template"
+          />
+          <NativeTabs.Trigger.Label>
+            {t('tabs.search')}
+          </NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger
-        name="(c.collection)"
-        contentStyle={{backgroundColor: theme.colors.background}}>
-        <NativeTabs.Trigger.Icon
-          src={tabIcons.collection}
-          renderingMode="template"
-        />
-        <NativeTabs.Trigger.Label>
-          {t('tabs.collection')}
-        </NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
+        <NativeTabs.Trigger
+          name="(c.collection)"
+          contentStyle={{
+            ...appLayoutDirection,
+            backgroundColor: theme.colors.background,
+          }}>
+          <NativeTabs.Trigger.Icon
+            src={tabIcons.collection}
+            renderingMode="template"
+          />
+          <NativeTabs.Trigger.Label>
+            {t('tabs.collection')}
+          </NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
 
-      <NativeTabs.Trigger
-        name="(d.settings)"
-        contentStyle={{backgroundColor: theme.colors.background}}>
-        <NativeTabs.Trigger.Icon
-          sf={{default: 'gearshape', selected: 'gearshape.fill'}}
-        />
-        <NativeTabs.Trigger.Label>
-          {t('tabs.settings')}
-        </NativeTabs.Trigger.Label>
-      </NativeTabs.Trigger>
-    </NativeTabs>
+        <NativeTabs.Trigger
+          name="(d.settings)"
+          contentStyle={{
+            ...appLayoutDirection,
+            backgroundColor: theme.colors.background,
+          }}>
+          <NativeTabs.Trigger.Icon
+            sf={{default: 'gearshape', selected: 'gearshape.fill'}}
+          />
+          <NativeTabs.Trigger.Label>
+            {t('tabs.settings')}
+          </NativeTabs.Trigger.Label>
+        </NativeTabs.Trigger>
+      </NativeTabs>
+    </View>
   );
 }
+// @ai-end
 
+// @ai-start
 function AndroidTabs() {
   const {t} = useTranslation();
   return (
@@ -151,25 +184,29 @@ function AndroidTabs() {
     </View>
   );
 }
+// @ai-end
 
 /**
- * Tablet shell: left-docked sidebar (rail in portrait, labeled in landscape)
+ * Tablet shell: leading sidebar (rail in portrait, labeled in landscape)
  * with the mini player docked in the sidebar footer. Replaces both the iOS
  * NativeTabs and the Android floating pill when `isTablet` is true.
  */
+// @ai-start
 function TabletTabs() {
   const {t} = useTranslation();
   return (
-    <View style={{flex: 1}}>
+    <View style={[{flex: 1}, forceLTR]}>
       <Tabs
         initialRouteName="(a.home)"
         screenOptions={{
           headerShown: false,
           lazy: true,
-          tabBarPosition: 'left',
+          tabBarPosition: isRTL ? 'right' : 'left',
+          sceneStyle: appLayoutDirection,
           tabBarStyle: {
             borderTopWidth: 0,
             borderRightWidth: 0,
+            borderLeftWidth: 0,
             elevation: 0,
           },
         }}
@@ -189,6 +226,7 @@ function TabletTabs() {
     </View>
   );
 }
+// @ai-end
 
 export default function TabsLayout() {
   const {isDarkMode} = useTheme();

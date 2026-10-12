@@ -20,8 +20,10 @@ import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {useAdhkarAudioStore} from '@/store/adhkarAudioStore';
 import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {useHeaderHeight} from '@react-navigation/elements';
+// @ai-start
 import {useTranslation} from 'react-i18next';
-import {forceLTR} from '@/utils/rtl';
+import {appLayoutDirection} from '@/utils/rtl';
+// @ai-end
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -45,6 +47,7 @@ const DhikrPage = React.memo(function DhikrPage({
   );
 });
 
+// @ai-start
 const SavedDhikrReaderScreen: React.FC = () => {
   const {dhikrId, globalIndex: globalIndexParam} = useLocalSearchParams<{
     dhikrId: string;
@@ -277,7 +280,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
         ]}>
         <FlatList
           ref={flatListRef}
-          style={forceLTR}
+          style={appLayoutDirection}
           data={adhkarList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -300,6 +303,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

@@ -15,7 +15,9 @@ import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import {Dhikr} from '@/types/adhkar';
+// @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
 
 interface CheckboxRowProps {
   label: string;
@@ -68,6 +70,7 @@ const CheckboxRow: React.FC<CheckboxRowProps> = ({
   );
 };
 
+// @ai-start
 export const AdhkarCopyOptionsSheet = (
   props: SheetProps<'adhkar-copy-options'>,
 ) => {
@@ -174,6 +177,7 @@ export const AdhkarCopyOptionsSheet = (
     </ActionSheet>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
