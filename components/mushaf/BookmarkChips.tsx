@@ -8,6 +8,8 @@ import {SURAHS} from '@/data/surahData';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import type {VerseBookmark} from '@/types/verse-annotations';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName} from '@/i18n/format';
 
 // Module-level cache — warmed by AppInitializer after DB is ready
 let cachedBookmarks: VerseBookmark[] = [];
@@ -24,6 +26,7 @@ interface BookmarkChipsProps {
 export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
   ({onPress}) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['reader', 'common']);
     const [bookmarks, setBookmarks] = useState(cachedBookmarks);
 
     // Refresh from DB on mount (covers new bookmarks added since cache)
@@ -43,7 +46,7 @@ export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
             styles.label,
             {color: Color(theme.colors.textSecondary).alpha(0.5).toString()},
           ]}>
-          BOOKMARKS
+          {t('common:terms.bookmarks')}
         </Text>
         <ScrollView
           horizontal
@@ -81,7 +84,11 @@ export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
                 <Text
                   style={[styles.chipText, {color: theme.colors.text}]}
                   numberOfLines={1}>
-                  {surah.name} {bookmark.surahNumber}:{bookmark.ayahNumber}
+                  {t('verseLabel', {
+                    surah: getSurahDisplayName(surah),
+                    surahNumber: bookmark.surahNumber,
+                    ayah: bookmark.ayahNumber,
+                  })}
                 </Text>
               </Pressable>
             );

@@ -19,19 +19,21 @@ import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHe
 import {SheetManager} from 'react-native-actions-sheet';
 import Color from 'color';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 export default function PlaylistsScreen() {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const {t} = useTranslation(['collection', 'common']);
   const {playlists, createPlaylist, deletePlaylist, updatePlaylist} =
     usePlaylists();
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
 
   useCollectionNativeHeader({
-    title: 'Playlists',
+    title: t('common:terms.playlists'),
     scrollY,
     hasContent: playlists.length > 0,
   });
@@ -271,9 +273,12 @@ export default function PlaylistsScreen() {
                 name="arrow-left"
                 size={moderateScale(22)}
                 color={theme.colors.text}
+                style={flipX}
               />
             </Pressable>
-            <Text style={styles.emptyHeaderTitle}>Playlists</Text>
+            <Text style={styles.emptyHeaderTitle}>
+              {t('common:terms.playlists')}
+            </Text>
             <View style={styles.emptyHeaderBack} />
           </View>
         )}
@@ -284,9 +289,11 @@ export default function PlaylistsScreen() {
               size={moderateScale(48)}
             />
           </View>
-          <Text style={styles.emptyTitle}>No playlists yet</Text>
+          <Text style={styles.emptyTitle}>
+            {t('playlistsScreen.emptyTitle')}
+          </Text>
           <Text style={styles.emptySubtitle}>
-            Create playlists to see them here
+            {t('playlistsScreen.emptySubtitle')}
           </Text>
           <Pressable
             style={styles.emptyActionBar}
@@ -296,7 +303,9 @@ export default function PlaylistsScreen() {
               size={moderateScale(16)}
               color={theme.colors.textSecondary}
             />
-            <Text style={styles.emptyActionText}>Create New Playlist</Text>
+            <Text style={styles.emptyActionText}>
+              {t('playlistsScreen.createNew')}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -316,10 +325,9 @@ export default function PlaylistsScreen() {
                 />
               </View>
             </View>
-            <Text style={styles.title}>Playlists</Text>
+            <Text style={styles.title}>{t('common:terms.playlists')}</Text>
             <Text style={styles.subtitle}>
-              {playlists.length}{' '}
-              {playlists.length === 1 ? 'playlist' : 'playlists'}
+              {t('playlistsScreen.count', {count: playlists.length})}
             </Text>
           </View>
         </View>
@@ -330,7 +338,9 @@ export default function PlaylistsScreen() {
             size={moderateScale(16)}
             color={theme.colors.textSecondary}
           />
-          <Text style={styles.createBarText}>Create New Playlist</Text>
+          <Text style={styles.createBarText}>
+            {t('playlistsScreen.createNew')}
+          </Text>
         </Pressable>
       </View>
     );
@@ -355,6 +365,7 @@ export default function PlaylistsScreen() {
               name="arrow-left"
               size={moderateScale(24)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
         </RNAnimated.View>
@@ -375,7 +386,10 @@ export default function PlaylistsScreen() {
         contentInsetAdjustmentBehavior="automatic"
       />
       {!USE_GLASS && (
-        <CollectionStickyHeader title="Playlists" scrollY={scrollY} />
+        <CollectionStickyHeader
+          title={t('common:terms.playlists')}
+          scrollY={scrollY}
+        />
       )}
     </View>
   );

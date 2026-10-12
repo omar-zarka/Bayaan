@@ -31,7 +31,10 @@ import {BookmarkChips} from './BookmarkChips';
 import {JUZ_START_PAGES} from './constants';
 import {useMushafSettingsStore, RecentRead} from '@/store/mushafSettingsStore';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import i18n from '@/i18n';
+import {getSurahDisplayName, getSurahMeaning} from '@/i18n/format';
 
 // ============================================================================
 // Types
@@ -94,76 +97,112 @@ const MAX_HISTORY = 10;
 // Smart Search Parser
 // ============================================================================
 
+function surahNameForId(surahId: number): string {
+  return surahId >= 1 && surahId <= 114
+    ? getSurahDisplayName(SURAHS[surahId - 1])
+    : '';
+}
+
+function pageLabel(page: number): string {
+  return i18n.t('common:labels.pageNumber', {number: page});
+}
+
+function pageWithSurahLabel(page: number, surahId: number): string {
+  return i18n.t('reader:search.pageWithSurah', {
+    page,
+    surah: surahNameForId(surahId),
+  });
+}
+
+function juzLabel(juz: number): string {
+  if (juz === 30) return i18n.t('reader:search.juzAmma');
+  if (juz === 29) return i18n.t('reader:search.juzTabarak');
+  return i18n.t('common:labels.juzNumber', {number: juz});
+}
+
+function surahSecondaryLabel(surah: Surah): string {
+  const meaning = getSurahMeaning(surah);
+  return meaning
+    ? i18n.t('reader:search.surahWithMeaning', {number: surah.id, meaning})
+    : i18n.t('common:labels.surahNumber', {number: surah.id});
+}
+
+/** Maps Arabic-Indic and Persian digits to ASCII so numeric queries parse. */
+function normalizeDigits(text: string): string {
+  return text
+    .replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660))
+    .replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06f0));
+}
+
 function parseSearchQuery(
   query: string,
   surahStartPages: Record<number, number>,
   pageToSurah: Record<number, number>,
 ): SearchResultItem[] {
-  const q = query.trim();
+  const q = normalizeDigits(query.trim());
   if (!q) return [];
 
   const lower = q.toLowerCase();
   const results: SearchResultItem[] = [];
 
   // 1. "page N" or "pg N"
-  const pageMatch = q.match(/^(?:page|pg)\s+(\d+)$/i);
+  const pageMatch = q.match(/^(?:page|pg|صفحة|ص)\s*(\d+)$/i);
   if (pageMatch) {
     const page = parseInt(pageMatch[1], 10);
     if (page >= 1 && page <= 604) {
-      const surahId = pageToSurah[page];
-      const surahName =
-        surahId >= 1 && surahId <= 114 ? SURAHS[surahId - 1].name : '';
       results.push({
         type: 'page',
         page,
-        primary: `Page ${page}`,
-        secondary: surahName,
+        primary: pageLabel(page),
+        secondary: surahNameForId(pageToSurah[page]),
       });
     }
     return results;
   }
 
   // 2. Show all Juz list if typing "juz" or "jz"
-  if (lower === 'juz' || lower === 'jz') {
+  if (
+    lower === 'juz' ||
+    lower === 'jz' ||
+    lower === 'جزء' ||
+    lower === 'الأجزاء'
+  ) {
     for (let i = 1; i <= 30; i++) {
       const page = JUZ_START_PAGES[i - 1];
-      const surahId = pageToSurah[page];
-      const surahName =
-        surahId >= 1 && surahId <= 114 ? SURAHS[surahId - 1].name : '';
       results.push({
         type: 'juz',
         juz: i,
         page,
-        primary: i === 30 ? "Juz 'Amma" : i === 29 ? 'Juz Tabarak' : `Juz ${i}`,
-        secondary: `Page ${page} \u00B7 ${surahName}`,
+        primary: juzLabel(i),
+        secondary: pageWithSurahLabel(page, pageToSurah[page]),
       });
     }
     return results;
   }
 
   // 3. "juz N", "j N", "jz N" or common names like "Amma"
-  const juzMatch = q.match(/^(?:juz|j|jz)\s*(\d+)$/i);
+  const juzMatch = q.match(/^(?:juz|j|jz|الجزء|جزء|ج)\s*(\d+)$/i);
   const juzNames: Record<string, number> = {
     amma: 30,
     'juz amma': 30,
     tabarak: 29,
     'juz tabarak': 29,
+    عم: 30,
+    'جزء عم': 30,
+    تبارك: 29,
+    'جزء تبارك': 29,
   };
 
   if (juzMatch || juzNames[lower]) {
     const juz = juzMatch ? parseInt(juzMatch[1], 10) : juzNames[lower];
     if (juz >= 1 && juz <= 30) {
       const page = JUZ_START_PAGES[juz - 1];
-      const surahId = pageToSurah[page];
-      const surahName =
-        surahId >= 1 && surahId <= 114 ? SURAHS[surahId - 1].name : '';
       results.push({
         type: 'juz',
         juz,
         page,
-        primary:
-          juz === 30 ? "Juz 'Amma" : juz === 29 ? 'Juz Tabarak' : `Juz ${juz}`,
-        secondary: `Page ${page} \u00B7 ${surahName}`,
+        primary: juzLabel(juz),
+        secondary: pageWithSurahLabel(page, pageToSurah[page]),
       });
     }
     if (juzMatch) return results; // Only return early if it was an explicit "juz N" search
@@ -181,8 +220,12 @@ function parseSearchQuery(
           type: 'verse',
           surahId,
           verse,
-          primary: `${surah.name} ${surahId}:${verse}`,
-          secondary: `Verse ${verse}`,
+          primary: i18n.t('reader:verseLabel', {
+            surah: getSurahDisplayName(surah),
+            surahNumber: surahId,
+            ayah: verse,
+          }),
+          secondary: i18n.t('reader:search.verse', {number: verse}),
         });
       }
     }
@@ -198,34 +241,28 @@ function parseSearchQuery(
       results.push({
         type: 'surah',
         surah,
-        primary: surah.name,
-        secondary: `Surah ${surah.id} \u00B7 ${surah.translated_name_english}`,
+        primary: getSurahDisplayName(surah),
+        secondary: surahSecondaryLabel(surah),
       });
     }
     // Juz result
     if (plainNum >= 1 && plainNum <= 30) {
       const page = JUZ_START_PAGES[plainNum - 1];
-      const surahId = pageToSurah[page];
-      const surahName =
-        surahId >= 1 && surahId <= 114 ? SURAHS[surahId - 1].name : '';
       results.push({
         type: 'juz',
         juz: plainNum,
         page,
-        primary: `Juz ${plainNum}`,
-        secondary: `Page ${page} \u00B7 ${surahName}`,
+        primary: i18n.t('common:labels.juzNumber', {number: plainNum}),
+        secondary: pageWithSurahLabel(page, pageToSurah[page]),
       });
     }
     // Page result
     if (plainNum >= 1 && plainNum <= 604) {
-      const surahId = pageToSurah[plainNum];
-      const surahName =
-        surahId >= 1 && surahId <= 114 ? SURAHS[surahId - 1].name : '';
       results.push({
         type: 'page',
         page: plainNum,
-        primary: `Page ${plainNum}`,
-        secondary: surahName,
+        primary: pageLabel(plainNum),
+        secondary: surahNameForId(pageToSurah[plainNum]),
       });
     }
     return results;
@@ -241,8 +278,8 @@ function parseSearchQuery(
       results.push({
         type: 'surah',
         surah,
-        primary: surah.name,
-        secondary: `Surah ${surah.id} \u00B7 ${surah.translated_name_english}`,
+        primary: getSurahDisplayName(surah),
+        secondary: surahSecondaryLabel(surah),
       });
     }
   }
@@ -323,6 +360,7 @@ const RecentReadChips: React.FC<{
   onClear: () => void;
 }> = React.memo(
   ({recentPages, textColor, secondaryColor, onPress, onClear}) => {
+    const {t} = useTranslation(['reader', 'common']);
     if (recentPages.length === 0) return null;
 
     return (
@@ -338,7 +376,7 @@ const RecentReadChips: React.FC<{
                 flex: 1,
               },
             ]}>
-            RECENT READS
+            {t('search.recentReads')}
           </Text>
           <Pressable
             onPress={onClear}
@@ -349,7 +387,7 @@ const RecentReadChips: React.FC<{
                 styles.recentClearText,
                 {color: Color(secondaryColor).alpha(0.45).toString()},
               ]}>
-              Clear
+              {t('common:actions.clear')}
             </Text>
           </Pressable>
         </View>
@@ -376,14 +414,14 @@ const RecentReadChips: React.FC<{
                 ]}
                 onPress={() => onPress(index, item.page)}>
                 <Text style={[styles.chipName, {color: textColor}]}>
-                  {surah.name}
+                  {getSurahDisplayName(surah)}
                 </Text>
                 <Text
                   style={[
                     styles.chipPage,
                     {color: Color(secondaryColor).alpha(0.5).toString()},
                   ]}>
-                  Page {item.page}
+                  {t('common:labels.pageNumber', {number: item.page})}
                 </Text>
               </Pressable>
             );
@@ -411,6 +449,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   autoFocusSearch,
 }) => {
   const {theme, isDarkMode} = useTheme();
+  const {t} = useTranslation(['reader', 'common']);
   const insets = useSafeAreaInsets();
   const [isSearchMode, setIsSearchMode] = useState(autoFocusSearch ?? false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -740,10 +779,14 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
               option === 'asc'
                 ? 'arrow-up'
                 : option === 'desc'
-                ? 'arrow-down'
-                : 'calendar';
+                  ? 'arrow-down'
+                  : 'calendar';
             const label =
-              option === 'asc' ? 'Asc' : option === 'desc' ? 'Desc' : 'Rev';
+              option === 'asc'
+                ? t('search.sortAsc')
+                : option === 'desc'
+                  ? t('search.sortDesc')
+                  : t('search.sortRevelation');
             return (
               <Pressable
                 key={option}
@@ -780,7 +823,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
         </View>
       </View>
     ),
-    [sortOption, theme.colors, changeSortOption],
+    [sortOption, theme.colors, changeSortOption, t],
   );
 
   const BrowseListHeader = useMemo(
@@ -857,13 +900,14 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
               name="chevron-left"
               size={ms(20)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
           <Pressable style={styles.searchBarTap} onPress={enterSearchMode}>
             <SearchInput
               value=""
               onChangeText={() => {}}
-              placeholder="Search surahs, pages, or juz..."
+              placeholder={t('search.placeholder')}
               showCancelButton={false}
               editable={false}
               pointerEvents="none"
@@ -917,7 +961,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
           value={searchQuery}
           onChangeText={setSearchQuery}
           onCancel={exitSearchMode}
-          placeholder="Search surahs, pages, or juz..."
+          placeholder={t('search.placeholder')}
           showCancelButton={true}
           autoFocus={autoFocusSearch}
           iconColor={theme.colors.textSecondary}
@@ -938,7 +982,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
                 <View style={styles.historyHeader}>
                   <Text
                     style={[styles.historyTitle, {color: theme.colors.text}]}>
-                    Recent searches
+                    {t('search.recentSearches')}
                   </Text>
                   <Pressable onPress={clearHistory}>
                     <Text
@@ -946,7 +990,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
                         styles.historyClear,
                         {color: theme.colors.textSecondary},
                       ]}>
-                      Clear
+                      {t('common:actions.clear')}
                     </Text>
                   </Pressable>
                 </View>
@@ -978,7 +1022,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
                         .toString(),
                     },
                   ]}>
-                  Search the Mushaf
+                  {t('search.emptyTitle')}
                 </Text>
                 <Text
                   style={[
@@ -989,7 +1033,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
                         .toString(),
                     },
                   ]}>
-                  Find surahs, verses, pages, or juz
+                  {t('search.emptySubtitle')}
                 </Text>
               </View>
             )}
@@ -1024,7 +1068,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
                         .toString(),
                     },
                   ]}>
-                  No results found
+                  {t('common:status.noResults')}
                 </Text>
               </View>
             }

@@ -43,6 +43,8 @@ import {
   createTextStrokePaint,
   getArabicTextWeightStrokeWidth,
 } from '@/utils/skiaTextWeight';
+import {useTranslation} from 'react-i18next';
+import {forceLTR} from '@/utils/rtl';
 
 // --- Constants ---
 
@@ -335,6 +337,7 @@ export const WBWVerseView = memo<WBWVerseViewProps>(
     onLongPress,
     rewayah: rewayahProp,
   }) => {
+    const {t} = useTranslation('player');
     const {theme} = useTheme();
     const [containerWidth, setContainerWidth] = useState(0);
     const activeRewayah = useMushafSettingsStore(s => s.rewayah);
@@ -675,7 +678,7 @@ export const WBWVerseView = memo<WBWVerseViewProps>(
           styles.hafsNotice,
           {color: Color(textColor).alpha(0.5).toString()},
         ]}>
-        Word-by-word shown in Hafs
+        {t('verse.wbwHafsNotice')}
       </Text>
     ) : null;
 
@@ -690,6 +693,7 @@ export const WBWVerseView = memo<WBWVerseViewProps>(
             onLongPress={handleWordPress}
             style={[
               styles.singleCanvasContainer,
+              forceLTR,
               {height: computedLayout.totalHeight + PADDING_VERTICAL * 2},
             ]}>
             {/* Word highlight boxes (rendered before Canvas so text sits on top) */}
@@ -789,7 +793,9 @@ export const WBWVerseView = memo<WBWVerseViewProps>(
     // Fallback: flex-wrap with RN Text (no Skia canvases)
     // Used when: fontMgr not ready, or containerWidth not measured yet
     return (
-      <View onLayout={handleLayout} style={styles.fallbackContainer}>
+      <View
+        onLayout={handleLayout}
+        style={[styles.fallbackContainer, forceLTR]}>
         {hafsNotice}
         {matchedWords.map(({dkWord, wbwWord}) => (
           <Pressable

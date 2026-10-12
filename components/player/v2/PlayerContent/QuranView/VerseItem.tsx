@@ -28,6 +28,9 @@ import {
   isBundledTranslation,
   getBundledFootnotes,
 } from '@/utils/translationLookup';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits} from '@/i18n/format';
+import {isRTL} from '@/utils/rtl';
 
 // Type for processed word data from store
 interface ProcessedTajweedWord {
@@ -123,6 +126,7 @@ export const VerseItem = memo<VerseItemProps>(
     rewayah,
   }) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['player', 'common']);
     const verseKey = verse.verse_key;
     const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
     const showAllahNameHighlight = useMushafSettingsStore(
@@ -216,17 +220,17 @@ export const VerseItem = memo<VerseItemProps>(
           setActiveFootnote({
             id: footnoteId,
             number: footnoteNumber,
-            content: footnoteContent ?? 'Footnote content not available',
+            content: footnoteContent ?? t('verse.footnoteContentUnavailable'),
           });
         } else {
           setActiveFootnote({
             id: footnoteId,
             number: footnoteNumber,
-            content: 'Footnote data not available',
+            content: t('verse.footnoteDataUnavailable'),
           });
         }
       },
-      [verseKey, activeFootnote, translationId],
+      [verseKey, activeFootnote, translationId, t],
     );
 
     // Close the footnote display
@@ -405,7 +409,7 @@ export const VerseItem = memo<VerseItemProps>(
                 {backgroundColor: derivedColors.bg},
               ]}>
               <Text style={[styles.verseInfo, {color: textColor}]}>
-                {verse.surah_number}:{verse.ayah_number}
+                {localizeDigits(`${verse.surah_number}:${verse.ayah_number}`)}
               </Text>
             </View>
             {isBookmarked && (
@@ -480,7 +484,9 @@ export const VerseItem = memo<VerseItemProps>(
               <Text style={arabicStyleNoColor}>{tajweedNodes}</Text>
             ) : (
               // Fallback (e.g., data is loading/missing)
-              <Text style={arabicStyle}>{verse.text || 'Loading...'}</Text>
+              <Text style={arabicStyle}>
+                {verse.text || t('common:status.loading')}
+              </Text>
             )}
           </View>
         )}
@@ -517,7 +523,7 @@ export const VerseItem = memo<VerseItemProps>(
             ]}>
             <View style={styles.footnoteHeader}>
               <Text style={[styles.footnoteTitle, {color: textColor}]}>
-                Footnote
+                {t('verse.footnote')}
               </Text>
               <Pressable
                 onPress={closeFootnote}
@@ -573,7 +579,8 @@ const styles = StyleSheet.create({
   },
   arabicText: {
     fontSize: moderateScale(24),
-    textAlign: 'right',
+    // RN swaps left/right alignment in RTL; keep Quran text physically right.
+    textAlign: isRTL ? 'left' : 'right',
     writingDirection: 'rtl',
   },
   transliterationText: {

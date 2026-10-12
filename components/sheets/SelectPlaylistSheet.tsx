@@ -22,12 +22,15 @@ import {PlaylistItem} from '@/components/PlaylistItem';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName, getSurahMeaning} from '@/i18n/format';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
+  const {t} = useTranslation('sheets');
   const {playlists, createPlaylist, addToPlaylist} = usePlaylists();
   const {isLoved, isLovedWithRewayat, toggleLoved} = useLoved();
   const [isCreating, setIsCreating] = useState(false);
@@ -66,10 +69,21 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
         handleClose();
       } catch (error) {
         console.error('Failed to add to playlist:', error);
-        Alert.alert('Error', 'Failed to add surah to playlist');
+        Alert.alert(
+          t('selectPlaylist.errorTitle'),
+          t('selectPlaylist.addFailed'),
+        );
       }
     },
-    [surah, reciterId, rewayatId, userRecitationId, addToPlaylist, handleClose],
+    [
+      surah,
+      reciterId,
+      rewayatId,
+      userRecitationId,
+      addToPlaylist,
+      handleClose,
+      t,
+    ],
   );
 
   // Get existing playlist colors for unique color selection
@@ -108,7 +122,10 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
         handleClose();
       } catch (error) {
         console.error('Failed to create playlist:', error);
-        Alert.alert('Error', 'Failed to create playlist');
+        Alert.alert(
+          t('selectPlaylist.errorTitle'),
+          t('selectPlaylist.createFailed'),
+        );
       } finally {
         setIsCreating(false);
       }
@@ -121,6 +138,7 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
     createPlaylist,
     addToPlaylist,
     handleClose,
+    t,
   ]);
 
   const handleToggleLoved = useCallback(() => {
@@ -137,6 +155,8 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
     return null;
   }
 
+  const surahMeaning = getSurahMeaning(surah);
+
   return (
     <>
       <ActionSheet
@@ -145,14 +165,14 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
         indicatorStyle={styles.indicator}
         gestureEnabled={true}>
         <View style={styles.headerContainer}>
-          <Text style={styles.headerTitle}>Add to Collection</Text>
+          <Text style={styles.headerTitle}>{t('addToCollection.title')}</Text>
         </View>
         <View style={styles.container}>
           <View style={styles.header}>
-            <Text style={styles.surahName}>{surah.name}</Text>
-            <Text style={styles.surahTranslation}>
-              {surah.translated_name_english}
-            </Text>
+            <Text style={styles.surahName}>{getSurahDisplayName(surah)}</Text>
+            {surahMeaning ? (
+              <Text style={styles.surahTranslation}>{surahMeaning}</Text>
+            ) : null}
           </View>
 
           <ScrollView
@@ -184,7 +204,7 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
                     styles.lovedText,
                     isLovedState && styles.lovedTextActive,
                   ]}>
-                  Loved
+                  {t('selectPlaylist.loved')}
                 </Text>
               </Pressable>
             )}
@@ -204,7 +224,9 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
                   color={theme.colors.text}
                 />
                 <Text style={styles.createButtonText}>
-                  {isCreating ? 'Creating...' : 'Create New Playlist'}
+                  {isCreating
+                    ? t('selectPlaylist.creating')
+                    : t('addToCollection.createPlaylist')}
                 </Text>
               </View>
             </Pressable>
@@ -212,7 +234,9 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
             {/* Existing Playlists */}
             {playlists.length > 0 && (
               <View style={styles.playlistsContainer}>
-                <Text style={styles.sectionTitle}>Your Playlists</Text>
+                <Text style={styles.sectionTitle}>
+                  {t('selectPlaylist.yourPlaylists')}
+                </Text>
                 {playlists.map(playlist => (
                   <PlaylistItem
                     key={playlist.id}
@@ -234,7 +258,7 @@ export const SelectPlaylistSheet = (props: SheetProps<'select-playlist'>) => {
                   filled={false}
                 />
                 <Text style={styles.emptyStateText}>
-                  No playlists yet. Create your first playlist above!
+                  {t('selectPlaylist.empty')}
                 </Text>
               </View>
             )}

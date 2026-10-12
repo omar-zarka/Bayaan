@@ -14,6 +14,7 @@ import {SuperCategory} from '@/types/adhkar';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {SavedAdhkarHero} from '@/components/hero/SavedAdhkarHero';
+import {useTranslation} from 'react-i18next';
 
 // Gap between cards
 const CARD_GAP = moderateScale(8);
@@ -90,6 +91,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({
   headerHeight,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('player');
   const bottomInset = useBottomInset();
   const {
     error,
@@ -177,7 +179,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({
 
       {/* Other Section */}
       <View style={{paddingHorizontal: tileDimensions.horizontalPadding}}>
-        <SectionHeader title="Other" theme={theme} />
+        <SectionHeader title={t('adhkar.otherSection')} theme={theme} />
         <CategoryGrid
           categories={otherCategories}
           columnWidth={tileDimensions.columnWidth}

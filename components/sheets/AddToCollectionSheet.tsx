@@ -13,12 +13,14 @@ import Color from 'color';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {usePlaylists} from '@/hooks/usePlaylists';
 import {pickAndImportAudioFiles} from '@/utils/importAudio';
+import {useTranslation} from 'react-i18next';
 
 export const AddToCollectionSheet = (
   props: SheetProps<'add-to-collection'>,
 ) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
+  const {t} = useTranslation('sheets');
   const {importFile, importFiles} = useUploadsStore();
   const {playlists, createPlaylist} = usePlaylists();
 
@@ -79,7 +81,7 @@ export const AddToCollectionSheet = (
       gestureEnabled={true}>
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text style={styles.title}>Add to Collection</Text>
+          <Text style={styles.title}>{t('addToCollection.title')}</Text>
         </View>
 
         <View style={styles.card}>
@@ -94,7 +96,9 @@ export const AddToCollectionSheet = (
               size={moderateScale(18)}
               color={theme.colors.text}
             />
-            <Text style={styles.optionText}>Upload Recitation</Text>
+            <Text style={styles.optionText}>
+              {t('addToCollection.uploadRecitation')}
+            </Text>
           </Pressable>
 
           <View style={styles.divider} />
@@ -106,7 +110,9 @@ export const AddToCollectionSheet = (
             ]}
             onPress={handleNewPlaylist}>
             <PlaylistIcon color={theme.colors.text} size={moderateScale(18)} />
-            <Text style={styles.optionText}>Create New Playlist</Text>
+            <Text style={styles.optionText}>
+              {t('addToCollection.createPlaylist')}
+            </Text>
           </Pressable>
 
           <View style={styles.divider} />
@@ -122,7 +128,9 @@ export const AddToCollectionSheet = (
               size={moderateScale(18)}
               color={theme.colors.text}
             />
-            <Text style={styles.optionText}>Add Favorite Reciter</Text>
+            <Text style={styles.optionText}>
+              {t('addToCollection.addFavoriteReciter')}
+            </Text>
           </Pressable>
         </View>
       </View>

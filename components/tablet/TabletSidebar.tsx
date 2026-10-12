@@ -17,6 +17,8 @@ import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {TabletDockedPlayer} from '@/components/tablet/TabletDockedPlayer';
+import branding from '@/config/branding';
+import {isRTL} from '@/utils/rtl';
 
 const RAIL_WIDTH_COMPACT = 88;
 const RAIL_WIDTH_EXPANDED = 240;
@@ -158,7 +160,7 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
         width: railWidth,
         paddingTop: insets.top + 12,
         paddingBottom: insets.bottom + 8,
-        paddingLeft: Math.max(insets.left, 8),
+        paddingLeft: Math.max(isRTL ? insets.right : insets.left, 8),
         backgroundColor: isDarkMode
           ? Color(theme.colors.background).lighten(0.05).toString()
           : Color(theme.colors.background).darken(0.02).toString(),
@@ -170,6 +172,7 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       insets.top,
       insets.bottom,
       insets.left,
+      insets.right,
       isDarkMode,
       theme.colors.background,
       theme.colors.text,
@@ -179,13 +182,11 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
   return (
     <View style={containerStyle}>
       <View style={[styles.header, expanded && styles.headerExpanded]}>
-        <LogoIcon
-          color={theme.colors.text}
-          size={40}
-          isDarkMode={isDarkMode}
-        />
+        <LogoIcon color={theme.colors.text} size={40} isDarkMode={isDarkMode} />
         {expanded ? (
-          <Text style={[styles.brand, {color: theme.colors.text}]}>Bayaan</Text>
+          <Text style={[styles.brand, {color: theme.colors.text}]}>
+            {branding.appName}
+          </Text>
         ) : null}
       </View>
 

@@ -8,6 +8,10 @@ import {
   type TafseerNodeType,
 } from '@/utils/tafseerHtmlParser';
 import type {Theme} from '@/utils/themeUtils';
+import {isRTL} from '@/utils/rtl';
+
+// RN swaps left/right text alignment in RTL layouts.
+const rightAlign = isRTL ? ('left' as const) : ('right' as const);
 
 interface TafseerHtmlRendererProps {
   html: string;
@@ -80,7 +84,7 @@ const createStyles = (theme: Theme, isRtl: boolean) =>
       marginTop: verticalScale(16),
       marginBottom: verticalScale(8),
       ...(isRtl && {
-        textAlign: 'right' as const,
+        textAlign: rightAlign,
         writingDirection: 'rtl' as const,
         fontFamily: 'ScheherazadeNew-Regular',
         fontSize: moderateScale(20),
@@ -91,7 +95,7 @@ const createStyles = (theme: Theme, isRtl: boolean) =>
     },
     paragraphText: {
       ...(isRtl && {
-        textAlign: 'right' as const,
+        textAlign: rightAlign,
         writingDirection: 'rtl' as const,
       }),
     },

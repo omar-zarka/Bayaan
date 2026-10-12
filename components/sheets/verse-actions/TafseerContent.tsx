@@ -28,7 +28,14 @@ import {
   type TafseerResult,
 } from '@/services/tafseer/TafseerDbService';
 import {TafseerHtmlRenderer} from './TafseerHtmlRenderer';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits} from '@/i18n/format';
+import {currentLanguage} from '@/i18n/language';
+
+function getTafseerDisplayName(meta: {name: string; englishName: string}) {
+  return currentLanguage === 'ar' ? meta.name : meta.englishName;
+}
 
 // ─── Data loading (module scope, runs once) ───────────────────────────────
 const quranData = require('@/data/quran.json') as QuranData;
@@ -77,6 +84,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
 }) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
   const downloadedMeta = useTafseerStore(s => s.downloadedMeta);
   const selectedTafseerId = useTafseerStore(s => s.selectedTafseerId);
   const setSelectedTafseerId = useTafseerStore(s => s.setSelectedTafseerId);
@@ -160,7 +168,9 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
         bounces={true}>
         {/* Verse badge */}
         <View style={styles.verseBadge}>
-          <Text style={styles.verseBadgeText}>{verse.verseKey}</Text>
+          <Text style={styles.verseBadgeText}>
+            {localizeDigits(verse.verseKey)}
+          </Text>
         </View>
 
         {/* Arabic text */}
@@ -184,9 +194,11 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
               size={moderateScale(32)}
               color={Color(theme.colors.text).alpha(0.2).toString()}
             />
-            <Text style={styles.emptyStateTitle}>No Tafaseer Downloaded</Text>
+            <Text style={styles.emptyStateTitle}>
+              {t('tafseerContent.emptyTitle')}
+            </Text>
             <Text style={styles.emptyStateText}>
-              Tap here to download a tafseer and view commentary.
+              {t('tafseerContent.emptyMessage')}
             </Text>
           </Pressable>
         ) : (
@@ -197,7 +209,9 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
                 style={styles.selectorButton}
                 onPress={() => setShowSelector(!showSelector)}>
                 <Text style={styles.selectorButtonText} numberOfLines={1}>
-                  {activeTafseer?.englishName ?? 'Select Tafseer'}
+                  {activeTafseer
+                    ? getTafseerDisplayName(activeTafseer)
+                    : t('tafseerContent.select')}
                 </Text>
                 <Feather
                   name={showSelector ? 'chevron-up' : 'chevron-down'}
@@ -227,13 +241,15 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
                             isActive && styles.selectorOptionNameActive,
                           ]}
                           numberOfLines={1}>
-                          {meta.englishName}
+                          {getTafseerDisplayName(meta)}
                         </Text>
                         {meta.name !== meta.englishName && (
                           <Text
                             style={styles.selectorOptionNative}
                             numberOfLines={1}>
-                            {meta.name}
+                            {currentLanguage === 'ar'
+                              ? meta.englishName
+                              : meta.name}
                           </Text>
                         )}
                       </View>
@@ -253,7 +269,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
             {/* Tafseer label */}
             {activeTafseer && downloadedMeta.length === 1 && (
               <Text style={styles.tafseerLabel}>
-                {activeTafseer.englishName.toUpperCase()}
+                {getTafseerDisplayName(activeTafseer).toUpperCase()}
               </Text>
             )}
 
@@ -266,7 +282,9 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
               <>
                 {tafseerResult.fromAyah !== tafseerResult.toAyah && (
                   <Text style={styles.rangeBadge}>
-                    {`VERSES ${tafseerResult.surahNumber}:${tafseerResult.fromAyah} \u2013 ${tafseerResult.surahNumber}:${tafseerResult.toAyah}`}
+                    {t('tafseerContent.versesRange', {
+                      range: `${tafseerResult.surahNumber}:${tafseerResult.fromAyah} \u2013 ${tafseerResult.surahNumber}:${tafseerResult.toAyah}`,
+                    })}
                   </Text>
                 )}
                 <TafseerHtmlRenderer
@@ -277,7 +295,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
               </>
             ) : (
               <Text style={styles.noTafseer}>
-                Tafseer not available for this verse
+                {t('tafseerContent.notAvailable')}
               </Text>
             )}
           </>
@@ -302,17 +320,20 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
                 ? Color(theme.colors.text).alpha(0.2).toString()
                 : theme.colors.text
             }
+            style={flipX}
           />
           <Text
             style={[
               styles.navButtonText,
               isFirst && styles.navButtonTextDisabled,
             ]}>
-            Prev
+            {t('translationContent.prev')}
           </Text>
         </Pressable>
 
-        <Text style={styles.footerCounter}>{verse.verseKey}</Text>
+        <Text style={styles.footerCounter}>
+          {localizeDigits(verse.verseKey)}
+        </Text>
 
         <Pressable
           onPress={goToNext}
@@ -327,7 +348,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
               styles.navButtonText,
               isLast && styles.navButtonTextDisabled,
             ]}>
-            Next
+            {t('common:actions.next')}
           </Text>
           <Feather
             name="chevron-right"
@@ -337,6 +358,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
                 ? Color(theme.colors.text).alpha(0.2).toString()
                 : theme.colors.text
             }
+            style={flipX}
           />
         </Pressable>
       </View>

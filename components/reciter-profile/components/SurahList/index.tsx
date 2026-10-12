@@ -13,8 +13,9 @@ import {SurahListProps} from '@/components/reciter-profile/types';
 import {SurahItem} from '@/components/SurahItem';
 import {SurahCard} from '@/components/cards/SurahCard';
 import {Surah} from '@/data/surahData';
-import {getJuzForSurah, getJuzName} from '@/data/juzData';
+import {getJuzForSurah} from '@/data/juzData';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 // Define types matching useSettings and ReciterProfile
 type ReciterProfileViewMode = 'card' | 'list';
@@ -72,6 +73,7 @@ export const SurahList = React.forwardRef<
     ref,
   ) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['player', 'common']);
     const styles = createStyles(theme);
 
     // Build flat data array + sticky header indices
@@ -101,7 +103,10 @@ export const SurahList = React.forwardRef<
             stickies.push(items.length);
             items.push({
               type: 'juz-header',
-              juzName: getJuzName(juz),
+              juzName:
+                juz === 30
+                  ? t('reciterProfile.juzAmma')
+                  : t('common:labels.juzNumber', {number: juz}),
               key: `juz-${juz}`,
             });
           }
@@ -122,7 +127,7 @@ export const SurahList = React.forwardRef<
       }
 
       return {data: items, stickyIndices: stickies};
-    }, [surahs, viewMode, sortOption]);
+    }, [surahs, viewMode, sortOption, t]);
 
     // Render a card item (used by inline mode)
     const renderCardItem = React.useCallback(
@@ -299,7 +304,9 @@ export const SurahList = React.forwardRef<
         return (
           <View style={styles.surahsContainer}>
             {surahs.length === 0 ? (
-              <Text style={styles.emptyText}>No surahs available</Text>
+              <Text style={styles.emptyText}>
+                {t('reciterProfile.noSurahsAvailable')}
+              </Text>
             ) : (
               <View style={styles.cardGrid}>
                 {visibleSurahs.map(surah => (
@@ -319,7 +326,9 @@ export const SurahList = React.forwardRef<
       return (
         <View style={styles.surahsContainer}>
           {data.length === 0 ? (
-            <Text style={styles.emptyText}>No surahs available</Text>
+            <Text style={styles.emptyText}>
+              {t('reciterProfile.noSurahsAvailable')}
+            </Text>
           ) : (
             visibleData.map((item, index) => (
               <React.Fragment key={item.key}>
@@ -350,7 +359,9 @@ export const SurahList = React.forwardRef<
           }
           drawDistance={moderateScale(300)}
           ListEmptyComponent={
-            <Text style={styles.emptyText}>No surahs available</Text>
+            <Text style={styles.emptyText}>
+              {t('reciterProfile.noSurahsAvailable')}
+            </Text>
           }
         />
       </View>

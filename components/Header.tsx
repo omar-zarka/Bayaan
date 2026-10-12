@@ -5,6 +5,7 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {flipX} from '@/utils/rtl';
 
 interface HeaderProps {
   title: string;
@@ -46,6 +47,7 @@ export const Header: React.FC<HeaderProps> = ({
               name="arrow-left"
               size={moderateScale(24)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
         )}

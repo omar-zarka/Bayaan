@@ -7,6 +7,7 @@ import {
 } from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/styles/theme';
+import {useTranslation} from 'react-i18next';
 
 interface ToggleProps {
   options: ['Reciters', 'Surahs'];
@@ -16,6 +17,7 @@ interface ToggleProps {
 
 const Toggle: React.FC<ToggleProps> = ({options, selectedOption, onToggle}) => {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const styles = createStyles(theme);
 
   return (
@@ -34,7 +36,9 @@ const Toggle: React.FC<ToggleProps> = ({options, selectedOption, onToggle}) => {
               styles.toggleButtonText,
               selectedOption === option && styles.activeToggleButtonText,
             ]}>
-            {option}
+            {option === 'Reciters'
+              ? t('common:terms.reciters')
+              : t('common:terms.surahs')}
           </Text>
         </TouchableOpacity>
       ))}

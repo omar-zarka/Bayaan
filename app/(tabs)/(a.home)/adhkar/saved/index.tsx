@@ -9,6 +9,7 @@ import {View, Text, FlatList, Pressable, StyleSheet} from 'react-native';
 import {useRouter, useNavigation, Link} from 'expo-router';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Ionicons} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
@@ -26,6 +27,7 @@ const SavedAdhkarScreen: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const {theme} = useTheme();
+  const {t} = useTranslation('home');
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
   const bottomInset = useBottomInset();
@@ -113,7 +115,7 @@ const SavedAdhkarScreen: React.FC = () => {
               fontFamily: theme.fonts.semiBold,
               color: theme.colors.text,
             }}>
-            Saved
+            {t('adhkar.saved')}
           </Text>
           <Text
             style={{
@@ -122,7 +124,7 @@ const SavedAdhkarScreen: React.FC = () => {
               color: theme.colors.textSecondary,
               marginTop: moderateScale(2),
             }}>
-            {adhkarList.length} adhkar
+            {t('adhkar.count', {count: adhkarList.length})}
           </Text>
         </View>
       ),
@@ -143,6 +145,7 @@ const SavedAdhkarScreen: React.FC = () => {
     isSavedPlaying,
     isLoading,
     theme,
+    t,
   ]);
 
   const renderItem = useCallback(
@@ -191,10 +194,8 @@ const SavedAdhkarScreen: React.FC = () => {
             size={moderateScale(48)}
             color={theme.colors.textSecondary}
           />
-          <Text style={styles.emptyText}>No saved adhkar yet</Text>
-          <Text style={styles.emptySubtext}>
-            Tap the bookmark icon on any dhikr to save it here
-          </Text>
+          <Text style={styles.emptyText}>{t('adhkar.noSavedYet')}</Text>
+          <Text style={styles.emptySubtext}>{t('adhkar.noSavedHint')}</Text>
         </View>
       </View>
     );

@@ -1,5 +1,6 @@
 import React, {Component, ErrorInfo, ReactNode} from 'react';
 import {View, Text} from 'react-native';
+import i18n from '@/i18n';
 
 interface Props {
   children: ReactNode;
@@ -26,7 +27,7 @@ class ErrorBoundary extends Component<Props, State> {
     if (this.state.hasError) {
       return (
         <View>
-          <Text>Sorry.. there was an error</Text>
+          <Text>{i18n.t('home:errorBoundary.message')}</Text>
         </View>
       );
     }

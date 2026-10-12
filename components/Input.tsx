@@ -13,6 +13,7 @@ import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import Color from 'color';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -41,6 +42,7 @@ export const Input: React.FC<InputProps> = ({
   ...textInputProps
 }) => {
   const {theme, isDarkMode} = useTheme();
+  const {t} = useTranslation('home');
 
   return (
     <View style={[styles.container, containerStyle]}>
@@ -122,7 +124,10 @@ export const Input: React.FC<InputProps> = ({
                       : theme.colors.textSecondary,
                 },
               ]}>
-              {value?.length || 0}/{maxLength} characters
+              {t('input.characterCount', {
+                current: value?.length || 0,
+                max: maxLength,
+              })}
             </Text>
           )}
         </View>

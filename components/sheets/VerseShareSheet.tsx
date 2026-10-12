@@ -33,10 +33,13 @@ import {lightHaptics} from '@/utils/haptics';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName} from '@/i18n/format';
 
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
   name: string;
+  name_arabic: string;
 }>;
 const saheehData =
   require('@/data/SaheehInternational.translation-with-footnote-tags.json') as Record<
@@ -58,6 +61,7 @@ for (const key of Object.keys(quranRaw)) {
 export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
   const {theme, isDarkMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('sheets');
   const {width: screenWidth} = useWindowDimensions();
   const captureCanvasRef = useCanvasRef();
 
@@ -106,7 +110,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
     const [firstSurah, firstAyah] = firstKey.split(':');
     const [lastSurah, lastAyah] = lastKey.split(':');
     const surah = surahData.find(s => s.id === parseInt(firstSurah, 10));
-    const surahName = surah?.name ?? '';
+    const surahName = surah ? getSurahDisplayName(surah) : '';
 
     let ref: string;
     if (firstSurah === lastSurah) {
@@ -147,12 +151,15 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
     lightHaptics();
     const ref =
       rewayah === 'hafs'
-        ? `Quran ${verseRefText}`
-        : `Quran ${verseRefText} · ${getRewayahShortLabel(rewayah)}`;
+        ? t('share.reference', {ref: verseRefText})
+        : t('share.referenceWithRewayah', {
+            ref: verseRefText,
+            rewayah: getRewayahShortLabel(rewayah),
+          });
     const message = `${arabicText}\n\n${translation}\n\n-- ${ref}`;
     await Share.share({message});
     SheetManager.hideAll();
-  }, [arabicText, translation, verseRefText, rewayah]);
+  }, [arabicText, translation, verseRefText, rewayah, t]);
 
   if (!payload || !fontMgr) return null;
 
@@ -166,7 +173,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
         contentContainerStyle={styles.container}
         showsVerticalScrollIndicator={false}
         bounces={true}>
-        <Text style={styles.title}>Share Verse</Text>
+        <Text style={styles.title}>{t('share.title')}</Text>
 
         {/* Visible preview */}
         <View style={styles.previewContent}>
@@ -201,7 +208,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
 
         {/* Basmallah toggle */}
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Show Basmallah</Text>
+          <Text style={styles.toggleLabel}>{t('share.showBasmallah')}</Text>
           <Switch
             trackColor={{
               false: Color(theme.colors.textSecondary).alpha(0.3).toString(),
@@ -219,7 +226,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
 
         {/* Watermark toggle */}
         <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Show Watermark</Text>
+          <Text style={styles.toggleLabel}>{t('share.showWatermark')}</Text>
           <Switch
             trackColor={{
               false: Color(theme.colors.textSecondary).alpha(0.3).toString(),
@@ -250,7 +257,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
                 color={theme.colors.background}
               />
             )}
-            <Text style={styles.primaryButtonText}>Share as Image</Text>
+            <Text style={styles.primaryButtonText}>{t('share.asImage')}</Text>
           </Pressable>
 
           <Pressable style={styles.secondaryButton} onPress={handleShareAsText}>
@@ -259,7 +266,7 @@ export const VerseShareSheet = (props: SheetProps<'verse-share'>) => {
               size={moderateScale(18)}
               color={theme.colors.text}
             />
-            <Text style={styles.secondaryButtonText}>Share as Text</Text>
+            <Text style={styles.secondaryButtonText}>{t('share.asText')}</Text>
           </Pressable>
         </View>
       </ScrollView>

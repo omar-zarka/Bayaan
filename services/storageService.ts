@@ -1,5 +1,7 @@
 import DeviceInfo from 'react-native-device-info';
 import * as FileSystem from 'expo-file-system/legacy';
+import i18n from '@/i18n';
+import {currentLanguage} from '@/i18n/language';
 import {useDownloadStore} from './player/store/downloadStore';
 
 export function getDownloadsStorage(): number {
@@ -98,11 +100,13 @@ export async function getDeviceStorage(): Promise<{
 }
 
 export function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 Bytes';
+  if (bytes === 0) return i18n.t('content:units.bytes', {value: 0});
 
   const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+  const units = ['bytes', 'kb', 'mb', 'gb'] as const;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
+  const amount = String(Math.round((bytes / Math.pow(k, i)) * 100) / 100);
+  const value = currentLanguage === 'ar' ? amount.replace('.', '٫') : amount;
 
-  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+  return i18n.t(`content:units.${units[i]}`, {value});
 }

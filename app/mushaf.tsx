@@ -12,6 +12,8 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {SURAHS} from '@/data/surahData';
 import MushafViewer from '@/components/mushaf/main';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName} from '@/i18n/format';
 
 export type MushafScreenParams = {
   surah?: string;
@@ -115,6 +117,7 @@ export default function MushafScreen() {
 // ============================================================================
 
 function MushafToolbar() {
+  const {t} = useTranslation(['reader', 'common']);
   const playbackState = useMushafPlayerStore(s => s.playbackState);
   const currentPage = useMushafPlayerStore(s => s.currentPage);
   const currentSurah = useMushafPlayerStore(s => s.currentSurah);
@@ -128,10 +131,16 @@ function MushafToolbar() {
 
   const surahName =
     currentSurah >= 1 && currentSurah <= 114
-      ? SURAHS[currentSurah - 1].name
+      ? getSurahDisplayName(SURAHS[currentSurah - 1])
       : '';
   const verseLabel =
-    !isIdle && surahName ? `${surahName} ${currentSurah}:${currentAyah}` : '';
+    !isIdle && surahName
+      ? t('verseLabel', {
+          surah: surahName,
+          surahNumber: currentSurah,
+          ayah: currentAyah,
+        })
+      : '';
 
   const handlePlay = useCallback(() => {
     const page = useMushafPlayerStore.getState().currentPage || 1;
@@ -182,15 +191,15 @@ function MushafToolbar() {
     return (
       <Stack.Toolbar>
         <Stack.Toolbar.Button icon="magnifyingglass" onPress={handleSearch}>
-          Search
+          {t('common:actions.search')}
         </Stack.Toolbar.Button>
         <Stack.Toolbar.Spacer />
         <Stack.Toolbar.Button icon="play.fill" onPress={handlePlay}>
-          Play
+          {t('common:actions.play')}
         </Stack.Toolbar.Button>
         <Stack.Toolbar.Spacer />
         <Stack.Toolbar.Button icon="ellipsis.circle" onPress={handleOptions}>
-          Options
+          {t('toolbar.options')}
         </Stack.Toolbar.Button>
       </Stack.Toolbar>
     );
@@ -200,7 +209,7 @@ function MushafToolbar() {
   return (
     <Stack.Toolbar>
       <Stack.Toolbar.Button icon="stop.fill" onPress={handleStop}>
-        Stop
+        {t('toolbar.stop')}
       </Stack.Toolbar.Button>
       <Stack.Toolbar.Spacer />
       <Stack.Toolbar.Button icon="backward.end.fill" onPress={handlePrev} />
@@ -213,7 +222,7 @@ function MushafToolbar() {
       <Stack.Toolbar.Button icon="forward.end.fill" onPress={handleNext} />
       <Stack.Toolbar.Spacer />
       <Stack.Toolbar.Button icon="ellipsis.circle" onPress={handleOptions}>
-        Options
+        {t('toolbar.options')}
       </Stack.Toolbar.Button>
     </Stack.Toolbar>
   );

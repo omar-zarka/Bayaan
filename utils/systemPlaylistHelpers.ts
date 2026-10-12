@@ -6,6 +6,7 @@ import {
 import {Track} from '@/types/audio';
 import {createTrack} from '@/utils/track';
 import {getReciterById, getSurahById} from '@/services/dataService';
+import i18n from '@/i18n';
 
 /**
  * Get a system playlist by ID
@@ -137,9 +138,11 @@ export function formatDuration(seconds: number): string {
   const minutes = Math.floor((seconds % 3600) / 60);
 
   if (hours > 0) {
-    return minutes > 0 ? `${hours}h ${minutes}m` : `${hours}h`;
+    return minutes > 0
+      ? i18n.t('content:duration.hoursMinutes', {hours, minutes})
+      : i18n.t('content:duration.hours', {hours});
   }
-  return `${minutes}m`;
+  return i18n.t('content:duration.minutes', {minutes});
 }
 
 /**
@@ -157,14 +160,14 @@ export function checkPlaylistPlayability(playlist: SystemPlaylist): {
     return {
       canPlayImmediately: true,
       requiresReciterSelection: false,
-      message: 'Ready to play',
+      message: i18n.t('content:systemPlaylists.readyToPlay'),
     };
   }
 
   return {
     canPlayImmediately: false,
     requiresReciterSelection: true,
-    message: 'Select reciters to play',
+    message: i18n.t('content:systemPlaylists.selectReciters'),
   };
 }
 

@@ -6,9 +6,11 @@ import {Theme} from '@/utils/themeUtils';
 import {ChangelogContent} from '@/components/changelog/ChangelogContent';
 import changelogData from '@/data/changelog.json';
 import {ChangelogEntry} from '@/types/changelog';
+import {useTranslation} from 'react-i18next';
 
 export default function WhatsNewScreen() {
   const {theme} = useTheme();
+  const {t} = useTranslation('settings');
   const styles = createStyles(theme);
 
   // Get the latest changelog entry
@@ -20,7 +22,7 @@ export default function WhatsNewScreen() {
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <Text style={[styles.emptyText, {color: theme.colors.textSecondary}]}>
-            No changelog available
+            {t('whatsNew.empty')}
           </Text>
         </View>
       </View>

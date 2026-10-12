@@ -18,11 +18,14 @@ import {useHeaderHeight} from '@react-navigation/elements';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName} from '@/i18n/format';
 
 export default function DefaultReciterScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Reciter[]>([]);
   const {theme} = useTheme();
+  const {t} = useTranslation('settings');
   const styles = useMemo(() => createStyles(theme), [theme]);
   const defaultReciter = useReciterStore(state => state.defaultReciter);
   const setDefaultReciter = useReciterStore(state => state.setDefaultReciter);
@@ -91,7 +94,7 @@ export default function DefaultReciterScreen() {
               />
               <View style={styles.currentReciterInfo}>
                 <Text style={styles.currentReciterName}>
-                  {defaultReciter.name}
+                  {getReciterDisplayName(defaultReciter)}
                 </Text>
                 <Text style={styles.currentReciterMoshaf}>
                   {getDisplayLabelFromName(defaultReciter.rewayat[0].name)}
@@ -102,9 +105,11 @@ export default function DefaultReciterScreen() {
         )}
 
         <View style={styles.searchSection}>
-          <Text style={styles.searchLabel}>CHANGE DEFAULT RECITER</Text>
+          <Text style={styles.searchLabel}>
+            {t('defaultReciter.changeHeader')}
+          </Text>
           <SearchInput
-            placeholder="Search reciters..."
+            placeholder={t('defaultReciter.searchPlaceholder')}
             value={searchQuery}
             onChangeText={handleSearch}
             showCancelButton={false}
@@ -128,8 +133,8 @@ export default function DefaultReciterScreen() {
           ListEmptyComponent={
             <Text style={styles.emptyText}>
               {searchQuery.trim() === ''
-                ? 'Only reciters with complete Quran are shown'
-                : 'No reciters found'}
+                ? t('defaultReciter.completeOnly')
+                : t('defaultReciter.noResults')}
             </Text>
           }
         />

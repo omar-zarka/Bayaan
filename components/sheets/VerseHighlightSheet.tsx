@@ -17,12 +17,14 @@ import {HIGHLIGHT_COLORS, HighlightColor} from '@/types/verse-annotations';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+import {useTranslation} from 'react-i18next';
 
 const COLORS = Object.entries(HIGHLIGHT_COLORS) as [HighlightColor, string][];
 
 export const VerseHighlightSheet = (props: SheetProps<'verse-highlight'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('sheets');
 
   const verseKey = props.payload?.verseKey ?? '';
   const surahNumber = props.payload?.surahNumber ?? 0;
@@ -68,7 +70,7 @@ export const VerseHighlightSheet = (props: SheetProps<'verse-highlight'>) => {
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>
       <View style={styles.container}>
-        <Text style={styles.title}>Highlight Color</Text>
+        <Text style={styles.title}>{t('highlight.title')}</Text>
 
         <View style={styles.ayahContainer}>
           <SkiaVersePreview
@@ -101,7 +103,7 @@ export const VerseHighlightSheet = (props: SheetProps<'verse-highlight'>) => {
         {currentColor ? (
           <Pressable style={styles.removeButton} onPress={handleRemove}>
             <Feather name="x-circle" size={moderateScale(18)} color="#ff4444" />
-            <Text style={styles.removeButtonText}>Remove Highlight</Text>
+            <Text style={styles.removeButtonText}>{t('highlight.remove')}</Text>
           </Pressable>
         ) : null}
       </View>

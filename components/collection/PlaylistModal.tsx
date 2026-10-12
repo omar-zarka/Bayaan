@@ -16,6 +16,7 @@ import {Input} from '@/components/Input';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 interface PlaylistModalProps {
   visible: boolean;
@@ -54,6 +55,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   initialName = '',
   initialColor,
 }) => {
+  const {t} = useTranslation(['collection', 'common']);
   const [playlistName, setPlaylistName] = useState(initialName);
 
   // Generate a stable preview color that only changes when the modal reopens
@@ -126,7 +128,9 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
             />
           </TouchableOpacity>
           <Text style={[styles.title, {color: theme.colors.text}]}>
-            {isEditMode ? 'Edit Playlist' : 'New Playlist'}
+            {isEditMode
+              ? t('playlistModal.editTitle')
+              : t('playlistModal.newTitle')}
           </Text>
           <TouchableOpacity
             onPress={handleCreate}
@@ -144,7 +148,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                   color: theme.colors.text,
                 },
               ]}>
-              Save
+              {t('common:actions.save')}
             </Text>
           </TouchableOpacity>
         </View>
@@ -186,17 +190,17 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
               <Text
                 style={[styles.heroTitle, {color: theme.colors.text}]}
                 numberOfLines={2}>
-                {playlistName || 'Your Playlist'}
+                {playlistName || t('playlistModal.namePreview')}
               </Text>
             </LinearGradient>
           </View>
 
           {/* Input Section */}
           <Input
-            label="Playlist Name"
+            label={t('playlistModal.nameLabel')}
             showIcon
             iconName="edit-3"
-            placeholder="Name"
+            placeholder={t('playlistModal.namePlaceholder')}
             value={playlistName}
             onChangeText={setPlaylistName}
             maxLength={50}

@@ -13,6 +13,7 @@ import Color from 'color';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+import {useTranslation} from 'react-i18next';
 
 interface NoteContentProps {
   verseKey: string;
@@ -33,6 +34,7 @@ export const NoteContent: React.FC<NoteContentProps> = ({
 }) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('sheets');
   const isRange = verseKeys && verseKeys.length > 1;
   const [noteText, setNoteText] = useState('');
 
@@ -83,7 +85,7 @@ export const NoteContent: React.FC<NoteContentProps> = ({
         style={styles.textInput}
         value={noteText}
         onChangeText={setNoteText}
-        placeholder="Write your note here..."
+        placeholder={t('note.placeholder')}
         placeholderTextColor={Color(theme.colors.textSecondary)
           .alpha(0.5)
           .toString()}
@@ -105,7 +107,7 @@ export const NoteContent: React.FC<NoteContentProps> = ({
           size={moderateScale(16)}
           color={theme.colors.text}
         />
-        <Text style={styles.saveButtonText}>Save Note</Text>
+        <Text style={styles.saveButtonText}>{t('note.save')}</Text>
       </Pressable>
     </ScrollView>
   );

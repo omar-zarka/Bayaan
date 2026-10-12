@@ -16,11 +16,13 @@ import {useLoved} from '@/hooks/useLoved';
 import {HeartIcon, MicrophoneIcon} from '@/components/Icons';
 import {getShortLabel} from '@/services/rewayah/RewayahIdentity';
 import {useCurrentTrackResolvedRewayah} from '@/hooks/useCurrentTrackRewayah';
+import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
 } from 'react-native-reanimated';
+import {getTrackDisplayTitle} from '@/i18n/format';
 
 export const TrackInfo = () => {
   const {theme} = useTheme();
@@ -122,7 +124,7 @@ export const TrackInfo = () => {
             <Text
               style={[styles.surahName, {color: theme.colors.text}]}
               numberOfLines={1}>
-              {currentTrack?.title || ''}
+              {currentTrack ? getTrackDisplayTitle(currentTrack) : ''}
             </Text>
             <Text
               style={[styles.reciterName, {color: theme.colors.text}]}
@@ -136,7 +138,9 @@ export const TrackInfo = () => {
                   {color: theme.colors.textSecondary},
                 ]}>
                 {`${getShortLabel(resolvedRewayah.id)}${
-                  rewayat?.style ? ` • ${rewayat.style}` : ''
+                  rewayat?.style
+                    ? ` • ${getRecitationStyleLabel(rewayat.style)}`
+                    : ''
                 }`}
               </Text>
             )}

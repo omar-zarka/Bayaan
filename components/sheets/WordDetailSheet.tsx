@@ -18,10 +18,12 @@ import Color from 'color';
 import {wbwDataService, type WBWWord} from '@/services/wbw/WBWDataService';
 import {createAudioPlayer, AudioPlayer} from 'expo-audio';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
+import {useTranslation} from 'react-i18next';
 
 export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
 
   const verseKey = props.payload?.verseKey ?? '';
   const position = props.payload?.position ?? 0;
@@ -207,15 +209,22 @@ export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
                   />
                 )}
                 <Text style={styles.playPillText}>
-                  {audioLoading ? 'Loading...' : isPlaying ? 'Pause' : 'Play'}
+                  {audioLoading
+                    ? t('common:status.loading')
+                    : isPlaying
+                      ? t('common:actions.pause')
+                      : t('common:actions.play')}
                 </Text>
               </Pressable>
             ) : null}
 
             {/* Context footer */}
             <Text style={styles.contextText}>
-              Verse {surahNum}:{ayahNum} {'\u00B7'} Word {position} of{' '}
-              {totalWords}
+              {t('wordDetail.context', {
+                ref: `${surahNum}:${ayahNum}`,
+                position,
+                total: totalWords,
+              })}
             </Text>
           </>
         )}

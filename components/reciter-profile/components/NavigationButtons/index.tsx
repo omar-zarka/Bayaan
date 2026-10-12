@@ -5,6 +5,7 @@ import {ScaledSheet} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Feather} from '@expo/vector-icons';
 import {useRouter} from 'expo-router';
+import {flipX} from '@/utils/rtl';
 
 interface NavigationButtonsProps {
   insets: {
@@ -43,6 +44,7 @@ export const NavigationButtons: React.FC<NavigationButtonsProps> = ({
             name="arrow-left"
             size={moderateScale(24)}
             color={theme.colors.text}
+            style={flipX}
           />
         </Pressable>
       </Animated.View>

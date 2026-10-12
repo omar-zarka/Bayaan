@@ -8,6 +8,7 @@
 import {create} from 'zustand';
 import {createJSONStorage, persist} from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '@/i18n';
 import type {AyahTimestamp} from '@/types/timestamps';
 import {RECITERS} from '@/data/reciterData';
 import {timestampService} from '@/services/timestamps/TimestampService';
@@ -181,8 +182,7 @@ export const useMushafPlayerStore = create<MushafPlayerStoreState>()(
             );
             set({
               playbackState: 'idle',
-              timestampError:
-                'Timestamps unavailable for this reciter on this surah. Try a different reciter.',
+              timestampError: i18n.t('content:errors.timestampsUnavailable'),
             });
             return;
           }

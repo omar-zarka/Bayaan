@@ -3,6 +3,7 @@ import {useApiHealthStore} from '@/store/apiHealthStore';
 import {useNetworkStore} from '@/store/networkStore';
 import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {showToast} from '@/utils/toastUtils';
+import i18n from '@/i18n';
 
 /**
  * Fires non-persistent toasts on connectivity / API-health transitions:
@@ -30,14 +31,14 @@ export function NetworkStatusMonitor(): null {
     prevOnlineRef.current = effectiveOnline;
     if (prev === null) {
       if (!effectiveOnline)
-        showToast('No internet connection', undefined, 'error');
+        showToast(i18n.t('home:network.offline'), undefined, 'error');
       return;
     }
     if (prev === effectiveOnline) return;
     if (effectiveOnline) {
-      showToast('Connection restored');
+      showToast(i18n.t('home:network.restored'));
     } else {
-      showToast('No internet connection', undefined, 'error');
+      showToast(i18n.t('home:network.offline'), undefined, 'error');
     }
   }, [isOnline, forceNetworkBanner]);
 
@@ -55,7 +56,9 @@ export function NetworkStatusMonitor(): null {
     if (prev === null) return;
     if (!isDisrupted || prev) return;
     showToast(
-      usingStaleCache ? 'Showing cached data' : 'Backend unreachable',
+      usingStaleCache
+        ? i18n.t('home:network.showingCached')
+        : i18n.t('home:network.backendUnreachable'),
       undefined,
       'error',
     );

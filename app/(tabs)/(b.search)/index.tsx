@@ -8,6 +8,7 @@ import {
   Keyboard,
 } from 'react-native';
 import {Stack} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {SearchView} from '@/components/search/SearchView';
 import {useTheme} from '@/hooks/useTheme';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -18,6 +19,7 @@ import {USE_GLASS} from '@/hooks/useGlassProps';
 
 export default function SearchScreen() {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const insets = useSafeAreaInsets();
   const [query, setQuery] = useState('');
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -36,7 +38,7 @@ export default function SearchScreen() {
       {USE_GLASS && (
         <Stack.SearchBar
           placement="automatic"
-          placeholder="Search surahs or reciters"
+          placeholder={t('search.placeholder')}
           onChangeText={e => setQuery(e.nativeEvent.text)}
           onFocus={() => setIsSearchActive(true)}
           onCancelButtonPress={() => {
@@ -79,7 +81,7 @@ export default function SearchScreen() {
               <TextInput
                 ref={inputRef}
                 style={[styles.androidSearchInput, {color: theme.colors.text}]}
-                placeholder="Search surahs or reciters"
+                placeholder={t('search.placeholder')}
                 placeholderTextColor={Color(theme.colors.text)
                   .alpha(0.35)
                   .toString()}
@@ -105,7 +107,7 @@ export default function SearchScreen() {
             {isSearchActive && (
               <Pressable onPress={handleCancel} hitSlop={4}>
                 <Text style={[styles.cancelText, {color: theme.colors.text}]}>
-                  Cancel
+                  {t('common:actions.cancel')}
                 </Text>
               </Pressable>
             )}

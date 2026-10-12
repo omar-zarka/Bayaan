@@ -8,7 +8,7 @@ import {PlayIcon, ShuffleIcon, HeartIcon} from '@/components/Icons';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {forceLTR, latinLetterSpacing} from '@/utils/rtl';
 
 interface LovedHeaderProps {
   title: string;
@@ -55,7 +55,7 @@ export const LovedHeader: React.FC<LovedHeaderProps> = ({
       </View>
 
       {/* Action Buttons */}
-      <View style={styles.actionButtons}>
+      <View style={[styles.actionButtons, forceLTR]}>
         {!USE_GLASS && onOptionsPress && (
           <Pressable style={styles.circleButton} onPress={onOptionsPress}>
             <Feather

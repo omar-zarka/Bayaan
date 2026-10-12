@@ -19,6 +19,7 @@ import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {useResponsive} from '@/hooks/useResponsive';
 import {GlassView} from 'expo-glass-effect';
 import {latinLetterSpacing} from '@/utils/rtl';
+import i18n from '@/i18n';
 
 // CONFIGURABLE ROW HEIGHT MULTIPLIER - This is the 'x' variable you can adjust
 const ROW_HEIGHT_UNIT = 80; // Base unit 'x' in points - adjust this value to change all card heights proportionally
@@ -42,8 +43,12 @@ interface BentoTile {
 const BROWSE_TILES: BentoTile[] = [
   {
     id: 'all-reciters',
-    title: 'Browse All',
-    subtitle: 'Reciters',
+    get title() {
+      return i18n.t('home:browse.browseAll');
+    },
+    get subtitle() {
+      return i18n.t('common:terms.reciters');
+    },
     backgroundColor: '#1E40AF',
     route: '/(tabs)/(b.search)/browse-all',
     heightMultiplier: 1,
@@ -53,8 +58,12 @@ const BROWSE_TILES: BentoTile[] = [
   },
   {
     id: 'all-surahs',
-    title: 'Browse All',
-    subtitle: 'Surahs',
+    get title() {
+      return i18n.t('home:browse.browseAll');
+    },
+    get subtitle() {
+      return i18n.t('common:terms.surahs');
+    },
     backgroundColor: '#7C3AED',
     route: '/(tabs)/(b.search)/browse-all-surahs',
     heightMultiplier: 1,

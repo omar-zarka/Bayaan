@@ -24,6 +24,7 @@ import {
 import {Ionicons} from '@expo/vector-icons';
 import {useAmbientStore} from '@/store/ambientStore';
 import Color from 'color';
+import {localizeDigits} from '@/i18n/format';
 
 interface ControlButtonsProps {
   onSpeedPress: () => void;
@@ -125,7 +126,7 @@ export const ControlButtons: React.FC<ControlButtonsProps> = ({
               color: playbackRate !== 1 ? activeIconColor : defaultIconColor,
             },
           ]}>
-          {`${playbackRate}x`}
+          {localizeDigits(`${playbackRate}x`)}
         </Text>
       </Pressable>
 

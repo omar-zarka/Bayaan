@@ -9,7 +9,7 @@ import {Theme} from '@/utils/themeUtils';
 import {PlaylistIcon, PlayIcon, ShuffleIcon} from '@/components/Icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
 
 interface PlaylistHeaderProps {
   title: string;
@@ -45,6 +45,7 @@ export const PlaylistHeader: React.FC<PlaylistHeaderProps> = ({
               name="arrow-left"
               size={moderateScale(24)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
         )}
@@ -68,7 +69,7 @@ export const PlaylistHeader: React.FC<PlaylistHeaderProps> = ({
       </View>
 
       {/* Action Buttons */}
-      <View style={styles.actionButtons}>
+      <View style={[styles.actionButtons, forceLTR]}>
         {!USE_GLASS && onOptionsPress && (
           <Pressable style={styles.circleButton} onPress={onOptionsPress}>
             <Feather

@@ -11,6 +11,8 @@ import {Link} from 'expo-router';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName} from '@/i18n/format';
 
 interface BrowseReciterCardProps {
   reciter: Reciter;
@@ -90,6 +92,7 @@ const BrowseReciterCard = React.memo(
     rewayatId,
     showFollowAlong,
   }: BrowseReciterCardProps) => {
+    const {t} = useTranslation('home');
     const glassColorScheme = useGlassColorScheme();
     const styles = useMemo(
       () => createStyles(theme, width, height),
@@ -114,12 +117,14 @@ const BrowseReciterCard = React.memo(
 
         <View style={styles.contentContainer}>
           <Text style={styles.reciterName} numberOfLines={1}>
-            {reciter.name}
+            {getReciterDisplayName(reciter)}
           </Text>
           <View style={styles.secondaryRow}>
             <Text style={styles.reciterInfo} numberOfLines={1}>
               {uniqueRewayatNames.length > 1
-                ? `${uniqueRewayatNames.length} rewayat available`
+                ? t('reciterCard.rewayatAvailable', {
+                    count: uniqueRewayatNames.length,
+                  })
                 : getDisplayLabelFromName(reciter.rewayat[0]?.name)}
             </Text>
             {showFollowAlong && <FollowAlongBadge />}

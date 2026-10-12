@@ -5,6 +5,7 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {useNavigation} from '@react-navigation/native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {flipX} from '@/utils/rtl';
 
 interface BackButtonProps {
   onPress?: () => void;
@@ -37,6 +38,7 @@ export const BackButton: React.FC<BackButtonProps> = ({
         name="arrow-left"
         color={theme.colors.text}
         size={moderateScale(iconSize)}
+        style={flipX}
       />
     </Pressable>
   );

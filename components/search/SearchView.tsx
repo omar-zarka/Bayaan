@@ -32,6 +32,7 @@ import {ExploreView} from '@/components/search/ExploreView';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 const RECENT_SEARCHES_KEY = 'recentSearches';
 const MAX_RECENT_SEARCHES = 10;
@@ -82,6 +83,7 @@ export function SearchView({
   const searchOpacity = useRef(new RNAnimated.Value(0)).current;
 
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const {askEveryTime, defaultReciterSelection} = useSettings();
   const defaultReciter = useReciterStore(state => state.defaultReciter);
   const insets = useSafeAreaInsets();
@@ -480,7 +482,7 @@ export function SearchView({
                           .toString(),
                       },
                     ]}>
-                    Recent searches
+                    {t('search.recentSearches')}
                   </Text>
                   <Pressable onPress={clearRecentSearches}>
                     <Text
@@ -492,7 +494,7 @@ export function SearchView({
                             .toString(),
                         },
                       ]}>
-                      Clear
+                      {t('common:actions.clear')}
                     </Text>
                   </Pressable>
                 </View>
@@ -529,7 +531,7 @@ export function SearchView({
                         .toString(),
                     },
                   ]}>
-                  No recent searches
+                  {t('search.noRecent')}
                 </Text>
                 <Text
                   style={[
@@ -540,7 +542,7 @@ export function SearchView({
                         .toString(),
                     },
                   ]}>
-                  Your search history will appear here
+                  {t('search.noRecentHint')}
                 </Text>
               </View>
             )}
@@ -581,7 +583,7 @@ export function SearchView({
                           .toString(),
                       },
                     ]}>
-                    No results found
+                    {t('common:status.noResults')}
                   </Text>
                   <Text
                     style={[
@@ -592,7 +594,7 @@ export function SearchView({
                           .toString(),
                       },
                     ]}>
-                    Try different keywords or check the spelling
+                    {t('search.noResultsHint')}
                   </Text>
                 </View>
               ) : null

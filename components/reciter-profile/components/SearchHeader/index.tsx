@@ -6,6 +6,7 @@ import {Theme} from '@/utils/themeUtils';
 import {useTheme} from '@/hooks/useTheme';
 import SearchBar from '@/components/SearchBar';
 import {SearchHeaderProps} from '@/components/reciter-profile/types';
+import {useTranslation} from 'react-i18next';
 
 /**
  * SearchHeader component for the ReciterProfile
@@ -22,6 +23,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   insets,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('player');
   const styles = createStyles(theme);
 
   if (!showSearch) return null;
@@ -33,7 +35,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         {paddingTop: insets.top + moderateScale(15)},
       ]}>
       <SearchBar
-        placeholder="Search Surahs"
+        placeholder={t('reciterProfile.searchPlaceholder')}
         onChangeText={onSearchChange}
         value={searchQuery}
       />

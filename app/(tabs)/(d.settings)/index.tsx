@@ -30,7 +30,9 @@ import {
 import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {ThemePicker} from '@/components/settings/ThemePicker';
 import branding from '@/config/branding';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import type {TFunction} from 'i18next';
 
 const isExternalLink = (type: string): boolean => {
   return [
@@ -43,138 +45,141 @@ const isExternalLink = (type: string): boolean => {
   ].includes(type);
 };
 
-const settingsItems = [
-  {
-    section: 'Quran',
-    items: [
-      {
-        title: 'Mushaf Settings',
-        type: 'mushafSettings',
-        description: 'Customize Quran display options',
-        icon: 'quran',
-        iconType: 'custom',
-      },
-      {
-        title: 'Translations & Tafaseer',
-        type: 'translations',
-        description: 'Manage Quran translations and commentary',
-        icon: 'dualPages',
-        iconType: 'custom',
-      },
-    ],
-  },
-  {
-    section: 'Audio & Playback',
-    items: [
-      {
-        title: 'Default Reciter',
-        type: 'defaultReciter',
-        description: 'Choose your preferred reciter',
-        icon: 'personAudio',
-        iconType: 'custom',
-      },
-      {
-        title: 'Reciter Choice',
-        type: 'reciterChoice',
-        description: 'Customize reciter selection',
-        icon: 'selectionList',
-        iconType: 'custom',
-      },
-    ],
-  },
-  {
-    section: 'App & Data',
-    items: [
-      {
-        title: 'Language',
-        type: 'language',
-        description: 'Choose the app language',
-        icon: 'globe',
-        iconType: 'feather',
-      },
-      {
-        title: 'Storage',
-        type: 'storage',
-        description: 'View and manage storage usage',
-        icon: 'database',
-        iconType: 'custom',
-      },
-    ],
-  },
-  {
-    section: 'Feedback',
-    items: [
-      {
-        title: 'Write a Review',
-        type: 'rateApp',
-        description: 'Share your experience with others',
-        icon: 'star',
-        iconType: 'custom',
-      },
-      {
-        title: 'Feature Requests',
-        type: 'featureRequest',
-        description: 'Suggest improvements and new features',
-        icon: 'lightbulb',
-        iconType: 'custom',
-      },
-      {
-        title: 'Help & Support',
-        type: 'support',
-        description: `Get assistance with using ${branding.appName}`,
-        icon: 'chatBubble',
-        iconType: 'custom',
-      },
-    ],
-  },
-  {
-    section: `About ${branding.appName}`,
-    items: [
-      {
-        title: "What's New",
-        type: 'whatsNew',
-        description: "See what's new in this version",
-        icon: 'giftBox',
-        iconType: 'custom',
-      },
-      {
-        title: `About ${branding.appName}`,
-        type: 'about',
-        description: 'Learn more about our mission',
-        icon: 'infoRounded',
-        iconType: 'custom',
-      },
-      {
-        title: 'Credits',
-        type: 'credits',
-        description: 'View contributors and acknowledgments',
-        icon: 'medal',
-        iconType: 'custom',
-      },
-      {
-        title: 'Contribute on GitHub',
-        type: 'github',
-        description: `${branding.appName} is now open source. Star, report issues, or submit a PR`,
-        icon: 'github',
-        iconType: 'feather',
-      },
-      {
-        title: 'Terms of Service',
-        type: 'terms',
-        description: 'Read our terms of service',
-        icon: 'docCheck',
-        iconType: 'custom',
-      },
-      {
-        title: 'Privacy Policy',
-        type: 'privacy',
-        description: 'View our privacy policy',
-        icon: 'shieldLock',
-        iconType: 'custom',
-      },
-    ],
-  },
-];
+const getSettingsSections = (t: TFunction<['settings', 'common']>) => {
+  const appName = branding.appName;
+  return [
+    {
+      section: t('index.sections.quran'),
+      items: [
+        {
+          title: t('index.items.mushafSettings.title'),
+          type: 'mushafSettings',
+          description: t('index.items.mushafSettings.description'),
+          icon: 'quran',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.translations.title'),
+          type: 'translations',
+          description: t('index.items.translations.description'),
+          icon: 'dualPages',
+          iconType: 'custom',
+        },
+      ],
+    },
+    {
+      section: t('index.sections.audio'),
+      items: [
+        {
+          title: t('index.items.defaultReciter.title'),
+          type: 'defaultReciter',
+          description: t('index.items.defaultReciter.description'),
+          icon: 'personAudio',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.reciterChoice.title'),
+          type: 'reciterChoice',
+          description: t('index.items.reciterChoice.description'),
+          icon: 'selectionList',
+          iconType: 'custom',
+        },
+      ],
+    },
+    {
+      section: t('index.sections.appData'),
+      items: [
+        {
+          title: t('common:language.title'),
+          type: 'language',
+          description: t('common:language.description'),
+          icon: 'globe',
+          iconType: 'feather',
+        },
+        {
+          title: t('index.items.storage.title'),
+          type: 'storage',
+          description: t('index.items.storage.description'),
+          icon: 'database',
+          iconType: 'custom',
+        },
+      ],
+    },
+    {
+      section: t('index.sections.feedback'),
+      items: [
+        {
+          title: t('index.items.rateApp.title'),
+          type: 'rateApp',
+          description: t('index.items.rateApp.description'),
+          icon: 'star',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.featureRequest.title'),
+          type: 'featureRequest',
+          description: t('index.items.featureRequest.description'),
+          icon: 'lightbulb',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.support.title'),
+          type: 'support',
+          description: t('index.items.support.description', {appName}),
+          icon: 'chatBubble',
+          iconType: 'custom',
+        },
+      ],
+    },
+    {
+      section: t('index.sections.about', {appName}),
+      items: [
+        {
+          title: t('index.items.whatsNew.title'),
+          type: 'whatsNew',
+          description: t('index.items.whatsNew.description'),
+          icon: 'giftBox',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.about.title', {appName}),
+          type: 'about',
+          description: t('index.items.about.description'),
+          icon: 'infoRounded',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.credits.title'),
+          type: 'credits',
+          description: t('index.items.credits.description'),
+          icon: 'medal',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.github.title'),
+          type: 'github',
+          description: t('index.items.github.description', {appName}),
+          icon: 'github',
+          iconType: 'feather',
+        },
+        {
+          title: t('index.items.terms.title'),
+          type: 'terms',
+          description: t('index.items.terms.description'),
+          icon: 'docCheck',
+          iconType: 'custom',
+        },
+        {
+          title: t('index.items.privacy.title'),
+          type: 'privacy',
+          description: t('index.items.privacy.description'),
+          icon: 'shieldLock',
+          iconType: 'custom',
+        },
+      ],
+    },
+  ];
+};
 
 const customIconMap: Record<string, React.FC<{size: number; color: string}>> = {
   quran: QuranIcon,
@@ -228,6 +233,8 @@ export default function SettingsScreen() {
   const styles = useMemo(() => createStyles(theme), [theme]);
   const glassColorScheme = useGlassColorScheme();
   const {showFloatingDevMenu, toggleFloatingDevMenu} = useDevSettingsStore();
+  const {t} = useTranslation(['settings', 'common']);
+  const settingsSections = useMemo(() => getSettingsSections(t), [t]);
 
   const iconColor = theme.colors.text;
   const chevronColor = theme.colors.textSecondary;
@@ -326,12 +333,12 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}>
         {/* Appearance */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>APPEARANCE</Text>
+          <Text style={styles.sectionHeader}>{t('index.appearance')}</Text>
           <ThemePicker />
         </View>
 
         {/* Settings Sections */}
-        {settingsItems.map(section => (
+        {settingsSections.map(section => (
           <View key={section.section} style={styles.section}>
             <Text style={styles.sectionHeader}>
               {section.section.toUpperCase()}
@@ -363,6 +370,7 @@ export default function SettingsScreen() {
                       }
                       size={moderateScale(16)}
                       color={chevronColor}
+                      style={isExternalLink(item.type) ? undefined : flipX}
                     />
                   </Pressable>
                 </React.Fragment>

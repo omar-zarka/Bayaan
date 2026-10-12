@@ -8,6 +8,7 @@ import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
+import {getTrackDisplayTitle} from '@/i18n/format';
 
 interface TabletDockedPlayerProps {
   /** When true, shows artwork + title + subtitle + play. When false, artwork-only compact mode. */
@@ -43,9 +44,7 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
       if (currentTrack?.id) {
         prevTrackIdRef.current = currentTrack.id;
       }
-      return (
-        (trackLoading && isTrackChanging) || playbackState === 'buffering'
-      );
+      return (trackLoading && isTrackChanging) || playbackState === 'buffering';
     }, [trackLoading, playbackState, currentTrack?.id]);
 
     const handlePress = useCallback(() => {
@@ -104,7 +103,7 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
         />
         <View style={styles.trackInfo}>
           <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-            {currentTrack.title}
+            {getTrackDisplayTitle(currentTrack)}
           </Text>
           <Text
             style={[styles.subtitle, {color: subtitleColor}]}

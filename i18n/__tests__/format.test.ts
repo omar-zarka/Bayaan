@@ -6,6 +6,7 @@ import {
   getSurahDisplayName,
   getSurahMeaning,
   getReciterDisplayName,
+  getTrackDisplayTitle,
 } from '../format';
 
 const fatiha = {
@@ -42,6 +43,18 @@ describe('surah and reciter names', () => {
   it('hides the English meaning in Arabic', () => {
     expect(getSurahMeaning(fatiha, 'ar')).toBeNull();
     expect(getSurahMeaning(fatiha, 'en')).toBe('The Opener');
+  });
+
+  it('resolves Arabic track titles from surahId but keeps upload titles', () => {
+    const track = {title: 'Al-Fatihah', surahId: '1'};
+    expect(getTrackDisplayTitle(track, 'ar')).toBe('الفاتحة');
+    expect(getTrackDisplayTitle(track, 'en')).toBe('Al-Fatihah');
+    expect(
+      getTrackDisplayTitle(
+        {...track, title: 'My Fatiha', isUserUpload: true},
+        'ar',
+      ),
+    ).toBe('My Fatiha');
   });
 
   it('falls back to the English reciter name without an Arabic one', () => {

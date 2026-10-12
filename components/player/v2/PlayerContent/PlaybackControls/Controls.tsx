@@ -12,6 +12,8 @@ import {
   SeekForwardIcon,
   SeekBackwardIcon,
 } from '@/components/Icons';
+import {localizeDigits} from '@/i18n/format';
+import {forceLTR} from '@/utils/rtl';
 
 const SEEK_INTERVAL = 15; // seconds
 
@@ -78,7 +80,7 @@ export const Controls = () => {
   const isLastTrack = currentIndex === tracksLength - 1;
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, forceLTR]}>
       <Pressable
         onPress={handleSeekBackward}
         disabled={trackLoading}
@@ -99,7 +101,7 @@ export const Controls = () => {
                   : theme.colors.text,
               },
             ]}>
-            {SEEK_INTERVAL}
+            {localizeDigits(SEEK_INTERVAL)}
           </Text>
         </View>
       </Pressable>
@@ -157,7 +159,7 @@ export const Controls = () => {
                   : theme.colors.text,
               },
             ]}>
-            {SEEK_INTERVAL}
+            {localizeDigits(SEEK_INTERVAL)}
           </Text>
         </View>
       </Pressable>

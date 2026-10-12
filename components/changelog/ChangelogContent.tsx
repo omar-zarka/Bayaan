@@ -5,6 +5,8 @@ import {useTheme} from '@/hooks/useTheme';
 import {Ionicons} from '@expo/vector-icons';
 import Color from 'color';
 import {ChangelogEntry} from '@/types/changelog';
+import {useTranslation} from 'react-i18next';
+import {currentLanguage} from '@/i18n/language';
 
 interface ChangelogContentProps {
   changelog: ChangelogEntry;
@@ -18,11 +20,12 @@ export function ChangelogContent({
   showFullDetails = false,
 }: ChangelogContentProps) {
   const {theme} = useTheme();
+  const {t} = useTranslation('settings');
 
   const sectionConfig = [
-    {key: 'features', title: 'New Features', icon: '✨'},
-    {key: 'improvements', title: 'Improvements', icon: '⚡'},
-    {key: 'fixes', title: 'Bug Fixes', icon: '🔧'},
+    {key: 'features', title: t('changelog.features'), icon: '✨'},
+    {key: 'improvements', title: t('changelog.improvements'), icon: '⚡'},
+    {key: 'fixes', title: t('changelog.fixes'), icon: '🔧'},
   ];
 
   return (
@@ -37,7 +40,10 @@ export function ChangelogContent({
             style={styles.logo}
           />
           <Text style={[styles.version, {color: theme.colors.textSecondary}]}>
-            Version {changelog.version} · {formatDate(changelog.releaseDate)}
+            {t('changelog.versionDate', {
+              version: changelog.version,
+              date: formatDate(changelog.releaseDate),
+            })}
           </Text>
         </View>
       )}
@@ -124,7 +130,10 @@ function formatDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
   };
-  return date.toLocaleDateString('en-US', options);
+  return date.toLocaleDateString(
+    currentLanguage === 'ar' ? 'ar' : 'en-US',
+    options,
+  );
 }
 
 const styles = StyleSheet.create({

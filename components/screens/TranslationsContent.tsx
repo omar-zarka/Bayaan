@@ -42,55 +42,116 @@ import {useBottomInset} from '@/hooks/useBottomInset';
 import {AVAILABLE_TRANSLATIONS} from '@/data/availableTranslations';
 import {AVAILABLE_TAFASEER} from '@/data/availableTafaseer';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import i18n from '@/i18n';
+import {localizeDigits} from '@/i18n/format';
 
 type ActiveTab = 'Translations' | 'Tafaseer';
 const TAB_OPTIONS: ActiveTab[] = ['Translations', 'Tafaseer'];
 
-const LANGUAGE_NAMES: Record<string, string> = {
-  en: 'English',
-  ar: 'Arabic',
-  fr: 'French',
-  de: 'German',
-  es: 'Spanish',
-  pt: 'Portuguese',
-  ru: 'Russian',
-  tr: 'Turkish',
-  ur: 'Urdu',
-  id: 'Indonesian',
-  ms: 'Malay',
-  bn: 'Bengali',
-  hi: 'Hindi',
-  fa: 'Persian',
-  zh: 'Chinese',
-  ja: 'Japanese',
-  ko: 'Korean',
-  it: 'Italian',
-  nl: 'Dutch',
-  pl: 'Polish',
-  sv: 'Swedish',
-  th: 'Thai',
-  vi: 'Vietnamese',
-  ha: 'Hausa',
-  so: 'Somali',
-  sw: 'Swahili',
-  am: 'Amharic',
-  az: 'Azerbaijani',
-  bs: 'Bosnian',
-  cs: 'Czech',
-  dv: 'Dhivehi',
-  ku: 'Kurdish',
-  ml: 'Malayalam',
-  no: 'Norwegian',
-  ro: 'Romanian',
-  sq: 'Albanian',
-  ta: 'Tamil',
-  tt: 'Tatar',
-  ug: 'Uyghur',
-  uz: 'Uzbek',
+const LANGUAGE_CODES = [
+  'en',
+  'ar',
+  'fr',
+  'de',
+  'es',
+  'pt',
+  'ru',
+  'tr',
+  'ur',
+  'id',
+  'ms',
+  'bn',
+  'hi',
+  'fa',
+  'zh',
+  'ja',
+  'ko',
+  'it',
+  'nl',
+  'pl',
+  'sv',
+  'th',
+  'vi',
+  'ha',
+  'so',
+  'sw',
+  'am',
+  'az',
+  'bs',
+  'cs',
+  'dv',
+  'ku',
+  'ml',
+  'no',
+  'ro',
+  'sq',
+  'ta',
+  'tt',
+  'ug',
+  'uz',
+] as const;
+
+type LanguageCode = (typeof LANGUAGE_CODES)[number];
+
+const ENGLISH_LANGUAGE_NAMES: Record<string, LanguageCode> = {
+  English: 'en',
+  Arabic: 'ar',
+  French: 'fr',
+  German: 'de',
+  Spanish: 'es',
+  Portuguese: 'pt',
+  Russian: 'ru',
+  Turkish: 'tr',
+  Urdu: 'ur',
+  Indonesian: 'id',
+  Malay: 'ms',
+  Bengali: 'bn',
+  Hindi: 'hi',
+  Persian: 'fa',
+  Chinese: 'zh',
+  Japanese: 'ja',
+  Korean: 'ko',
+  Italian: 'it',
+  Dutch: 'nl',
+  Polish: 'pl',
+  Swedish: 'sv',
+  Thai: 'th',
+  Vietnamese: 'vi',
+  Hausa: 'ha',
+  Somali: 'so',
+  Swahili: 'sw',
+  Amharic: 'am',
+  Azerbaijani: 'az',
+  Bosnian: 'bs',
+  Czech: 'cs',
+  Dhivehi: 'dv',
+  Kurdish: 'ku',
+  Malayalam: 'ml',
+  Norwegian: 'no',
+  Romanian: 'ro',
+  Albanian: 'sq',
+  Tamil: 'ta',
+  Tatar: 'tt',
+  Uyghur: 'ug',
+  Uzbek: 'uz',
 };
 
+function isLanguageCode(code: string): code is LanguageCode {
+  return (LANGUAGE_CODES as readonly string[]).includes(code);
+}
+
 function getLanguageDisplayName(code: string): string {
-  return LANGUAGE_NAMES[code] ?? code.charAt(0).toUpperCase() + code.slice(1);
+  if (isLanguageCode(code)) {
+    return i18n.t(`home:languages.${code}`);
+  }
+  return code.charAt(0).toUpperCase() + code.slice(1);
+}
+
+/** Tafseer editions store the English language name rather than a code. */
+function getTafseerLanguageDisplayName(name: string): string {
+  const code = ENGLISH_LANGUAGE_NAMES[name];
+  return code ? i18n.t(`home:languages.${code}`) : name;
 }
 
 function normalizeTafseerLanguage(lang: string): string {
@@ -127,6 +188,7 @@ type FlatItem = MetaHeaderItem | LangHeaderItem | RowItem;
 
 export default function TranslationsContent() {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const navigation = useNavigation();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const rawHeaderHeight = useHeaderHeight();
@@ -200,23 +262,23 @@ export default function TranslationsContent() {
         await downloadTranslation(editionId);
       } catch {
         Alert.alert(
-          'Download Failed',
-          'Unable to download this translation. Please check your internet connection and try again.',
+          t('translations.downloadFailedTitle'),
+          t('translations.translationDownloadFailed'),
         );
       }
     },
-    [downloadTranslation],
+    [downloadTranslation, t],
   );
 
   const handleDelete = useCallback(
     (meta: DownloadedTranslationMeta) => {
       Alert.alert(
-        'Delete Translation',
-        `Remove "${meta.englishName}"? You can download it again later.`,
+        t('translations.deleteTranslationTitle'),
+        t('translations.deleteMessage', {name: meta.englishName}),
         [
-          {text: 'Cancel', style: 'cancel'},
+          {text: t('common:actions.cancel'), style: 'cancel'},
           {
-            text: 'Delete',
+            text: t('common:actions.delete'),
             style: 'destructive',
             onPress: async () => {
               if (selectedTranslationId === meta.identifier) {
@@ -228,7 +290,7 @@ export default function TranslationsContent() {
         ],
       );
     },
-    [deleteTranslation, selectedTranslationId, setSelectedTranslationId],
+    [deleteTranslation, selectedTranslationId, setSelectedTranslationId, t],
   );
 
   // --- Tafseer handlers ---
@@ -247,23 +309,23 @@ export default function TranslationsContent() {
         await downloadTafseer(editionId);
       } catch {
         Alert.alert(
-          'Download Failed',
-          'Unable to download this tafseer. Please check your internet connection and try again.',
+          t('translations.downloadFailedTitle'),
+          t('translations.tafseerDownloadFailed'),
         );
       }
     },
-    [downloadTafseer],
+    [downloadTafseer, t],
   );
 
   const handleDeleteTafseer = useCallback(
     (meta: DownloadedTafseerMeta) => {
       Alert.alert(
-        'Delete Tafseer',
-        `Remove "${meta.englishName}"? You can download it again later.`,
+        t('translations.deleteTafseerTitle'),
+        t('translations.deleteMessage', {name: meta.englishName}),
         [
-          {text: 'Cancel', style: 'cancel'},
+          {text: t('common:actions.cancel'), style: 'cancel'},
           {
-            text: 'Delete',
+            text: t('common:actions.delete'),
             style: 'destructive',
             onPress: async () => {
               await deleteTafseer(meta.identifier);
@@ -272,7 +334,7 @@ export default function TranslationsContent() {
         ],
       );
     },
-    [deleteTafseer],
+    [deleteTafseer, t],
   );
 
   // --- Flattened data for FlashList ---
@@ -334,7 +396,7 @@ export default function TranslationsContent() {
       .sort((a, b) => a.englishName.localeCompare(b.englishName));
 
     if (availableRows.length > 0) {
-      items.push({type: 'meta-header', title: 'AVAILABLE'});
+      items.push({type: 'meta-header', title: t('translations.available')});
       availableRows.forEach((row, idx) => {
         row.isFirstInGroup = idx === 0;
         row.isLastInGroup = idx === availableRows.length - 1;
@@ -372,7 +434,7 @@ export default function TranslationsContent() {
     }
 
     return items;
-  }, [selectedTranslationId, downloadedMeta, downloadedIds]);
+  }, [selectedTranslationId, downloadedMeta, downloadedIds, t]);
 
   const tafseerData = useMemo((): FlatItem[] => {
     const items: FlatItem[] = [];
@@ -414,7 +476,7 @@ export default function TranslationsContent() {
       .sort((a, b) => a.englishName.localeCompare(b.englishName));
 
     if (availableRows.length > 0) {
-      items.push({type: 'meta-header', title: 'AVAILABLE'});
+      items.push({type: 'meta-header', title: t('translations.available')});
       availableRows.forEach((row, idx) => {
         row.isFirstInGroup = idx === 0;
         row.isLastInGroup = idx === availableRows.length - 1;
@@ -439,7 +501,11 @@ export default function TranslationsContent() {
       const rows = byLang[lang].sort((a, b) =>
         a.englishName.localeCompare(b.englishName),
       );
-      items.push({type: 'lang-header', title: lang, count: rows.length});
+      items.push({
+        type: 'lang-header',
+        title: getTafseerLanguageDisplayName(lang),
+        count: rows.length,
+      });
       rows.forEach((row, idx) => {
         row.isFirstInGroup = idx === 0;
         row.isLastInGroup = idx === rows.length - 1;
@@ -448,7 +514,7 @@ export default function TranslationsContent() {
     }
 
     return items;
-  }, [selectedTafseerId, tafseerDownloaded, tafseerDownloadedIds]);
+  }, [selectedTafseerId, tafseerDownloaded, tafseerDownloadedIds, t]);
 
   const getItemType = useCallback((item: FlatItem) => item.type, []);
 
@@ -472,7 +538,7 @@ export default function TranslationsContent() {
   const translationListHeader = useMemo(() => {
     const activeName = getTranslationName(selectedTranslationId);
     const activeLang = isBundledTranslation(selectedTranslationId)
-      ? 'English'
+      ? getLanguageDisplayName('en')
       : getLanguageDisplayName(
           AVAILABLE_TRANSLATIONS.find(
             e => e.identifier === selectedTranslationId,
@@ -484,7 +550,9 @@ export default function TranslationsContent() {
     return (
       <>
         <View style={styles.metaHeaderContainer}>
-          <Text style={styles.metaHeader}>ACTIVE TRANSLATION</Text>
+          <Text style={styles.metaHeader}>
+            {t('translations.activeTranslation')}
+          </Text>
         </View>
         <View style={styles.activeCard}>
           <View style={styles.activeCardText}>
@@ -494,12 +562,14 @@ export default function TranslationsContent() {
             <Text style={styles.activeCardLanguage}>{activeLang}</Text>
           </View>
           <View style={styles.activeBadge}>
-            <Text style={styles.activeBadgeText}>Active</Text>
+            <Text style={styles.activeBadgeText}>
+              {t('translations.active')}
+            </Text>
           </View>
         </View>
       </>
     );
-  }, [selectedTranslationId, downloadedMeta, styles]);
+  }, [selectedTranslationId, downloadedMeta, styles, t]);
 
   const tafseerListHeader = useMemo(() => {
     if (!selectedTafseerId) return null;
@@ -510,7 +580,9 @@ export default function TranslationsContent() {
     return (
       <>
         <View style={styles.metaHeaderContainer}>
-          <Text style={styles.metaHeader}>ACTIVE TAFSEER</Text>
+          <Text style={styles.metaHeader}>
+            {t('translations.activeTafseer')}
+          </Text>
         </View>
         <View style={styles.activeCard}>
           <View style={styles.activeCardText}>
@@ -518,16 +590,20 @@ export default function TranslationsContent() {
               {activeMeta.englishName}
             </Text>
             <Text style={styles.activeCardLanguage}>
-              {normalizeTafseerLanguage(activeMeta.language)}
+              {getTafseerLanguageDisplayName(
+                normalizeTafseerLanguage(activeMeta.language),
+              )}
             </Text>
           </View>
           <View style={styles.activeBadge}>
-            <Text style={styles.activeBadgeText}>Active</Text>
+            <Text style={styles.activeBadgeText}>
+              {t('translations.active')}
+            </Text>
           </View>
         </View>
       </>
     );
-  }, [selectedTafseerId, tafseerDownloaded, styles]);
+  }, [selectedTafseerId, tafseerDownloaded, styles, t]);
 
   // --- Render ---
   const renderHeaderItem = useCallback(
@@ -543,7 +619,7 @@ export default function TranslationsContent() {
         return (
           <View style={styles.langHeaderContainer}>
             <Text style={styles.langHeader}>{item.title}</Text>
-            <Text style={styles.langCount}>{item.count}</Text>
+            <Text style={styles.langCount}>{localizeDigits(item.count)}</Text>
           </View>
         );
       }
@@ -614,7 +690,7 @@ export default function TranslationsContent() {
             <View style={styles.progressContainer}>
               <ActivityIndicator size="small" color={theme.colors.text} />
               <Text style={styles.progressText}>
-                {Math.round(downloadProgress * 100)}%
+                {localizeDigits(`${Math.round(downloadProgress * 100)}%`)}
               </Text>
             </View>
           ) : isReady ? (
@@ -695,7 +771,9 @@ export default function TranslationsContent() {
             <View style={styles.progressContainer}>
               <ActivityIndicator size="small" color={theme.colors.text} />
               <Text style={styles.progressText}>
-                {Math.round(tafseerDownloadProgress * 100)}%
+                {localizeDigits(
+                  `${Math.round(tafseerDownloadProgress * 100)}%`,
+                )}
               </Text>
             </View>
           ) : isReady ? (
@@ -752,20 +830,27 @@ export default function TranslationsContent() {
           options={TAB_OPTIONS}
           selectedOption={activeTab}
           onSelect={handleTabChange}
+          getLabel={tab =>
+            tab === 'Translations'
+              ? t('common:terms.translations')
+              : t('common:terms.tafaseer')
+          }
           width={moderateScale(220)}
         />
       ),
     });
-  }, [navigation, activeTab, handleTabChange, theme.colors.text]);
+  }, [navigation, activeTab, handleTabChange, theme.colors.text, t]);
 
   const translationEmptyComponent = useMemo(
-    () => <Text style={styles.emptyText}>No translations found</Text>,
-    [styles],
+    () => (
+      <Text style={styles.emptyText}>{t('translations.noTranslations')}</Text>
+    ),
+    [styles, t],
   );
 
   const tafseerEmptyComponent = useMemo(
-    () => <Text style={styles.emptyText}>No tafaseer found</Text>,
-    [styles],
+    () => <Text style={styles.emptyText}>{t('translations.noTafaseer')}</Text>,
+    [styles, t],
   );
 
   return (

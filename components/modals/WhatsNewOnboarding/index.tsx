@@ -32,6 +32,8 @@ import {
 import {getOnboardingPages, OnboardingPage} from '@/data/onboardingPages';
 import OnboardingPageComponent from './OnboardingPage';
 import DotIndicator from './DotIndicator';
+import {useTranslation} from 'react-i18next';
+import {forceLTR} from '@/utils/rtl';
 
 const {width: SCREEN_WIDTH, height: SCREEN_HEIGHT} = Dimensions.get('window');
 
@@ -41,6 +43,7 @@ export interface WhatsNewModalRef {
 
 export const WhatsNewModal = forwardRef<WhatsNewModalRef>((_, ref) => {
   const {theme} = useTheme();
+  const {t} = useTranslation(['settings', 'common']);
   const [visible, setVisible] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [pages, setPages] = useState<OnboardingPage[]>(getOnboardingPages());
@@ -168,12 +171,12 @@ export const WhatsNewModal = forwardRef<WhatsNewModalRef>((_, ref) => {
             hitSlop={12}>
             <Text
               style={[styles.skipText, {color: theme.colors.textSecondary}]}>
-              Skip
+              {t('onboarding.skip')}
             </Text>
           </Pressable>
 
           {/* Pages */}
-          <View style={styles.pagesContainer}>
+          <View style={[styles.pagesContainer, forceLTR]}>
             <Animated.FlatList
               ref={flatListRef as any}
               data={pages}
@@ -209,7 +212,9 @@ export const WhatsNewModal = forwardRef<WhatsNewModalRef>((_, ref) => {
             onPress={handleNext}>
             <Text
               style={[styles.buttonText, {color: theme.colors.textSecondary}]}>
-              {isLastPage ? 'Get Started' : 'Next'}
+              {isLastPage
+                ? t('onboarding.getStarted')
+                : t('common:actions.next')}
             </Text>
           </Pressable>
         </Animated.View>

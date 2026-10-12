@@ -47,6 +47,8 @@ import {useAdhkarStore} from '@/store/adhkarStore';
 import {AdhkarBentoCard} from '@/components/adhkar/AdhkarBentoCard';
 import {SuperCategory} from '@/types/adhkar';
 import branding, {type HomeRow, type HomeRowId} from '@/config/branding';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 
 /**
  * Fallback row order used when `branding.homeRowConfig` is undefined.
@@ -190,6 +192,7 @@ const RenderSectionItem = React.memo(
     onPlaylistPress?: (playlist: UserPlaylist) => void;
   }) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['home', 'common']);
 
     // Derive reciter ID for follow-along badge
     const reciterId =
@@ -209,8 +212,8 @@ const RenderSectionItem = React.memo(
                 ? (item.reciter?.image_url ?? undefined)
                 : undefined
             }
-            reciterName={item.uploadArtist || 'My Recitations'}
-            surahName={item.uploadTitle || 'Upload'}
+            reciterName={item.uploadArtist || t('home.myRecitations')}
+            surahName={item.uploadTitle || t('home.upload')}
             trackId={`upload:${item.userRecitationId}`}
             reciterId={item.reciter?.id || '__uploads__'}
             surahId={item.surah?.id || 0}
@@ -230,8 +233,8 @@ const RenderSectionItem = React.memo(
       return (
         <RecentReciterCard
           imageUrl={item.reciter.image_url ?? undefined}
-          reciterName={item.reciter.name}
-          surahName={item.surah.name}
+          reciterName={getReciterDisplayName(item.reciter)}
+          surahName={getSurahDisplayName(item.surah)}
           trackId={`${item.reciter.id}:${item.surah.id}`}
           reciterId={item.reciter.id}
           surahId={item.surah.id}
@@ -248,7 +251,7 @@ const RenderSectionItem = React.memo(
       return (
         <CircularReciterCard
           imageUrl={reciter.image_url ?? undefined}
-          name={reciter.name}
+          name={getReciterDisplayName(reciter)}
           onPress={() => onReciterPress(reciter)}
           showFollowAlong={showFollowAlong}
         />
@@ -339,6 +342,7 @@ const Section = React.memo(
     onClear?: () => void;
     theme: Theme;
   }) => {
+    const {t} = useTranslation(['home', 'common']);
     if (!data.length) return null;
 
     return (
@@ -358,7 +362,7 @@ const Section = React.memo(
                       .toString(),
                   },
                 ]}>
-                Clear
+                {t('common:actions.clear')}
               </Text>
             </Pressable>
           )}
@@ -406,6 +410,7 @@ function seededShuffle<T>(array: T[], seed: number): T[] {
 
 function RecitersView({onReciterPress}: RecitersViewProps) {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const bottomInset = useBottomInset();
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -567,7 +572,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     'continue-listening':
       validRecentTracks.length > 0 ? (
         <Section
-          title="Continue Listening"
+          title={t('home.continueListening')}
           data={validRecentTracks}
           variant="recent"
           onReciterPress={onReciterPress}
@@ -579,7 +584,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     'new-to-quran':
       showNewToQuran && beginnerFriendlyReciters.length > 0 ? (
         <Section
-          title="New to Quran? Start Here"
+          title={t('home.newToQuran')}
           data={beginnerFriendlyReciters}
           variant="default"
           onReciterPress={onReciterPress}
@@ -590,7 +595,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     favorites:
       favoriteRecitersSection.length > 0 ? (
         <Section
-          title="Your Favorites"
+          title={t('home.yourFavorites')}
           data={favoriteRecitersSection}
           variant="circular"
           onReciterPress={onReciterPress}
@@ -601,7 +606,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     featured:
       featuredReciters.length > 0 ? (
         <Section
-          title="Featured Reciters"
+          title={t('home.featuredReciters')}
           data={featuredReciters}
           variant="default"
           onReciterPress={onReciterPress}
@@ -614,7 +619,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, {color: theme.colors.text}]}>
-              Adhkar
+              {t('common:terms.adhkar')}
             </Text>
             <Pressable
               onPress={() => router.push('/(tabs)/(a.home)/adhkar')}
@@ -628,7 +633,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
                       .toString(),
                   },
                 ]}>
-                See More
+                {t('home.seeMore')}
               </Text>
             </Pressable>
           </View>
@@ -646,7 +651,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     'follow-along':
       followAlongReciters.length > 0 ? (
         <Section
-          title="Follow Along"
+          title={t('home.followAlong')}
           data={followAlongReciters}
           variant="default"
           onReciterPress={onReciterPress}
@@ -657,7 +662,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     playlists:
       playlists.length > 0 ? (
         <Section
-          title="Your Playlists"
+          title={t('home.yourPlaylists')}
           data={seededShuffle(playlists, sessionSeed + 8).slice(0, 10)}
           variant="playlist"
           onReciterPress={onReciterPress}
@@ -669,7 +674,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     exclusives:
       bayaanOriginalsReciters.length > 0 ? (
         <Section
-          title="Exclusives"
+          title={t('home.exclusives')}
           data={bayaanOriginalsReciters}
           variant="featured"
           onReciterPress={onReciterPress}
@@ -680,7 +685,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     tajweed:
       tajweedReciters.length > 0 ? (
         <Section
-          title="Best for Tajweed"
+          title={t('home.bestForTajweed')}
           data={tajweedReciters}
           variant="default"
           onReciterPress={onReciterPress}
@@ -691,7 +696,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     memorization:
       memorizationReciters.length > 0 ? (
         <Section
-          title="Best for Memorization"
+          title={t('home.bestForMemorization')}
           data={memorizationReciters}
           variant="default"
           onReciterPress={onReciterPress}
@@ -702,7 +707,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     rewayat:
       rewayatTypes.length > 0 ? (
         <Section
-          title="Explore by Rewayah"
+          title={t('home.exploreByRewayah')}
           data={rewayatTypes}
           variant="rewayat"
           onReciterPress={onReciterPress}
@@ -714,7 +719,7 @@ function RecitersView({onReciterPress}: RecitersViewProps) {
     collection:
       collectionReciters.length > 0 ? (
         <Section
-          title="From your Collection"
+          title={t('home.fromYourCollection')}
           data={collectionReciters}
           variant="default"
           onReciterPress={onReciterPress}

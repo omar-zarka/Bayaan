@@ -14,6 +14,7 @@ import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 const COLORS = Object.entries(HIGHLIGHT_COLORS) as [HighlightColor, string][];
 
@@ -36,6 +37,7 @@ export const HighlightContent: React.FC<HighlightContentProps> = ({
 }) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('sheets');
 
   const allKeys = verseKeys && verseKeys.length > 1 ? verseKeys : [verseKey];
   const currentColor = useVerseAnnotationsStore(s => s.highlights[verseKey]);
@@ -78,7 +80,7 @@ export const HighlightContent: React.FC<HighlightContentProps> = ({
         />
       </View>
 
-      <Text style={styles.sectionLabel}>CHOOSE COLOR</Text>
+      <Text style={styles.sectionLabel}>{t('highlight.chooseColor')}</Text>
       <View style={styles.card}>
         <View style={styles.colorsGrid}>
           {COLORS.map(([name, hex]) => {
@@ -109,7 +111,7 @@ export const HighlightContent: React.FC<HighlightContentProps> = ({
           ]}
           onPress={handleRemove}>
           <Feather name="x-circle" size={moderateScale(16)} color="#ff4444" />
-          <Text style={styles.removeButtonText}>Remove Highlight</Text>
+          <Text style={styles.removeButtonText}>{t('highlight.remove')}</Text>
         </Pressable>
       ) : null}
     </View>

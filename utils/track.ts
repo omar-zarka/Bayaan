@@ -9,6 +9,7 @@ import type {UploadedRecitation} from '@/types/uploads';
 import {resolveRecitationPath} from '@/services/uploads/UploadsService';
 import {getSurahById, getReciterName} from '@/services/dataService';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+import i18n from '@/i18n';
 
 /**
  * Filters and returns available surahs for a given rewayat
@@ -149,10 +150,10 @@ export function createUserUploadTrack(recitation: UploadedRecitation): Track {
 
   // Map category to display label
   const categoryLabels: Record<string, string> = {
-    dua: 'Dua',
-    lecture: 'Lecture',
-    tafsir: 'Tafsir',
-    other: 'Recitation',
+    dua: i18n.t('content:uploads.categories.dua'),
+    lecture: i18n.t('content:uploads.categories.lecture'),
+    tafsir: i18n.t('content:uploads.categories.tafsir'),
+    other: i18n.t('content:uploads.categories.other'),
   };
   const uploadCategory =
     recitation.type === 'other' && recitation.category

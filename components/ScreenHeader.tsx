@@ -9,6 +9,7 @@ import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {useRouter} from 'expo-router';
+import {flipX} from '@/utils/rtl';
 
 interface ScreenHeaderProps {
   title: string;
@@ -26,6 +27,7 @@ export const ScreenHeader: React.FC<ScreenHeaderProps> = ({title}) => {
           name="arrow-left"
           size={moderateScale(24)}
           color={theme.colors.text}
+          style={flipX}
         />
       </Pressable>
       <Text style={styles.headerTitle}>{title}</Text>

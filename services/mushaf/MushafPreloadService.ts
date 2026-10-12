@@ -19,6 +19,7 @@ const FONT_ASSETS: Record<string, number> = {
   SurahNameQCF: require('@/data/mushaf/surah-name-qcf.ttf'),
   ManropeSemiBold: require('@/assets/fonts/Manrope-SemiBold.ttf'),
   ManropeRegular: require('@/assets/fonts/Manrope-Regular.ttf'),
+  PlexSansArabicSemiBold: require('@/assets/fonts/IBMPlexSansArabic-SemiBold.ttf'),
 };
 
 /**

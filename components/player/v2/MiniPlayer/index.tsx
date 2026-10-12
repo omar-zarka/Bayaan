@@ -8,6 +8,7 @@ import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
+import {getTrackDisplayTitle} from '@/i18n/format';
 
 function MiniPlayerInner() {
   const {theme} = useTheme();
@@ -57,7 +58,7 @@ function MiniPlayerInner() {
 
       <View style={styles.trackInfo}>
         <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-          {currentTrack.title}
+          {getTrackDisplayTitle(currentTrack)}
         </Text>
         <Text
           style={[

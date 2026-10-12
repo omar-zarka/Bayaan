@@ -27,6 +27,8 @@ import {
 import {SESSION_SEED} from '@/components/hero/heroThemes';
 import {COPY_VARIANTS} from './random-recitation/types';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 
 function showToast(message: string) {
   if (Platform.OS === 'android') {
@@ -47,6 +49,7 @@ export function RandomRecitationHero({
   isCompact = false,
 }: RandomRecitationHeroProps) {
   const {theme} = useTheme();
+  const {t} = useTranslation('home');
   const {updateQueue, play} = usePlayerActions();
   const {startNewChain} = useRecentlyPlayedStore();
 
@@ -72,16 +75,21 @@ export function RandomRecitationHero({
   const handleRandomPlay = useCallback(async () => {
     try {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-      showToast('Finding random recitations from different reciters...');
+      showToast(t('randomHero.finding'));
 
       const randomTracks = await getMultipleRandomTracks(15, false);
       if (randomTracks.length === 0) {
-        showToast('Failed to find random recitations. Please try again.');
+        showToast(t('randomHero.findFailed'));
         return;
       }
 
       const {reciter, surah} = randomTracks[0];
-      showToast(`Playing ${surah.name} by ${reciter.name}`);
+      showToast(
+        t('randomHero.playing', {
+          surah: getSurahDisplayName(surah),
+          reciter: getReciterDisplayName(reciter),
+        }),
+      );
 
       const trackPromises = randomTracks.map(item => {
         const availableRewayat = item.reciter.rewayat.filter(r =>
@@ -116,9 +124,9 @@ export function RandomRecitationHero({
       await startNewChain(reciter, surah, 0, 0, firstRewayah.id);
     } catch (error) {
       console.error('Error playing random recitation:', error);
-      showToast('Failed to play random recitation. Please try again.');
+      showToast(t('randomHero.playFailed'));
     }
-  }, [updateQueue, play, startNewChain]);
+  }, [updateQueue, play, startNewChain, t]);
 
   const containerHeight = useMemo(
     () => ({height: isCompact ? moderateScale(75) : RANDOM_HERO_HEIGHT}),

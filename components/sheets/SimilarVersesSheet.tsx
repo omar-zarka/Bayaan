@@ -30,7 +30,9 @@ import {useTajweedStore} from '@/store/tajweedStore';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import SkiaVerseText from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
 import type {SimilarAyah, MutashabihatPhrase} from '@/types/qul';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, isRTL, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
@@ -39,7 +41,8 @@ const surahData = require('@/data/surahData.json') as Array<{
 }>;
 
 function getSurahName(surahNumber: number): string {
-  return surahData.find(s => s.id === surahNumber)?.name ?? '';
+  const surah = surahData.find(s => s.id === surahNumber);
+  return surah ? getSurahDisplayName(surah) : '';
 }
 
 function parseVerseKey(verseKey: string): {surah: number; ayah: number} {
@@ -69,6 +72,7 @@ function getVersePreview(verseKey: string): string {
 export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
 
   const mushafRenderer = useMushafSettingsStore(s => s.mushafRenderer);
   const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
@@ -93,8 +97,8 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-      ? 'DigitalKhattV1'
-      : 'DigitalKhattV2';
+        ? 'DigitalKhattV1'
+        : 'DigitalKhattV2';
   const [contentWidth, setContentWidth] = useState(0);
 
   const handleContentLayout = useCallback((e: LayoutChangeEvent) => {
@@ -185,7 +189,7 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
         <View style={styles.header}>
           <Text style={styles.surahName}>{surahName}</Text>
           <Text style={styles.verseRef}>
-            {surahNumber}:{ayahNumber}
+            {localizeDigits(`${surahNumber}:${ayahNumber}`)}
           </Text>
         </View>
 
@@ -209,7 +213,9 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                     size={moderateScale(14)}
                     color={theme.colors.textSecondary}
                   />
-                  <Text style={styles.sectionTitle}>Shared Phrases</Text>
+                  <Text style={styles.sectionTitle}>
+                    {t('similar.sharedPhrasesTitle')}
+                  </Text>
                 </View>
 
                 {mutashabihat.map(phrase => {
@@ -242,7 +248,9 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                         </View>
                       ) : null}
                       <Text style={styles.phraseCount}>
-                        Found in {phrase.totalOccurrences} verses
+                        {t('similar.foundIn', {
+                          count: phrase.totalOccurrences,
+                        })}
                       </Text>
                       {(expandedPhrases.has(phrase.phraseId)
                         ? otherMatches
@@ -271,7 +279,7 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                                 color={theme.colors.textSecondary}
                               />
                               <Text style={styles.matchRef}>
-                                {match.verseKey}
+                                {localizeDigits(match.verseKey)}
                               </Text>
                               <Text style={styles.matchSurah}>
                                 {matchSurahName}
@@ -309,12 +317,13 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                                     handleVersePress(match.verseKey)
                                   }>
                                   <Text style={styles.goToVerseText}>
-                                    Go to verse
+                                    {t('similar.goToVerse')}
                                   </Text>
                                   <Feather
                                     name="arrow-right"
                                     size={moderateScale(14)}
                                     color={theme.colors.text}
+                                    style={flipX}
                                   />
                                 </Pressable>
                               </View>
@@ -327,8 +336,10 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                           onPress={() => togglePhraseExpand(phrase.phraseId)}>
                           <Text style={styles.moreText}>
                             {expandedPhrases.has(phrase.phraseId)
-                              ? 'Show less'
-                              : `+${otherMatches.length - 10} more`}
+                              ? t('common:actions.showLess')
+                              : t('similar.more', {
+                                  count: otherMatches.length - 10,
+                                })}
                           </Text>
                         </Pressable>
                       )}
@@ -346,7 +357,9 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                     size={moderateScale(14)}
                     color={theme.colors.textSecondary}
                   />
-                  <Text style={styles.sectionTitle}>Similar Wording</Text>
+                  <Text style={styles.sectionTitle}>
+                    {t('similar.similarWordingTitle')}
+                  </Text>
                 </View>
 
                 {(showAllSimilar
@@ -366,10 +379,11 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                       onPress={() => handleVersePress(similar.matchedVerseKey)}>
                       <View style={styles.similarHeader}>
                         <Text style={styles.similarRef}>
-                          {similar.matchedVerseKey} · {matchSurahName}
+                          {localizeDigits(similar.matchedVerseKey)} ·{' '}
+                          {matchSurahName}
                         </Text>
                         <Text style={styles.similarScore}>
-                          {similar.score}%
+                          {t('percent', {value: similar.score})}
                         </Text>
                       </View>
                       {preview && skiaReady ? (
@@ -394,8 +408,10 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
                   <Pressable onPress={toggleShowAllSimilar}>
                     <Text style={styles.moreText}>
                       {showAllSimilar
-                        ? 'Show less'
-                        : `+${similarAyahs.length - 20} more`}
+                        ? t('common:actions.showLess')
+                        : t('similar.more', {
+                            count: similarAyahs.length - 20,
+                          })}
                     </Text>
                   </Pressable>
                 )}
@@ -403,9 +419,7 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
             )}
 
             {mutashabihat.length === 0 && similarAyahs.length === 0 && (
-              <Text style={styles.emptyText}>
-                No similar verses found for this ayah.
-              </Text>
+              <Text style={styles.emptyText}>{t('similar.empty')}</Text>
             )}
           </ScrollView>
         )}
@@ -480,7 +494,7 @@ const createStyles = (theme: Theme) =>
       marginBottom: moderateScale(10),
     },
     skiaArabicWrap: {
-      alignItems: 'flex-end',
+      alignItems: isRTL ? 'flex-start' : 'flex-end',
       marginBottom: moderateScale(8),
     },
     phraseCount: {

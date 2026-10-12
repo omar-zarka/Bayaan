@@ -8,12 +8,14 @@ import ActionSheet, {
   SheetManager,
 } from 'react-native-actions-sheet';
 import Color from 'color';
+import {useTranslation} from 'react-i18next';
 
 const SPEEDS = [0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
 export const PlaybackSpeedSheet = (props: SheetProps<'playback-speed'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
+  const {t} = useTranslation('sheets');
 
   const payload = props.payload;
   const currentSpeed = payload?.currentSpeed ?? 1;
@@ -33,7 +35,7 @@ export const PlaybackSpeedSheet = (props: SheetProps<'playback-speed'>) => {
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>
       <View style={styles.headerContainer}>
-        <Text style={styles.headerTitle}>Playback Speed</Text>
+        <Text style={styles.headerTitle}>{t('playbackSpeed.title')}</Text>
       </View>
       <View style={styles.container}>
         <View style={styles.speedContainer}>
@@ -51,7 +53,7 @@ export const PlaybackSpeedSheet = (props: SheetProps<'playback-speed'>) => {
                   styles.speedText,
                   currentSpeed === speed && styles.selectedSpeedText,
                 ]}>
-                {speed}x
+                {t('playbackSpeed.speed', {speed})}
               </Text>
             </Pressable>
           ))}

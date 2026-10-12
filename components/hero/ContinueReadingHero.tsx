@@ -2,6 +2,7 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {View, ViewStyle} from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {useFocusEffect} from '@react-navigation/native';
+import {useTranslation} from 'react-i18next';
 import {SURAHS, Surah} from '@/data/surahData';
 import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {HeroSection} from './HeroSection';
@@ -38,6 +39,7 @@ const SECTION_HEIGHT = moderateScale(150);
 export function ContinueReadingHero({
   onSurahLongPress,
 }: ContinueReadingHeroProps) {
+  const {t} = useTranslation('home');
   // MMKV reads aren't reactive, and this component is typically cached
   // inside a memoized FlashList header — so re-read the session value
   // every time the Surahs tab regains focus (e.g. after backing out of
@@ -58,7 +60,9 @@ export function ContinueReadingHero({
     : undefined;
 
   const displaySurah = lastReadSurah ?? surahOfTheDay;
-  const title = lastReadSurah ? 'CONTINUE READING' : 'SURAH OF THE DAY';
+  const title = lastReadSurah
+    ? t('hero.continueReading')
+    : t('hero.surahOfTheDay');
 
   const cardStyle: ViewStyle = useMemo(
     () => ({width: '100%', height: SECTION_HEIGHT}),

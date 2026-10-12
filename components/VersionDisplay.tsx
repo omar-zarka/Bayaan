@@ -6,6 +6,7 @@ import {
   getBuildTypeLabel,
 } from '@/utils/appVersion';
 import {useTheme} from '@/hooks/useTheme';
+import {useTranslation} from 'react-i18next';
 
 interface VersionDisplayProps {
   showBuildNumber?: boolean;
@@ -19,6 +20,7 @@ export const VersionDisplay: React.FC<VersionDisplayProps> = ({
   style,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('settings');
 
   const versionText = showBuildNumber
     ? getFullVersionString()
@@ -29,8 +31,12 @@ export const VersionDisplay: React.FC<VersionDisplayProps> = ({
   return (
     <Text
       style={[styles.versionText, {color: theme.colors.textSecondary}, style]}>
-      Version {versionText}
-      {buildTypeLabel ? ` - ${buildTypeLabel}` : ''}
+      {buildTypeLabel
+        ? t('version.withBuildType', {
+            version: versionText,
+            buildType: buildTypeLabel,
+          })
+        : t('version.label', {version: versionText})}
     </Text>
   );
 };

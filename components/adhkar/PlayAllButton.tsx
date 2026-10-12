@@ -11,6 +11,7 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
+import {useTranslation} from 'react-i18next';
 
 interface PlayAllButtonProps {
   onPress: () => void;
@@ -21,6 +22,7 @@ interface PlayAllButtonProps {
 export const PlayAllButton: React.FC<PlayAllButtonProps> = React.memo(
   function PlayAllButton({onPress, isPlaying = false, disabled = false}) {
     const {theme} = useTheme();
+    const {t} = useTranslation(['player', 'common']);
     const styles = useMemo(() => createStyles(theme), [theme]);
 
     const iconColor = disabled ? theme.colors.textSecondary : theme.colors.text;
@@ -33,7 +35,9 @@ export const PlayAllButton: React.FC<PlayAllButtonProps> = React.memo(
         activeOpacity={1}
         hitSlop={{top: 10, bottom: 10, left: 10, right: 10}}
         accessibilityRole="button"
-        accessibilityLabel={isPlaying ? 'Pause all' : 'Play all'}>
+        accessibilityLabel={
+          isPlaying ? t('adhkar.a11y.pauseAll') : t('adhkar.a11y.playAll')
+        }>
         <View style={styles.iconContainer}>
           {isPlaying ? (
             <PauseIcon size={moderateScale(16)} color={iconColor} />
@@ -42,7 +46,7 @@ export const PlayAllButton: React.FC<PlayAllButtonProps> = React.memo(
           )}
         </View>
         <Text style={[styles.text, disabled && styles.textDisabled]}>
-          {isPlaying ? 'Pause' : 'Play All'}
+          {isPlaying ? t('common:actions.pause') : t('adhkar.playAll')}
         </Text>
       </TouchableOpacity>
     );

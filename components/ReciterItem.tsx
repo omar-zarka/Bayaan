@@ -8,6 +8,8 @@ import {Reciter} from '@/data/reciterData';
 import {ReciterImage} from '@/components/ReciterImage';
 import {FollowAlongBadge} from '@/components/badges/FollowAlongBadge';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName} from '@/i18n/format';
 
 interface ReciterItemProps {
   item: Reciter;
@@ -30,6 +32,7 @@ export const ReciterItem: React.FC<ReciterItemProps> = React.memo(
     showFollowAlong,
   }) => {
     const {theme} = useTheme();
+    const {t} = useTranslation('home');
     const styles = createStyles(theme);
     const handlePress = React.useCallback(() => onPress(item), [item, onPress]);
     const handleLongPress = React.useCallback(
@@ -55,12 +58,14 @@ export const ReciterItem: React.FC<ReciterItemProps> = React.memo(
           />
         </View>
         <View style={styles.reciterInfo}>
-          <Text style={styles.reciterName}>{item.name}</Text>
+          <Text style={styles.reciterName}>{getReciterDisplayName(item)}</Text>
           <View style={styles.secondaryRow}>
             <Text style={styles.reciterRewayat} numberOfLines={1}>
               {secondaryText ||
                 (item.rewayat.length > 1
-                  ? `${item.rewayat.length} rewayat available`
+                  ? t('reciterCard.rewayatAvailable', {
+                      count: item.rewayat.length,
+                    })
                   : getDisplayLabelFromName(item.rewayat[0]?.name))}
             </Text>
             {showFollowAlong && <FollowAlongBadge />}

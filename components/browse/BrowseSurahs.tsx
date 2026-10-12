@@ -20,11 +20,12 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {GRADIENT_COLORS} from '@/utils/gradientColors';
 import {useReciterSelection} from '@/hooks/useReciterSelection';
 import {Theme} from '@/utils/themeUtils';
-import {getJuzForSurah, getJuzName} from '@/data/juzData';
+import {getJuzForSurah} from '@/data/juzData';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 const isGlass = USE_GLASS;
 
@@ -158,6 +159,7 @@ interface BrowseSurahsProps {
 
 export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
   const router = useRouter();
+  const {t} = useTranslation(['home', 'common']);
   const navigation = useNavigation();
   const glassColorScheme = useGlassColorScheme();
   const insets = useSafeAreaInsets();
@@ -179,9 +181,9 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
   useLayoutEffect(() => {
     if (!isGlass) return;
     navigation.setOptions({
-      headerTitle: 'All Surahs',
+      headerTitle: t('browse.allSurahs'),
     });
-  }, [navigation]);
+  }, [navigation, t]);
 
   // Define styles *before* callbacks that use them
   const styles = useStyles();
@@ -245,7 +247,10 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
         data.push({
           type: 'juz-header',
           juzNumber: surahJuz,
-          juzName: getJuzName(surahJuz),
+          juzName:
+            surahJuz === 30
+              ? t('juz.amma')
+              : t('common:labels.juzNumber', {number: surahJuz}),
         });
       }
 
@@ -257,7 +262,7 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
     });
 
     return data;
-  }, [displaySurahs, viewMode, sortOption]);
+  }, [displaySurahs, viewMode, sortOption, t]);
 
   // Function to generate a consistent color for each surah
   const getColorForSurah = useCallback((id: number): string => {
@@ -387,10 +392,14 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
             option === 'asc'
               ? 'arrow-up'
               : option === 'desc'
-              ? 'arrow-down'
-              : 'calendar';
+                ? 'arrow-down'
+                : 'calendar';
           const label =
-            option === 'asc' ? 'Asc' : option === 'desc' ? 'Desc' : 'Rev';
+            option === 'asc'
+              ? t('sort.asc')
+              : option === 'desc'
+                ? t('sort.desc')
+                : t('sort.revelation');
           return (
             <Pressable
               key={option}
@@ -471,7 +480,7 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
       {/* Android: custom header | iOS: native header via layout */}
       {!isGlass && (
-        <Header title="All Surahs" onBack={onBack} showBlur={true} />
+        <Header title={t('browse.allSurahs')} onBack={onBack} showBlur={true} />
       )}
 
       <View

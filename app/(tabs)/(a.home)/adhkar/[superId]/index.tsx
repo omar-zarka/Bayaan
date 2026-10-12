@@ -39,6 +39,8 @@ import {useHeaderHeight} from '@react-navigation/elements';
 import {adhkarShareUrl, shareUrl} from '@/utils/shareUtils';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import branding from '@/config/branding';
+import {useTranslation} from 'react-i18next';
+import {flipX} from '@/utils/rtl';
 
 interface DhikrItem {
   dhikr: Dhikr;
@@ -65,6 +67,7 @@ const SuperCategoryListScreen: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
 
@@ -118,7 +121,9 @@ const SuperCategoryListScreen: React.FC = () => {
   }, [superId, getSuperCategoryById]);
 
   const displayTitle =
-    superCategory?.title || storedSuperCategory?.title || 'Loading...';
+    superCategory?.title ||
+    storedSuperCategory?.title ||
+    t('common:status.loading');
 
   // Determine if this is a single-category super category
   const isSingleCategory = categoryGroups.length === 1;
@@ -173,8 +178,14 @@ const SuperCategoryListScreen: React.FC = () => {
   const handleShare = useCallback(() => {
     if (!superId) return;
     const url = adhkarShareUrl(superId);
-    shareUrl(url, `Check out ${displayTitle} on ${branding.appName}`);
-  }, [superId, displayTitle]);
+    shareUrl(
+      url,
+      t('adhkar.shareCategory', {
+        title: displayTitle,
+        appName: branding.appName,
+      }),
+    );
+  }, [superId, displayTitle, t]);
 
   // Play All handler
   const handlePlayAll = useCallback(() => {
@@ -247,6 +258,7 @@ const SuperCategoryListScreen: React.FC = () => {
             name="chevron-back"
             size={moderateScale(24)}
             color={theme.colors.text}
+            style={flipX}
           />
         </Pressable>
       ),
@@ -368,10 +380,10 @@ const SuperCategoryListScreen: React.FC = () => {
   const ListEmptyComponent = useMemo(
     () => (
       <View style={styles.emptyContainer}>
-        <Text style={styles.emptyText}>No adhkar found</Text>
+        <Text style={styles.emptyText}>{t('adhkar.noneFound')}</Text>
       </View>
     ),
-    [styles.emptyContainer, styles.emptyText],
+    [styles.emptyContainer, styles.emptyText, t],
   );
 
   if (!superId) {

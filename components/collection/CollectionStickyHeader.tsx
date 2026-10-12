@@ -11,6 +11,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useRouter} from 'expo-router';
 import {Feather} from '@expo/vector-icons';
+import {flipX} from '@/utils/rtl';
 
 interface CollectionStickyHeaderProps {
   title: string;
@@ -57,6 +58,7 @@ export const CollectionStickyHeader: React.FC<CollectionStickyHeaderProps> = ({
             name="arrow-left"
             size={moderateScale(22)}
             color={theme.colors.text}
+            style={flipX}
           />
         </Pressable>
         <Text

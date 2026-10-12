@@ -15,6 +15,7 @@ import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import {Dhikr} from '@/types/adhkar';
+import {useTranslation} from 'react-i18next';
 
 interface CheckboxRowProps {
   label: string;
@@ -72,6 +73,7 @@ export const AdhkarCopyOptionsSheet = (
 ) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
   const dhikr = props.payload?.dhikr as Dhikr | undefined;
 
   // Copy options state
@@ -113,12 +115,12 @@ export const AdhkarCopyOptionsSheet = (
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>
       <View style={styles.container}>
-        <Text style={styles.title}>Copy Options</Text>
-        <Text style={styles.subtitle}>Select what to copy</Text>
+        <Text style={styles.title}>{t('copy.optionsTitle')}</Text>
+        <Text style={styles.subtitle}>{t('copy.optionsSubtitle')}</Text>
 
         <View style={styles.optionsContainer}>
           <CheckboxRow
-            label="Arabic"
+            label={t('copy.arabic')}
             checked={copyArabic}
             onToggle={() => setCopyArabic(!copyArabic)}
             disabled={!dhikr?.arabic}
@@ -127,7 +129,7 @@ export const AdhkarCopyOptionsSheet = (
           />
           <View style={styles.divider} />
           <CheckboxRow
-            label="Translation"
+            label={t('common:terms.translation')}
             checked={copyTranslation}
             onToggle={() => setCopyTranslation(!copyTranslation)}
             disabled={!dhikr?.translation}
@@ -136,7 +138,7 @@ export const AdhkarCopyOptionsSheet = (
           />
           <View style={styles.divider} />
           <CheckboxRow
-            label="Transliteration"
+            label={t('copy.transliteration')}
             checked={copyTransliteration}
             onToggle={() => setCopyTransliteration(!copyTransliteration)}
             disabled={!dhikr?.transliteration}
@@ -165,7 +167,7 @@ export const AdhkarCopyOptionsSheet = (
               styles.copyButtonText,
               !canCopy && styles.copyButtonTextDisabled,
             ]}>
-            Copy to Clipboard
+            {t('copy.copyToClipboard')}
           </Text>
         </Pressable>
       </View>

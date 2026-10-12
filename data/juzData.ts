@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+
 /**
  * Juz (Part) Data for the Quran
  *
@@ -198,7 +200,7 @@ export function getJuzForSurah(surahId: number): number {
  */
 export function getJuzName(juzNumber: number): string {
   if (juzNumber === 30) {
-    return "Juz 'Amma";
+    return i18n.t('content:juz.amma');
   }
-  return `Juz ${juzNumber}`;
+  return i18n.t('common:labels.juzNumber', {number: juzNumber});
 }

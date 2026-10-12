@@ -18,6 +18,7 @@ interface TabSelectorProps<T extends string> {
   selectedOption: T;
   onSelect: (option: T) => void;
   width?: number;
+  getLabel?: (option: T) => string;
 }
 
 function TabSelector<T extends string>({
@@ -25,6 +26,7 @@ function TabSelector<T extends string>({
   selectedOption,
   onSelect,
   width,
+  getLabel = option => option,
 }: TabSelectorProps<T>) {
   const {theme} = useTheme();
   const selectedIndex = options.indexOf(selectedOption);
@@ -33,7 +35,7 @@ function TabSelector<T extends string>({
   if (Platform.OS === 'ios') {
     return (
       <SegmentedControl
-        values={options}
+        values={options.map(getLabel)}
         selectedIndex={selectedIndex}
         onChange={event => {
           const index = event.nativeEvent.selectedSegmentIndex;
@@ -76,7 +78,7 @@ function TabSelector<T extends string>({
                   styles.tabText,
                   selectedOption === option && styles.activeTabText,
                 ]}>
-                {option}
+                {getLabel(option)}
               </Text>
               {selectedOption === option && (
                 <Animated.View style={styles.activeIndicator} />

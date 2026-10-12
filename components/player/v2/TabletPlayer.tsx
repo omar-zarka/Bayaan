@@ -68,6 +68,9 @@ import {
   QueueIcon,
   AmbientIcon,
 } from '@/components/Icons';
+import {localizeDigits, getTrackDisplayTitle} from '@/i18n/format';
+import {forceLTR} from '@/utils/rtl';
+import {getRecitationStyleLabel} from './recitationStyle';
 
 interface TabletPlayerProps {
   onSpeedPress: () => void;
@@ -489,7 +492,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
             {color: textColor},
           ]}
           numberOfLines={1}>
-          {currentTrack?.title || ''}
+          {currentTrack ? getTrackDisplayTitle(currentTrack) : ''}
         </Text>
         <Text
           style={[
@@ -505,7 +508,9 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
             style={[styles.trackRewayat, {color: secondaryColor}]}
             numberOfLines={1}>
             {`${getShortLabel(resolvedRewayah.id)}${
-              rewayat?.style ? ` • ${rewayat.style}` : ''
+              rewayat?.style
+                ? ` • ${getRecitationStyleLabel(rewayat.style)}`
+                : ''
             }`}
           </Text>
         )}
@@ -526,7 +531,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
   );
 
   const renderScrubber = () => (
-    <View style={styles.scrubber}>
+    <View style={[styles.scrubber, forceLTR]}>
       <Slider
         style={styles.slider}
         minimumValue={0}
@@ -542,17 +547,20 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       />
       <View style={styles.timeRow}>
         <Text style={[styles.timeText, {color: textColor}]}>
-          {formatTime(displayTime)}
+          {localizeDigits(formatTime(displayTime))}
         </Text>
         <Text style={[styles.timeText, {color: secondaryColor}]}>
-          -{formatTime(Math.max(0, progress.duration - displayTime))}
+          -
+          {localizeDigits(
+            formatTime(Math.max(0, progress.duration - displayTime)),
+          )}
         </Text>
       </View>
     </View>
   );
 
   const renderTransport = () => (
-    <View style={styles.transport}>
+    <View style={[styles.transport, forceLTR]}>
       <Pressable
         onPress={handleSeekBack}
         disabled={trackLoading}
@@ -568,7 +576,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
               styles.seekLabelLeft,
               {color: trackLoading ? secondaryColor : textColor},
             ]}>
-            {SEEK_INTERVAL}
+            {localizeDigits(SEEK_INTERVAL)}
           </Text>
         </View>
       </Pressable>
@@ -621,7 +629,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
               styles.seekLabelRight,
               {color: trackLoading ? secondaryColor : textColor},
             ]}>
-            {SEEK_INTERVAL}
+            {localizeDigits(SEEK_INTERVAL)}
           </Text>
         </View>
       </Pressable>
@@ -644,7 +652,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
         ]}
         onPress={onSpeedPress}>
         <Text style={[styles.toolLabel, {color: textColor}]}>
-          {`${playbackRate}x`}
+          {localizeDigits(`${playbackRate}x`)}
         </Text>
       </Pressable>
       <Pressable

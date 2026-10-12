@@ -12,6 +12,8 @@ import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import Svg, {Circle, Path, Defs, RadialGradient, Stop} from 'react-native-svg';
 import {pickHeroTheme, HeroColorTheme} from '@/components/hero/heroThemes';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits} from '@/i18n/format';
 
 // Match SurahsHero height
 const SECTION_HEIGHT = moderateScale(150);
@@ -138,6 +140,7 @@ interface SavedAdhkarCardProps {
  */
 const SavedAdhkarCard = ({savedCount, style}: SavedAdhkarCardProps) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('home');
   const glassColorScheme = useGlassColorScheme();
   const heroTheme = useMemo(() => pickHeroTheme(), []);
   const styles = useMemo(
@@ -163,7 +166,7 @@ const SavedAdhkarCard = ({savedCount, style}: SavedAdhkarCardProps) => {
           <View style={styles.topRow}>
             <Text style={styles.heroTitle}>
               {' '}
-              {savedCount === 1 ? 'SAVED DHIKR' : 'SAVED ADHKAR'}
+              {t('adhkarHero.title', {count: savedCount})}
             </Text>
             <View style={styles.iconContainer}>
               <Ionicons
@@ -174,13 +177,15 @@ const SavedAdhkarCard = ({savedCount, style}: SavedAdhkarCardProps) => {
             </View>
           </View>
           {/* Count number - positioned exactly where heroGlyph is */}
-          <Text style={styles.heroGlyph}>{savedCount}</Text>
+          <Text style={styles.heroGlyph}>{localizeDigits(savedCount)}</Text>
         </View>
 
         {/* Bottom section - matching SurahHeroSection layout exactly */}
         <View style={styles.bottomSection}>
-          <Text style={styles.heroSurahName}> Saved </Text>
-          <Text style={styles.translatedName}>Your collection</Text>
+          <Text style={styles.heroSurahName}> {t('adhkar.saved')} </Text>
+          <Text style={styles.translatedName}>
+            {t('adhkarHero.yourCollection')}
+          </Text>
         </View>
       </View>
     </>

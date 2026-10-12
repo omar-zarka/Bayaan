@@ -4,6 +4,10 @@
  * Selecting a specific theme forces light/dark mode and applies custom colors.
  */
 
+// The bare i18next singleton (initialised by '@/i18n' at app start) keeps this
+// module free of native dependencies; it is loaded by Jest suites via stores.
+import i18n from 'i18next';
+
 export interface ReadingThemeColors {
   background: string;
   backgroundSecondary: string;
@@ -22,7 +26,9 @@ export interface ReadingTheme {
 export const LIGHT_READING_THEMES: ReadingTheme[] = [
   {
     id: 'default',
-    name: 'Cream',
+    get name() {
+      return i18n.t('content:readingThemes.default');
+    },
     mode: 'light',
     colors: {
       background: '#f4f3ec',
@@ -34,7 +40,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'parchment',
-    name: 'Parchment',
+    get name() {
+      return i18n.t('content:readingThemes.parchment');
+    },
     mode: 'light',
     colors: {
       background: '#f5e6c8',
@@ -46,7 +54,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'white',
-    name: 'White',
+    get name() {
+      return i18n.t('content:readingThemes.white');
+    },
     mode: 'light',
     colors: {
       background: '#ffffff',
@@ -58,7 +68,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'sage',
-    name: 'Sage',
+    get name() {
+      return i18n.t('content:readingThemes.sage');
+    },
     mode: 'light',
     colors: {
       background: '#e8ebe4',
@@ -70,7 +82,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'rose',
-    name: 'Rose',
+    get name() {
+      return i18n.t('content:readingThemes.rose');
+    },
     mode: 'light',
     colors: {
       background: '#f5ece8',
@@ -82,7 +96,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'cool',
-    name: 'Cool Gray',
+    get name() {
+      return i18n.t('content:readingThemes.cool');
+    },
     mode: 'light',
     colors: {
       background: '#eef0f2',
@@ -94,7 +110,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'sand',
-    name: 'Sand',
+    get name() {
+      return i18n.t('content:readingThemes.sand');
+    },
     mode: 'light',
     colors: {
       background: '#f0d59a',
@@ -111,7 +129,9 @@ export const LIGHT_READING_THEMES: ReadingTheme[] = [
 export const DARK_READING_THEMES: ReadingTheme[] = [
   {
     id: 'dark-default',
-    name: 'Dark Navy',
+    get name() {
+      return i18n.t('content:readingThemes.darkDefault');
+    },
     mode: 'dark',
     colors: {
       background: '#050b10',
@@ -123,7 +143,9 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'dark-sepia',
-    name: 'Dark Sepia',
+    get name() {
+      return i18n.t('content:readingThemes.darkSepia');
+    },
     mode: 'dark',
     colors: {
       background: '#140f0a',
@@ -135,7 +157,9 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'oled',
-    name: 'True Black',
+    get name() {
+      return i18n.t('content:readingThemes.oled');
+    },
     mode: 'dark',
     colors: {
       background: '#000000',
@@ -147,7 +171,9 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'dark-sage',
-    name: 'Dark Sage',
+    get name() {
+      return i18n.t('content:readingThemes.darkSage');
+    },
     mode: 'dark',
     colors: {
       background: '#141a16',
@@ -159,7 +185,9 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'charcoal',
-    name: 'Charcoal',
+    get name() {
+      return i18n.t('content:readingThemes.charcoal');
+    },
     mode: 'dark',
     colors: {
       background: '#1a1a1a',
@@ -171,7 +199,9 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'indigo',
-    name: 'Indigo',
+    get name() {
+      return i18n.t('content:readingThemes.indigo');
+    },
     mode: 'dark',
     colors: {
       background: '#0e0c18',
@@ -183,7 +213,9 @@ export const DARK_READING_THEMES: ReadingTheme[] = [
   },
   {
     id: 'dark-amber',
-    name: 'Dark Amber',
+    get name() {
+      return i18n.t('content:readingThemes.darkAmber');
+    },
     mode: 'dark',
     colors: {
       background: '#150e04',

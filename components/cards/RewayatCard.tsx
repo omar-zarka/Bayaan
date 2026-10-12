@@ -8,6 +8,8 @@ import {Link} from 'expo-router';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {getRewayatPersonLabel} from '@/data/rewayat';
+import {useTranslation} from 'react-i18next';
 
 interface RewayatCardProps {
   rewayat: RewayatInfo;
@@ -23,6 +25,7 @@ function RewayatCard({
   height = moderateScale(92),
 }: RewayatCardProps) {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const glassColorScheme = useGlassColorScheme();
   const styles = useMemo(
     () => createStyles(theme, width, height),
@@ -41,14 +44,14 @@ function RewayatCard({
   const content = (
     <View style={styles.content}>
       <Text style={styles.teacherLabel} numberOfLines={1}>
-        {rewayat.teacher}
+        {getRewayatPersonLabel(rewayat.teacher)}
       </Text>
       <View style={styles.textContainer}>
         <Text style={styles.displayName} numberOfLines={2}>
           {rewayat.displayName}
         </Text>
         <Text style={styles.subtitle}>
-          {rewayat.reciterCount} reciter{rewayat.reciterCount !== 1 && 's'}
+          {t('common:counts.reciters', {count: rewayat.reciterCount})}
         </Text>
       </View>
     </View>

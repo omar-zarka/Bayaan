@@ -1,0 +1,38 @@
+{
+  "verseLabel": "{{surah}} {{surahNumber}}:{{ayah}}",
+  "mushaf": {
+    "headerMeta": "صفحة {{page}} · الجزء {{juz}} · {{rewayah}}",
+    "searchSurahs": "البحث في السور",
+    "settings": "إعدادات المصحف",
+    "shareMessage": "اطّلع على الصفحة {{page}} من القرآن الكريم على {{appName}}"
+  },
+  "toolbar": {
+    "options": "خيارات",
+    "stop": "إيقاف"
+  },
+  "playerBar": {
+    "changeReciter": "تغيير القارئ",
+    "changeReciterButton": "تغيير القارئ",
+    "playbackOptions": "خيارات التشغيل",
+    "previousAyah": "الآية السابقة",
+    "nextAyah": "الآية التالية"
+  },
+  "search": {
+    "placeholder": "ابحث عن سورة أو صفحة أو جزء…",
+    "recentReads": "قراءات حديثة",
+    "recentSearches": "عمليات البحث الأخيرة",
+    "emptyTitle": "ابحث في المصحف",
+    "emptySubtitle": "اعثر على السور والآيات والصفحات والأجزاء",
+    "sortAsc": "تصاعدي",
+    "sortDesc": "تنازلي",
+    "sortRevelation": "النزول",
+    "juzAmma": "جزء عمّ",
+    "juzTabarak": "جزء تبارك",
+    "pageWithSurah": "صفحة {{page}} · {{surah}}",
+    "surahWithMeaning": "سورة {{number}} · {{meaning}}",
+    "verse": "آية {{number}}"
+  },
+  "shareCard": {
+    "madeWith": "صُنع باستخدام {{appName}}"
+  }
+}

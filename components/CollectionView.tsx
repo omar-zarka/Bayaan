@@ -12,6 +12,7 @@ import {ReciterCard} from './cards/ReciterCard';
 import {useFavoriteReciters} from '@/hooks/useFavoriteReciters';
 import {Reciter} from '@/data/reciterData';
 import {useLoved} from '@/hooks/useLoved';
+import {getReciterDisplayName} from '@/i18n/format';
 
 interface TrackItem {
   reciterId: string;
@@ -56,7 +57,7 @@ export default function CollectionView({
         return (
           <ReciterCard
             imageUrl={reciter?.image_url || undefined}
-            name={reciter?.name || ''}
+            name={reciter ? getReciterDisplayName(reciter) : ''}
             onPress={() =>
               onTrackPress({
                 reciterId: item.reciterId,
@@ -70,7 +71,7 @@ export default function CollectionView({
         return (
           <CircularReciterCard
             imageUrl={item.image_url || undefined}
-            name={item.name}
+            name={getReciterDisplayName(item)}
             onPress={() => onReciterPress(item)}
           />
         );

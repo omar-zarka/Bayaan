@@ -27,7 +27,8 @@ import {useRouter, Link} from 'expo-router';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {createUserUploadTrack} from '@/utils/track';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {forceLTR, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 interface RecentReciterCardProps {
   imageUrl?: string;
@@ -60,6 +61,7 @@ export const RecentReciterCard = ({
   userRecitationId,
 }: RecentReciterCardProps) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('home');
   const {updateQueue} = usePlayerActions();
   const router = useRouter();
   // Single consolidated subscription with shallow equality
@@ -139,21 +141,23 @@ export const RecentReciterCard = ({
       remainingSeconds = effectiveDuration * (1 - progress);
     }
 
-    if (remainingSeconds <= 0) return '0s';
+    if (remainingSeconds <= 0) return t('duration.seconds', {value: 0});
 
     // Under a minute → show seconds so short surahs (Al-Fatihah / An-Nas
     // / Al-Falaq / Al-Ikhlas) don't all collapse to "0m" near the end.
     if (remainingSeconds < 60) {
-      return `${Math.max(1, Math.ceil(remainingSeconds))}s`;
+      return t('duration.seconds', {
+        value: Math.max(1, Math.ceil(remainingSeconds)),
+      });
     }
 
     const totalMinutes = Math.round(remainingSeconds / 60);
     if (totalMinutes >= 60) {
       const hours = Math.round(totalMinutes / 60);
-      return `${hours}h`;
+      return t('duration.hours', {value: hours});
     }
-    return `${totalMinutes}m`;
-  }, [isCurrentlyPlaying, storeDuration, storePosition, duration, progress]);
+    return t('duration.minutes', {value: totalMinutes});
+  }, [isCurrentlyPlaying, storeDuration, storePosition, duration, progress, t]);
 
   // Calculate current progress value for the slider
   const currentSliderProgress =
@@ -199,9 +203,8 @@ export const RecentReciterCard = ({
         return;
       }
 
-      const availableSurahIds = await getAvailableSurahsForRewayat(
-        rewayatToUseId,
-      );
+      const availableSurahIds =
+        await getAvailableSurahsForRewayat(rewayatToUseId);
 
       const allSurahsForRewayat = availableSurahIds
         .map(id => getSurahById(id))
@@ -402,7 +405,7 @@ export const RecentReciterCard = ({
             {surahName}
           </Text>
         </View>
-        <View style={styles.progressRow}>
+        <View style={[styles.progressRow, forceLTR]}>
           <View style={styles.playButtonContainer}>
             {isCurrentlyPlaying &&
             (playbackStatus === 'playing' || playbackStatus === 'buffering') ? (

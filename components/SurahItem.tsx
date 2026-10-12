@@ -21,6 +21,12 @@ import {
 } from '@/services/player/store/downloadSelectors';
 import {CircularProgress} from '@/components/CircularProgress';
 import {GradientText} from '@/components/GradientText';
+import {useTranslation} from 'react-i18next';
+import {
+  getSurahDisplayName,
+  getSurahMeaning,
+  localizeDigits,
+} from '@/i18n/format';
 
 interface SurahItemProps {
   item: Surah;
@@ -48,7 +54,12 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
     rewayatName,
   }) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['home', 'common']);
     const styles = createStyles(theme);
+    const displayName = getSurahDisplayName(item);
+    const meaning = getSurahMeaning(item);
+    const versesLabel = t('surahItem.verses', {count: item.verses_count});
+    const titleText = `${localizeDigits(item.id)}. ${displayName}`;
     const downloadId = React.useMemo(
       () =>
         reciterId
@@ -168,12 +179,15 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
           onPress={handlePress}
           onLongPress={onLongPress ? handleLongPress : undefined}
           accessibilityRole="button"
-          accessibilityLabel={`Surah ${item.name}, ${
-            item.translated_name_english
-          }, ${item.verses_count} verses${
-            isCurrentlyPlaying ? ', currently playing' : ''
-          }`}
-          accessibilityHint="Tap to play Surah">
+          accessibilityLabel={[
+            t('surahItem.a11yName', {name: displayName}),
+            meaning,
+            versesLabel,
+            isCurrentlyPlaying ? t('surahItem.a11yPlaying') : null,
+          ]
+            .filter(Boolean)
+            .join(t('surahItem.a11ySeparator'))}
+          accessibilityHint={t('surahItem.a11yPlayHint')}>
           <View
             style={styles.surahGlyphContainer}
             accessibilityElementsHidden={true}>
@@ -192,11 +206,10 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
                 <GradientText
                   style={styles.surahName}
                   surahId={Number(item.id)}>
-                  {`${item.id}. ${item.name}`}
+                  {titleText}
                 </GradientText>
               ) : (
-                <Text
-                  style={styles.surahName}>{`${item.id}. ${item.name}`}</Text>
+                <Text style={styles.surahName}>{titleText}</Text>
               )}
               {isLoved && (
                 <HeartIcon
@@ -223,7 +236,7 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
                 />
               ) : null}
               <Text style={styles.surahSecondaryInfo}>
-                {item.translated_name_english}
+                {meaning ?? versesLabel}
               </Text>
             </View>
             {rewayatName ? (
@@ -253,8 +266,11 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
                   />
                 )}
                 <Text style={styles.locationText}>
-                  {revelationPlace.charAt(0).toUpperCase() +
-                    revelationPlace.slice(1)}
+                  {t(
+                    revelationPlace === 'makkah'
+                      ? 'surahItem.makkah'
+                      : 'surahItem.madinah',
+                  )}
                 </Text>
               </View>
             )}
@@ -267,8 +283,8 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
             style={styles.optionsZone}
             onPress={handleOptionsPress}
             accessibilityRole="button"
-            accessibilityLabel="More options"
-            accessibilityHint="Opens menu with additional actions for this Surah">
+            accessibilityLabel={t('surahItem.moreOptions')}
+            accessibilityHint={t('surahItem.moreOptionsHint')}>
             {isCurrentTrack ? (
               <NowPlayingIndicator
                 isPlaying={

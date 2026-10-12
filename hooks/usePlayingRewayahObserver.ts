@@ -1,4 +1,5 @@
 import {useEffect, useRef} from 'react';
+import i18n from '@/i18n';
 import {useCurrentTrackResolvedRewayah} from '@/hooks/useCurrentTrackRewayah';
 import {getShortLabel} from '@/services/rewayah/RewayahIdentity';
 import {showToast} from '@/utils/toastUtils';
@@ -37,9 +38,9 @@ export function usePlayingRewayahObserver(): void {
     if (lastAnnouncedRef.current === key) return;
     lastAnnouncedRef.current = key;
     if (resolved.isFallback) {
-      showToast('Showing in Hafs');
+      showToast(i18n.t('content:toasts.showingInHafs'));
       return;
     }
-    showToast('Now reading', getShortLabel(resolved.id));
+    showToast(i18n.t('content:toasts.nowReading'), getShortLabel(resolved.id));
   }, [resolved]);
 }

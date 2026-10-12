@@ -22,13 +22,14 @@ import {ReciterImage} from '@/components/ReciterImage';
 import {reciterImages} from '@/utils/reciterImages';
 import {Theme} from '@/utils/themeUtils';
 import {Feather} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import Color from 'color';
 import {Link} from 'expo-router';
 import {LinearGradient} from 'expo-linear-gradient';
 import {getRandomColors} from '@/utils/gradientColors';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
 
 // Error Boundary for ScrollingHero
 class ScrollingHeroErrorBoundary extends React.Component<{
@@ -154,6 +155,7 @@ interface BrowseButtonProps {
 // Update BrowseButton component
 const BrowseButton = React.memo(
   ({onPress, theme, styles}: BrowseButtonProps) => {
+    const {t} = useTranslation('home');
     return (
       <TouchableOpacity
         style={[
@@ -167,12 +169,12 @@ const BrowseButton = React.memo(
         ]}
         onPress={onPress}
         activeOpacity={0.8}>
-        <Text style={styles.buttonText}>Browse All</Text>
+        <Text style={styles.buttonText}>{t('browse.browseAll')}</Text>
         <Feather
           name="arrow-right"
           size={moderateScale(18)}
           color={theme.colors.text}
-          style={styles.buttonIcon}
+          style={[styles.buttonIcon, flipX]}
         />
       </TouchableOpacity>
     );
@@ -425,6 +427,7 @@ function createStyles(theme: Theme) {
 export const ScrollingHero = React.memo(
   () => {
     const {theme} = useTheme();
+    const {t} = useTranslation('home');
     const glassColorScheme = useGlassColorScheme();
     const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -452,12 +455,12 @@ export const ScrollingHero = React.memo(
               style={[styles.browseButton, {borderRadius: moderateScale(25)}]}
               glassEffectStyle="regular"
               colorScheme={glassColorScheme}>
-              <Text style={styles.buttonText}>Browse All</Text>
+              <Text style={styles.buttonText}>{t('browse.browseAll')}</Text>
               <Feather
                 name="arrow-right"
                 size={moderateScale(16)}
                 color={theme.colors.text}
-                style={styles.buttonIcon}
+                style={[styles.buttonIcon, flipX]}
               />
             </GlassView>
           ) : (
@@ -473,12 +476,12 @@ export const ScrollingHero = React.memo(
                   borderRadius: moderateScale(25),
                 },
               ]}>
-              <Text style={styles.buttonText}>Browse All</Text>
+              <Text style={styles.buttonText}>{t('browse.browseAll')}</Text>
               <Feather
                 name="arrow-right"
                 size={moderateScale(16)}
                 color={theme.colors.text}
-                style={styles.buttonIcon}
+                style={[styles.buttonIcon, flipX]}
               />
             </View>
           )}

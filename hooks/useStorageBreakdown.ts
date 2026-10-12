@@ -1,4 +1,5 @@
 import {useState, useEffect} from 'react';
+import i18n from '@/i18n';
 import {
   getDownloadsStorage,
   getCacheStorage,
@@ -7,13 +8,16 @@ import {
 } from '@/services/storageService';
 
 export function useStorageBreakdown() {
-  const [data, setData] = useState({
-    total: '0 Bytes',
-    free: '0 Bytes',
-    used: '0 Bytes',
-    downloads: '0 Bytes',
-    cache: '0 Bytes',
-    otherApps: '0 Bytes',
+  const [data, setData] = useState(() => {
+    const zero = formatBytes(0);
+    return {
+      total: zero,
+      free: zero,
+      used: zero,
+      downloads: zero,
+      cache: zero,
+      otherApps: zero,
+    };
   });
   const [rawData, setRawData] = useState({
     total: 0,
@@ -72,7 +76,7 @@ export function useStorageBreakdown() {
         });
       } catch (err) {
         console.error('Error loading storage info:', err);
-        setError('Failed to load storage information');
+        setError(i18n.t('content:errors.storageLoadFailed'));
       } finally {
         setLoading(false);
       }

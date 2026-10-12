@@ -19,6 +19,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import {useRouter} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 
 // Create animated TouchableOpacity
 const AnimatedTouchableOpacity =
@@ -34,6 +35,7 @@ interface BrowseAllHeroSectionProps {
 export const BrowseAllHeroSection: React.FC<BrowseAllHeroSectionProps> =
   React.memo(({onPress, isCompact = false, style, gradientColors}) => {
     const {theme} = useTheme();
+    const {t} = useTranslation('home');
     const router = useRouter(); // Get the router for navigation
     const styles = useMemo(() => createStyles(theme), [theme]);
 
@@ -108,8 +110,10 @@ export const BrowseAllHeroSection: React.FC<BrowseAllHeroSectionProps> =
               color={theme.colors.text}
             />
           </View>
-          <Text style={styles.title}>All Surahs</Text>
-          <Text style={styles.subtitle}>Browse all 114 surahs</Text>
+          <Text style={styles.title}>{t('browse.allSurahs')}</Text>
+          <Text style={styles.subtitle}>
+            {t('hero.browseAllSurahs', {total: 114})}
+          </Text>
         </LinearGradient>
       </AnimatedTouchableOpacity>
     );

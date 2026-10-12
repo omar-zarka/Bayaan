@@ -1,0 +1,38 @@
+{
+  "verseLabel": "{{surah}} {{surahNumber}}:{{ayah}}",
+  "mushaf": {
+    "headerMeta": "Page {{page}} · Juz {{juz}} · {{rewayah}}",
+    "searchSurahs": "Search surahs",
+    "settings": "Mushaf settings",
+    "shareMessage": "Check out page {{page}} of the Quran on {{appName}}"
+  },
+  "toolbar": {
+    "options": "Options",
+    "stop": "Stop"
+  },
+  "playerBar": {
+    "changeReciter": "Change reciter",
+    "changeReciterButton": "Change Reciter",
+    "playbackOptions": "Playback options",
+    "previousAyah": "Previous ayah",
+    "nextAyah": "Next ayah"
+  },
+  "search": {
+    "placeholder": "Search surahs, pages, or juz...",
+    "recentReads": "Recent reads",
+    "recentSearches": "Recent searches",
+    "emptyTitle": "Search the Mushaf",
+    "emptySubtitle": "Find surahs, verses, pages, or juz",
+    "sortAsc": "Asc",
+    "sortDesc": "Desc",
+    "sortRevelation": "Rev",
+    "juzAmma": "Juz 'Amma",
+    "juzTabarak": "Juz Tabarak",
+    "pageWithSurah": "Page {{page}} · {{surah}}",
+    "surahWithMeaning": "Surah {{number}} · {{meaning}}",
+    "verse": "Verse {{number}}"
+  },
+  "shareCard": {
+    "madeWith": "made with {{appName}}"
+  }
+}

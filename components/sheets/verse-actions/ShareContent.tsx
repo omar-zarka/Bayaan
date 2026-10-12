@@ -33,10 +33,13 @@ import {verseShareUrl, shareUrl as nativeShareUrl} from '@/utils/shareUtils';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName} from '@/i18n/format';
 
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
   name: string;
+  name_arabic: string;
 }>;
 
 interface QuranEntry {
@@ -71,6 +74,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
 }) => {
   const {theme, isDarkMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('sheets');
   const {width: screenWidth} = useWindowDimensions();
   const captureCanvasRef = useCanvasRef();
 
@@ -115,7 +119,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
     const [firstSurah, firstAyah] = firstKey.split(':');
     const [lastSurah, lastAyah] = lastKey.split(':');
     const surah = surahData.find(s => s.id === parseInt(firstSurah, 10));
-    const surahName = surah?.name ?? '';
+    const surahName = surah ? getSurahDisplayName(surah) : '';
 
     let ref: string;
     if (firstSurah === lastSurah) {
@@ -156,12 +160,15 @@ export const ShareContent: React.FC<ShareContentProps> = ({
     lightHaptics();
     const ref =
       rewayah === 'hafs'
-        ? `Quran ${verseRefText}`
-        : `Quran ${verseRefText} · ${rewayahLabel}`;
+        ? t('share.reference', {ref: verseRefText})
+        : t('share.referenceWithRewayah', {
+            ref: verseRefText,
+            rewayah: rewayahLabel,
+          });
     const message = `${arabicText}\n\n${translation}\n\n-- ${ref}`;
     await Share.share({message});
     SheetManager.hideAll();
-  }, [arabicText, translation, verseRefText, rewayah, rewayahLabel]);
+  }, [arabicText, translation, verseRefText, rewayah, rewayahLabel, t]);
 
   const handleShareLink = useCallback(async () => {
     lightHaptics();
@@ -171,9 +178,9 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       isDarkMode ? 'dark' : 'light',
       rewayah,
     );
-    await nativeShareUrl(url, `Quran ${verseRefText}`);
+    await nativeShareUrl(url, t('share.reference', {ref: verseRefText}));
     SheetManager.hideAll();
-  }, [surahNumber, ayahNumber, verseRefText, isDarkMode, rewayah]);
+  }, [surahNumber, ayahNumber, verseRefText, isDarkMode, rewayah, t]);
 
   if (!fontMgr) return null;
 
@@ -211,7 +218,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       </View>
 
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Show Basmallah</Text>
+        <Text style={styles.toggleLabel}>{t('share.showBasmallah')}</Text>
         <Switch
           trackColor={{
             false: Color(theme.colors.text).alpha(0.1).toString(),
@@ -226,7 +233,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       </View>
 
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Show Watermark</Text>
+        <Text style={styles.toggleLabel}>{t('share.showWatermark')}</Text>
         <Switch
           trackColor={{
             false: Color(theme.colors.text).alpha(0.1).toString(),
@@ -258,7 +265,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
               color={theme.colors.text}
             />
           )}
-          <Text style={styles.primaryButtonText}>Share as Image</Text>
+          <Text style={styles.primaryButtonText}>{t('share.asImage')}</Text>
         </Pressable>
 
         <Pressable
@@ -272,7 +279,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
             size={moderateScale(16)}
             color={theme.colors.text}
           />
-          <Text style={styles.secondaryButtonText}>Share as Text</Text>
+          <Text style={styles.secondaryButtonText}>{t('share.asText')}</Text>
         </Pressable>
 
         <Pressable
@@ -286,7 +293,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
             size={moderateScale(16)}
             color={theme.colors.text}
           />
-          <Text style={styles.secondaryButtonText}>Share Link</Text>
+          <Text style={styles.secondaryButtonText}>{t('share.link')}</Text>
         </Pressable>
       </View>
     </ScrollView>

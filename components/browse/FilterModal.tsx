@@ -14,6 +14,7 @@ import Color from 'color';
 import {Theme} from '@/utils/themeUtils';
 import {RECITERS} from '@/data/reciterData';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {useTranslation} from 'react-i18next';
 import {
   ALL_REWAYAH_IDS,
   getShortLabel,
@@ -36,10 +37,10 @@ export interface FilterOptions {
 
 // Define the style options
 const STYLE_OPTIONS = [
-  {label: 'Mojawwad', value: 'mojawwad'},
-  {label: 'Molim', value: 'molim'},
-  {label: 'Murattal', value: 'murattal'},
-];
+  {labelKey: 'common:styles.mojawwad', value: 'mojawwad'},
+  {labelKey: 'common:styles.molim', value: 'molim'},
+  {labelKey: 'common:styles.murattal', value: 'murattal'},
+] as const;
 
 // One chip per rewayah present in the reciter data, keyed by canonical
 // RewayahId slug (or the raw DB name when unresolvable). Dedups tariq
@@ -229,6 +230,7 @@ export default function FilterModal({
   initialFilters,
 }: FilterModalProps) {
   const insets = useSafeAreaInsets();
+  const {t} = useTranslation(['home', 'common']);
   const styles = useMemo(() => createStyles(theme), [theme]);
   const rewayahChips = useMemo(() => getAvailableRewayahChips(), []);
 
@@ -315,7 +317,7 @@ export default function FilterModal({
           <View style={styles.innerContent}>
             <View style={styles.contentWrapper}>
               <View style={styles.header}>
-                <Text style={styles.headerTitle}>Filter Reciters</Text>
+                <Text style={styles.headerTitle}>{t('filters.title')}</Text>
                 <TouchableOpacity
                   style={styles.closeButton}
                   onPress={onClose}
@@ -341,7 +343,9 @@ export default function FilterModal({
                 scrollEventThrottle={16}>
                 {/* Recitation Styles */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Recitation Styles</Text>
+                  <Text style={styles.sectionTitle}>
+                    {t('filters.recitationStyles')}
+                  </Text>
                   <View style={styles.optionsContainer}>
                     {STYLE_OPTIONS.map(style => (
                       <TouchableOpacity
@@ -359,7 +363,7 @@ export default function FilterModal({
                             filters.styles.includes(style.value) &&
                               styles.optionTextSelected,
                           ]}>
-                          {style.label}
+                          {t(style.labelKey)}
                         </Text>
                       </TouchableOpacity>
                     ))}
@@ -368,7 +372,9 @@ export default function FilterModal({
 
                 {/* Rewayat Types */}
                 <View style={styles.section}>
-                  <Text style={styles.sectionTitle}>Rewayat Types</Text>
+                  <Text style={styles.sectionTitle}>
+                    {t('filters.rewayatTypes')}
+                  </Text>
                   <View style={styles.optionsContainer}>
                     {rewayahChips.map(({key, label}) => (
                       <TouchableOpacity
@@ -404,13 +410,17 @@ export default function FilterModal({
                     style={styles.resetButton}
                     onPress={handleReset}
                     activeOpacity={0.7}>
-                    <Text style={styles.resetButtonText}>Reset</Text>
+                    <Text style={styles.resetButtonText}>
+                      {t('common:actions.reset')}
+                    </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     style={styles.applyButton}
                     onPress={handleApply}
                     activeOpacity={0.7}>
-                    <Text style={styles.applyButtonText}>Apply</Text>
+                    <Text style={styles.applyButtonText}>
+                      {t('common:actions.apply')}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>

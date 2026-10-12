@@ -24,7 +24,9 @@ import {
   type BundledTranslationId,
 } from '@/types/translation';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits} from '@/i18n/format';
 
 // ─── Data loading (module scope, runs once) ───────────────────────────────
 const quranData = require('@/data/quran.json') as QuranData;
@@ -79,6 +81,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
 }) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
   const selectedTranslationId = useMushafSettingsStore(
     s => s.selectedTranslationId,
   );
@@ -189,7 +192,9 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
         bounces={true}>
         {/* Verse badge */}
         <View style={styles.verseBadge}>
-          <Text style={styles.verseBadgeText}>{verse.verseKey}</Text>
+          <Text style={styles.verseBadgeText}>
+            {localizeDigits(verse.verseKey)}
+          </Text>
         </View>
 
         {/* Arabic text */}
@@ -205,7 +210,9 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
         {activeTranslationText ? (
           <Text style={styles.translationText}>{activeTranslationText}</Text>
         ) : (
-          <Text style={styles.noTranslation}>Translation not available</Text>
+          <Text style={styles.noTranslation}>
+            {t('translationContent.notAvailable')}
+          </Text>
         )}
 
         {/* Other translations (bundled + downloaded) */}
@@ -225,7 +232,9 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
                     {name.toUpperCase()}
                   </Text>
                   <View style={styles.switchPill}>
-                    <Text style={styles.switchPillText}>Switch</Text>
+                    <Text style={styles.switchPillText}>
+                      {t('translationContent.switch')}
+                    </Text>
                   </View>
                 </View>
               </Pressable>
@@ -233,7 +242,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
                 <Text style={styles.translationTextSecondary}>{text}</Text>
               ) : (
                 <Text style={styles.noTranslation}>
-                  Translation not available
+                  {t('translationContent.notAvailable')}
                 </Text>
               )}
             </React.Fragment>
@@ -259,17 +268,20 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
                 ? Color(theme.colors.text).alpha(0.2).toString()
                 : theme.colors.text
             }
+            style={flipX}
           />
           <Text
             style={[
               styles.navButtonText,
               isFirst && styles.navButtonTextDisabled,
             ]}>
-            Prev
+            {t('translationContent.prev')}
           </Text>
         </Pressable>
 
-        <Text style={styles.footerCounter}>{verse.verseKey}</Text>
+        <Text style={styles.footerCounter}>
+          {localizeDigits(verse.verseKey)}
+        </Text>
 
         <Pressable
           onPress={goToNext}
@@ -284,7 +296,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
               styles.navButtonText,
               isLast && styles.navButtonTextDisabled,
             ]}>
-            Next
+            {t('common:actions.next')}
           </Text>
           <Feather
             name="chevron-right"
@@ -294,6 +306,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
                 ? Color(theme.colors.text).alpha(0.2).toString()
                 : theme.colors.text
             }
+            style={flipX}
           />
         </Pressable>
       </View>

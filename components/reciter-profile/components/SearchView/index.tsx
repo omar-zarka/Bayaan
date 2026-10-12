@@ -14,6 +14,8 @@ import {StyleSheet} from 'react-native';
 import {StatusBar} from 'expo-status-bar';
 import {SurahCard} from '@/components/cards/SurahCard';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {useTranslation} from 'react-i18next';
+import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 
 // Define view mode type
 type ReciterProfileViewMode = 'card' | 'list';
@@ -54,6 +56,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
   getColorForSurah,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('player');
   const styles = createStyles(theme);
   const insets = useSafeAreaInsets();
 
@@ -139,7 +142,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
                   selectedRewayatId === item.id &&
                     styles.selectedRewayatButtonSubText,
                 ]}>
-                {item.style}
+                {getRecitationStyleLabel(item.style)}
               </Text>
             </View>
           </TouchableOpacity>
@@ -170,7 +173,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
         </Text>
         <View style={styles.searchBoxContainer}>
           <SearchInput
-            placeholder="Search surahs"
+            placeholder={t('reciterProfile.searchPlaceholder')}
             value={searchQuery}
             onChangeText={onSearchChange}
             onCancel={onCloseSearch}
@@ -207,7 +210,7 @@ export const SearchView: React.FC<SearchViewProps> = ({
             <View style={styles.emptyContainer}>
               <Text
                 style={[styles.emptyText, {color: theme.colors.textSecondary}]}>
-                No surahs found
+                {t('reciterProfile.noSurahsFound')}
               </Text>
             </View>
           }

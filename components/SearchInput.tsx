@@ -13,6 +13,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
+import {useTranslation} from 'react-i18next';
 
 export interface SearchInputProps extends TextInputProps {
   value: string;
@@ -48,7 +49,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(
       onChangeText,
       onCancel,
       onClose,
-      placeholder = 'Search',
+      placeholder,
       showCancelButton = true,
       containerStyle,
       inputStyle,
@@ -57,7 +58,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(
       textColor,
       cancelButtonStyle,
       cancelButtonTextStyle,
-      cancelButtonText = 'Cancel',
+      cancelButtonText,
       iconSize = moderateScale(16),
       iconOpacity = 0.8,
       backgroundColor,
@@ -72,6 +73,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(
     ref,
   ) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['home', 'common']);
     const styles = createStyles(theme);
 
     return (
@@ -104,7 +106,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(
             ]}
             value={value}
             onChangeText={onChangeText}
-            placeholder={placeholder}
+            placeholder={placeholder ?? t('common:actions.search')}
             placeholderTextColor={
               placeholderTextColor || Color(textColor).alpha(0.6).toString()
             }
@@ -135,7 +137,7 @@ export const SearchInput = forwardRef<TextInput, SearchInputProps>(
                 {color: textColor},
                 cancelButtonTextStyle,
               ]}>
-              {cancelButtonText}
+              {cancelButtonText ?? t('common:actions.cancel')}
             </Text>
           </Pressable>
         )}

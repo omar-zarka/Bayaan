@@ -7,6 +7,7 @@ import Animated, {
   SharedValue,
 } from 'react-native-reanimated';
 import {useTheme} from '@/hooks/useTheme';
+import {forceLTR} from '@/utils/rtl';
 
 interface DotIndicatorProps {
   totalPages: number;
@@ -22,7 +23,7 @@ function DotIndicatorComponent({
   const {theme} = useTheme();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, forceLTR]}>
       {Array.from({length: totalPages}).map((_, i) => (
         <Dot
           key={i}

@@ -9,6 +9,8 @@ import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {clearPlayerCache} from '@/services/player/utils/storage';
 import {Feather} from '@expo/vector-icons';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits} from '@/i18n/format';
 
 interface StorageCategoryProps {
   color: string;
@@ -26,7 +28,7 @@ const StorageCategory = ({
   <View style={styles.categoryRow}>
     <View style={[styles.dot, {backgroundColor: color}]} />
     <Text style={styles.categoryLabel}>{label}</Text>
-    <Text style={styles.categorySize}>{size}</Text>
+    <Text style={styles.categorySize}>{localizeDigits(size)}</Text>
   </View>
 );
 
@@ -66,6 +68,7 @@ const ActionSection = ({
 
 export default function StorageScreen() {
   const {theme} = useTheme();
+  const {t} = useTranslation(['settings', 'common']);
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [, setIsClearing] = useState(false);
 
@@ -74,21 +77,27 @@ export default function StorageScreen() {
 
   const handleClearAllDownloads = () => {
     Alert.alert(
-      'Remove all downloads',
-      'Are you sure you want to remove all downloaded content? This action cannot be undone.',
+      t('storage.removeDownloadsTitle'),
+      t('storage.removeDownloadsConfirm'),
       [
-        {text: 'Cancel', style: 'cancel'},
+        {text: t('common:actions.cancel'), style: 'cancel'},
         {
-          text: 'Remove',
+          text: t('common:actions.remove'),
           style: 'destructive',
           onPress: async () => {
             try {
               setIsClearing(true);
               await useDownloadStore.getState().clearAllDownloads();
               refresh();
-              Alert.alert('Success', 'All downloads have been removed.');
+              Alert.alert(
+                t('storage.success'),
+                t('storage.removeDownloadsSuccess'),
+              );
             } catch (downloadError) {
-              Alert.alert('Error', 'Failed to remove downloads.');
+              Alert.alert(
+                t('storage.error'),
+                t('storage.removeDownloadsError'),
+              );
             } finally {
               setIsClearing(false);
             }
@@ -99,29 +108,25 @@ export default function StorageScreen() {
   };
 
   const handleClearCache = () => {
-    Alert.alert(
-      'Clear cache',
-      "This will clear your cache. Your downloads won't be removed.",
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Clear',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsClearing(true);
-              await clearPlayerCache();
-              refresh();
-              Alert.alert('Success', 'Cache has been cleared.');
-            } catch (cacheError) {
-              Alert.alert('Error', 'Failed to clear cache.');
-            } finally {
-              setIsClearing(false);
-            }
-          },
+    Alert.alert(t('storage.clearCacheTitle'), t('storage.clearCacheConfirm'), [
+      {text: t('common:actions.cancel'), style: 'cancel'},
+      {
+        text: t('common:actions.clear'),
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            setIsClearing(true);
+            await clearPlayerCache();
+            refresh();
+            Alert.alert(t('storage.success'), t('storage.clearCacheSuccess'));
+          } catch (cacheError) {
+            Alert.alert(t('storage.error'), t('storage.clearCacheError'));
+          } finally {
+            setIsClearing(false);
+          }
         },
-      ],
-    );
+      },
+    ]);
   };
 
   const totalRaw = rawData.total || 1;
@@ -174,9 +179,7 @@ export default function StorageScreen() {
         showsVerticalScrollIndicator={false}>
         {loading ? (
           <View style={styles.loadingContainer}>
-            <Text style={styles.loadingText}>
-              Loading storage information...
-            </Text>
+            <Text style={styles.loadingText}>{t('storage.loading')}</Text>
           </View>
         ) : error ? (
           <View style={styles.errorContainer}>
@@ -190,7 +193,9 @@ export default function StorageScreen() {
         ) : (
           <>
             {/* Storage Breakdown */}
-            <Text style={styles.sectionHeader}>STORAGE BREAKDOWN</Text>
+            <Text style={styles.sectionHeader}>
+              {t('storage.breakdownHeader')}
+            </Text>
 
             {/* Progress Bar */}
             <View style={styles.progressContainer}>
@@ -237,37 +242,39 @@ export default function StorageScreen() {
             <View style={styles.breakdownContainer}>
               <StorageCategory
                 color={colors.otherApps}
-                label="Other apps"
+                label={t('storage.otherApps')}
                 size={otherApps}
                 styles={styles}
               />
               <StorageCategory
                 color={colors.downloads}
-                label="Downloads"
+                label={t('storage.downloads')}
                 size={downloads}
                 styles={styles}
               />
               <StorageCategory
                 color={colors.cache}
-                label="Cache"
+                label={t('storage.cache')}
                 size={cache}
                 styles={styles}
               />
               <StorageCategory
                 color={colors.free}
-                label="Free"
+                label={t('storage.free')}
                 size={free}
                 styles={styles}
               />
             </View>
 
             {/* Manage Storage */}
-            <Text style={styles.sectionHeader}>MANAGE STORAGE</Text>
+            <Text style={styles.sectionHeader}>
+              {t('storage.manageHeader')}
+            </Text>
             <View>
               <ActionSection
-                title="Remove all downloads"
-                description="Remove all the Quran content you have downloaded for offline use."
-                buttonLabel="Remove"
+                title={t('storage.removeDownloadsTitle')}
+                description={t('storage.removeDownloadsDescription')}
+                buttonLabel={t('common:actions.remove')}
                 onPress={handleClearAllDownloads}
                 theme={theme}
                 styles={styles}
@@ -277,9 +284,9 @@ export default function StorageScreen() {
               <View style={styles.actionSpacer} />
 
               <ActionSection
-                title="Clear cache"
-                description="You can free up storage by clearing your cache. Your downloads won't be removed."
-                buttonLabel="Clear"
+                title={t('storage.clearCacheTitle')}
+                description={t('storage.clearCacheDescription')}
+                buttonLabel={t('common:actions.clear')}
                 onPress={handleClearCache}
                 theme={theme}
                 styles={styles}

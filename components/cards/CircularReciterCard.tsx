@@ -15,6 +15,7 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {Link} from 'expo-router';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {useTranslation} from 'react-i18next';
 
 interface CircularReciterCardProps {
   imageUrl?: string;
@@ -46,6 +47,7 @@ export const CircularReciterCard: React.FC<CircularReciterCardProps> = ({
   showFollowAlong,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
 
   const sizeMap = {
     small: 50,
@@ -166,7 +168,7 @@ export const CircularReciterCard: React.FC<CircularReciterCardProps> = ({
             </View>
           ) : (
             <Text style={styles.subtitle} numberOfLines={1}>
-              Reciter
+              {t('common:terms.reciter')}
             </Text>
           )}
         </>

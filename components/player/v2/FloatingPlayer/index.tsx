@@ -19,6 +19,7 @@ import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
 import {useResponsive} from '@/hooks/useResponsive';
+import {getTrackDisplayTitle} from '@/i18n/format';
 
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
   const {theme} = useTheme();
@@ -110,7 +111,7 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
         />
         <View style={styles.trackInfo}>
           <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-            {currentTrack.title}
+            {getTrackDisplayTitle(currentTrack)}
           </Text>
           <Text
             style={[styles.subtitle, {color: subtitleColor}]}

@@ -14,6 +14,8 @@ import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
 import {GradientText} from '@/components/GradientText';
 import {useUploadsStore} from '@/store/uploadsStore';
 import Color from 'color';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits, getTrackDisplayTitle} from '@/i18n/format';
 
 interface UploadQueueItemProps {
   track: Track;
@@ -24,6 +26,7 @@ interface UploadQueueItemProps {
 const UploadQueueItem: React.FC<UploadQueueItemProps> = React.memo(
   ({track, index, onPress}) => {
     const {theme} = useTheme();
+    const {t} = useTranslation(['player', 'common']);
 
     const playbackState = usePlayerStore(state => state.playback.state);
     const currentIndex = usePlayerStore(state => state.queue.currentIndex);
@@ -34,7 +37,9 @@ const UploadQueueItem: React.FC<UploadQueueItemProps> = React.memo(
       (playbackState === 'playing' || playbackState === 'buffering');
 
     const surahNum = track.surahId ? parseInt(track.surahId, 10) : undefined;
-    const displayTitle = surahNum ? `${surahNum}. ${track.title}` : track.title;
+    const displayTitle = surahNum
+      ? `${localizeDigits(surahNum)}. ${getTrackDisplayTitle(track)}`
+      : track.title;
 
     // Look up the full recitation for tags
     const recitation = useUploadsStore(state =>
@@ -46,15 +51,19 @@ const UploadQueueItem: React.FC<UploadQueueItemProps> = React.memo(
     const verseLabel = React.useMemo(() => {
       if (!recitation?.startVerse) return null;
       if (recitation.endVerse)
-        return `${recitation.startVerse}-${recitation.endVerse}`;
-      return `v${recitation.startVerse}`;
-    }, [recitation?.startVerse, recitation?.endVerse]);
+        return localizeDigits(
+          `${recitation.startVerse}-${recitation.endVerse}`,
+        );
+      return t('queue.verseShort', {verse: recitation.startVerse});
+    }, [recitation?.startVerse, recitation?.endVerse, t]);
 
     const recordingLabel = React.useMemo(() => {
-      if (recitation?.recordingType === 'salah') return 'Salah';
-      if (recitation?.recordingType === 'studio') return 'Studio';
+      if (recitation?.recordingType === 'salah')
+        return t('uploads.recordingType.salah');
+      if (recitation?.recordingType === 'studio')
+        return t('uploads.recordingType.studio');
       return null;
-    }, [recitation?.recordingType]);
+    }, [recitation?.recordingType, t]);
 
     const categoryLabel = React.useMemo(() => {
       if (recitation?.type !== 'other' || !recitation?.category) return null;
@@ -225,6 +234,7 @@ export const QueueList: React.FC<QueueListProps> = ({
   onRemoveQueueItem,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation(['player', 'common']);
   const tracks = usePlayerStore(s => s.queue.tracks);
   const renderScrollComponent = useBottomSheetScrollableCreator();
 
@@ -281,17 +291,17 @@ export const QueueList: React.FC<QueueListProps> = ({
       <View style={[styles.header, {borderBottomColor: theme.colors.border}]}>
         <View style={styles.headerLeft}>
           <Text style={[styles.headerTitle, {color: theme.colors.text}]}>
-            Queue
+            {t('common:terms.queue')}
           </Text>
         </View>
         <View style={styles.headerRight}>
           <Text style={[styles.queueCount, {color: theme.colors.text}]}>
-            {tracks.length} track{tracks.length !== 1 ? 's' : ''}
+            {t('common:counts.tracks', {count: tracks.length})}
           </Text>
         </View>
       </View>
     ),
-    [theme.colors.border, theme.colors.text, tracks.length],
+    [theme.colors.border, theme.colors.text, tracks.length, t],
   );
 
   if (!tracks?.length) {
@@ -305,7 +315,7 @@ export const QueueList: React.FC<QueueListProps> = ({
             style={styles.emptyIcon}
           />
           <Text style={[styles.emptyText, {color: theme.colors.text}]}>
-            Queue is empty
+            {t('queue.empty')}
           </Text>
         </View>
       </View>

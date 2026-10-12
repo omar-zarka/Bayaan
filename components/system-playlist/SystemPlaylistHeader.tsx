@@ -15,7 +15,8 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import branding from '@/config/branding';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const isGlass = USE_GLASS;
@@ -43,6 +44,7 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
 }) => {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const {t} = useTranslation(['collection', 'common']);
   const styles = createStyles(theme, insets);
 
   const shuffleScale = useSharedValue(1);
@@ -73,7 +75,7 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
   };
 
   const subtitleText = [
-    `${itemCount} ${itemCount === 1 ? 'surah' : 'surahs'}`,
+    t('common:counts.surahs', {count: itemCount}),
     estimatedDuration,
   ]
     .filter(Boolean)
@@ -92,6 +94,7 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
               name="arrow-left"
               size={moderateScale(24)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
         )}
@@ -100,8 +103,9 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
         <View style={styles.contentContainer}>
           {/* System Playlist Badge */}
           <View style={styles.badge}>
-            <Text
-              style={styles.badgeText}>{`${branding.appName} Curated`}</Text>
+            <Text style={styles.badgeText}>
+              {t('systemPlaylist.curatedBadge', {appName: branding.appName})}
+            </Text>
           </View>
 
           {/* Title and Description */}
@@ -140,7 +144,7 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
               onPress={onPlayPress}
               onPressIn={() => handlePressIn('play')}
               onPressOut={() => handlePressOut('play')}>
-              <View style={styles.playIconContainer}>
+              <View style={[styles.playIconContainer, forceLTR]}>
                 <PlayIcon
                   color={theme.colors.background}
                   size={moderateScale(16)}

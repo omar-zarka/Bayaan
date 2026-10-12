@@ -1,12 +1,15 @@
 import React from 'react';
 import {useRouter, useLocalSearchParams} from 'expo-router';
+import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
 import BrowseReciters from '@/components/browse/BrowseReciters';
 import {SURAHS} from '@/data/surahData';
+import {getSurahDisplayName} from '@/i18n/format';
 
 export default function BrowseScreen() {
   const router = useRouter();
   const {theme} = useTheme();
+  const {t} = useTranslation('home');
   // RFC-012 — composable Search-tab filter chips. Tiles can deeplink in
   // with chips pre-applied (e.g. `?hasPhoto=1`).
   const {surahId, hasPhoto} = useLocalSearchParams<{
@@ -20,8 +23,10 @@ export default function BrowseScreen() {
 
   // Get surah name if surahId is provided
   const title = surahId
-    ? `Browse Reciters - ${SURAHS[parseInt(surahId, 10) - 1].name}`
-    : 'Browse All';
+    ? t('browse.browseRecitersForSurah', {
+        surah: getSurahDisplayName(SURAHS[parseInt(surahId, 10) - 1]),
+      })
+    : t('browse.browseAll');
 
   return (
     <BrowseReciters

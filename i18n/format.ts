@@ -1,3 +1,4 @@
+import {SURAHS} from '@/data/surahData';
 import {currentLanguage, type AppLanguage} from './language';
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
@@ -51,6 +52,28 @@ export function getSurahMeaning(
   language: AppLanguage = currentLanguage,
 ): string | null {
   return language === 'ar' ? null : surah.translated_name_english;
+}
+
+interface TitledTrack {
+  title: string;
+  surahId?: string;
+  isUserUpload?: boolean;
+}
+
+/**
+ * Track title for display. Surah tracks are titled with the English surah
+ * name when queued, so Arabic mode resolves the Arabic name from `surahId`.
+ * User uploads keep their own titles.
+ */
+export function getTrackDisplayTitle(
+  track: TitledTrack,
+  language: AppLanguage = currentLanguage,
+): string {
+  if (language !== 'ar' || track.isUserUpload || !track.surahId) {
+    return track.title;
+  }
+  const surah = SURAHS[Number(track.surahId) - 1];
+  return surah ? surah.name_arabic : track.title;
 }
 
 interface NamedReciter {

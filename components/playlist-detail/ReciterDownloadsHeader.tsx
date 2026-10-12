@@ -10,11 +10,12 @@ import {PlayIcon, ShuffleIcon} from '@/components/Icons';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
-import {latinLetterSpacing} from '@/utils/rtl';
+import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
 
 interface ReciterDownloadsHeaderProps {
   reciterId: string;
   reciterName: string;
+  reciterDisplayName?: string;
   reciterImageUrl?: string;
   subtitle: string;
   onPlayPress: () => void;
@@ -26,6 +27,7 @@ interface ReciterDownloadsHeaderProps {
 export const ReciterDownloadsHeader: React.FC<ReciterDownloadsHeaderProps> = ({
   reciterId,
   reciterName,
+  reciterDisplayName,
   reciterImageUrl,
   subtitle,
   onPlayPress,
@@ -54,6 +56,7 @@ export const ReciterDownloadsHeader: React.FC<ReciterDownloadsHeaderProps> = ({
               name="arrow-left"
               size={moderateScale(24)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
         )}
@@ -73,14 +76,16 @@ export const ReciterDownloadsHeader: React.FC<ReciterDownloadsHeaderProps> = ({
 
           {/* Title and Subtitle - Title tappable to navigate to reciter profile */}
           <Pressable onPress={handleReciterPress}>
-            <Text style={styles.title}>{reciterName}</Text>
+            <Text style={styles.title}>
+              {reciterDisplayName ?? reciterName}
+            </Text>
           </Pressable>
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
       </View>
 
       {/* Action Buttons */}
-      <View style={styles.actionButtons}>
+      <View style={[styles.actionButtons, forceLTR]}>
         {!USE_GLASS && onOptionsPress && (
           <Pressable style={styles.circleButton} onPress={onOptionsPress}>
             <Feather

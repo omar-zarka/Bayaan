@@ -9,6 +9,7 @@ import Color from 'color';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
+import {localizeDigits} from '@/i18n/format';
 
 interface NoteItemProps {
   surahName: string;
@@ -61,7 +62,9 @@ export const NoteItem = memo<NoteItemProps>(
         {/* Top bar: pill + surah glyph + options */}
         <View style={styles.topBar}>
           <View style={styles.versePill}>
-            <Text style={styles.versePillText}>{verseRefText}</Text>
+            <Text style={styles.versePillText}>
+              {localizeDigits(verseRefText)}
+            </Text>
           </View>
           {rewayahId && rewayahId !== 'hafs' && (
             <View style={styles.rewayahPill}>

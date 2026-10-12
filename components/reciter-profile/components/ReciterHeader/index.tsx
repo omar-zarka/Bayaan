@@ -8,6 +8,7 @@ import {ReciterImage} from '@/components/ReciterImage';
 import {ReciterHeaderProps} from '@/components/reciter-profile/types';
 import {Link} from 'expo-router';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {getReciterDisplayName} from '@/i18n/format';
 
 export const ReciterHeader: React.FC<ReciterHeaderProps> = ({
   reciter,
@@ -47,7 +48,7 @@ export const ReciterHeader: React.FC<ReciterHeaderProps> = ({
         </View>
       )}
       <Text style={styles.reciterName} numberOfLines={2}>
-        {reciter.name}
+        {getReciterDisplayName(reciter)}
       </Text>
     </View>
   );

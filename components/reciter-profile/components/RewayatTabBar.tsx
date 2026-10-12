@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {Theme} from '@/utils/themeUtils';
+import {forceLTR} from '@/utils/rtl';
 
 interface Tab {
   id: string;
@@ -143,7 +144,7 @@ export const RewayatTabBar: React.FC<RewayatTabBarProps> = ({
   }, [activeTabId, tabLayouts, screenWidth]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, forceLTR]}>
       <ScrollView
         ref={scrollViewRef}
         horizontal

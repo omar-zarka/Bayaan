@@ -8,6 +8,8 @@ import {generateSmartAudioUrl} from '@/utils/audioUtils';
 import {getReciterArtwork} from '@/utils/artworkUtils';
 import {SURAHS} from '@/data/surahData';
 import {usePlayerStore} from '@/services/player/store/playerStore';
+import i18n from '@/i18n';
+import {getSurahDisplayName} from '@/i18n/format';
 
 export default function RecitationDeepLinkReceiver(): React.ReactElement {
   const {slug, surah, rewayah, t} = useLocalSearchParams<{
@@ -48,7 +50,9 @@ export default function RecitationDeepLinkReceiver(): React.ReactElement {
     const track = {
       id: `${reciter.id}:${surahNum}`,
       url: generateSmartAudioUrl(reciter, surahNum.toString(), rw.id),
-      title: surahMeta?.name ?? `Surah ${surahNum}`,
+      title: surahMeta
+        ? getSurahDisplayName(surahMeta)
+        : i18n.t('common:labels.surahNumber', {number: surahNum}),
       artist: reciter.name,
       reciterId: reciter.id,
       artwork,

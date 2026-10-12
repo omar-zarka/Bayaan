@@ -12,6 +12,7 @@ import Color from 'color';
 import * as Clipboard from 'expo-clipboard';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 interface CopyContentProps {
   verseKey: string;
@@ -102,6 +103,7 @@ export const CopyContent: React.FC<CopyContentProps> = ({
 }) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
   const isRange = verseKeys && verseKeys.length > 1;
 
   const verseRefText = useMemo(() => {
@@ -128,7 +130,9 @@ export const CopyContent: React.FC<CopyContentProps> = ({
       parts.push(transliteration.replace(/<[^>]*>/g, ''));
     }
     if (copyTranslation && translation) parts.push(translation);
-    if (copyReference) parts.push(`Quran ${verseRefText}`);
+    if (copyReference) {
+      parts.push(t('copy.quranReference', {ref: verseRefText}));
+    }
     if (parts.length > 0) {
       await Clipboard.setStringAsync(parts.join('\n\n'));
     }
@@ -143,6 +147,7 @@ export const CopyContent: React.FC<CopyContentProps> = ({
     translation,
     verseRefText,
     onDone,
+    t,
   ]);
 
   const canCopy =
@@ -158,10 +163,10 @@ export const CopyContent: React.FC<CopyContentProps> = ({
         />
       </View>
 
-      <Text style={styles.sectionLabel}>SELECT CONTENT</Text>
+      <Text style={styles.sectionLabel}>{t('copy.selectContent')}</Text>
       <View style={styles.card}>
         <CheckboxRow
-          label="Arabic"
+          label={t('copy.arabic')}
           checked={copyArabic}
           onToggle={() => setCopyArabic(!copyArabic)}
           disabled={!arabicText}
@@ -169,7 +174,7 @@ export const CopyContent: React.FC<CopyContentProps> = ({
         />
         <View style={styles.separator} />
         <CheckboxRow
-          label="Transliteration"
+          label={t('copy.transliteration')}
           checked={copyTransliteration}
           onToggle={() => setCopyTransliteration(!copyTransliteration)}
           disabled={!transliteration}
@@ -177,7 +182,7 @@ export const CopyContent: React.FC<CopyContentProps> = ({
         />
         <View style={styles.separator} />
         <CheckboxRow
-          label="Translation"
+          label={t('common:terms.translation')}
           checked={copyTranslation}
           onToggle={() => setCopyTranslation(!copyTranslation)}
           disabled={!translation}
@@ -185,7 +190,7 @@ export const CopyContent: React.FC<CopyContentProps> = ({
         />
         <View style={styles.separator} />
         <CheckboxRow
-          label="Verse Reference"
+          label={t('copy.verseReference')}
           checked={copyReference}
           onToggle={() => setCopyReference(!copyReference)}
           theme={theme}
@@ -205,7 +210,7 @@ export const CopyContent: React.FC<CopyContentProps> = ({
           size={moderateScale(16)}
           color={theme.colors.text}
         />
-        <Text style={styles.copyButtonText}>Copy to Clipboard</Text>
+        <Text style={styles.copyButtonText}>{t('copy.copyToClipboard')}</Text>
       </Pressable>
     </View>
   );

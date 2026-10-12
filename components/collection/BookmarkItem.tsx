@@ -9,6 +9,7 @@ import Color from 'color';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
+import {localizeDigits} from '@/i18n/format';
 
 interface BookmarkItemProps {
   surahName: string;
@@ -44,7 +45,7 @@ export const BookmarkItem = memo<BookmarkItemProps>(
         <View style={styles.topBar}>
           <View style={styles.versePill}>
             <Text style={styles.versePillText}>
-              {surahNumber}:{ayahNumber}
+              {localizeDigits(`${surahNumber}:${ayahNumber}`)}
             </Text>
           </View>
           {rewayahId && rewayahId !== 'hafs' && (

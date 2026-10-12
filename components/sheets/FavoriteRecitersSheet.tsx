@@ -24,12 +24,15 @@ import {SearchInput} from '@/components/SearchInput';
 import {ReciterImage} from '@/components/ReciterImage';
 import {Feather} from '@expo/vector-icons';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName} from '@/i18n/format';
 
 export const FavoriteRecitersSheet = (
   props: SheetProps<'favorite-reciters'>,
 ) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
   const {toggleFavorite, favoriteReciters} = useFavoriteReciters();
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<TextInput>(null);
@@ -79,11 +82,13 @@ export const FavoriteRecitersSheet = (
           </View>
           <View style={styles.reciterInfo}>
             <Text style={styles.reciterName} numberOfLines={1}>
-              {item.name}
+              {getReciterDisplayName(item)}
             </Text>
             <Text style={styles.reciterDetail} numberOfLines={1}>
               {item.rewayat.length > 1
-                ? `${item.rewayat.length} rewayat`
+                ? t('favoriteReciters.rewayatCount', {
+                    count: item.rewayat.length,
+                  })
                 : getDisplayLabelFromName(item.rewayat[0]?.name)}
             </Text>
           </View>
@@ -103,7 +108,7 @@ export const FavoriteRecitersSheet = (
         </Pressable>
       );
     },
-    [favoriteIds, handleReciterPress, styles, theme.colors.text],
+    [favoriteIds, handleReciterPress, styles, theme.colors.text, t],
   );
 
   return (
@@ -115,16 +120,16 @@ export const FavoriteRecitersSheet = (
       <View style={styles.header}>
         <View style={styles.headerSpacer} />
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Favorite Reciters</Text>
+          <Text style={styles.headerTitle}>{t('favoriteReciters.title')}</Text>
           <Text style={styles.headerSubtitle}>
-            {favoriteReciters.length} selected
+            {t('favoriteReciters.selected', {count: favoriteReciters.length})}
           </Text>
         </View>
         <Pressable
           style={styles.doneButton}
           onPress={() => SheetManager.hide('favorite-reciters')}
           hitSlop={8}>
-          <Text style={styles.doneButtonText}>Done</Text>
+          <Text style={styles.doneButtonText}>{t('common:actions.done')}</Text>
         </Pressable>
       </View>
 
@@ -132,7 +137,7 @@ export const FavoriteRecitersSheet = (
         <View style={styles.searchContainer}>
           <SearchInput
             ref={searchInputRef}
-            placeholder="Search reciters..."
+            placeholder={t('favoriteReciters.searchPlaceholder')}
             value={searchQuery}
             onChangeText={setSearchQuery}
             backgroundColor={Color(theme.colors.text).alpha(0.04).toString()}
@@ -159,7 +164,9 @@ export const FavoriteRecitersSheet = (
           keyboardShouldPersistTaps="handled"
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No reciters found</Text>
+              <Text style={styles.emptyText}>
+                {t('favoriteReciters.empty')}
+              </Text>
             </View>
           }
         />

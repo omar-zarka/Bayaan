@@ -15,6 +15,7 @@ import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+import {useTranslation} from 'react-i18next';
 
 interface CheckboxRowProps {
   label: string;
@@ -66,6 +67,7 @@ const CheckboxRow: React.FC<CheckboxRowProps> = ({
 export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation(['sheets', 'common']);
 
   const verseKey = props.payload?.verseKey ?? '';
   const surahNumber = props.payload?.surahNumber;
@@ -111,7 +113,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
     }
 
     if (copyReference) {
-      parts.push(`Quran ${verseRefText}`);
+      parts.push(t('copy.quranReference', {ref: verseRefText}));
     }
 
     if (parts.length > 0) {
@@ -128,6 +130,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
     transliterationRaw,
     translation,
     verseRefText,
+    t,
   ]);
 
   const canCopy =
@@ -140,8 +143,8 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>
       <View style={styles.container}>
-        <Text style={styles.title}>Copy Options</Text>
-        <Text style={styles.subtitle}>Select what to copy</Text>
+        <Text style={styles.title}>{t('copy.optionsTitle')}</Text>
+        <Text style={styles.subtitle}>{t('copy.optionsSubtitle')}</Text>
 
         <View style={styles.ayahContainer}>
           <SkiaVersePreview
@@ -153,7 +156,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
 
         <View style={styles.optionsContainer}>
           <CheckboxRow
-            label="Arabic"
+            label={t('copy.arabic')}
             checked={copyArabic}
             onToggle={() => setCopyArabic(!copyArabic)}
             disabled={!arabicText}
@@ -161,7 +164,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
             styles={styles}
           />
           <CheckboxRow
-            label="Transliteration"
+            label={t('copy.transliteration')}
             checked={copyTransliteration}
             onToggle={() => setCopyTransliteration(!copyTransliteration)}
             disabled={!transliterationRaw}
@@ -169,7 +172,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
             styles={styles}
           />
           <CheckboxRow
-            label="Translation"
+            label={t('common:terms.translation')}
             checked={copyTranslation}
             onToggle={() => setCopyTranslation(!copyTranslation)}
             disabled={!translation}
@@ -177,7 +180,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
             styles={styles}
           />
           <CheckboxRow
-            label="Verse Reference"
+            label={t('copy.verseReference')}
             checked={copyReference}
             onToggle={() => setCopyReference(!copyReference)}
             theme={theme}
@@ -199,7 +202,7 @@ export const VerseCopySheet = (props: SheetProps<'verse-copy'>) => {
               styles.copyButtonText,
               !canCopy && styles.copyButtonTextDisabled,
             ]}>
-            Copy to Clipboard
+            {t('copy.copyToClipboard')}
           </Text>
         </Pressable>
       </View>

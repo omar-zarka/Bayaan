@@ -4,6 +4,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
 import {HeartIcon} from '@/components/Icons';
 import Color from 'color';
+import {useTranslation} from 'react-i18next';
 
 interface LovedCardProps {
   itemCount: number;
@@ -19,6 +20,7 @@ export const LovedCard: React.FC<LovedCardProps> = ({
   height,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
 
   // Red color for loved surahs
   const lovedColor = '#FF6B6B';
@@ -68,10 +70,10 @@ export const LovedCard: React.FC<LovedCardProps> = ({
         <HeartIcon color={lovedColor} size={iconSize} filled={true} />
       </View>
       <Text style={styles.name} numberOfLines={1}>
-        Loved Surahs
+        {t('cards.lovedSurahs')}
       </Text>
       <Text style={styles.subtitle} numberOfLines={1}>
-        {itemCount} {itemCount === 1 ? 'surah' : 'surahs'}
+        {t('common:counts.surahs', {count: itemCount})}
       </Text>
     </TouchableOpacity>
   );

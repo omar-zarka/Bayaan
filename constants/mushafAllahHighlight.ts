@@ -1,3 +1,4 @@
+import i18n from '@/i18n';
 import type {MushafAllahNameHighlightColor} from '@/store/mushafSettingsStore';
 
 export interface AllahNameHighlightOption {
@@ -10,25 +11,33 @@ export interface AllahNameHighlightOption {
 export const ALLAH_NAME_HIGHLIGHT_OPTIONS: AllahNameHighlightOption[] = [
   {
     id: 'gold',
-    label: 'Gold',
+    get label() {
+      return i18n.t('content:allahHighlight.gold');
+    },
     light: '#A86A00',
     dark: '#F6C453',
   },
   {
     id: 'emerald',
-    label: 'Emerald',
+    get label() {
+      return i18n.t('content:allahHighlight.emerald');
+    },
     light: '#1F7A52',
     dark: '#68D391',
   },
   {
     id: 'blue',
-    label: 'Blue',
+    get label() {
+      return i18n.t('content:allahHighlight.blue');
+    },
     light: '#2B6CB0',
     dark: '#63B3ED',
   },
   {
     id: 'rose',
-    label: 'Rose',
+    get label() {
+      return i18n.t('content:allahHighlight.rose');
+    },
     light: '#C05669',
     dark: '#FC8181',
   },

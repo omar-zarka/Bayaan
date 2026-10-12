@@ -43,15 +43,11 @@ import {
   BASMALLAH_TEXT,
 } from '@/services/mushaf/DigitalKhattDataService';
 import {latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
 
 const PREVIEW_BA = '\u0628';
 
-const SEGMENT_OPTIONS = ['System', 'Light', 'Dark'] as const;
-const SEGMENT_TO_MODE: Record<string, ThemeMode> = {
-  System: 'system',
-  Light: 'light',
-  Dark: 'dark',
-};
+const SEGMENT_MODES: readonly ThemeMode[] = ['system', 'light', 'dark'];
 const MODE_TO_INDEX: Record<ThemeMode, number> = {
   system: 0,
   light: 1,
@@ -88,6 +84,11 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
 }) => {
   const {theme, themeMode, setThemeMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('settings');
+  const segmentLabels = useMemo(
+    () => SEGMENT_MODES.map(mode => t(`readingTheme.${mode}`)),
+    [t],
+  );
   const {lightThemeId, darkThemeId, setReadingTheme, mushafRenderer} =
     useMushafSettingsStore();
   const systemColorScheme = useColorScheme();
@@ -140,7 +141,9 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
         const oldThemes =
           effectiveMode === 'dark' ? DARK_READING_THEMES : LIGHT_READING_THEMES;
         const currentId = effectiveMode === 'dark' ? darkThemeId : lightThemeId;
-        const currentIndex = oldThemes.findIndex(t => t.id === currentId);
+        const currentIndex = oldThemes.findIndex(
+          option => option.id === currentId,
+        );
 
         // Select same position in the new mode's list
         const newThemes =
@@ -169,8 +172,9 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
   // Segment changes the whole app's theme mode
   const handleSegmentChange = useCallback(
     (event: {nativeEvent: {selectedSegmentIndex: number}}) => {
-      const label = SEGMENT_OPTIONS[event.nativeEvent.selectedSegmentIndex];
-      autoPairAndSwitchMode(SEGMENT_TO_MODE[label]);
+      autoPairAndSwitchMode(
+        SEGMENT_MODES[event.nativeEvent.selectedSegmentIndex],
+      );
     },
     [autoPairAndSwitchMode],
   );
@@ -188,8 +192,8 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-      ? 'DigitalKhattV1'
-      : 'DigitalKhattV2';
+        ? 'DigitalKhattV1'
+        : 'DigitalKhattV2';
   const fontsReady =
     mushafPreloadService.initialized && digitalKhattDataService.initialized;
   const subscribedFontMgr = useMushafFontMgr();
@@ -216,12 +220,10 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
       )}
 
       {/* Segmented control: System | Light | Dark */}
-      <Text style={styles.disclosureText}>
-        Changing appearance mode applies to the entire app
-      </Text>
+      <Text style={styles.disclosureText}>{t('readingTheme.disclosure')}</Text>
       {Platform.OS === 'ios' ? (
         <SegmentedControl
-          values={[...SEGMENT_OPTIONS]}
+          values={segmentLabels}
           selectedIndex={MODE_TO_INDEX[themeMode]}
           onChange={handleSegmentChange}
           style={styles.segmentedControl}
@@ -236,23 +238,23 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
 
       {/* Color chips grid */}
       <View style={styles.chipGrid}>
-        {visibleThemes.map(t => {
-          const isSelected = t.id === selectedThemeId;
+        {visibleThemes.map(option => {
+          const isSelected = option.id === selectedThemeId;
           const brightness =
-            parseInt(t.colors.background.slice(1, 3), 16) +
-            parseInt(t.colors.background.slice(3, 5), 16) +
-            parseInt(t.colors.background.slice(5, 7), 16);
+            parseInt(option.colors.background.slice(1, 3), 16) +
+            parseInt(option.colors.background.slice(3, 5), 16) +
+            parseInt(option.colors.background.slice(5, 7), 16);
           const needsBorder = brightness < 120;
 
           return (
             <Pressable
-              key={t.id}
-              onPress={() => handleThemeSelect(t.id)}
+              key={option.id}
+              onPress={() => handleThemeSelect(option.id)}
               style={[
                 styles.colorChip,
                 {
-                  backgroundColor: t.colors.background,
-                  borderColor: isSelected ? t.colors.text : 'transparent',
+                  backgroundColor: option.colors.background,
+                  borderColor: isSelected ? option.colors.text : 'transparent',
                 },
                 needsBorder &&
                   !isSelected && {
@@ -260,16 +262,17 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
                   },
                 isSelected && styles.colorChipSelected,
               ]}>
-              <Text style={[styles.colorChipLetter, {color: t.colors.text}]}>
+              <Text
+                style={[styles.colorChipLetter, {color: option.colors.text}]}>
                 {PREVIEW_BA}
               </Text>
               <Text
                 style={[
                   styles.colorChipLabel,
-                  {color: Color(t.colors.text).alpha(0.7).toString()},
+                  {color: Color(option.colors.text).alpha(0.7).toString()},
                 ]}
                 numberOfLines={1}>
-                {t.name}
+                {option.name}
               </Text>
             </Pressable>
           );
@@ -286,6 +289,7 @@ const AndroidSegment: React.FC<{
   onPress: (mode: ThemeMode) => void;
   theme: Theme;
 }> = ({themeMode, onPress, theme}) => {
+  const {t} = useTranslation('settings');
   const segBg = Color(theme.colors.text).alpha(0.06).toString();
   const segActiveBg = Color(theme.colors.text).alpha(0.12).toString();
   const segActiveText = theme.colors.text;
@@ -293,7 +297,7 @@ const AndroidSegment: React.FC<{
 
   return (
     <View style={[androidStyles.segmentContainer, {backgroundColor: segBg}]}>
-      {(['system', 'light', 'dark'] as const).map(seg => {
+      {SEGMENT_MODES.map(seg => {
         const isActive = themeMode === seg;
         return (
           <Pressable
@@ -308,7 +312,7 @@ const AndroidSegment: React.FC<{
                 androidStyles.segmentText,
                 {color: isActive ? segActiveText : segInactiveText},
               ]}>
-              {seg === 'system' ? 'System' : seg === 'light' ? 'Light' : 'Dark'}
+              {t(`readingTheme.${seg}`)}
             </Text>
           </Pressable>
         );
