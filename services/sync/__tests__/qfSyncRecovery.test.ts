@@ -1119,7 +1119,6 @@ describe('SQLite push recovery store', () => {
         },
       },
     ]);
-    expect(await sync.countUnsyncedHighlights(accountId)).toBe(0);
 
     // QF drops 1:3 while this device removes 1:1.
     h.remote.set(1, {
@@ -1132,7 +1131,6 @@ describe('SQLite push recovery store', () => {
       },
     });
     await annotations.removeHighlightInOwnerScope(scope, '1:1');
-    expect(await sync.countUnsyncedHighlights(accountId)).toBe(1);
     await h.syncQfHighlights({api: h.api, store: sync}, input);
     expect(await localHighlights(database, scope)).toEqual([
       {verse_key: '1:2', ayah_number: 2, color: 'green', rewayah_id: 'hafs'},
@@ -1152,11 +1150,10 @@ describe('SQLite push recovery store', () => {
     // Synced highlights now have a copy on Quran.com, so sign-out purges them.
     await sync.purgeAccountData(accountId);
     expect(await localHighlights(database, scope)).toEqual([]);
-    expect(await sync.countUnsyncedHighlights(accountId)).toBe(0);
     await database.close();
   });
 
-  it('leaves a surah unsettled after a precondition failure', async () => {
+  it('leaves a conflicting or rejected surah unsettled, and sign-out keeps it', async () => {
     const {database, sync, annotations} = await createServices(
       'highlight-sync-conflict.db',
     );
@@ -1191,18 +1188,33 @@ describe('SQLite push recovery store', () => {
       'green',
       'hafs',
     );
-    h.setFailPut(new h.BayaanSettingsApiError(412, 'QF_SETTINGS_CONFLICT'));
-
-    const result = await h.syncQfHighlights(
-      {api: h.api, store: sync},
-      {accountId, sessionToken, isCurrent: () => true},
-    );
-    expect(result).toEqual({
+    const input = {accountId, sessionToken, isCurrent: () => true};
+    h.setFailPut(new h.BayaanSettingsApiError(409, 'QF_SETTINGS_CONFLICT'));
+    expect(await h.syncQfHighlights({api: h.api, store: sync}, input)).toEqual({
       changedLocal: false,
       rerun: true,
       unavailable: false,
     });
-    expect(await sync.countUnsyncedHighlights(accountId)).toBe(1);
+
+    // A document refused on its own skips that surah, not the others.
+    const warn = jest
+      .spyOn(console, 'warn')
+      .mockImplementation(() => undefined);
+    h.setFailPut(new h.BayaanSettingsApiError(400, 'QF_SETTINGS_REJECTED'));
+    expect(await h.syncQfHighlights({api: h.api, store: sync}, input)).toEqual({
+      changedLocal: true,
+      rerun: false,
+      unavailable: false,
+    });
+    expect(warn).toHaveBeenCalledWith('[QfHighlightSync] Surah 4 was rejected');
+    warn.mockRestore();
+
+    // Surah 5 matches QF and is purged; unsynced surah 4 stays on the device.
+    await sync.purgeAccountData(accountId);
+    expect(await localHighlights(database, scope)).toEqual([
+      {verse_key: '4:1', ayah_number: 1, color: 'blue', rewayah_id: 'hafs'},
+      {verse_key: '4:2', ayah_number: 2, color: 'green', rewayah_id: 'hafs'},
+    ]);
     await database.close();
   });
 
@@ -1228,7 +1240,6 @@ describe('SQLite push recovery store', () => {
         {accountId, sessionToken, isCurrent: () => true},
       ),
     ).toEqual({changedLocal: false, rerun: false, unavailable: true});
-    expect(await sync.countUnsyncedHighlights(accountId)).toBe(0);
     await sync.purgeAccountData(accountId);
     expect(await localHighlights(database, scope)).toHaveLength(1);
 

@@ -92,12 +92,30 @@ function isUnavailable(error: BayaanSettingsApiError): boolean {
     error.code === 'QF_SETTINGS_DISABLED' ||
     (error.status >= 400 &&
       error.status < 500 &&
-      ![401, 408, 412, 429].includes(error.status))
+      ![401, 408, 409, 412, 428, 429].includes(error.status))
   );
 }
 
+/** QF's document changed since it was listed; the next round merges it. */
 function isConflict(error: unknown): boolean {
-  return error instanceof BayaanSettingsApiError && error.status === 412;
+  return (
+    error instanceof BayaanSettingsApiError &&
+    [409, 412, 428].includes(error.status)
+  );
+}
+
+/**
+ * A write QF or the BFF refuses for this document alone (e.g. a 400). The
+ * surah stays unsynced, so sign-out keeps it, and the other surahs go on.
+ */
+function isRejectedDocument(error: unknown): boolean {
+  return (
+    error instanceof BayaanSettingsApiError &&
+    error.status >= 400 &&
+    error.status < 500 &&
+    ![401, 403, 408, 409, 412, 428, 429].includes(error.status) &&
+    error.code !== 'QF_SETTINGS_DISABLED'
+  );
 }
 
 /**
@@ -142,12 +160,21 @@ export async function syncQfHighlights(
       if (!input.isCurrent()) return result;
       // A document this version cannot write back is left untouched.
       if (readOnly.has(surahNumber)) continue;
-      const settled = await syncSurah(deps, input, {
-        surahNumber,
-        base: synced.get(surahNumber),
-        local: local.get(surahNumber) ?? EMPTY,
-        remote: remote.get(surahNumber),
-      });
+      let settled: {changedLocal: boolean; rerun: boolean};
+      try {
+        settled = await syncSurah(deps, input, {
+          surahNumber,
+          base: synced.get(surahNumber),
+          local: local.get(surahNumber) ?? EMPTY,
+          remote: remote.get(surahNumber),
+        });
+      } catch (error) {
+        if (!isRejectedDocument(error)) throw error;
+        console.warn(`[QfHighlightSync] Surah ${surahNumber} was rejected`);
+        // Its merge may already be on the device; reload views to be safe.
+        result.changedLocal = true;
+        continue;
+      }
       result.changedLocal ||= settled.changedLocal;
       result.rerun ||= settled.rerun;
     }

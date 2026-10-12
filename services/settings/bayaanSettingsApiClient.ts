@@ -6,6 +6,8 @@ import {
 
 const TIMEOUT_MS = 8_000;
 const MAX_RESPONSE_BYTES = 256 * 1024;
+// Every highlights document in one listing: up to 114 surahs.
+const MAX_HIGHLIGHTS_RESPONSE_BYTES = 1024 * 1024;
 
 export type SettingsDocumentKey =
   | 'appearance'
@@ -82,6 +84,7 @@ export class BayaanSettingsApiClient {
     path: string,
     sessionToken: string,
     init: RequestInit = {},
+    maxResponseBytes = MAX_RESPONSE_BYTES,
   ): Promise<{response: Response; body: unknown | null}> {
     try {
       const headers = new Headers(init.headers);
@@ -91,7 +94,7 @@ export class BayaanSettingsApiClient {
         this.fetchImpl,
         joinUrl(this.apiUrl, path),
         {...init, headers},
-        {timeoutMs: this.timeoutMs, maxResponseBytes: MAX_RESPONSE_BYTES},
+        {timeoutMs: this.timeoutMs, maxResponseBytes},
       );
     } catch (error) {
       throw new BayaanSettingsApiError(
@@ -254,6 +257,8 @@ export class BayaanSettingsApiClient {
     const {response, body} = await this.request(
       '/v1/qf/settings/app-state/highlights',
       sessionToken,
+      {},
+      MAX_HIGHLIGHTS_RESPONSE_BYTES,
     );
     this.assertOk(response, body);
     const items =

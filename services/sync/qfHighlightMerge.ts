@@ -116,15 +116,6 @@ export function sameHighlights(
   return keys.every(key => sameEntry(left[key], right[key]));
 }
 
-/** Verse keys whose highlight differs between the two sets. */
-export function changedHighlightCount(
-  left: QfHighlightEntries,
-  right: QfHighlightEntries,
-): number {
-  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
-  return [...keys].filter(key => !sameEntry(left[key], right[key])).length;
-}
-
 /**
  * Three-way merge per verse against the last synced state. A side that left
  * a verse unchanged takes the other side's value; when both changed the same

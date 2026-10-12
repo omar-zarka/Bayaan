@@ -16,15 +16,16 @@ conflicts and stored head in one transaction. The next sign-in pulls the
 account again from QF. Guest rows and the guest-import ledger (decisions and
 counts only) stay.
 
-Highlights join the purge once the account has synced them through QF App
-State (see below), since Quran.com then holds a copy. Until then (App State off
-for the client, or never online since signing in) they stay, scoped to the
-account and hidden while signed out, and return when it signs in again.
+Highlights are purged per surah, and only those exactly as last synced through
+QF App State (see below), since Quran.com holds a copy of those. The rest (App
+State off for the client, never online since signing in, a rejected document,
+or edits not yet synced) stay, scoped to the account and hidden while signed
+out, and merge back when it signs in again. Nothing is lost, so highlights do
+not count toward the sign-out warning.
 
 If edits are still queued after the flush window (e.g. signing out offline),
 sign-out asks first ("N changes haven't synced to Quran.com yet and will be
 lost"), with Cancel as the default; they are dropped only if the user confirms.
-Highlighted verses that differ from the last synced documents count as changes.
 A revoked or expired session is not a sign-out and keeps the rows for that
 account's return.
 
@@ -44,10 +45,12 @@ by `user_sync_v5`): a side that left a verse unchanged takes the other side's
 value, and when both changed the same verse this device wins. The merge is
 written locally only if the surah still matches what was read (an edit
 mid-sync waits for the next round), then to QF with `If-Match` (or
-`If-None-Match: *` for a new document). A 412 leaves the surah for a retry a
-second later; an uncertain write needs no replay because the next round's
-merge converges. Signed-in highlight edits request a sync. App State being off
-for the client (403 or disabled) skips highlights without failing sync.
+`If-None-Match: *` for a new document). A conflict (409, 412 or 428) leaves the
+surah for a retry a second later; an uncertain write needs no replay because
+the next round's merge converges. A document refused on its own (e.g. a 400)
+skips that surah and the others continue. Signed-in highlight edits request a
+sync. App State being off for the client (403 or disabled) skips highlights
+without failing sync.
 
 ## Guest decisions cover rows, not an account's lifetime
 

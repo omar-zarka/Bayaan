@@ -65,11 +65,9 @@ export function QfAccountCard() {
     ]);
     clearTimeout(flushTimer);
     if (accountId) {
-      const [outbox, highlights] = await Promise.all([
-        qfSyncDatabaseService.getOutboxEntries(accountId).catch(() => []),
-        qfSyncDatabaseService.countUnsyncedHighlights(accountId).catch(() => 0),
-      ]);
-      const unsynced = outbox.length + highlights;
+      const unsynced = (
+        await qfSyncDatabaseService.getOutboxEntries(accountId).catch(() => [])
+      ).length;
       if (unsynced > 0 && !(await confirmUnsyncedSignOut(unsynced))) return;
     }
     const attempt = useBayaanAuthStore.getState().invalidateAttempt();

@@ -1,6 +1,5 @@
 import {
   ayahPartOf,
-  changedHighlightCount,
   decodeHighlightDocument,
   encodeHighlightDocument,
   mergeHighlights,
@@ -62,6 +61,5 @@ describe('qfHighlightMerge', () => {
       '5': blue, // added here
       '6': green, // added on QF
     });
-    expect(changedHighlightCount(local, remote)).toBe(6);
   });
 });

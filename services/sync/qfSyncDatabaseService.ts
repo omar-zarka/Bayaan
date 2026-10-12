@@ -26,7 +26,6 @@ import {hafsVerseKeyOf, keptVerseKeys} from './hafsVerseKeys';
 import {
   ayahNumberOf,
   ayahPartOf,
-  changedHighlightCount,
   decodeHighlightDocument,
   encodeHighlightDocument,
   sameHighlights,
@@ -1583,36 +1582,30 @@ export class QfSyncDatabaseService {
     });
   }
 
-  /**
-   * Highlighted verses whose current state has not reached Quran.com. Zero
-   * until the account has synced highlights, since sign-out keeps them then.
-   */
-  async countUnsyncedHighlights(accountId: string): Promise<number> {
-    const {local, synced} = await this.getHighlightSyncSnapshot(accountId);
-    if (synced.size === 0) return 0;
-    const surahs = new Set([...local.keys(), ...synced.keys()]);
-    let count = 0;
-    for (const surah of surahs) {
-      count += changedHighlightCount(
-        local.get(surah) ?? {},
-        synced.get(surah)?.entries ?? {},
-      );
-    }
-    return count;
-  }
-
   async purgeAccountData(accountId: string): Promise<void> {
     const connection = await this.database.getConnection();
     const ownerScope = ownerScopeFromAccountId(accountId);
     await withQfSyncTransaction(connection, async db => {
-      // Highlights have a copy on Quran.com only once this account synced
-      // them; until then (App State off, or never online) they stay on the
-      // device, scoped to the account, as before.
-      await db.runAsync(
-        `DELETE FROM highlights WHERE owner_scope = ? AND EXISTS
-           (SELECT 1 FROM qf_highlight_sync WHERE owner_scope = ?)`,
-        [ownerScope, ownerScope],
+      // Only highlights exactly as last synced have a copy on Quran.com.
+      // The rest (App State off, offline, rejected, unsynced edits) stay on
+      // the device, scoped to the account, and merge back on sign-in.
+      const local = await readLocalHighlights(db, ownerScope);
+      const synced = await db.getAllAsync<HighlightSyncRow>(
+        `SELECT surah_number, etag, entries_json FROM qf_highlight_sync
+         WHERE owner_scope = ?`,
+        [ownerScope],
       );
+      for (const row of synced) {
+        const entries = parseSyncedEntries(row.entries_json);
+        const current = local.get(row.surah_number) ?? {};
+        if (!entries || !sameHighlights(current, entries)) continue;
+        for (const part of Object.keys(entries)) {
+          await db.runAsync(
+            `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+            [ownerScope, verseKeyOf(row.surah_number, part)],
+          );
+        }
+      }
       for (const table of [
         'bookmarks',
         'notes',
