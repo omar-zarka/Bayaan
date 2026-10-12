@@ -18,6 +18,8 @@ import {
   type QfSyncPersistedStatus,
 } from './qfSyncDatabaseService';
 import {qfReadingSessionService} from './qfReadingSessionService';
+import {syncQfHighlights, type QfHighlightSyncResult} from './qfHighlightSync';
+import {BayaanSettingsApiClient} from '@/services/settings/bayaanSettingsApiClient';
 import {mushafSyncedReadingService} from '@/services/mushaf/MushafSyncedReadingService';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import {
@@ -104,6 +106,11 @@ interface QfSyncLifecycleOptions {
     barrier?: Promise<unknown>,
   ) => Promise<void>;
   clearActiveViews?: () => void;
+  syncHighlights?: (input: {
+    accountId: string;
+    sessionToken: string;
+    isCurrent: () => boolean;
+  }) => Promise<QfHighlightSyncResult>;
   now?: () => number;
   random?: () => number;
   setTimer?: (
@@ -477,6 +484,17 @@ export class QfSyncLifecycle {
         return;
       }
 
+      const highlights = await this.options.syncHighlights?.({
+        ...input,
+        isCurrent: () => this.isCurrent(epoch, accountId),
+      });
+      if (!this.isCurrent(epoch, accountId)) return;
+      if (highlights?.changedLocal) {
+        const loadedSurahs = this.invalidateActiveViews();
+        await this.reloadActiveViews(loadedSurahs);
+        if (!this.isCurrent(epoch, accountId)) return;
+      }
+
       const persisted = await this.options.database.getSyncStatus(accountId);
       if (!this.isCurrent(epoch, accountId)) return;
       this.remoteFailureCount = 0;
@@ -523,6 +541,10 @@ export class QfSyncLifecycle {
         } else {
           this.scheduleRetry(epoch, accountId, retryDelayMs);
         }
+      } else if (highlights?.rerun) {
+        // A highlights document changed under this round; settle it shortly
+        // rather than immediately, so a busy document cannot spin.
+        this.scheduleRetry(epoch, accountId, DEFAULT_RETRY_MS);
       }
     } catch (error) {
       if (!this.isCurrent(epoch, accountId)) return;
@@ -779,6 +801,7 @@ export class QfSyncLifecycle {
 }
 
 const transport = new BayaanSyncApiClient({apiUrl: bayaanAuthConfig.apiUrl});
+const highlightsApi = new BayaanSettingsApiClient(bayaanAuthConfig.apiUrl);
 const coordinator = new QfSyncCoordinator({
   transport,
   store: new SqliteQfSyncPullStore(verseAnnotationDatabase),
@@ -808,4 +831,6 @@ export const qfSyncLifecycle = new QfSyncLifecycle({
       accountId,
       expectedLocalIntentRevision,
     ),
+  syncHighlights: input =>
+    syncQfHighlights({api: highlightsApi, store: qfSyncDatabaseService}, input),
 });

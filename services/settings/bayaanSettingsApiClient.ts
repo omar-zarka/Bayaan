@@ -29,6 +29,14 @@ export interface RemoteSettingsDocument {
   readOnly?: boolean;
 }
 
+/** A listed highlights document; read-only ones carry no value. */
+export interface RemoteHighlightsDocument {
+  surahNumber: number;
+  etag: string;
+  value?: unknown;
+  readOnly: boolean;
+}
+
 function expoFetch(input: string, init?: RequestInit): Promise<Response> {
   const module = require('expo/fetch') as {fetch: BoundedFetch};
   return module.fetch(input, init);
@@ -228,6 +236,87 @@ export class BayaanSettingsApiClient {
       `/v1/qf/settings/app-state/documents/${input.key}`,
       sessionToken,
       {method: 'PUT', headers, body: input.body},
+    );
+    this.assertOk(response, body);
+    const etag = response.headers.get('etag');
+    if (!etag) {
+      throw new BayaanSettingsApiError(
+        response.status,
+        'missing_document_etag',
+      );
+    }
+    return etag;
+  }
+
+  async listHighlights(
+    sessionToken: string,
+  ): Promise<RemoteHighlightsDocument[]> {
+    const {response, body} = await this.request(
+      '/v1/qf/settings/app-state/highlights',
+      sessionToken,
+    );
+    this.assertOk(response, body);
+    const items =
+      isObject(body) &&
+      body.success === true &&
+      isObject(body.data) &&
+      Array.isArray(body.data.items)
+        ? body.data.items
+        : null;
+    if (!items) {
+      throw new BayaanSettingsApiError(
+        response.status,
+        'invalid_highlights_response',
+      );
+    }
+    return items.map(item => {
+      const surahNumber =
+        isObject(item) && typeof item.key === 'string' ? Number(item.key) : NaN;
+      if (
+        !isObject(item) ||
+        !Number.isInteger(surahNumber) ||
+        surahNumber < 1 ||
+        surahNumber > 114 ||
+        typeof item.etag !== 'string' ||
+        !item.etag
+      ) {
+        throw new BayaanSettingsApiError(
+          response.status,
+          'invalid_highlights_response',
+        );
+      }
+      return {
+        surahNumber,
+        etag: item.etag,
+        value: item.value,
+        readOnly: item.readOnly === true,
+      };
+    });
+  }
+
+  async putHighlights(
+    sessionToken: string,
+    input: {
+      surahNumber: number;
+      value: unknown;
+      idempotencyKey: string;
+      etag?: string;
+    },
+  ): Promise<string> {
+    const headers = new Headers({
+      'Content-Type': 'application/json',
+      'Idempotency-Key': input.idempotencyKey,
+    });
+    if (input.etag) headers.set('If-Match', input.etag);
+    else headers.set('If-None-Match', '*');
+    const {response, body} = await this.request(
+      `/v1/qf/settings/app-state/highlights/${input.surahNumber}`,
+      sessionToken,
+      {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify({schemaVersion: 1, value: input.value}),
+      },
     );
     this.assertOk(response, body);
     const etag = response.headers.get('etag');

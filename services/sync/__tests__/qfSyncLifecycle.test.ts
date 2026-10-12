@@ -845,6 +845,39 @@ describe('QfSyncLifecycle', () => {
     });
   });
 
+  it('syncs highlights after the push and settles a busy document shortly after', async () => {
+    const setTimer = jest.fn(
+      () => 42 as unknown as ReturnType<typeof setTimeout>,
+    );
+    const syncHighlights = jest.fn(
+      async (input: {accountId: string; isCurrent: () => boolean}) => {
+        expect(input.accountId).toBe('account-a');
+        expect(input.isCurrent()).toBe(true);
+        return {changedLocal: true, rerun: true, unavailable: false};
+      },
+    );
+    const {lifecycle, coordinator} = createLifecycle({
+      setTimer,
+      syncHighlights,
+    });
+    const reload = jest.spyOn(
+      useVerseAnnotationsStore.getState(),
+      'loadAnnotationsForSurahs',
+    );
+
+    lifecycle.updateContext(authenticatedOnline);
+    await lifecycle.waitForIdle();
+
+    expect(coordinator.push).toHaveBeenCalledTimes(1);
+    expect(syncHighlights).toHaveBeenCalledTimes(1);
+    expect(syncHighlights.mock.invocationCallOrder[0]).toBeGreaterThan(
+      coordinator.push.mock.invocationCallOrder[0],
+    );
+    expect(reload).toHaveBeenCalled();
+    expect(setTimer).toHaveBeenCalledWith(expect.any(Function), 1000);
+    expect(useQfSyncStore.getState()).toMatchObject({status: 'idle'});
+  });
+
   it('honors the kill switch even when authenticated and online', async () => {
     const getSession = jest.fn(async () => session());
     const {lifecycle, coordinator} = createLifecycle({

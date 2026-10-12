@@ -16,16 +16,38 @@ conflicts and stored head in one transaction. The next sign-in pulls the
 account again from QF. Guest rows and the guest-import ledger (decisions and
 counts only) stay.
 
-Highlights stay too, scoped to the account and hidden while signed out: QF does
-not sync them, so the device holds the only copy. They return when the same
-account signs in again. Once highlights sync through QF App State (a
-`highlights` collection, pending QF approval and App State launch), they can
-join the purge.
+Highlights join the purge once the account has synced them through QF App
+State (see below), since Quran.com then holds a copy. Until then (App State off
+for the client, or never online since signing in) they stay, scoped to the
+account and hidden while signed out, and return when it signs in again.
 
 If edits are still queued after the flush window (e.g. signing out offline),
 sign-out asks first ("N changes haven't synced to Quran.com yet and will be
-lost"), with Cancel as the default; they are dropped only if the user confirms. A revoked or expired session is not a sign-out and keeps the rows for
-that account's return.
+lost"), with Cancel as the default; they are dropped only if the user confirms.
+Highlighted verses that differ from the last synced documents count as changes.
+A revoked or expired session is not a sign-out and keeps the rows for that
+account's return.
+
+## Highlights through QF App State
+
+QF has no highlight resource, so highlights use Bayaan's approved `highlights`
+App State collection: one document per surah (key `"1"` to `"114"`), value
+`{v: [[ayah, color, rewayah], ...]}` where `ayah` is the verse key without its
+surah (`"255"`, or `"255:7"` for a split verse anchor). The BFF lists every
+document (all pages) and writes one with its precondition; a document it cannot
+write back (newer schema, unknown colour) is listed read-only and the app
+leaves that surah alone.
+
+Each annotation sync cycle, after its push, lists the documents and merges
+each surah per verse against the copy last synced (`qf_highlight_sync`, added
+by `user_sync_v4`): a side that left a verse unchanged takes the other side's
+value, and when both changed the same verse this device wins. The merge is
+written locally only if the surah still matches what was read (an edit
+mid-sync waits for the next round), then to QF with `If-Match` (or
+`If-None-Match: *` for a new document). A 412 leaves the surah for a retry a
+second later; an uncertain write needs no replay because the next round's
+merge converges. Signed-in highlight edits request a sync. App State being off
+for the client (403 or disabled) skips highlights without failing sync.
 
 ## Guest decisions cover rows, not an account's lifetime
 

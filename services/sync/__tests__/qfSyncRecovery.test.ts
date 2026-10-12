@@ -982,6 +982,295 @@ describe('SQLite push recovery store', () => {
     await database.close();
   });
 
+  function highlightHarness() {
+    const {syncQfHighlights} = require('@/services/sync/qfHighlightSync');
+    const {
+      BayaanSettingsApiError,
+    } = require('@/services/settings/bayaanSettingsApiClient');
+    const remote = new Map<
+      number,
+      {etag: string; value?: unknown; readOnly?: boolean}
+    >();
+    const puts: {surahNumber: number; value: unknown; etag?: string}[] = [];
+    let failPut: unknown = null;
+    let failList: unknown = null;
+    let version = 0;
+    const api = {
+      listHighlights: async () => {
+        if (failList) throw failList;
+        return [...remote].map(([surahNumber, doc]) => ({
+          surahNumber,
+          etag: doc.etag,
+          value: doc.value,
+          readOnly: doc.readOnly === true,
+        }));
+      },
+      putHighlights: async (
+        _token: string,
+        input: {surahNumber: number; value: unknown; etag?: string},
+      ) => {
+        if (failPut) throw failPut;
+        puts.push({
+          surahNumber: input.surahNumber,
+          value: input.value,
+          etag: input.etag,
+        });
+        const etag = `"v${++version}"`;
+        remote.set(input.surahNumber, {etag, value: input.value});
+        return etag;
+      },
+    };
+    return {
+      syncQfHighlights,
+      BayaanSettingsApiError,
+      remote,
+      puts,
+      api,
+      setFailPut: (error: unknown) => {
+        failPut = error;
+      },
+      setFailList: (error: unknown) => {
+        failList = error;
+      },
+    };
+  }
+
+  async function localHighlights(
+    database: {getConnection(): Promise<QfSyncSqliteExecutor>},
+    scope: string,
+  ): Promise<
+    {
+      verse_key: string;
+      ayah_number: number;
+      color: string;
+      rewayah_id: string;
+    }[]
+  > {
+    const db = await database.getConnection();
+    return db.getAllAsync(
+      `SELECT verse_key, ayah_number, color, rewayah_id FROM highlights
+       WHERE owner_scope = ? ORDER BY surah_number, ayah_number, verse_key`,
+      [scope],
+    );
+  }
+
+  it('syncs highlights with QF App State, merging each surah per verse', async () => {
+    const {database, sync, annotations} =
+      await createServices('highlight-sync.db');
+    await sync.initialize();
+    const h = highlightHarness();
+    const scope = `qf:${accountId}`;
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '1:1',
+      1,
+      1,
+      'yellow',
+      'hafs',
+    );
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '1:2',
+      1,
+      2,
+      'green',
+      'hafs',
+    );
+    h.remote.set(1, {
+      etag: '"r1"',
+      value: {
+        v: [
+          ['2', 'blue', 'hafs'],
+          ['3', 'purple', 'warsh'],
+        ],
+      },
+    });
+    h.remote.set(2, {etag: '"r2"', value: {v: [['255:7', 'orange', 'warsh']]}});
+    h.remote.set(3, {etag: '"r3"', readOnly: true});
+    const input = {accountId, sessionToken, isCurrent: () => true};
+
+    expect(await h.syncQfHighlights({api: h.api, store: sync}, input)).toEqual({
+      changedLocal: true,
+      rerun: false,
+      unavailable: false,
+    });
+    expect(await localHighlights(database, scope)).toEqual([
+      {verse_key: '1:1', ayah_number: 1, color: 'yellow', rewayah_id: 'hafs'},
+      {verse_key: '1:2', ayah_number: 2, color: 'green', rewayah_id: 'hafs'},
+      {verse_key: '1:3', ayah_number: 3, color: 'purple', rewayah_id: 'warsh'},
+      {
+        verse_key: '2:255:7',
+        ayah_number: 255,
+        color: 'orange',
+        rewayah_id: 'warsh',
+      },
+    ]);
+    // Only surah 1 differed from QF; the read-only surah 3 was not touched.
+    expect(h.puts).toEqual([
+      {
+        surahNumber: 1,
+        etag: '"r1"',
+        value: {
+          v: [
+            ['1', 'yellow', 'hafs'],
+            ['2', 'green', 'hafs'],
+            ['3', 'purple', 'warsh'],
+          ],
+        },
+      },
+    ]);
+    expect(await sync.countUnsyncedHighlights(accountId)).toBe(0);
+
+    // QF drops 1:3 while this device removes 1:1.
+    h.remote.set(1, {
+      etag: '"r4"',
+      value: {
+        v: [
+          ['1', 'yellow', 'hafs'],
+          ['2', 'green', 'hafs'],
+        ],
+      },
+    });
+    await annotations.removeHighlightInOwnerScope(scope, '1:1');
+    expect(await sync.countUnsyncedHighlights(accountId)).toBe(1);
+    await h.syncQfHighlights({api: h.api, store: sync}, input);
+    expect(await localHighlights(database, scope)).toEqual([
+      {verse_key: '1:2', ayah_number: 2, color: 'green', rewayah_id: 'hafs'},
+      {
+        verse_key: '2:255:7',
+        ayah_number: 255,
+        color: 'orange',
+        rewayah_id: 'warsh',
+      },
+    ]);
+    expect(h.puts.at(-1)).toEqual({
+      surahNumber: 1,
+      etag: '"r4"',
+      value: {v: [['2', 'green', 'hafs']]},
+    });
+
+    // Synced highlights now have a copy on Quran.com, so sign-out purges them.
+    await sync.purgeAccountData(accountId);
+    expect(await localHighlights(database, scope)).toEqual([]);
+    expect(await sync.countUnsyncedHighlights(accountId)).toBe(0);
+    await database.close();
+  });
+
+  it('leaves a surah unsettled after a precondition failure', async () => {
+    const {database, sync, annotations} = await createServices(
+      'highlight-sync-conflict.db',
+    );
+    await sync.initialize();
+    const h = highlightHarness();
+    const scope = `qf:${accountId}`;
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '4:1',
+      4,
+      1,
+      'blue',
+      'hafs',
+    );
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '5:1',
+      5,
+      1,
+      'blue',
+      'hafs',
+    );
+    await h.syncQfHighlights(
+      {api: h.api, store: sync},
+      {accountId, sessionToken, isCurrent: () => true},
+    );
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '4:2',
+      4,
+      2,
+      'green',
+      'hafs',
+    );
+    h.setFailPut(new h.BayaanSettingsApiError(412, 'QF_SETTINGS_CONFLICT'));
+
+    const result = await h.syncQfHighlights(
+      {api: h.api, store: sync},
+      {accountId, sessionToken, isCurrent: () => true},
+    );
+    expect(result).toEqual({
+      changedLocal: false,
+      rerun: true,
+      unavailable: false,
+    });
+    expect(await sync.countUnsyncedHighlights(accountId)).toBe(1);
+    await database.close();
+  });
+
+  it('keeps never-synced highlights through sign-out and reports App State off', async () => {
+    const {database, sync, annotations} = await createServices(
+      'highlight-sync-unavailable.db',
+    );
+    await sync.initialize();
+    const h = highlightHarness();
+    const scope = `qf:${accountId}`;
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '1:1',
+      1,
+      1,
+      'yellow',
+      'hafs',
+    );
+    h.setFailList(new h.BayaanSettingsApiError(403, 'QF_SETTINGS_FORBIDDEN'));
+    expect(
+      await h.syncQfHighlights(
+        {api: h.api, store: sync},
+        {accountId, sessionToken, isCurrent: () => true},
+      ),
+    ).toEqual({changedLocal: false, rerun: false, unavailable: true});
+    expect(await sync.countUnsyncedHighlights(accountId)).toBe(0);
+    await sync.purgeAccountData(accountId);
+    expect(await localHighlights(database, scope)).toHaveLength(1);
+
+    h.setFailList(
+      new h.BayaanSettingsApiError(401, 'QF_SETTINGS_UNAUTHORIZED'),
+    );
+    await expect(
+      h.syncQfHighlights(
+        {api: h.api, store: sync},
+        {accountId, sessionToken, isCurrent: () => true},
+      ),
+    ).rejects.toMatchObject({code: 'session_revoked', status: 401});
+    await database.close();
+  });
+
+  it('does not overwrite a highlight edited after the sync read it', async () => {
+    const {database, sync, annotations} = await createServices(
+      'highlight-sync-race.db',
+    );
+    await sync.initialize();
+    const scope = `qf:${accountId}`;
+    await annotations.upsertHighlightForOwnerScope(
+      scope,
+      '1:1',
+      1,
+      1,
+      'yellow',
+      'hafs',
+    );
+    const applied = await sync.applySyncedHighlights({
+      accountId,
+      surahNumber: 1,
+      expected: {},
+      next: {'2': {color: 'blue', rewayahId: 'hafs'}},
+    });
+    expect(applied).toBe(false);
+    expect(await localHighlights(database, scope)).toEqual([
+      {verse_key: '1:1', ayah_number: 1, color: 'yellow', rewayah_id: 'hafs'},
+    ]);
+    await database.close();
+  });
+
   it('writes guest annotation changes in the guest scope without an outbox', async () => {
     const {database, sync, annotations} = await createServices(
       'guest-annotation-changes.db',
