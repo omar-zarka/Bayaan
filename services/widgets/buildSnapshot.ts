@@ -14,7 +14,8 @@ import {
   WidgetTrack,
 } from 'bayaan-widgets';
 
-export {surahArtworkFileName, surahArtworkUrl} from './artworkNames';
+export {surahArtworkFileName} from './artworkNames';
+export {surahArtworkUrl} from './surahArtwork';
 
 const UP_NEXT_LIMIT = 3;
 const RECENT_LIMIT = 6;

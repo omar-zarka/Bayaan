@@ -289,13 +289,14 @@ export interface Branding {
    */
   timestampCdnBase?: string;
   /**
-   * Base URL for the surah cards CarPlay and Android Auto show, laid out as
-   * `{base}{surahId}.png` (dark) and `{base}{surahId}-light.png` (light).
-   * Follows the RFC-015 pattern.
+   * Base URL for the surah cards CarPlay, Android Auto and the native widgets
+   * show, laid out as `{base}{surahId}.png` (dark) and
+   * `{base}{surahId}-light.png` (light; car only). Follows the RFC-015
+   * pattern; RFC-021 extended it to the widgets.
    *
-   * Field absent → `'https://cdn.thebayaan.com/assets/og-images/surah/'`.
+   * Field absent → `'https://cdn.thebayaan.com/assets/car/surah/'`.
    * Must be https; a trailing slash is optional. A non-https value falls
-   * back to the default.
+   * back to the default (see utils/surahArtworkBase.ts).
    */
   surahArtworkCdnBase?: string;
   /**
