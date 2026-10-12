@@ -1,6 +1,6 @@
 {
   "name": "bayaan",
-  "main": "expo-router/entry",
+  "main": "entry.ts",
   "version": "2.3.0",
   "license": "AGPL-3.0-or-later",
   "scripts": {

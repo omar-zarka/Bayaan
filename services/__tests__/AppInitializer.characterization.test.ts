@@ -122,6 +122,7 @@ jest.mock('@/services/player/store/favoriteRecitersStore', () => ({
   useFavoriteRecitersStore: mockStore({}),
 }));
 jest.mock('expo-font', () => ({loadAsync: mockStep('fonts.loadAsync')}));
+jest.mock('@/services/car', () => ({startCarIntegration: jest.fn()}));
 
 type Initializer = typeof import('../AppInitializer').appInitializer;
 

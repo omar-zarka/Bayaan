@@ -11,6 +11,7 @@ import {expoAudioService} from '@/services/audio/ExpoAudioService';
 import {Track} from '@/types/audio';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {createUserUploadTrack} from '@/utils/track';
+import {hasCarReplacedQueue} from '@/services/car/sessionGate';
 
 /**
  * Waits for playerStore to finish hydrating from AsyncStorage.
@@ -65,6 +66,9 @@ export async function restoreSession(): Promise<void> {
     const persistedState = usePlayerStore.getState();
     const persistedTrack =
       persistedState.queue.tracks[persistedState.queue.currentIndex];
+
+    // A car request (CarPlay / Android Auto) already replaced the queue.
+    if (hasCarReplacedQueue()) return;
 
     // Upload tracks aren't tracked in recentlyPlayedStore, so restore from
     // the persisted playerStore queue directly.
@@ -179,6 +183,9 @@ export async function restoreSession(): Promise<void> {
       ];
     }
 
+    // The await above gave a car request time to take over the queue.
+    if (hasCarReplacedQueue()) return;
+
     // Phase 1: Populate store state (floating player renders immediately)
     const playerStore = usePlayerStore.getState();
     playerStore.updateQueueState({tracks, currentIndex: 0});
@@ -208,9 +215,10 @@ export async function restoreSession(): Promise<void> {
 function loadAudioInBackground(url: string, startPosition: number) {
   // Use setTimeout to defer off the critical startup path
   setTimeout(async () => {
+    if (hasCarReplacedQueue()) return;
     try {
       await expoAudioService.loadTrack(url);
-      if (startPosition > 0) {
+      if (startPosition > 0 && !hasCarReplacedQueue()) {
         await expoAudioService.seekTo(startPosition);
       }
       if (__DEV__) {
