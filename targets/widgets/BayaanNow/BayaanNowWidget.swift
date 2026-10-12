@@ -68,7 +68,9 @@ struct BayaanNowWidget: Widget {
     StaticConfiguration(kind: kind, provider: BayaanNowProvider()) { entry in
       BayaanNowView(entry: entry)
     }
-    .configurationDisplayName("\(AppBrand.name) Now")
+    // A plain String: WidgetKit traps on an interpolated LocalizedStringKey here,
+    // which crashes the extension and hides every widget from the gallery.
+    .configurationDisplayName(AppBrand.name + " Now")
     .description(Self.gallerySummary)
     .supportedFamilies([.systemSmall, .systemMedium])
     .contentMarginsDisabled()
