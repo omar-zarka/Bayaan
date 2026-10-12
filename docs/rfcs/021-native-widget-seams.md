@@ -93,7 +93,7 @@ Enforcement:
 
 ## Alternatives considered
 
-- **Plain `if` in `WidgetBundleBuilder` on a generated Swift constant.** Rejected: the widget and its App Intents metadata would still ship, and a removed widget could still be added from Shortcuts. Compilation conditions remove the code.
+- **Plain `if` in `WidgetBundleBuilder` on a generated Swift constant.** Rejected: the choice is build-time anyway, and a runtime constant cannot change App Intents metadata, which is extracted at compile time. Compilation conditions can, e.g. a fork without ambient audio ships a Bedtime configuration intent with no ambient parameter. (A compiled-out widget's own intents, such as Tasbeeh's, still compile; they are `isDiscoverable = false`, so nothing surfaces them.)
 - **A config list in `featureFlags.ts`.** Rejected: the plugin needs CJS at prebuild, and `branding.js` is already the CJS identity file (RFC-007). Feature flags still drive the defaults.
 - **Writing the scheme into `targets/widgets/Info.plist` at prebuild.** Rejected: it would rewrite a tracked source file on every fork prebuild. A build setting keeps the source fixed.
 - **Reading the scheme from the host app's `CFBundleURLTypes` in the extension.** Rejected: the order of URL types is not a contract (Expo adds `exp+<slug>`).
