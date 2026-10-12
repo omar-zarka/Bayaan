@@ -32,6 +32,7 @@ import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import expo.modules.bayaanwidgets.AppLinks
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.R
 import expo.modules.bayaanwidgets.StaticData
@@ -86,6 +87,9 @@ fun loadArtwork(context: Context, file: String?, sizeDp: Int): Bitmap? =
 
 fun deepLink(context: Context, url: String): Action =
   actionStartActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)).setPackage(context.packageName))
+
+/** Opens path (no leading slash) under the app's URL scheme, e.g. "player". */
+fun appLink(context: Context, path: String): Action = deepLink(context, AppLinks.url(context, path))
 
 /** Routes a command through WidgetCommandActivity; key keeps PendingIntents distinct. */
 fun commandAction(context: Context, command: JSONObject, key: String): Action =

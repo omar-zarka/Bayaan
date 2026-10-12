@@ -33,7 +33,7 @@ import expo.modules.bayaanwidgets.ui.SurahTile
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import expo.modules.bayaanwidgets.ui.recordMissingArtwork
 
@@ -58,7 +58,7 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
   @Composable
   private fun Content(context: Context, shelf: RecentShelf) {
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
-    val root = contentRoot().clickable(deepLink(context, "bayaan://player"))
+    val root = contentRoot().clickable(appLink(context, "player"))
     if (shelf.tracks.isEmpty()) {
       ContentMessage(root, "Open Bayaan", "Your recent surahs show here")
       return

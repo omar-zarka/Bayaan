@@ -101,8 +101,8 @@ struct LibraryShelfView: View {
 
   private var url: URL? {
     switch entry.state {
-    case .downloads: return URL(string: "bayaan://collection/downloads")
-    case .playlist, .playlistUnavailable: return URL(string: "bayaan://collection/playlists")
+    case .downloads: return AppLinks.url("collection/downloads")
+    case .playlist, .playlistUnavailable: return AppLinks.url("collection/playlists")
     case .noContent: return nil
     }
   }

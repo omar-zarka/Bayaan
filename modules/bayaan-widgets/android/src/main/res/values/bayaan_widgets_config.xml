@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Fork seams (RFC-021). These are defaults only: plugins/withBayaanWidgets.js
+  writes android/app/src/main/res/values/bayaan_widgets.xml from app.config.js,
+  and app resources override library resources with the same name.
+-->
+<resources>
+  <string name="bayaan_widgets_url_scheme" translatable="false">bayaan</string>
+</resources>

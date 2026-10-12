@@ -50,7 +50,7 @@ import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import expo.modules.bayaanwidgets.ui.recordMissingArtwork
 import org.json.JSONObject
@@ -105,7 +105,7 @@ class BayaanNowWidget : GlanceAppWidget() {
 fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
   val np = snapshot?.nowPlaying
   val track = np?.track ?: snapshot?.recent?.firstOrNull() ?: snapshot?.upNext?.firstOrNull()
-  val root = contentRoot().clickable(deepLink(context, "bayaan://player"))
+  val root = contentRoot().clickable(appLink(context, "player"))
   if (track == null) {
     ContentMessage(root, "Open Bayaan", "Start listening")
     return
@@ -113,7 +113,7 @@ fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
   val playing = ContentLogic.playingAt(snapshot, nowMs)
   val action = when {
     np != null -> commandAction(context, JSONObject().put("type", "setPlayback").put("playing", !playing), "now/playback/${!playing}")
-    track.isUserUpload || track.surahId !in 1..114 -> deepLink(context, "bayaan://player")
+    track.isUserUpload || track.surahId !in 1..114 -> appLink(context, "player")
     else -> commandAction(
       context, playTrackCommand(track.surahId, track.reciterId, track.rewayatId, null),
       "now/play/${track.surahId}/${track.reciterId}/${track.rewayatId ?: "any"}",

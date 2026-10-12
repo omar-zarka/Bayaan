@@ -34,7 +34,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import java.util.TimeZone
 
 class HijriDateWidget : GlanceAppWidget() {
@@ -59,7 +59,7 @@ fun HijriSmallContent(context: Context, nowMs: Long) {
   val hijri = ContentLogic.hijri(nowMs, tz, IcuHijri)
   val month = hijri?.let { data?.month(it.month) }
   val occasion = data?.occasion(ContentLogic.occasionAt(nowMs, tz, IcuHijri))
-  Column(contentRoot().padding(12.dp).clickable(deepLink(context, "bayaan://"))) {
+  Column(contentRoot().padding(12.dp).clickable(appLink(context, ""))) {
     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       if (month != null) ArabicText(context, month.arabic, ArabicBitmap.DHIKR_FONT, 72f, 22f, 15f, 10f, 1, center = false)
       Spacer(GlanceModifier.defaultWeight())

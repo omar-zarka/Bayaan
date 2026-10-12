@@ -72,7 +72,7 @@ struct OccasionView: View {
     }
     .foregroundStyle(.white)
     .containerBackground(for: .widget) { WidgetPalette.background }
-    .widgetURL(entry.occasion == nil ? nil : entry.ayah.flatMap { URL(string: "bayaan://quran/\($0.surahId)?ayah=\($0.ayah)") })
+    .widgetURL(entry.occasion == nil ? nil : entry.ayah.flatMap { AppLinks.url("quran/\($0.surahId)?ayah=\($0.ayah)") })
   }
 
   // Jumu'ah plays Surah Al-Kahf from the start; other occasions play from the ayah onward.

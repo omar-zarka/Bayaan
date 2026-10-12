@@ -148,7 +148,7 @@ struct TasbeehView: View {
     .containerBackground(for: .widget) {
       if family == .accessoryCircular { AccessoryWidgetBackground() } else { WidgetPalette.background }
     }
-    .widgetURL(URL(string: "bayaan://adhkar"))
+    .widgetURL(AppLinks.url("adhkar"))
   }
 
   private func dhikrText(_ dhikr: WidgetCatalogDhikr, size: CGFloat, alignment: TextAlignment) -> some View {

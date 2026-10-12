@@ -45,7 +45,7 @@ import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playPlaylistCommand
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import expo.modules.bayaanwidgets.ui.recordMissingArtwork
@@ -88,7 +88,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
     when (state) {
       is LibraryShelfState.Downloads -> {
-        val root = contentRoot().clickable(deepLink(context, "bayaan://collection/downloads"))
+        val root = contentRoot().clickable(appLink(context, "collection/downloads"))
         if (state.items.isEmpty()) {
           ContentMessage(root, "No downloads yet", "Downloaded surahs show here")
           return
@@ -100,7 +100,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
       }
       is LibraryShelfState.Playlist -> {
         val p = state.playlist
-        val root = contentRoot().clickable(deepLink(context, "bayaan://collection/playlists"))
+        val root = contentRoot().clickable(appLink(context, "collection/playlists"))
         val playAll = commandAction(context, playPlaylistCommand(p.id, null), "library/playlist/${p.id}")
         val header: @Composable () -> Unit = {
           ShelfHeader(p.name, ContentLogic.surahCount(p.itemCount)) { RoundButton(android.R.drawable.ic_media_play, "Play ${p.name}", playAll) }
@@ -120,7 +120,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
       }
       LibraryShelfState.PlaylistUnavailable ->
         ContentMessage(contentRoot().clickable(configure(context, appWidgetId)), "Playlist unavailable", "Tap to choose another")
-      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", "to load your library")
+      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", "to load your library")
     }
   }
 

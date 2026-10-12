@@ -42,7 +42,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.SurahCard
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.recordMissingArtwork
 
 class ContinueReadingWidget : GlanceAppWidget() {
@@ -66,7 +66,7 @@ class ContinueReadingWidget : GlanceAppWidget() {
     val size = LocalSize.current
     val page = lastRead?.page ?: 1
     val root = GlanceModifier.fillMaxSize().background(WidgetColors.BACKGROUND).cornerRadius(20.dp)
-      .padding(14.dp).clickable(deepLink(context, "bayaan://mushaf/$page"))
+      .padding(14.dp).clickable(appLink(context, "mushaf/$page"))
     if (size.width >= WidgetSizes.MEDIUM.width) {
       Row(root) {
         PageColumn(context, lastRead, showLogo = false, GlanceModifier.width(110.dp).fillMaxHeight())

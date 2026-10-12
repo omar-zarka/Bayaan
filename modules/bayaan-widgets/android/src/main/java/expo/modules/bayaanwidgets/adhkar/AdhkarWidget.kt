@@ -37,7 +37,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import java.util.TimeZone
 
 class AdhkarWidget : GlanceAppWidget() {
@@ -61,12 +61,12 @@ fun AdhkarContent(context: Context, nowMs: Long) {
   val data = ContentStaticData.adhkar(context)?.of(ContentLogic.adhkarPeriod(ContentLogic.hour(nowMs, tz)))
   val dhikr = data?.featured?.getOrNull(DayMath.ayahIndex(nowMs, tz, data.featured.size))
   if (data == null || dhikr == null) {
-    ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", null)
+    ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", null)
     return
   }
   val size = LocalSize.current
   val width = size.width.value
-  val root = contentRoot().clickable(deepLink(context, "bayaan://adhkar/${data.superId}"))
+  val root = contentRoot().clickable(appLink(context, "adhkar/${data.superId}"))
   if (size.width < WidgetSizes.MEDIUM.width) {
     Column(root.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

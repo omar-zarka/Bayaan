@@ -43,7 +43,7 @@ import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import java.util.TimeZone
 
@@ -70,7 +70,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
       }
       return
     }
-    val open = deepLink(context, "bayaan://quran/${ayah.surahId}?ayah=${ayah.ayah}")
+    val open = appLink(context, "quran/${ayah.surahId}?ayah=${ayah.ayah}")
     val listen = commandAction(context, playTrackCommand(ayah.surahId, null, null, ayah.ayah), "ayah/${ayah.key}")
     val width = size.width.value
     when {

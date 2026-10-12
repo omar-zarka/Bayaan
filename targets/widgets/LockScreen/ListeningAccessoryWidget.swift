@@ -30,7 +30,7 @@ struct ListeningAccessoryView: View {
       .containerBackground(for: .widget) {
         if family == .accessoryCircular { AccessoryWidgetBackground() } else { Color.clear }
       }
-      .widgetURL(URL(string: "bayaan://player"))
+      .widgetURL(AppLinks.url("player"))
   }
 
   @ViewBuilder private var content: some View {

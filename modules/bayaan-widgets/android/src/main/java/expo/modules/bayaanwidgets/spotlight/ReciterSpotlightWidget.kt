@@ -48,7 +48,7 @@ import expo.modules.bayaanwidgets.ui.SurahCard
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.contentRoot
 import expo.modules.bayaanwidgets.ui.playReciterCommand
 import expo.modules.bayaanwidgets.ui.playTrackCommand
@@ -77,7 +77,7 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
   @Composable
   private fun Content(context: Context, r: WidgetSpotlightReciter?) {
     if (r == null) {
-      ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", "to meet today's reciter")
+      ContentMessage(contentRoot().clickable(appLink(context, "")), "Open Bayaan", "to meet today's reciter")
       return
     }
     val play = commandAction(context, playReciterCommand(r.id), "spotlight/${r.id}")

@@ -56,7 +56,7 @@ struct AyahOfTheDayView: View {
     }
     .foregroundStyle(.white)
     .containerBackground(for: .widget) { WidgetPalette.background }
-    .widgetURL(entry.ayah.flatMap { URL(string: "bayaan://quran/\($0.surahId)?ayah=\($0.ayah)") })
+    .widgetURL(entry.ayah.flatMap { AppLinks.url("quran/\($0.surahId)?ayah=\($0.ayah)") })
   }
 
   @ViewBuilder private func content(_ ayah: StaticAyah) -> some View {

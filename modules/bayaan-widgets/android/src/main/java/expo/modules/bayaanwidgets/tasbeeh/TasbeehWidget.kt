@@ -54,7 +54,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.dpToPx
 import java.util.TimeZone
 
@@ -93,7 +93,7 @@ class TasbeehWidget : GlanceAppWidget() {
     val size = LocalSize.current
     if (size.width >= WidgetSizes.MEDIUM.width) {
       val reset = actionRunCallback<ResetTasbeehAction>(actionParametersOf(TasbeehActions.DHIKR_ID to dhikr.id))
-      Row(root.padding(14.dp).clickable(deepLink(context, "bayaan://adhkar")), verticalAlignment = Alignment.CenterVertically) {
+      Row(root.padding(14.dp).clickable(appLink(context, "adhkar")), verticalAlignment = Alignment.CenterVertically) {
         Box(GlanceModifier.clickable(increment)) { Ring(context, count, dhikr.repeatCount, 84) }
         Spacer(GlanceModifier.width(14.dp))
         Column(GlanceModifier.defaultWeight().fillMaxHeight(), horizontalAlignment = Alignment.End) {

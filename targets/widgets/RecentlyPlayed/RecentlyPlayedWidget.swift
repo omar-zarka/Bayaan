@@ -63,7 +63,7 @@ struct RecentlyPlayedView: View {
     }
     .foregroundStyle(.white)
     .containerBackground(for: .widget) { WidgetPalette.background }
-    .widgetURL(URL(string: "bayaan://player"))
+    .widgetURL(AppLinks.url("player"))
   }
 
   private func intent(_ t: WidgetTrack) -> PlayTrackIntent {
