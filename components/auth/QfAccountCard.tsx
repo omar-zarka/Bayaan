@@ -1,5 +1,5 @@
 import React, {useCallback} from 'react';
-import {ActivityIndicator, Pressable, Text, View} from 'react-native';
+import {ActivityIndicator, Alert, Pressable, Text, View} from 'react-native';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import Color from 'color';
 import {useTheme} from '@/hooks/useTheme';
@@ -13,6 +13,25 @@ import type {Theme} from '@/utils/themeUtils';
 import {QfSyncStatusRow} from './QfSyncStatusRow';
 import {qfSyncLifecycle} from '@/services/sync/qfSyncLifecycle';
 import {qfSettingsSyncLifecycle} from '@/services/settings/qfSettingsSyncLifecycle';
+import {qfSyncDatabaseService} from '@/services/sync/qfSyncDatabaseService';
+
+// How long sign-out waits for queued edits to reach QF before purging.
+const SIGN_OUT_FLUSH_MS = 5_000;
+
+// Resolves true only when the user accepts losing changes not yet synced.
+function confirmUnsyncedSignOut(count: number): Promise<boolean> {
+  return new Promise(resolve => {
+    Alert.alert(
+      'Unsynced changes',
+      `${count} ${count === 1 ? "change hasn't" : "changes haven't"} synced to Quran.com yet and will be lost if you sign out now.`,
+      [
+        {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
+        {text: 'Sign out', style: 'destructive', onPress: () => resolve(true)},
+      ],
+      {cancelable: true, onDismiss: () => resolve(false)},
+    );
+  });
+}
 
 export function QfAccountCard() {
   const {theme} = useTheme();
@@ -34,6 +53,23 @@ export function QfAccountCard() {
   }, [setError, setSigningIn]);
 
   const signOut = useCallback(async () => {
+    const accountId = useBayaanAuthStore.getState().profile?.accountId ?? null;
+    // Best effort: deliver queued edits before this account's rows go.
+    qfSyncLifecycle.requestSync();
+    let flushTimer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      qfSyncLifecycle.waitForIdle().catch(() => undefined),
+      new Promise(resolve => {
+        flushTimer = setTimeout(resolve, SIGN_OUT_FLUSH_MS);
+      }),
+    ]);
+    clearTimeout(flushTimer);
+    if (accountId) {
+      const unsynced = (
+        await qfSyncDatabaseService.getOutboxEntries(accountId).catch(() => [])
+      ).length;
+      if (unsynced > 0 && !(await confirmUnsyncedSignOut(unsynced))) return;
+    }
     const attempt = useBayaanAuthStore.getState().invalidateAttempt();
     await Promise.allSettled([
       qfSyncLifecycle.stop(),
@@ -46,6 +82,13 @@ export function QfAccountCard() {
     } catch {
       // Logout attempts local cleanup even when remote revocation is offline.
       // Do not leak its rejection from a native press handler.
+    }
+    try {
+      // Like Quran.com web, a signed-out account leaves no copy on a shared
+      // device; the next sign-in pulls it again.
+      if (accountId) await qfSyncDatabaseService.purgeAccountData(accountId);
+    } catch (error) {
+      console.error('[QfAccountCard] Account data purge failed:', error);
     } finally {
       setSignedOut(attempt);
     }

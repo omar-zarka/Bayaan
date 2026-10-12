@@ -1389,6 +1389,34 @@ export class QfSyncDatabaseService {
     });
   }
 
+  /**
+   * Explicit sign-out: delete everything this account left on the device, as
+   * Quran.com web does, so a shared device keeps no copy. The next sign-in
+   * pulls it again from QF (the stored head is deleted too). Guest rows and
+   * the guest-import ledger (decisions and counts only) are kept. Highlights
+   * are kept too: QF does not sync them, so this device holds the only copy
+   * until they sync through QF App State.
+   */
+  async purgeAccountData(accountId: string): Promise<void> {
+    const connection = await this.database.getConnection();
+    const ownerScope = ownerScopeFromAccountId(accountId);
+    await withQfSyncTransaction(connection, async db => {
+      for (const table of [
+        'bookmarks',
+        'notes',
+        'qf_reading_locations',
+        'qf_sync_outbox',
+        'qf_sync_payload_blocks',
+        'qf_note_conflicts',
+        'qf_sync_state',
+      ]) {
+        await db.runAsync(`DELETE FROM ${table} WHERE owner_scope = ?`, [
+          ownerScope,
+        ]);
+      }
+    });
+  }
+
   async releaseInFlightOperations(
     input: ReleaseInFlightOperationsInput,
   ): Promise<void> {
