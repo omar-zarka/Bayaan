@@ -229,6 +229,7 @@ module.exports = {
       './withAndroidSigning.js',
       './withLargeHeap.js',
       './withIOSTeam.js',
+      './plugins/withBayaanCar.js',
     ],
   },
 };
