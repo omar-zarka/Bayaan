@@ -2,27 +2,11 @@ import React, {useCallback, useMemo, useState} from 'react';
 import {View, ViewStyle} from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {useFocusEffect} from 'expo-router';
-import {SURAHS, Surah} from '@/data/surahData';
+import {Surah} from '@/data/surahData';
 import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
+import {getSurahOfTheDay, getSurahForPage} from '@/utils/quranPages';
 import {HeroSection} from './HeroSection';
 import {SurahHeroSection} from './SurahsHero';
-
-function getSurahOfTheDay(): Surah {
-  const today = new Date();
-  const startOfYear = new Date(today.getFullYear(), 0, 0);
-  const dayOfYear = Math.floor(
-    (today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  const surahIndex = dayOfYear % 114;
-  return SURAHS[surahIndex];
-}
-
-function getSurahForPage(page: number): Surah | undefined {
-  return SURAHS.find(s => {
-    const [start, end] = s.pages.split('-').map(Number);
-    return page >= start && page <= end;
-  });
-}
 
 interface ContinueReadingHeroProps {
   onSurahLongPress?: (surah: Surah) => void;
@@ -51,7 +35,7 @@ export function ContinueReadingHero({
     }, []),
   );
 
-  const surahOfTheDay = useMemo(() => getSurahOfTheDay(), []);
+  const surahOfTheDay = useMemo(() => getSurahOfTheDay(new Date()), []);
 
   const lastReadSurah = lastReadPage
     ? getSurahForPage(lastReadPage)
