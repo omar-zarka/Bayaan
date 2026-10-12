@@ -1,6 +1,7 @@
 import type {QfMutationType, QfSyncResource} from '@/types/qf-sync';
 import surahData from '@/data/surahData.json';
 import {
+  QF_DEFAULT_COLLECTION_ID,
   MAX_SYNC_NOTE_BODY_LENGTH,
   decodeBayaanSyncRequestMutation,
   BayaanSyncDecodeError,
@@ -20,6 +21,13 @@ interface BookmarkPayload {
   clientUpdatedAt: number;
 }
 
+// Set on a BOOKMARK DELETE when the bookmark is also in a custom QF
+// collection: it then only leaves Favorites. The in-flight payload freezes
+// this choice for the whole delivery, retries included.
+export interface BookmarkDeletePayload extends BookmarkPayload {
+  leaveFavoritesOnly?: true;
+}
+
 interface NotePayload extends BookmarkPayload {
   content: string;
   verseKeys?: string[];
@@ -28,7 +36,7 @@ interface NotePayload extends BookmarkPayload {
 type ReadingSessionPayload = BookmarkPayload;
 
 export interface QfSyncRequestMutation {
-  resource: QfSyncResource;
+  resource: QfSyncResource | 'COLLECTION_BOOKMARK';
   type: QfMutationType;
   resourceId?: string;
   data: Record<string, unknown>;
@@ -149,10 +157,18 @@ function mapBookmark(entry: QfOutboxEntryLike): QfSyncRequestMutation {
   }
 
   if (entry.mutationType === 'DELETE') {
+    const remoteId = requireRemoteId(entry);
+    if (parsePayload<BookmarkDeletePayload>(entry).leaveFavoritesOnly) {
+      return {
+        resource: 'COLLECTION_BOOKMARK',
+        type: 'DELETE',
+        data: {collectionId: QF_DEFAULT_COLLECTION_ID, bookmarkId: remoteId},
+      };
+    }
     return {
       resource: 'BOOKMARK',
       type: 'DELETE',
-      resourceId: requireRemoteId(entry),
+      resourceId: remoteId,
       data: {},
     };
   }

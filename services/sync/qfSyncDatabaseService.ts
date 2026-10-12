@@ -12,8 +12,12 @@ import {
   VerseAnnotationDatabaseService,
 } from '@/services/database/VerseAnnotationDatabaseService';
 import type {QfMutationType, QfSyncResource} from '@/types/qf-sync';
-import type {BayaanSyncPushResult} from '@/services/sync/bayaanSyncCodec';
-import type {BayaanSyncMutation} from '@/services/sync/bayaanSyncCodec';
+import {
+  QF_DEFAULT_COLLECTION_ID,
+  type BayaanSyncEffect,
+  type BayaanSyncMutation,
+  type BayaanSyncPushResult,
+} from '@/services/sync/bayaanSyncCodec';
 import surahData from '@/data/surahData.json';
 import {refreshUnsentPayloadBlock} from './qfUnsentPayloadBlock';
 import {
@@ -90,6 +94,58 @@ interface MarkOperationInFlightInput {
   accountId: string;
   localOperationId: string;
   startedAt: number;
+}
+
+function isFavoritesRemoval(sent: QfOutboxEntry): boolean {
+  if (
+    sent.resource !== 'BOOKMARK' ||
+    sent.inFlightMutationType !== 'DELETE' ||
+    !sent.inFlightPayloadJson
+  ) {
+    return false;
+  }
+  const payload: unknown = JSON.parse(sent.inFlightPayloadJson);
+  return (
+    typeof payload === 'object' &&
+    payload !== null &&
+    'leaveFavoritesOnly' in payload &&
+    payload.leaveFavoritesOnly === true
+  );
+}
+
+// A sent Favorites removal is acknowledged as a COLLECTION_BOOKMARK delete,
+// possibly without identity. Once its identity agrees with the sent bookmark,
+// it settles locally exactly like that bookmark's DELETE receipt.
+function favoritesRemovalReceipt(
+  sent: QfOutboxEntry,
+  receipt: BayaanSyncEffect,
+): BayaanSyncMutation {
+  const removal = isFavoritesRemoval(sent);
+  if (receipt.resource !== 'COLLECTION_BOOKMARK') {
+    if (removal) {
+      throw new Error('Push response mutation does not match sent intent');
+    }
+    return receipt;
+  }
+  const bookmarkId = sent.remoteId;
+  if (
+    !removal ||
+    !bookmarkId ||
+    receipt.type !== 'DELETE' ||
+    (receipt.collectionId !== undefined &&
+      receipt.collectionId !== QF_DEFAULT_COLLECTION_ID) ||
+    (receipt.bookmarkId !== undefined && receipt.bookmarkId !== bookmarkId) ||
+    (receipt.membershipId !== undefined &&
+      receipt.membershipId !== `${QF_DEFAULT_COLLECTION_ID}-${bookmarkId}`)
+  ) {
+    throw new Error('Push response mutation does not match sent intent');
+  }
+  return {
+    resource: 'BOOKMARK',
+    type: 'DELETE',
+    resourceId: bookmarkId,
+    timestamp: receipt.timestamp,
+  };
 }
 
 interface CommitPushSuccessInput {
@@ -251,6 +307,9 @@ interface BookmarkOutboxPayload {
   rewayahId?: string;
   clientCreatedAt: number;
   clientUpdatedAt: number;
+  // DELETE only: the bookmark is also in a custom QF collection, so it leaves
+  // Favorites instead of being deleted on QF.
+  leaveFavoritesOnly?: true;
 }
 
 interface NoteOutboxPayload {
@@ -534,6 +593,11 @@ export class QfSyncDatabaseService {
         db,
       );
       const deletedAt = Date.now();
+      const remoteId = bookmark.remote_id ?? existingOperation?.remoteId;
+      const leaveFavoritesOnly =
+        remoteId !== null &&
+        remoteId !== undefined &&
+        (await this.hasCustomCollectionMembership(db, ownerScope, remoteId));
       const payload = {
         verseKey: bookmark.verse_key,
         surahNumber: bookmark.surah_number,
@@ -541,6 +605,7 @@ export class QfSyncDatabaseService {
         rewayahId: bookmark.rewayah_id ?? undefined,
         clientCreatedAt: bookmark.created_at,
         clientUpdatedAt: deletedAt,
+        ...(leaveFavoritesOnly ? {leaveFavoritesOnly: true as const} : {}),
       } satisfies BookmarkOutboxPayload;
       if (
         existingOperation?.mutationType === 'CREATE' &&
@@ -583,6 +648,19 @@ export class QfSyncDatabaseService {
         baseServerUpdatedAt: bookmark.server_updated_at ?? undefined,
       });
     });
+  }
+
+  private async hasCustomCollectionMembership(
+    db: SyncDatabaseConnection,
+    ownerScope: `qf:${string}`,
+    bookmarkId: string,
+  ): Promise<boolean> {
+    const row = await db.getFirstAsync(
+      `SELECT 1 AS found FROM qf_collection_bookmarks
+       WHERE owner_scope = ? AND bookmark_id = ? LIMIT 1`,
+      [ownerScope, bookmarkId],
+    );
+    return row !== null;
   }
 
   async addNote(input: AddNoteInput): Promise<VerseNote> {
@@ -1172,7 +1250,10 @@ export class QfSyncDatabaseService {
       if (currentHead !== input.expectedHead) return;
 
       for (const [index, sent] of input.sent.entries()) {
-        const mutation = input.result.mutations[index];
+        const mutation = favoritesRemovalReceipt(
+          sent,
+          input.result.mutations[index],
+        );
         if (
           sent.inFlightMutationType === null ||
           mutation.resource !== sent.resource ||

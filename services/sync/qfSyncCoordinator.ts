@@ -3,10 +3,13 @@ import {
   type BayaanSyncPullRequest,
   type BayaanSyncPushRequest,
 } from './bayaanSyncApiClient';
-import type {
-  BayaanSyncMutation,
-  BayaanSyncPullPage,
-  BayaanSyncPushResult,
+import {
+  QF_DEFAULT_COLLECTION_ID,
+  type BayaanCollectionBookmarkMutation,
+  type BayaanSyncEffect,
+  type BayaanSyncMutation,
+  type BayaanSyncPullPage,
+  type BayaanSyncPushResult,
 } from './bayaanSyncCodec';
 import type {QfOutboxEntry} from './qfSyncDatabaseService';
 import {type QfSyncTransactionDatabase} from './qfSyncTransaction';
@@ -72,7 +75,7 @@ export interface QfSyncPushStore {
 
 export interface QfSyncPullStore {
   getStoredHead(accountId: string): Promise<number>;
-  applyPage(accountId: string, mutations: BayaanSyncMutation[]): Promise<void>;
+  applyPage(accountId: string, mutations: BayaanSyncEffect[]): Promise<void>;
   commitStableHead(
     accountId: string,
     expectedHead: number,
@@ -323,13 +326,15 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
 
   async applyPage(
     accountId: string,
-    mutations: BayaanSyncMutation[],
+    mutations: BayaanSyncEffect[],
   ): Promise<void> {
     const connection = await this.database.getConnection();
     const scope = ownerScope(accountId);
     await withQfSyncTransaction(connection, async db => {
       for (const mutation of mutations) {
-        if (mutation.type === 'DELETE') {
+        if (mutation.resource === 'COLLECTION_BOOKMARK') {
+          await this.applyCollectionBookmark(db, scope, mutation);
+        } else if (mutation.type === 'DELETE') {
           await this.applyTombstone(db, scope, accountId, mutation);
         } else if (mutation.resource === 'BOOKMARK') {
           await this.applyBookmark(db, scope, mutation);
@@ -340,6 +345,94 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
         }
       }
     });
+  }
+
+  // Records custom-collection memberships so a local delete of a bookmark that
+  // is also in a custom collection only leaves Favorites. Favorites membership
+  // itself comes from BOOKMARK.isInDefaultCollection, never from these rows.
+  // A bookmark tombstone keeps its memberships: one that only left Favorites
+  // is still in its custom collections if the user bookmarks it again.
+  private async applyCollectionBookmark(
+    db: SyncSqliteConnection,
+    scope: `qf:${string}`,
+    mutation: BayaanCollectionBookmarkMutation,
+  ): Promise<void> {
+    const membershipId = mutation.membershipId;
+    if (
+      !membershipId ||
+      mutation.collectionId === QF_DEFAULT_COLLECTION_ID ||
+      membershipId.startsWith(`${QF_DEFAULT_COLLECTION_ID}-`)
+    ) {
+      return;
+    }
+    if (mutation.type === 'DELETE') {
+      const existing = await db.getFirstAsync<{bookmark_id: string}>(
+        `SELECT bookmark_id FROM qf_collection_bookmarks
+         WHERE owner_scope = ? AND membership_id = ? AND server_updated_at <= ?`,
+        [scope, membershipId, mutation.timestamp],
+      );
+      if (!existing) return;
+      await db.runAsync(
+        `DELETE FROM qf_collection_bookmarks
+         WHERE owner_scope = ? AND membership_id = ?`,
+        [scope, membershipId],
+      );
+      await this.refreshQueuedBookmarkDeletes(db, scope, existing.bookmark_id);
+      return;
+    }
+    if (!mutation.bookmarkId) return;
+    await db.runAsync(
+      `INSERT INTO qf_collection_bookmarks
+         (owner_scope, membership_id, bookmark_id, server_updated_at)
+       VALUES (?, ?, ?, ?)
+       ON CONFLICT(owner_scope, membership_id) DO UPDATE SET
+         bookmark_id = excluded.bookmark_id,
+         server_updated_at = excluded.server_updated_at
+       WHERE excluded.server_updated_at >= qf_collection_bookmarks.server_updated_at`,
+      [scope, membershipId, mutation.bookmarkId, mutation.timestamp],
+    );
+    await this.refreshQueuedBookmarkDeletes(db, scope, mutation.bookmarkId);
+  }
+
+  // A delete queued before its membership was pulled (offline, or rebased
+  // after a 409) must follow the membership it now has. Only PENDING rows are
+  // rewritten: a sent payload stays frozen until its delivery is settled.
+  private async refreshQueuedBookmarkDeletes(
+    db: SyncSqliteConnection,
+    scope: `qf:${string}`,
+    bookmarkId: string,
+  ): Promise<void> {
+    const membership = await db.getFirstAsync(
+      `SELECT 1 AS found FROM qf_collection_bookmarks
+       WHERE owner_scope = ? AND bookmark_id = ? LIMIT 1`,
+      [scope, bookmarkId],
+    );
+    const rows = await db.getAllAsync<{
+      local_operation_id: string;
+      payload_json: string;
+    }>(
+      `SELECT local_operation_id, payload_json FROM qf_sync_outbox
+       WHERE owner_scope = ? AND resource = 'BOOKMARK'
+         AND mutation_type = 'DELETE' AND delivery_state = 'PENDING'
+         AND remote_id = ?`,
+      [scope, bookmarkId],
+    );
+    for (const row of rows) {
+      const payload: unknown = JSON.parse(row.payload_json);
+      if (typeof payload !== 'object' || payload === null) continue;
+      const flagged =
+        'leaveFavoritesOnly' in payload && payload.leaveFavoritesOnly === true;
+      if (flagged === (membership !== null)) continue;
+      const next: Record<string, unknown> = {...payload};
+      if (membership) next.leaveFavoritesOnly = true;
+      else delete next.leaveFavoritesOnly;
+      await db.runAsync(
+        `UPDATE qf_sync_outbox
+         SET payload_json = ?, revision = revision + 1
+         WHERE owner_scope = ? AND local_operation_id = ?`,
+        [JSON.stringify(next), scope, row.local_operation_id],
+      );
+    }
   }
 
   private async applyBookmark(

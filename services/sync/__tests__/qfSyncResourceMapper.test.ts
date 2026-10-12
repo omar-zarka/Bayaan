@@ -5,7 +5,8 @@ import {
 } from '@/services/sync/qfSyncResourceMapper';
 
 function createOutboxEntry(
-  overrides: Partial<QfOutboxEntryLike> & Pick<QfOutboxEntryLike, 'resource' | 'mutationType' | 'payloadJson'>,
+  overrides: Partial<QfOutboxEntryLike> &
+    Pick<QfOutboxEntryLike, 'resource' | 'mutationType' | 'payloadJson'>,
 ): QfOutboxEntryLike {
   return {
     resource: overrides.resource,
@@ -63,6 +64,28 @@ describe('qfSyncResourceMapper', () => {
     });
   });
 
+  it('maps a delete of a bookmark in a custom collection to a Favorites removal', () => {
+    const entry = createOutboxEntry({
+      resource: 'BOOKMARK',
+      mutationType: 'DELETE',
+      remoteId: 'bm-custom',
+      payloadJson: JSON.stringify({
+        verseKey: '2:255',
+        surahNumber: 2,
+        ayahNumber: 255,
+        clientCreatedAt: 1713511200000,
+        clientUpdatedAt: 1713511300000,
+        leaveFavoritesOnly: true,
+      }),
+    });
+
+    expect(mapOutboxEntryToSyncMutation(entry)).toEqual({
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'DELETE',
+      data: {collectionId: '__default__', bookmarkId: 'bm-custom'},
+    });
+  });
+
   it('rejects bookmark updates because QF only accepts bookmark create or delete intent', () => {
     const bookmarkUpdate = createOutboxEntry({
       resource: 'BOOKMARK',
@@ -91,9 +114,7 @@ describe('qfSyncResourceMapper', () => {
       '2:255-2:255',
       '2:257-2:257',
     ]);
-    expect(buildVerseRanges(['2:286', '3:1', '3:2'])).toEqual([
-      '2:286-3:2',
-    ]);
+    expect(buildVerseRanges(['2:286', '3:1', '3:2'])).toEqual(['2:286-3:2']);
     expect(buildVerseRanges(['3:2', '2:255', '2:255', '3:1'])).toEqual([
       '2:255-2:255',
       '3:1-3:2',
@@ -101,12 +122,8 @@ describe('qfSyncResourceMapper', () => {
     expect(() => buildVerseRanges(['2:255', 'invalid'])).toThrow(
       'Invalid verse key: invalid',
     );
-    expect(() => buildVerseRanges(['0:1'])).toThrow(
-      'Invalid verse key: 0:1',
-    );
-    expect(() => buildVerseRanges(['2:0'])).toThrow(
-      'Invalid verse key: 2:0',
-    );
+    expect(() => buildVerseRanges(['0:1'])).toThrow('Invalid verse key: 0:1');
+    expect(() => buildVerseRanges(['2:0'])).toThrow('Invalid verse key: 2:0');
     expect(() => buildVerseRanges(['2:287'])).toThrow(
       'Invalid verse key: 2:287',
     );
