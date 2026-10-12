@@ -17,5 +17,6 @@ struct BayaanWidgetsBundle: WidgetBundle {
       PlaybackControl()
       PlaySurahControl()
     }
+    ContentWidgets().body
   }
 }

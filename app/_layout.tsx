@@ -38,6 +38,7 @@ import {NetworkStatusMonitor} from '@/components/NetworkStatusMonitor';
 import {useNetworkMonitor} from '@/hooks/useNetworkMonitor';
 import {PostHogProvider, usePostHog} from 'posthog-react-native';
 import {startWidgetSync} from '@/services/widgets/syncWidgets';
+import {startContentWidgetSync} from '@/services/widgets/syncContentWidgets';
 import {startConfiguredWidgetSync} from '@/services/widgets/syncConfiguredWidgets';
 import {startLiveActivitySync} from '@/services/widgets/live-activity/syncLiveActivity';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
@@ -215,9 +216,11 @@ function RootLayout() {
     const stopLiveActivity = startLiveActivitySync();
     const stopSnapshot = startWidgetSync();
     const stopConfigured = startConfiguredWidgetSync();
+    const stopContent = startContentWidgetSync();
     return () => {
       stopSnapshot();
       stopConfigured();
+      stopContent();
       stopLiveActivity();
     };
   }, [appIsReady]);

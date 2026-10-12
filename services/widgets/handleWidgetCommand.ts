@@ -17,6 +17,19 @@ import {pendingRestoreLoad} from '@/services/player/utils/restoreSession';
 
 const DEFAULT_SURAH_FOR_RECITER = 1;
 
+export type ContentRunner = (
+  command: Extract<WidgetCommand, {type: 'playPlaylist' | 'startBedtime'}>,
+  playSurahFromStart: (reciter: Reciter, surahId: number) => Promise<boolean>,
+) => Promise<void>;
+
+// Registered by syncContentWidgets so this handler does not import the
+// playlist database or the ambient store itself.
+let contentRunner: ContentRunner | null = null;
+
+export function setContentCommandRunner(runner: ContentRunner): void {
+  contentRunner = runner;
+}
+
 export interface RecentMatch {
   reciterId: string;
   surahId: number;
@@ -53,6 +66,8 @@ export interface CommandDeps {
   play: () => Promise<void>;
   pause: () => Promise<void>;
   playTracks: (tracks: Track[], startSec: number) => Promise<void>;
+  // Starts a fresh recently-played chain, like every in-app surah play.
+  startNewChain: (reciter: Reciter, surahId: number, rewayatId: string) => void;
   lastSurahForReciter: (reciterId: string) => number | null;
   // Index of a matching queued track after the current one.
   upNextIndexOf: (key: TrackKey) => number | null;
@@ -112,6 +127,13 @@ export function defaultDeps(): CommandDeps {
       const store = usePlayerStore.getState();
       await store.updateQueue(tracks, 0, startSec);
       await store.play();
+    },
+    startNewChain: (reciter, surahId, rewayatId) => {
+      const surah = getSurahById(surahId);
+      if (!surah) return;
+      useRecentlyPlayedStore
+        .getState()
+        .startNewChain(reciter, surah, 0, 0, rewayatId);
     },
     lastSurahForReciter: reciterId => {
       const hit = useRecentlyPlayedStore
@@ -197,26 +219,29 @@ function rewayatForSurah(
     .id;
 }
 
-async function playSurah(
+export async function playSurah(
   reciter: Reciter,
   surahId: number,
   rewayatId: string | null,
   ayah: number | null,
   deps: CommandDeps,
-): Promise<void> {
+): Promise<boolean> {
   const surah = getSurahById(surahId);
-  if (!surah) return;
+  if (!surah) return false;
   const track = await createTrack(
     reciter,
     surah,
     rewayatId ?? rewayatForSurah(reciter, surahId, ayah !== null),
   );
   const resolvedRewayat = track.rewayatId ?? reciter.rewayat[0]?.id;
+  // Ayah 1 means the start of the surah (a widget's "from the beginning").
   const startSec =
-    ayah !== null && resolvedRewayat
+    ayah !== null && ayah > 1 && resolvedRewayat
       ? (await deps.ayahStartSec(resolvedRewayat, surahId, ayah)) ?? 0
       : 0;
   await deps.playTracks([track], startSec);
+  if (resolvedRewayat) deps.startNewChain(reciter, surahId, resolvedRewayat);
+  return true;
 }
 
 // States where audio is playing or about to: a play request is a no-op.
@@ -293,6 +318,20 @@ export async function handleWidgetCommand(
       const surahId =
         deps.lastSurahForReciter(reciter.id) ?? DEFAULT_SURAH_FOR_RECITER;
       await playSurah(reciter, surahId, null, null, deps);
+      return;
+    }
+    case 'playPlaylist':
+    case 'startBedtime': {
+      if (!contentRunner) {
+        console.error(
+          '[WidgetCommand] No content command runner registered; dropped',
+          command.type,
+        );
+        return;
+      }
+      await contentRunner(command, (reciter, surahId) =>
+        playSurah(reciter, surahId, null, null, deps),
+      );
       return;
     }
   }

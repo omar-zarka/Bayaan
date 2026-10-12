@@ -101,6 +101,7 @@
 		XX3C49F596644F1073CB7FXX /* Exceptions for "widgets" folder in "Bayaan" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				_shared/ContentIntents.swift,
 				_shared/PlaybackIntents.swift,
 				_shared/PlaybackResume.swift,
 				_shared/SurahCatalog.swift,

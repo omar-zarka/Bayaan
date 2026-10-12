@@ -2,6 +2,7 @@
 // Pure builders for the static JSON bundled into both widget targets.
 // Imported by scripts/generate-widget-data.ts, so no '@/' imports here.
 import {surahArtworkFileName} from './artworkNames';
+import {tasbeehDisplayText, tasbeehTranslation} from './dhikrText';
 
 export interface StaticSurah {
   id: number;
@@ -141,4 +142,233 @@ export function buildSurahCatalogSwift(surahs: StaticSurah[]): string {
     '}',
     '',
   ].join('\n');
+}
+
+// ---- Phase 3: adhkar periods and occasions -------------------------------
+
+export type AdhkarPeriodName = 'morning' | 'evening';
+
+export interface FeaturedDhikr {
+  id: string;
+  arabic: string;
+  translation: string | null;
+  repeatCount: number;
+}
+
+export interface AdhkarPeriodData {
+  period: AdhkarPeriodName;
+  superId: string;
+  title: string;
+  arabicTitle: string;
+  count: number; // adhkar in the category
+  featured: FeaturedDhikr[];
+}
+
+export interface AdhkarPeriods {
+  morning: AdhkarPeriodData;
+  evening: AdhkarPeriodData;
+}
+
+export interface AdhkarPeriodSource {
+  superId: string;
+  title: string;
+  arabicTitle: string;
+  categoryId: string;
+  featured: string[];
+}
+
+export interface AdhkarSeedRow {
+  id: string;
+  category_id: string;
+  arabic: string;
+  translation: string | null;
+  repeat_count: number;
+}
+
+export interface HijriMonthName {
+  number: number;
+  name: string;
+  arabic: string;
+}
+
+export interface OccasionSource {
+  id: string;
+  name: string;
+  arabicName: string;
+  listenSurahId: number | null;
+  keys: string[];
+}
+
+export interface OccasionsSource {
+  months: HijriMonthName[];
+  occasions: OccasionSource[];
+}
+
+export interface OccasionInfo {
+  id: string;
+  name: string;
+  arabicName: string;
+  listenSurahId: number | null;
+  ayat: StaticAyah[];
+}
+
+export interface OccasionData {
+  months: HijriMonthName[];
+  occasions: OccasionInfo[];
+}
+
+export const MAX_FEATURED_DHIKR_CHARS = 180;
+// Same ids and order as OCCASION_WINDOWS + jumuah in contextRules.ts.
+export const OCCASION_IDS = [
+  'eidFitr',
+  'arafah',
+  'eidAdha',
+  'lastTen',
+  'ramadan',
+  'dhulHijjah',
+  'ashura',
+  'jumuah',
+] as const;
+
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isStringList(value: unknown): value is string[] {
+  return Array.isArray(value) && value.every(v => typeof v === 'string');
+}
+
+function isPeriodSource(value: unknown): value is AdhkarPeriodSource {
+  return (
+    isObject(value) &&
+    typeof value.superId === 'string' &&
+    typeof value.title === 'string' &&
+    typeof value.arabicTitle === 'string' &&
+    typeof value.categoryId === 'string' &&
+    isStringList(value.featured)
+  );
+}
+
+export function isAdhkarPeriodSources(
+  value: unknown,
+): value is Record<AdhkarPeriodName, AdhkarPeriodSource> {
+  return (
+    isObject(value) &&
+    isPeriodSource(value.morning) &&
+    isPeriodSource(value.evening)
+  );
+}
+
+function isSeedRow(value: unknown): value is AdhkarSeedRow {
+  return (
+    isObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.category_id === 'string' &&
+    typeof value.arabic === 'string' &&
+    (value.translation === null || typeof value.translation === 'string') &&
+    typeof value.repeat_count === 'number'
+  );
+}
+
+export function parseAdhkarSeed(seed: unknown): AdhkarSeedRow[] {
+  if (!isObject(seed) || !Array.isArray(seed.adhkar)) return [];
+  const rows: unknown[] = seed.adhkar;
+  return rows.filter(isSeedRow);
+}
+
+function isMonth(value: unknown): value is HijriMonthName {
+  return (
+    isObject(value) &&
+    typeof value.number === 'number' &&
+    typeof value.name === 'string' &&
+    typeof value.arabic === 'string'
+  );
+}
+
+function isOccasionSource(value: unknown): value is OccasionSource {
+  return (
+    isObject(value) &&
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.arabicName === 'string' &&
+    (value.listenSurahId === null || typeof value.listenSurahId === 'number') &&
+    isStringList(value.keys)
+  );
+}
+
+export function isOccasionsSource(value: unknown): value is OccasionsSource {
+  return (
+    isObject(value) &&
+    Array.isArray(value.months) &&
+    value.months.every(isMonth) &&
+    Array.isArray(value.occasions) &&
+    value.occasions.every(isOccasionSource)
+  );
+}
+
+export function buildAdhkarPeriods(
+  source: Record<AdhkarPeriodName, AdhkarPeriodSource>,
+  seed: AdhkarSeedRow[],
+): AdhkarPeriods {
+  function period(name: AdhkarPeriodName): AdhkarPeriodData {
+    const src = source[name];
+    const inCategory = seed.filter(d => d.category_id === src.categoryId);
+    if (src.featured.length === 0) {
+      throw new Error(`${name} has no featured adhkar`);
+    }
+    const featured = src.featured.map(id => {
+      const row = inCategory.find(d => d.id === id);
+      if (!row) {
+        throw new Error(
+          `${name}: dhikr ${id} is not in category ${src.categoryId}`,
+        );
+      }
+      const arabic = tasbeehDisplayText(row.arabic);
+      if (!arabic) throw new Error(`${name}: dhikr ${id} has no (( )) text`);
+      if (arabic.length > MAX_FEATURED_DHIKR_CHARS) {
+        throw new Error(`${name}: dhikr ${id} is too long`);
+      }
+      return {
+        id,
+        arabic,
+        translation: tasbeehTranslation(row.translation),
+        repeatCount: row.repeat_count,
+      };
+    });
+    return {
+      period: name,
+      superId: src.superId,
+      title: src.title,
+      arabicTitle: src.arabicTitle,
+      count: inCategory.length,
+      featured,
+    };
+  }
+  return {morning: period('morning'), evening: period('evening')};
+}
+
+export function buildOccasionData(
+  source: OccasionsSource,
+  src: AyahSources,
+): OccasionData {
+  if (
+    source.months.length !== 12 ||
+    source.months.some((m, i) => m.number !== i + 1)
+  ) {
+    throw new Error('months must list 1 to 12 in order');
+  }
+  const ids = source.occasions.map(o => o.id);
+  if (JSON.stringify(ids) !== JSON.stringify(OCCASION_IDS)) {
+    throw new Error(`occasions must be exactly ${OCCASION_IDS.join(', ')}`);
+  }
+  return {
+    months: source.months,
+    occasions: source.occasions.map(o => ({
+      id: o.id,
+      name: o.name,
+      arabicName: o.arabicName,
+      listenSurahId: o.listenSurahId,
+      ayat: buildStaticAyat(o.keys, src),
+    })),
+  };
 }

@@ -94,6 +94,8 @@ function deps(
     pause: async () => void calls.push('pause'),
     playTracks: async (tracks: Track[], startSec: number) =>
       void calls.push(`playTracks:${tracks[0].surahId}@${startSec}`),
+    startNewChain: (_r: Reciter, surahId: number, rewayatId: string) =>
+      void calls.push(`startNewChain:${surahId}:${rewayatId}`),
     lastSurahForReciter: () => 67,
     upNextIndexOf: () => null,
     playQueueIndex: async (index: number, startSec?: number) =>
@@ -161,7 +163,26 @@ describe('handleWidgetCommand', () => {
       },
       d,
     );
-    expect(d.calls).toEqual(['ayahStartSec:rw1', 'playTracks:18@42']);
+    expect(d.calls).toEqual([
+      'ayahStartSec:rw1',
+      'playTracks:18@42',
+      'startNewChain:18:rw1',
+    ]);
+  });
+
+  it('plays ayah 1 from the start without a timestamp lookup', async () => {
+    const d = deps();
+    await handleWidgetCommand(
+      {
+        type: 'playTrack',
+        surahId: 18,
+        reciterId: null,
+        rewayatId: null,
+        ayah: 1,
+      },
+      d,
+    );
+    expect(d.calls).toEqual(['playTracks:18@0', 'startNewChain:18:rw1']);
   });
 
   it('starts at 0 when no timestamps exist', async () => {
@@ -176,7 +197,7 @@ describe('handleWidgetCommand', () => {
       },
       d,
     );
-    expect(d.calls).toEqual(['playTracks:18@0']);
+    expect(d.calls).toEqual(['playTracks:18@0', 'startNewChain:18:rw1']);
   });
 
   it('ignores unknown reciters without throwing', async () => {
@@ -188,7 +209,7 @@ describe('handleWidgetCommand', () => {
   it('resumes the last surah for a reciter', async () => {
     const d = deps();
     await handleWidgetCommand({type: 'playReciter', reciterId: 'r1'}, d);
-    expect(d.calls).toEqual(['playTracks:67@0']);
+    expect(d.calls).toEqual(['playTracks:67@0', 'startNewChain:67:rw1']);
   });
 
   it('setPlayback with nothing queued does nothing', async () => {
@@ -210,7 +231,11 @@ describe('handleWidgetCommand', () => {
       d,
     );
     expect(createTrack).toHaveBeenLastCalledWith(reciter, {id: 18}, 'rw2');
-    expect(d.calls).toEqual(['ayahStartSec:rw2', 'playTracks:18@42']);
+    expect(d.calls).toEqual([
+      'ayahStartSec:rw2',
+      'playTracks:18@42',
+      'startNewChain:18:rw2',
+    ]);
   });
 
   it('picks a rewayah that has the surah when rewayatId is null', async () => {
@@ -310,7 +335,7 @@ describe('handleWidgetCommand', () => {
       },
       d,
     );
-    expect(d.calls).toEqual(['playTracks:2@0']);
+    expect(d.calls).toEqual(['playTracks:2@0', 'startNewChain:2:rw1']);
   });
 
   it('does nothing when the default reciter is a placeholder', async () => {
@@ -402,7 +427,7 @@ describe('playTrack row taps', () => {
   it('starts fresh when nothing matches', async () => {
     const d = deps();
     await handleWidgetCommand(row, d);
-    expect(d.calls).toEqual(['playTracks:36@0']);
+    expect(d.calls).toEqual(['playTracks:36@0', 'startNewChain:36:rw1']);
   });
 
   it('skips queue and recents when an ayah is given', async () => {
@@ -411,7 +436,11 @@ describe('playTrack row taps', () => {
       findRecent: key => ({...key, startPosition: 5, recentIndex: 0}),
     });
     await handleWidgetCommand({...row, ayah: 10}, d);
-    expect(d.calls).toEqual(['ayahStartSec:rw1', 'playTracks:36@42']);
+    expect(d.calls).toEqual([
+      'ayahStartSec:rw1',
+      'playTracks:36@42',
+      'startNewChain:36:rw1',
+    ]);
   });
 });
 
@@ -464,5 +493,22 @@ describe('ayahStartSecFromNumbering', () => {
   it('returns null (start at 0) when the numbering is disabled', () => {
     const {numbering: n} = numbering('disabled', 'warsh', 'warsh-14', 2);
     expect(ayahStartSecFromNumbering(n, 5)).toBeNull();
+  });
+});
+
+describe('content commands without a runner', () => {
+  it('logs instead of dropping silently', async () => {
+    const spy = jest
+      .spyOn(console, 'error')
+      .mockImplementation(() => undefined);
+    await handleWidgetCommand(
+      {type: 'playPlaylist', playlistId: 'p', itemId: null},
+      deps(),
+    );
+    expect(spy).toHaveBeenCalledWith(
+      expect.stringContaining('[WidgetCommand]'),
+      'playPlaylist',
+    );
+    spy.mockRestore();
   });
 });

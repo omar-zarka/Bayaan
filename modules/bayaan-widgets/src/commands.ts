@@ -1,5 +1,23 @@
 import {isNullableString, isRecord} from './guards';
 
+export const WIDGET_AMBIENT_SOUNDS = [
+  'rain',
+  'forest',
+  'ocean',
+  'stream',
+  'thunder',
+  'fireplace',
+  'wind',
+] as const;
+
+export type WidgetAmbientSound = (typeof WIDGET_AMBIENT_SOUNDS)[number];
+
+const MAX_SLEEP_MINUTES = 240;
+
+function isAmbientSound(value: unknown): value is WidgetAmbientSound {
+  return WIDGET_AMBIENT_SOUNDS.some(s => s === value);
+}
+
 export type WidgetCommand =
   // Absolute target state: the widget sends the opposite of what it rendered.
   | {type: 'setPlayback'; playing: boolean}
@@ -10,7 +28,17 @@ export type WidgetCommand =
       rewayatId: string | null;
       ayah: number | null; // start from this ayah when timestamps exist
     }
-  | {type: 'playReciter'; reciterId: string};
+  | {type: 'playReciter'; reciterId: string}
+  // Queue a playlist starting at itemId (null: the first item).
+  | {type: 'playPlaylist'; playlistId: string; itemId: string | null}
+  // Play a surah from the start, set the sleep timer, optionally start ambient.
+  | {
+      type: 'startBedtime';
+      surahId: number;
+      reciterId: string | null; // null means default reciter
+      sleepMinutes: number;
+      ambient: WidgetAmbientSound | null; // null leaves ambient alone
+    };
 
 export interface QueuedWidgetCommand {
   command: WidgetCommand;
@@ -39,6 +67,25 @@ export function isWidgetCommand(value: unknown): value is WidgetCommand {
       );
     case 'playReciter':
       return typeof value.reciterId === 'string' && value.reciterId.length > 0;
+    case 'playPlaylist':
+      return (
+        typeof value.playlistId === 'string' &&
+        value.playlistId.length > 0 &&
+        isNullableString(value.itemId)
+      );
+    case 'startBedtime':
+      return (
+        typeof value.surahId === 'number' &&
+        Number.isInteger(value.surahId) &&
+        value.surahId >= 1 &&
+        value.surahId <= 114 &&
+        isNullableString(value.reciterId) &&
+        typeof value.sleepMinutes === 'number' &&
+        Number.isInteger(value.sleepMinutes) &&
+        value.sleepMinutes >= 1 &&
+        value.sleepMinutes <= MAX_SLEEP_MINUTES &&
+        (value.ambient === null || isAmbientSound(value.ambient))
+      );
     default:
       return false;
   }

@@ -12,6 +12,7 @@ export interface NativeBayaanWidgetsModule {
   hasArtwork(fileName: string): boolean;
   writeCatalog(json: string): void;
   readArtworkRequests(): string;
+  writeContent(json: string): void;
   // iOS only (absent on Android): the Now Playing Live Activity.
   isLiveActivitySupported?(): boolean;
   startNowPlayingActivity?(json: string, staleAtMs: number): Promise<string>;
