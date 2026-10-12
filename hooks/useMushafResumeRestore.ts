@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import {InteractionManager} from 'react-native';
+import {InteractionManager, Linking} from 'react-native';
 import {useRouter} from 'expo-router';
 import {useBayaanAuthStore} from '@/store/bayaanAuthStore';
 import {useQfSyncStore} from '@/store/qfSyncStore';
@@ -27,15 +27,21 @@ export function useMushafResumeRestore(ready: boolean, onHandled: () => void) {
     // Auth restoration and the lifecycle's scope installation must both settle
     // before this synchronous read. Never cache the guest page during startup.
     handled.current = true;
-    if (mushafSessionStore.getLastScreenWasMushaf()) {
-      const page = mushafSessionStore.getLastReadPage();
-      router.push({
-        pathname: '/mushaf',
-        params: page ? {page: String(page)} : undefined,
+    // A launch from a deep link (widget tap, notification) already routed
+    // to its target; pushing the mushaf on top would hide it.
+    Linking.getInitialURL()
+      .catch(() => null)
+      .then(initialUrl => {
+        if (!mushafSessionStore.getLastScreenWasMushaf() || initialUrl) {
+          onHandled();
+          return;
+        }
+        const page = mushafSessionStore.getLastReadPage();
+        router.push({
+          pathname: '/mushaf',
+          params: page ? {page: String(page)} : undefined,
+        });
+        InteractionManager.runAfterInteractions(onHandled);
       });
-      InteractionManager.runAfterInteractions(onHandled);
-    } else {
-      onHandled();
-    }
   }, [ready, status, accountId, activeAccountId, router, onHandled]);
 }

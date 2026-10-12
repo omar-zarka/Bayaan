@@ -80,8 +80,11 @@ function parsePayload<T>(entry: QfOutboxEntryLike): T {
   return JSON.parse(entry.payloadJson) as T;
 }
 
+// QF stores Hafs verses only. A row on the later part of a split Hafs verse
+// (another rewayah's verse unit) is keyed by its mid-verse anchor 'S:A:W';
+// it syncs as its Hafs verse 'S:A', so QF shows it on that whole ayah.
 function parseVerseKey(verseKey: string): ParsedVerseKey {
-  const match = /^(\d+):(\d+)$/.exec(verseKey);
+  const match = /^(\d+):(\d+)(?::([1-9]\d*))?$/.exec(verseKey);
   if (!match) {
     throw new InvalidLocalVerseRangeError(`Invalid verse key: ${verseKey}`);
   }
@@ -124,9 +127,12 @@ function areContiguous(
 }
 
 export function buildVerseRanges(verseKeys: string[]): string[] {
-  const uniqueSorted = [...new Set(verseKeys)]
-    .map(parseVerseKey)
-    .sort(compareVerseKeys);
+  const byHafsVerse = new Map<string, ParsedVerseKey>();
+  for (const key of verseKeys) {
+    const parsed = parseVerseKey(key);
+    byHafsVerse.set(parsed.raw, parsed);
+  }
+  const uniqueSorted = [...byHafsVerse.values()].sort(compareVerseKeys);
 
   if (uniqueSorted.length === 0) {
     throw new InvalidLocalVerseRangeError('At least one verse key is required');

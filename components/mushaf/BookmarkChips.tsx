@@ -8,6 +8,11 @@ import {SURAHS} from '@/data/surahData';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import type {VerseBookmark} from '@/types/verse-annotations';
 import {useQfSyncStore} from '@/store/qfSyncStore';
+// @ai-start
+import {useSavedVerseDescription} from '@/hooks/useSavedVerseDescription';
+import type {RewayahId} from '@/services/rewayah/RewayahIdentity';
+import {bookmarkChipText} from './mushafSearchVerses';
+// @ai-end
 
 // Module-level cache — warmed by AppInitializer after DB is ready
 let cachedBookmarks: VerseBookmark[] = [];
@@ -20,11 +25,37 @@ export async function warmBookmarkCache(): Promise<void> {
 }
 
 interface BookmarkChipsProps {
-  onPress: (surahId: number, ayahNumber: number) => void;
+  // @ai-start
+  /**
+   * The rewayah on screen. A chip reads like the Bookmarks list: the
+   * bookmark's verse in the rewayah it was saved in, naming that rewayah
+   * when it is not the one on screen (decision 3).
+   */
+  shownRewayah: RewayahId;
+  /** Opens the bookmark (its rewayah, then exactly its verse). */
+  onPress: (bookmark: VerseBookmark) => void;
+  // @ai-end
 }
 
+// @ai-start
+/** The text of one chip; loads its rewayah's verses on demand. */
+const BookmarkChipText: React.FC<{
+  bookmark: VerseBookmark;
+  surahName: string;
+  shownRewayah: RewayahId;
+  style: React.ComponentProps<typeof Text>['style'];
+}> = ({bookmark, surahName, shownRewayah, style}) => {
+  const description = useSavedVerseDescription(bookmark);
+  return (
+    <Text style={style} numberOfLines={1}>
+      {bookmarkChipText(surahName, bookmark, description, shownRewayah)}
+    </Text>
+  );
+};
+// @ai-end
+
 export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
-  ({onPress}) => {
+  ({shownRewayah, onPress}) => {
     const {theme} = useTheme();
     const scopeKey = useQfSyncStore(state => state.activeAccountId ?? 'guest');
     const dataRevision = useQfSyncStore(state => state.dataRevision);
@@ -83,19 +114,21 @@ export const BookmarkChips: React.FC<BookmarkChipsProps> = React.memo(
                       .toString(),
                   },
                 ]}
-                onPress={() =>
-                  onPress(bookmark.surahNumber, bookmark.ayahNumber)
-                }>
+                onPress={() => onPress(bookmark)} // @ai
+              >
                 <Feather
                   name="bookmark"
                   size={moderateScale(12)}
                   color={theme.colors.textSecondary}
                 />
-                <Text
+                {/* @ai-start */}
+                <BookmarkChipText
+                  bookmark={bookmark}
+                  surahName={surah.name}
+                  shownRewayah={shownRewayah}
                   style={[styles.chipText, {color: theme.colors.text}]}
-                  numberOfLines={1}>
-                  {surah.name} {bookmark.surahNumber}:{bookmark.ayahNumber}
-                </Text>
+                />
+                {/* @ai-end */}
               </Pressable>
             );
           })}

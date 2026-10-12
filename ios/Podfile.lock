@@ -1,4 +1,8 @@
 PODS:
+  - BayaanCar (1.0.0):
+    - ExpoModulesCore
+  - BayaanWidgets (0.1.0):
+    - ExpoModulesCore
   - Burnt (0.13.0):
     - ExpoModulesCore
     - SPAlert (~> 4.2)
@@ -304,6 +308,8 @@ PODS:
   - ExpoWebBrowser (56.0.5):
     - ExpoModulesCore
   - EXStructuredHeaders (56.0.0)
+  - ExtensionStorage (1.0.0):
+    - ExpoModulesCore
   - EXUpdates (56.0.17):
     - EASClient
     - EXManifests
@@ -2695,6 +2701,8 @@ PODS:
   - Yoga (0.0.0)
 
 DEPENDENCIES:
+  - BayaanCar (from `../modules/bayaan-car/ios`)
+  - BayaanWidgets (from `../modules/bayaan-widgets/ios`)
   - Burnt (from `../node_modules/burnt/ios`)
   - EASClient (from `../node_modules/expo-eas-client/ios`)
   - EXApplication (from `../node_modules/expo-application/ios`)
@@ -2740,6 +2748,7 @@ DEPENDENCIES:
   - "ExpoUI (from `../node_modules/@expo/ui/ios`)"
   - ExpoWebBrowser (from `../node_modules/expo-web-browser/ios`)
   - EXStructuredHeaders (from `../node_modules/expo-structured-headers/ios`)
+  - "ExtensionStorage (from `../node_modules/@bacons/apple-targets/ios`)"
   - EXUpdates (from `../node_modules/expo-updates/ios`)
   - EXUpdatesInterface (from `../node_modules/expo-updates-interface/ios`)
   - FBLazyVector (from `../node_modules/react-native/Libraries/FBLazyVector`)
@@ -2846,6 +2855,10 @@ SPEC REPOS:
     - SPIndicator
 
 EXTERNAL SOURCES:
+  BayaanCar:
+    :path: "../modules/bayaan-car/ios"
+  BayaanWidgets:
+    :path: "../modules/bayaan-widgets/ios"
   Burnt:
     :path: "../node_modules/burnt/ios"
   EASClient:
@@ -2936,6 +2949,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-web-browser/ios"
   EXStructuredHeaders:
     :path: "../node_modules/expo-structured-headers/ios"
+  ExtensionStorage:
+    :path: "../node_modules/@bacons/apple-targets/ios"
   EXUpdates:
     :path: "../node_modules/expo-updates/ios"
   EXUpdatesInterface:
@@ -3129,6 +3144,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
 SPEC CHECKSUMS:
+  BayaanCar: 61579859b861a8460d5edaf3a962d43efdba4e13
+  BayaanWidgets: 393454ec6630b0903957462f90e8bd6e42df19f6
   Burnt: 0616363a206ed96ba9af3e2eb0e184dc97be1458
   EASClient: 2321f8d99fa86c710a6f68e017f3b54366baed9f
   EXApplication: e6040c92edc5522accd62852342e6b14742d42c0
@@ -3174,6 +3191,7 @@ SPEC CHECKSUMS:
   ExpoUI: 649b8cbcccd23277afa83bf0d065bc40906b7e3a
   ExpoWebBrowser: 6e3d90e3fe1952d21a8494872b1e1a485cd50e2f
   EXStructuredHeaders: 9e89bcdd636ae2ecb59995cfba3230f5d7547c08
+  ExtensionStorage: b1b89518395d9d556e00a1b1f299172e49be3dbe
   EXUpdates: c6488f0bebe92d6decb5f9b685d33ee91feeccf0
   EXUpdatesInterface: 25408a97d682355eb9fb37e5aa6e22caece1881f
   FBLazyVector: 24e62c765683b8d89006a88a2c8f5cf019f0074d
@@ -3275,6 +3293,6 @@ SPEC CHECKSUMS:
   SPIndicator: 93e0a4fb23de51294ac48e874c0f081a5e293e4f
   Yoga: 77dfa8673de2874e1855002ae59c68b8be9b007b
 
-PODFILE CHECKSUM: 5d9c61357038de2750140c9af2e57ce6a25e94eb
+PODFILE CHECKSUM: 4f08e9361c4438b4e396266401a53e43a1cf6999
 
 COCOAPODS: 1.16.2

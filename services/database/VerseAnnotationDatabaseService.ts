@@ -4,6 +4,8 @@ import type {
   VerseHighlight,
   HighlightColor,
   AnnotationOwnerScope,
+  AnnotationRowChanges,
+  BookmarkRowInsert,
 } from '@/types/verse-annotations';
 import {
   ALL_REWAYAH_IDS,
@@ -12,6 +14,8 @@ import {
 } from '@/services/rewayah/RewayahIdentity';
 import {verseAnnotationDatabase} from '@/services/database/VerseAnnotationDatabase';
 import {GUEST_OWNER_SCOPE} from '@/services/database/migrations/userSyncV1';
+import {withRetryableQfSyncTransaction} from '@/services/sync/qfSqliteRetry';
+import type {QfSyncSqliteExecutor} from '@/services/sync/qfSyncTransaction';
 import type {SQLiteDatabase} from 'expo-sqlite';
 
 type AnnotationSqliteExecutor = Pick<
@@ -149,6 +153,26 @@ export class VerseAnnotationDatabaseService {
     return this.database.getConnection();
   }
 
+  // Tail of the top-level writes. A change runs as an exclusive transaction,
+  // and expo-sqlite fails another write issued while it holds the lock
+  // ("database is locked"). Every top-level write therefore starts once the
+  // one before it is done; a write inside a caller's transaction runs there.
+  private writeQueue: Promise<unknown> = Promise.resolve();
+
+  private serializeWrite<T>(write: () => Promise<T>): Promise<T> {
+    const result = this.writeQueue.then(write, write);
+    this.writeQueue = result.catch(() => undefined);
+    return result;
+  }
+
+  private writeWith<T>(
+    transaction: AnnotationSqliteExecutor | undefined,
+    write: (db: AnnotationSqliteExecutor) => Promise<T>,
+  ): Promise<T> {
+    if (transaction) return write(transaction);
+    return this.serializeWrite(async () => write(await this.ensureReady()));
+  }
+
   // Bookmark operations
   async addBookmark(
     verseKey: string,
@@ -173,48 +197,49 @@ export class VerseAnnotationDatabaseService {
     rewayahId?: string,
     transaction?: AnnotationSqliteExecutor,
   ): Promise<VerseBookmark> {
-    const db = transaction ?? (await this.ensureReady());
-    const resolvedOwnerScope = requireOwnerScope(ownerScope);
-    const resolvedRewayahId = resolveRewayahId(rewayahId);
+    return this.writeWith(transaction, async db => {
+      const resolvedOwnerScope = requireOwnerScope(ownerScope);
+      const resolvedRewayahId = resolveRewayahId(rewayahId);
 
-    const bookmark: VerseBookmark = {
-      id: generateId(),
-      ownerScope: resolvedOwnerScope,
-      verseKey,
-      surahNumber,
-      ayahNumber,
-      createdAt: Date.now(),
-      rewayahId: resolvedRewayahId,
-    };
+      const bookmark: VerseBookmark = {
+        id: generateId(),
+        ownerScope: resolvedOwnerScope,
+        verseKey,
+        surahNumber,
+        ayahNumber,
+        createdAt: Date.now(),
+        rewayahId: resolvedRewayahId,
+      };
 
-    // @ai-start
-    // Keep #314's idempotent insert with the account-scoped unique key.
-    const result = await db.runAsync(
-      `INSERT OR IGNORE INTO bookmarks (id, owner_scope, verse_key, surah_number, ayah_number, created_at, rewayah_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        bookmark.id,
-        resolvedOwnerScope,
-        bookmark.verseKey,
-        bookmark.surahNumber,
-        bookmark.ayahNumber,
-        bookmark.createdAt,
-        resolvedRewayahId,
-      ],
-    );
-
-    if (result?.changes === 0) {
-      // An ignored duplicate must return its real ID/remote metadata so the
-      // sync outbox never references a generated ID that was not persisted.
-      const existing = await db.getFirstAsync<BookmarkRow>(
-        'SELECT * FROM bookmarks WHERE owner_scope = ? AND verse_key = ?',
-        [resolvedOwnerScope, verseKey],
+      // @ai-start
+      // Keep #314's idempotent insert with the account-scoped unique key.
+      const result = await db.runAsync(
+        `INSERT OR IGNORE INTO bookmarks (id, owner_scope, verse_key, surah_number, ayah_number, created_at, rewayah_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          bookmark.id,
+          resolvedOwnerScope,
+          bookmark.verseKey,
+          bookmark.surahNumber,
+          bookmark.ayahNumber,
+          bookmark.createdAt,
+          resolvedRewayahId,
+        ],
       );
-      if (!existing) throw new Error('Bookmark was not persisted');
-      return mapBookmarkRow(existing);
-    }
-    return bookmark;
-    // @ai-end
+
+      if (result?.changes === 0) {
+        // An ignored duplicate must return its real ID/remote metadata so the
+        // sync outbox never references a generated ID that was not persisted.
+        const existing = await db.getFirstAsync<BookmarkRow>(
+          'SELECT * FROM bookmarks WHERE owner_scope = ? AND verse_key = ?',
+          [resolvedOwnerScope, verseKey],
+        );
+        if (!existing) throw new Error('Bookmark was not persisted');
+        return mapBookmarkRow(existing);
+      }
+      return bookmark;
+      // @ai-end
+    });
   }
 
   async removeBookmark(verseKey: string): Promise<void> {
@@ -226,11 +251,12 @@ export class VerseAnnotationDatabaseService {
     verseKey: string,
     transaction?: AnnotationSqliteExecutor,
   ): Promise<void> {
-    const db = transaction ?? (await this.ensureReady());
-    await db.runAsync(
-      `DELETE FROM bookmarks WHERE owner_scope = ? AND verse_key = ?`,
-      [requireOwnerScope(ownerScope), verseKey],
-    );
+    return this.writeWith(transaction, async db => {
+      await db.runAsync(
+        `DELETE FROM bookmarks WHERE owner_scope = ? AND verse_key = ?`,
+        [requireOwnerScope(ownerScope), verseKey],
+      );
+    });
   }
 
   async getBookmarksBySurah(surahNumber: number): Promise<VerseBookmark[]> {
@@ -310,42 +336,43 @@ export class VerseAnnotationDatabaseService {
     rewayahId?: string,
     transaction?: AnnotationSqliteExecutor,
   ): Promise<VerseNote> {
-    const db = transaction ?? (await this.ensureReady());
-    const resolvedOwnerScope = requireOwnerScope(ownerScope);
+    return this.writeWith(transaction, async db => {
+      const resolvedOwnerScope = requireOwnerScope(ownerScope);
 
-    const now = Date.now();
-    const id = generateId();
-    const verseKeysStr = verseKeys?.length ? verseKeys.join(',') : null;
+      const now = Date.now();
+      const id = generateId();
+      const verseKeysStr = verseKeys?.length ? verseKeys.join(',') : null;
 
-    await db.runAsync(
-      `INSERT INTO notes (id, owner_scope, verse_key, surah_number, ayah_number, content, verse_keys, created_at, updated_at, rewayah_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
+      await db.runAsync(
+        `INSERT INTO notes (id, owner_scope, verse_key, surah_number, ayah_number, content, verse_keys, created_at, updated_at, rewayah_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          resolvedOwnerScope,
+          verseKey,
+          surahNumber,
+          ayahNumber,
+          content,
+          verseKeysStr,
+          now,
+          now,
+          resolveRewayahId(rewayahId),
+        ],
+      );
+
+      return {
         id,
-        resolvedOwnerScope,
+        ownerScope: resolvedOwnerScope,
         verseKey,
         surahNumber,
         ayahNumber,
         content,
-        verseKeysStr,
-        now,
-        now,
-        resolveRewayahId(rewayahId),
-      ],
-    );
-
-    return {
-      id,
-      ownerScope: resolvedOwnerScope,
-      verseKey,
-      surahNumber,
-      ayahNumber,
-      content,
-      verseKeys: verseKeys?.length ? verseKeys : undefined,
-      createdAt: now,
-      updatedAt: now,
-      rewayahId: resolveRewayahId(rewayahId),
-    };
+        verseKeys: verseKeys?.length ? verseKeys : undefined,
+        createdAt: now,
+        updatedAt: now,
+        rewayahId: resolveRewayahId(rewayahId),
+      };
+    });
   }
 
   async updateNote(noteId: string, content: string): Promise<void> {
@@ -358,11 +385,12 @@ export class VerseAnnotationDatabaseService {
     content: string,
     transaction?: AnnotationSqliteExecutor,
   ): Promise<void> {
-    const db = transaction ?? (await this.ensureReady());
-    await db.runAsync(
-      `UPDATE notes SET content = ?, updated_at = ? WHERE owner_scope = ? AND id = ?`,
-      [content, Date.now(), requireOwnerScope(ownerScope), noteId],
-    );
+    return this.writeWith(transaction, async db => {
+      await db.runAsync(
+        `UPDATE notes SET content = ?, updated_at = ? WHERE owner_scope = ? AND id = ?`,
+        [content, Date.now(), requireOwnerScope(ownerScope), noteId],
+      );
+    });
   }
 
   async getNoteById(noteId: string): Promise<VerseNote | null> {
@@ -406,11 +434,12 @@ export class VerseAnnotationDatabaseService {
     noteId: string,
     transaction?: AnnotationSqliteExecutor,
   ): Promise<void> {
-    const db = transaction ?? (await this.ensureReady());
-    await db.runAsync(`DELETE FROM notes WHERE owner_scope = ? AND id = ?`, [
-      requireOwnerScope(ownerScope),
-      noteId,
-    ]);
+    return this.writeWith(transaction, async db => {
+      await db.runAsync(`DELETE FROM notes WHERE owner_scope = ? AND id = ?`, [
+        requireOwnerScope(ownerScope),
+        noteId,
+      ]);
+    });
   }
 
   async getNotesCountForVerse(verseKey: string): Promise<number> {
@@ -486,53 +515,144 @@ export class VerseAnnotationDatabaseService {
     color: HighlightColor,
     rewayahId?: string,
   ): Promise<VerseHighlight> {
-    const db = await this.ensureReady();
-    const resolvedOwnerScope = requireOwnerScope(ownerScope);
+    return this.writeWith(undefined, async db => {
+      const resolvedOwnerScope = requireOwnerScope(ownerScope);
 
-    const now = Date.now();
-    const id = generateId();
+      const now = Date.now();
+      const id = generateId();
 
-    await db.runAsync(
-      `INSERT INTO highlights (id, owner_scope, verse_key, surah_number, ayah_number, color, created_at, rewayah_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(owner_scope, verse_key) DO UPDATE SET color = excluded.color, rewayah_id = excluded.rewayah_id`,
-      [
+      await db.runAsync(
+        `INSERT INTO highlights (id, owner_scope, verse_key, surah_number, ayah_number, color, created_at, rewayah_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(owner_scope, verse_key) DO UPDATE SET color = excluded.color, rewayah_id = excluded.rewayah_id`,
+        [
+          id,
+          resolvedOwnerScope,
+          verseKey,
+          surahNumber,
+          ayahNumber,
+          color,
+          now,
+          resolveRewayahId(rewayahId),
+        ],
+      );
+
+      return {
         id,
-        resolvedOwnerScope,
+        ownerScope: resolvedOwnerScope,
         verseKey,
         surahNumber,
         ayahNumber,
         color,
-        now,
-        resolveRewayahId(rewayahId),
-      ],
-    );
-
-    return {
-      id,
-      ownerScope: resolvedOwnerScope,
-      verseKey,
-      surahNumber,
-      ayahNumber,
-      color,
-      createdAt: now,
-      rewayahId: resolveRewayahId(rewayahId),
-    };
+        createdAt: now,
+        rewayahId: resolveRewayahId(rewayahId),
+      };
+    });
   }
 
   async removeHighlight(verseKey: string): Promise<void> {
     await this.removeHighlightInOwnerScope(GUEST_OWNER_SCOPE, verseKey);
   }
 
+  /**
+   * Applies the bookmark and highlight writes of one change in ONE
+   * transaction: every write, or, when any of them fails, none. Highlight
+   * created_at values a new row carries over are read before any write; then
+   * deletes run, then inserts and upserts. Rows the change does not name are
+   * not touched. A signed-in scope passes its own transaction and bookmark
+   * writers so bookmark intent reaches the sync outbox in the same commit.
+   */
+  async applyAnnotationChangesInOwnerScope(
+    ownerScope: AnnotationOwnerScope,
+    changes: AnnotationRowChanges,
+    options: {
+      transaction?: QfSyncSqliteExecutor;
+      removeBookmark?: (
+        verseKey: string,
+        db: QfSyncSqliteExecutor,
+      ) => Promise<void>;
+      addBookmark?: (
+        row: BookmarkRowInsert,
+        db: QfSyncSqliteExecutor,
+      ) => Promise<void>;
+    } = {},
+  ): Promise<void> {
+    const scope = requireOwnerScope(ownerScope);
+    const apply = async (db: QfSyncSqliteExecutor): Promise<void> => {
+      const createdAt = new Map<string, number>();
+      for (const {createdAtOf} of changes.upsertHighlights ?? []) {
+        if (!createdAtOf || createdAt.has(createdAtOf)) continue;
+        const row = await db.getFirstAsync<{created_at: number}>(
+          `SELECT created_at FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+          [scope, createdAtOf],
+        );
+        if (row) createdAt.set(createdAtOf, row.created_at);
+      }
+      for (const verseKey of changes.removeBookmarks ?? []) {
+        if (options.removeBookmark) await options.removeBookmark(verseKey, db);
+        else await this.removeBookmarkInOwnerScope(scope, verseKey, db);
+      }
+      for (const verseKey of changes.removeHighlights ?? []) {
+        await db.runAsync(
+          `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+          [scope, verseKey],
+        );
+      }
+      for (const row of changes.addBookmarks ?? []) {
+        if (options.addBookmark) {
+          await options.addBookmark(row, db);
+        } else {
+          await this.addBookmarkForOwnerScope(
+            scope,
+            row.verseKey,
+            row.surahNumber,
+            row.ayahNumber,
+            row.rewayahId,
+            db,
+          );
+        }
+      }
+      for (const row of changes.upsertHighlights ?? []) {
+        const kept = row.createdAtOf
+          ? createdAt.get(row.createdAtOf)
+          : undefined;
+        await db.runAsync(
+          `INSERT INTO highlights (id, owner_scope, verse_key, surah_number, ayah_number, color, created_at, rewayah_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(owner_scope, verse_key) DO UPDATE SET color = excluded.color, rewayah_id = excluded.rewayah_id`,
+          [
+            generateId(),
+            scope,
+            row.verseKey,
+            row.surahNumber,
+            row.ayahNumber,
+            row.color,
+            kept ?? Date.now(),
+            row.rewayahId,
+          ],
+        );
+      }
+    };
+    if (options.transaction) {
+      await apply(options.transaction);
+      return;
+    }
+    const connection = await this.ensureReady();
+    await this.serializeWrite(() =>
+      withRetryableQfSyncTransaction(connection, apply),
+    );
+  }
+
   async removeHighlightInOwnerScope(
     ownerScope: AnnotationOwnerScope,
     verseKey: string,
   ): Promise<void> {
-    const db = await this.ensureReady();
-    await db.runAsync(
-      `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
-      [requireOwnerScope(ownerScope), verseKey],
-    );
+    return this.writeWith(undefined, async db => {
+      await db.runAsync(
+        `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+        [requireOwnerScope(ownerScope), verseKey],
+      );
+    });
   }
 
   async getHighlightsBySurah(surahNumber: number): Promise<VerseHighlight[]> {

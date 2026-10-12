@@ -14,7 +14,7 @@ jest.mock('@/services/mushaf/MushafSessionStore', () => ({
 
 import React from 'react';
 import renderer, {act} from 'react-test-renderer';
-import {InteractionManager} from 'react-native';
+import {InteractionManager, Linking} from 'react-native';
 import {useMushafResumeRestore} from '../useMushafResumeRestore';
 import {useBayaanAuthStore} from '@/store/bayaanAuthStore';
 import {useQfSyncStore} from '@/store/qfSyncStore';
@@ -90,4 +90,16 @@ test('annotation request effect never invokes settings sync', () => {
   );
   expect(effect).toContain('qfSyncLifecycle.requestSync()');
   expect(effect).not.toContain('qfSettingsSyncLifecycle.requestSync()');
+});
+
+test('does not cover a deep-link launch (widget tap) with the last mushaf page', async () => {
+  jest.spyOn(Linking, 'getInitialURL').mockResolvedValue('bayaan://surah/36');
+  let screen!: renderer.ReactTestRenderer;
+  await act(async () => {
+    screen = renderer.create(<Harness />);
+  });
+  await act(async () => useBayaanAuthStore.getState().setSignedOut());
+  expect(mockPush).not.toHaveBeenCalled();
+  expect(onHandled).toHaveBeenCalledTimes(1);
+  await act(async () => screen.unmount());
 });

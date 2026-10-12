@@ -18,6 +18,7 @@ const EAS_PROJECT_ID =
 // env. Forks that don't set it get no update checks (no phone-home to the
 // maintainer's Expo project).
 const OTA_UPDATES_ENABLED = Boolean(EAS_PROJECT_ID_FROM_ENV);
+const IOS_BUNDLE_ID = process.env.IOS_BUNDLE_ID ?? 'com.bayaan.app';
 // Associated/deep-link domain. Forks must set their own; leaving unset means
 // no universal-link registration, avoiding conflicts with the maintainer's app.
 const ASSOCIATED_DOMAIN = process.env.EXPO_PUBLIC_ASSOCIATED_DOMAIN;
@@ -38,17 +39,20 @@ module.exports = {
       version: '>= 5.9.1',
     },
     ios: {
-      bundleIdentifier: 'com.bayaan.app',
+      bundleIdentifier: IOS_BUNDLE_ID,
       buildNumber: versionInfo.buildNumber,
       supportsTablet: true,
       config: {
         usesNonExemptEncryption: false,
       },
       teamId: APPLE_TEAM_ID,
+      appleTeamId: APPLE_TEAM_ID,
       ...(ASSOCIATED_DOMAIN
         ? {associatedDomains: [`applinks:${ASSOCIATED_DOMAIN}`]}
         : {}),
       infoPlist: {
+        BayaanAppGroup: `group.${IOS_BUNDLE_ID}`,
+        NSSupportsLiveActivities: true,
         NSMicrophoneUsageDescription:
           'This app uses the microphone to play audio.',
         NSAppleMusicUsageDescription:
@@ -172,6 +176,7 @@ module.exports = {
     plugins: [
       'expo-router',
       'expo-secure-store',
+      '@bacons/apple-targets',
       ['expo-audio', {enableBackgroundPlayback: true}],
       'expo-sqlite',
       [
@@ -231,6 +236,8 @@ module.exports = {
       './withAndroidSigning.js',
       './withLargeHeap.js',
       './withIOSTeam.js',
+      './plugins/withBayaanCar.js',
+      './plugins/withAppShortcuts.js',
     ],
   },
 };

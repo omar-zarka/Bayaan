@@ -6,7 +6,10 @@ import {
   hasTextData,
   type RewayahId,
 } from '@/services/rewayah/RewayahIdentity';
-import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
+import {
+  digitalKhattDataService,
+  isRewayahSwitchSuperseded,
+} from '@/services/mushaf/DigitalKhattDataService';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
 import {useAmbientStore} from '@/store/ambientStore';
@@ -369,31 +372,41 @@ export async function applySettingsDocuments(
       rewayah !== digitalKhattDataService.rewayah ||
       !digitalKhattDataService.initialized
     ) {
-      const before = JSON.stringify([
-        captureSettingsDocuments(),
-        capturePreferenceMutations(),
-      ]);
-      const stillCurrent = () =>
-        isCurrent() &&
-        before ===
-          JSON.stringify([
-            captureSettingsDocuments(),
-            capturePreferenceMutations(),
-          ]);
+      const original = state.rewayah;
+      // The cache commit itself moves the store to the rewayah it serves;
+      // that step is expected, any other change is a manual edit.
+      const snapshot = () => {
+        const docs = captureSettingsDocuments();
+        const mushaf =
+          docs.mushaf.rewayah === rewayah
+            ? {...docs.mushaf, rewayah: original}
+            : docs.mushaf;
+        return JSON.stringify([
+          {...docs, mushaf},
+          capturePreferenceMutations(),
+        ]);
+      };
+      const before = snapshot();
+      const stillCurrent = () => isCurrent() && before === snapshot();
       // No document is published until the cache is usable. The guard also
       // protects manual edits made while remote store notifications are muted.
-      await digitalKhattDataService.switchRewayah(rewayah, stillCurrent);
+      try {
+        await digitalKhattDataService.switchRewayah(rewayah);
+      } catch (error) {
+        // A newer manual switch overtook this one and keeps its own cache.
+        if (isRewayahSwitchSuperseded(error)) {
+          throw new Error('Settings application superseded');
+        }
+        throw error;
+      }
       if (!stillCurrent()) {
         // An account/manual edit can invalidate the tiny gap between the
         // service's guarded cache commit and this promise continuation. Restore
-        // the still-selected reading, unless a queued manual switch supersedes
-        // it in turn. Never publish this obsolete remote document.
+        // the reading shown before this application, unless a queued manual
+        // switch supersedes it in turn. Never publish this obsolete document.
         const selected = useMushafSettingsStore.getState().rewayah;
         await digitalKhattDataService
-          .switchRewayah(
-            selected,
-            () => useMushafSettingsStore.getState().rewayah === selected,
-          )
+          .switchRewayah(selected === rewayah ? original : selected)
           .catch(() => undefined);
         throw new Error('Settings application superseded');
       }
