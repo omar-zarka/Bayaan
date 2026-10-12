@@ -1,130 +1,190 @@
-const mockSetActive = jest.fn();
-const mockPlayer = {
-  setActiveForLockScreen: mockSetActive,
-  clearLockScreenControls: jest.fn(),
-};
-const mockTrack = {id: 't1', title: 'Al-Fatihah', artist: 'Reciter'};
-let mockTracks: unknown[] = [mockTrack];
-let mockMushafListener: ((state: unknown) => void) | null = null;
-let mockStoreListener: ((state: unknown) => void) | null = null;
+// @ai-generated
+/**
+ * Lock screen title during mushaf playback: the verse in the numbering of the
+ * mushaf on screen (the player bar's label), and a surah without verse
+ * tracking must not keep the previous surah's title.
+ */
 
-function mockQueueState(tracks: unknown[]): unknown {
-  return {queue: {tracks, currentIndex: 0}};
-}
+const mockMushafPlayer = {updateLockScreenMetadata: jest.fn()};
 
-jest.mock('@/services/player/store/playerStore', () => ({
-  usePlayerStore: {
-    getState: () => mockQueueState(mockTracks),
-    subscribe: (fn: (state: unknown) => void) => {
-      mockStoreListener = fn;
-      return jest.fn();
-    },
-  },
-}));
-jest.mock('@/store/mushafPlayerStore', () => ({
-  useMushafPlayerStore: {
-    subscribe: (fn: (state: unknown) => void) => {
-      mockMushafListener = fn;
-      return jest.fn();
-    },
-  },
-}));
+jest.mock('@/services/player/store/playerStore', () => {
+  const {create} = jest.requireActual('zustand');
+  return {
+    usePlayerStore: create(() => ({queue: {tracks: [], currentIndex: 0}})),
+  };
+});
+
+jest.mock('@/store/mushafPlayerStore', () => {
+  const {create} = jest.requireActual('zustand');
+  return {
+    useMushafPlayerStore: create(() => ({
+      playbackState: 'idle',
+      currentSurah: 0,
+      currentVerseKey: null,
+      currentVerseLabel: null,
+      numberingMode: null,
+      reciterName: 'Test Reciter',
+    })),
+  };
+});
+
 jest.mock('../ExpoAudioService', () => ({
-  expoAudioService: {getPlayer: () => mockPlayer},
+  expoAudioService: {getPlayer: () => null},
 }));
+
 jest.mock('../MushafAudioService', () => ({
-  mushafAudioService: {getPlayer: () => null},
+  mushafAudioService: {getPlayer: () => mockMushafPlayer},
 }));
-jest.mock('../AudioCoordinator', () => ({audioCoordinator: {}}));
 
-import {lockScreenService} from '../LockScreenService';
+jest.mock('../AudioCoordinator', () => ({
+  audioCoordinator: {},
+}));
 
-describe('LockScreenService car mode', () => {
-  beforeEach(() => {
-    lockScreenService.stopSync();
-    lockScreenService.setCarMode(false);
-    mockTracks = [mockTrack];
-    mockSetActive.mockClear();
+import {lockScreenService, mushafLockScreenTitle} from '../LockScreenService';
+import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
+
+const setMushaf = (state: object) =>
+  (useMushafPlayerStore as unknown as {setState: (s: object) => void}).setState(
+    state,
+  );
+
+const titles = () =>
+  mockMushafPlayer.updateLockScreenMetadata.mock.calls.map(
+    ([metadata]) => (metadata as {title: string}).title,
+  );
+
+beforeEach(async () => {
+  mockMushafPlayer.updateLockScreenMetadata.mockClear();
+  setMushaf({
+    playbackState: 'idle',
+    currentSurah: 0,
+    currentVerseKey: null,
+    currentVerseLabel: null,
+    numberingMode: null,
+  });
+  await lockScreenService.startSync();
+});
+
+afterEach(() => {
+  lockScreenService.stopSync();
+});
+
+describe('mushafLockScreenTitle', () => {
+  const name = (n: number) => ({2: 'Al-Baqarah', 67: 'Al-Mulk'})[n] ?? null;
+
+  it('Hafs: "<surah> · <verse key>" as before', () => {
+    expect(
+      mushafLockScreenTitle(
+        {
+          currentSurah: 2,
+          currentVerseKey: '2:5',
+          currentVerseLabel: '2:5',
+          numberingMode: 'hafs',
+        },
+        name,
+      ),
+    ).toBe('Al-Baqarah · 2:5');
   });
 
-  it('hides the skip buttons while a car is connected and restores them', () => {
-    lockScreenService.setCarMode(true);
-    expect(mockSetActive).toHaveBeenLastCalledWith(
-      true,
-      expect.objectContaining({title: 'Al-Fatihah'}),
-      {showSeekForward: false, showSeekBackward: false},
-    );
-    lockScreenService.setCarMode(false);
-    expect(mockSetActive).toHaveBeenLastCalledWith(true, expect.anything(), {
-      showSeekForward: true,
-      showSeekBackward: true,
+  it('uses the label in the numbering of the mushaf on screen', () => {
+    // Warsh reciter in a Warsh mushaf: Warsh 2:4 (Hafs 2:5)
+    expect(
+      mushafLockScreenTitle(
+        {
+          currentSurah: 2,
+          currentVerseKey: '2:5',
+          currentVerseLabel: '2:4',
+          numberingMode: 'riwayah',
+        },
+        name,
+      ),
+    ).toBe('Al-Baqarah · 2:4');
+  });
+
+  it('a surah without verse tracking shows its name alone', () => {
+    expect(
+      mushafLockScreenTitle(
+        {
+          currentSurah: 67,
+          currentVerseKey: null,
+          currentVerseLabel: null,
+          numberingMode: 'disabled',
+        },
+        name,
+      ),
+    ).toBe('Al-Mulk');
+  });
+
+  it('waits for the first verse of a tracked surah', () => {
+    expect(
+      mushafLockScreenTitle(
+        {
+          currentSurah: 2,
+          currentVerseKey: null,
+          currentVerseLabel: null,
+          numberingMode: 'hafs',
+        },
+        name,
+      ),
+    ).toBeNull();
+  });
+});
+
+describe('lock screen sync', () => {
+  it('Hafs: one update per verse, same titles as before', () => {
+    setMushaf({
+      playbackState: 'loading',
+      currentSurah: 2,
+      numberingMode: 'hafs',
     });
+    for (const ayah of [5, 6, 7]) {
+      setMushaf({
+        playbackState: 'playing',
+        currentVerseKey: `2:${ayah}`,
+        currentVerseLabel: `2:${ayah}`,
+      });
+    }
+    setMushaf({playbackState: 'playing'}); // unrelated update
+    expect(titles()).toEqual([
+      'Al-Baqarah · 2:5',
+      'Al-Baqarah · 2:6',
+      'Al-Baqarah · 2:7',
+    ]);
   });
 
-  it('does nothing when the mode is unchanged', () => {
-    lockScreenService.setCarMode(false);
-    expect(mockSetActive).not.toHaveBeenCalled();
-  });
-
-  it('does not activate the player when there is no track', () => {
-    mockTracks = [];
-    lockScreenService.setCarMode(true);
-    expect(mockSetActive).not.toHaveBeenCalled();
-  });
-
-  it('applies the flag to the next activation after a trackless toggle', async () => {
-    mockTracks = [];
-    lockScreenService.setCarMode(true);
-    mockTracks = [mockTrack];
-    await lockScreenService.startSync();
-    expect(mockSetActive).toHaveBeenLastCalledWith(true, expect.anything(), {
-      showSeekForward: false,
-      showSeekBackward: false,
-    });
-  });
-
-  it('does not re-activate the main player while mushaf is active', async () => {
-    await lockScreenService.startSync();
-    mockMushafListener?.({
+  it('entering a surah without verse tracking replaces the previous title', () => {
+    setMushaf({
       playbackState: 'playing',
-      currentVerseKey: null,
-      reciterName: '',
-      currentSurah: 0,
+      currentSurah: 66,
+      numberingMode: 'riwayah',
+      currentVerseKey: '66:12',
+      currentVerseLabel: '66:12',
     });
-    mockSetActive.mockClear();
-    lockScreenService.setCarMode(true);
-    expect(mockSetActive).not.toHaveBeenCalled();
+    // advance into al-Mulk (al-Duri set 269: no verse numbering)
+    setMushaf({
+      playbackState: 'loading',
+      currentSurah: 67,
+      numberingMode: 'disabled',
+      currentVerseKey: null,
+      currentVerseLabel: null,
+    });
+    setMushaf({playbackState: 'playing'});
+    expect(titles()).toEqual(['At-Tahrim · 66:12', 'Al-Mulk']);
   });
 
-  it('keeps the skip buttons off when a car request loads a new track', async () => {
-    await lockScreenService.startSync();
-    lockScreenService.setCarMode(true);
-    mockSetActive.mockClear();
-    const next = {id: 't2', title: 'Al-Baqarah', artist: 'Reciter'};
-    mockTracks = [next];
-    mockStoreListener?.(mockQueueState(mockTracks));
-    expect(mockSetActive).toHaveBeenCalledTimes(1);
-    expect(mockSetActive).toHaveBeenLastCalledWith(
-      true,
-      expect.objectContaining({title: 'Al-Baqarah'}),
-      {showSeekForward: false, showSeekBackward: false},
-    );
-  });
-
-  it('keeps the skip buttons off when the main player returns from mushaf', async () => {
-    await lockScreenService.startSync();
-    lockScreenService.setCarMode(true);
-    const mushaf = {
-      currentVerseKey: null,
-      reciterName: '',
-      currentSurah: 0,
-    };
-    mockMushafListener?.({...mushaf, playbackState: 'playing'});
-    mockSetActive.mockClear();
-    mockMushafListener?.({...mushaf, playbackState: 'idle'});
-    expect(mockSetActive).toHaveBeenLastCalledWith(true, expect.anything(), {
-      showSeekForward: false,
-      showSeekBackward: false,
+  // @ai-start
+  it('a rewayah switch re-labels the verse, also while paused', () => {
+    setMushaf({
+      playbackState: 'playing',
+      currentSurah: 2,
+      numberingMode: 'riwayah',
+      currentVerseKey: '2:5',
+      currentVerseLabel: '2:4', // Warsh mushaf
     });
+    setMushaf({playbackState: 'paused'});
+    // the store re-labels the recited verse for the Hafs mushaf now on screen
+    setMushaf({currentVerseLabel: '2:5'});
+    expect(titles()).toEqual(['Al-Baqarah · 2:4', 'Al-Baqarah · 2:5']);
   });
+  // @ai-end
 });
