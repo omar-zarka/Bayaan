@@ -144,6 +144,10 @@ class RecoveryStore implements QfSyncPullStore, QfSyncPushStore {
   async rebasePendingOperations(): Promise<void> {
     this.events.push('rebase');
   }
+
+  async settleMissingFavoritesRemoval(): Promise<void> {
+    this.events.push('settle-missing-removal');
+  }
 }
 
 class RecoveryTransport implements QfSyncTransport {
@@ -959,117 +963,9 @@ describe('SQLite push recovery store', () => {
     await database.close();
   });
 
-  it('applies membership effects by composite id, per owner, ignoring Favorites and stale deletes', async () => {
-    const {database, sync, SqliteQfSyncPullStore} = await createServices(
-      'membership-effects.db',
-    );
-    await sync.initialize();
-    const store = new SqliteQfSyncPullStore(database);
-    const create = (collectionId: string, bookmarkId: string) => ({
-      resource: 'COLLECTION_BOOKMARK' as const,
-      type: 'CREATE' as const,
-      membershipId: `${collectionId}-${bookmarkId}`,
-      collectionId,
-      bookmarkId,
-      timestamp: 10,
-    });
-    const remove = (membershipId: string, timestamp: number) => ({
-      resource: 'COLLECTION_BOOKMARK' as const,
-      type: 'DELETE' as const,
-      membershipId,
-      timestamp,
-    });
-    await store.applyPage(accountId, [
-      create('col1', 'bm1'),
-      create('col2', 'bm1'),
-      create('__default__', 'bm2'),
-    ]);
-    await store.applyPage('reader-b', [create('col1', 'bm1')]);
-    await store.applyPage(accountId, [remove('col1-bm1', 5)]);
-    const db = await database.getConnection();
-    const rows = () =>
-      db.getAllAsync(
-        'SELECT owner_scope, membership_id FROM qf_collection_bookmarks ORDER BY owner_scope, membership_id',
-      );
-    expect(await rows()).toEqual([
-      {owner_scope: 'qf:reader-a', membership_id: 'col1-bm1'},
-      {owner_scope: 'qf:reader-a', membership_id: 'col2-bm1'},
-      {owner_scope: 'qf:reader-b', membership_id: 'col1-bm1'},
-    ]);
-
-    await store.applyPage(accountId, [
-      remove('col1-bm1', 11),
-      remove('__default__-bm2', 11),
-    ]);
-    expect(await rows()).toEqual([
-      {owner_scope: 'qf:reader-a', membership_id: 'col2-bm1'},
-      {owner_scope: 'qf:reader-b', membership_id: 'col1-bm1'},
-    ]);
-    await database.close();
-  });
-
-  it('re-flags a queued bookmark delete when its membership arrives later', async () => {
-    const {database, sync, SqliteQfSyncPullStore} =
-      await createServices('membership-late.db');
-    await sync.initialize();
-    const store = new SqliteQfSyncPullStore(database);
-    await store.applyPage(accountId, [
-      {
-        resource: 'BOOKMARK',
-        type: 'CREATE',
-        resourceId: 'bm-late',
-        timestamp: 10,
-        data: {
-          type: 'ayah',
-          key: 2,
-          verseNumber: 255,
-          isInDefaultCollection: true,
-        },
-      },
-    ]);
-    // Deleted before this device pulled the custom-collection membership.
-    await sync.removeBookmark({accountId, verseKey: '2:255'});
-    const queued = async () => {
-      const [entry] = await sync.getOutboxEntries(accountId);
-      return {
-        revision: entry.revision,
-        flagged: JSON.parse(entry.payloadJson).leaveFavoritesOnly === true,
-      };
-    };
-    const before = await queued();
-    expect(before.flagged).toBe(false);
-
-    await store.applyPage(accountId, [
-      {
-        resource: 'COLLECTION_BOOKMARK',
-        type: 'CREATE',
-        membershipId: 'col1-bm-late',
-        collectionId: 'col1',
-        bookmarkId: 'bm-late',
-        timestamp: 11,
-      },
-    ]);
-    const flagged = await queued();
-    expect(flagged).toEqual({revision: before.revision + 1, flagged: true});
-
-    await store.applyPage(accountId, [
-      {
-        resource: 'COLLECTION_BOOKMARK',
-        type: 'DELETE',
-        membershipId: 'col1-bm-late',
-        timestamp: 12,
-      },
-    ]);
-    expect(await queued()).toEqual({
-      revision: before.revision + 2,
-      flagged: false,
-    });
-    await database.close();
-  });
-
-  it('leaves Favorites only when a deleted bookmark is also in a custom collection', async () => {
+  it('pushes every bookmark delete as a lone Favorites removal and settles one QF no longer has', async () => {
     const {database, sync, SqliteQfSyncPullStore, IntegratedCoordinator} =
-      await createServices('favorites-membership.db');
+      await createServices('favorites-removal.db');
     const {
       BayaanSyncApiClient,
     } = require('@/services/sync/bayaanSyncApiClient');
@@ -1087,30 +983,15 @@ describe('SQLite push recovery store', () => {
         isInDefaultCollection: true,
       },
     });
-    // GET omits resourceId for COLLECTION_BOOKMARK; the backend keeps the ids.
-    const feed: unknown[] = [
-      favorite('bm-custom', 255),
-      favorite('bm-plain', 1),
-      {
-        resource: 'COLLECTION_BOOKMARK',
-        type: 'CREATE',
-        timestamp: 8000,
-        data: {
-          collectionId: 'col1',
-          bookmarkId: 'bm-custom',
-          key: 2,
-          verseNumber: 255,
-        },
-      },
-    ];
-    let posted: unknown;
-    const respond = (data: unknown): Response => {
+    const feed: unknown[] = [favorite('bm-a', 255), favorite('bm-b', 1)];
+    const posted: unknown[] = [];
+    const respond = (status: number, data: unknown): Response => {
       const bytes = new TextEncoder().encode(
-        JSON.stringify({success: true, data}),
+        JSON.stringify(status === 200 ? {success: true, data} : data),
       );
       return {
-        ok: true,
-        status: 200,
+        ok: status === 200,
+        status,
         headers: new Headers({'content-length': String(bytes.length)}),
         body: new ReadableStream({
           start(c) {
@@ -1123,32 +1004,25 @@ describe('SQLite push recovery store', () => {
     const fetchImpl = jest.fn(async (input: string, init: RequestInit) => {
       const url = new URL(input);
       if (init.method === 'POST') {
-        posted = JSON.parse(String(init.body));
-        return respond({
+        const body = JSON.parse(String(init.body));
+        posted.push(body);
+        const removal = body.mutations[0];
+        // bm-b already left Favorites on Quran.com: QF answers 404.
+        if (removal.data.bookmarkId === 'bm-b') {
+          return respond(404, {error: {code: 'QF_SYNC_NOT_FOUND'}});
+        }
+        // Real pre-live receipt shape: no resourceId, the identifier pair.
+        return respond(200, {
           lastMutationAt: 8100,
-          mutations: [
-            {
-              resource: 'COLLECTION_BOOKMARK',
-              type: 'DELETE',
-              resourceId: '__default__-bm-custom',
-              data: {collectionId: '__default__', bookmarkId: 'bm-custom'},
-              timestamp: 8100,
-            },
-            {
-              resource: 'BOOKMARK',
-              type: 'DELETE',
-              resourceId: 'bm-plain',
-              timestamp: 8100,
-            },
-          ],
+          mutations: [{...removal, timestamp: 8100}],
         });
       }
       if (url.searchParams.get('metadataOnly') === 'true') {
-        return respond({lastMutationAt: 8000});
+        return respond(200, {lastMutationAt: 8000});
       }
       const page = Number(url.searchParams.get('page'));
       const limit = Number(url.searchParams.get('limit'));
-      return respond({
+      return respond(200, {
         lastMutationAt: 8000,
         mutations: feed,
         page,
@@ -1166,50 +1040,49 @@ describe('SQLite push recovery store', () => {
       pushStore: sync,
       sleep: async () => undefined,
     });
-    const db = await database.getConnection();
-
     await expect(
       coordinator.pull({accountId, sessionToken: 'dummy-a'}),
     ).resolves.toMatchObject({status: 'synced', head: 8000});
-    expect(
-      await db.getAllAsync(
-        'SELECT owner_scope, membership_id, bookmark_id FROM qf_collection_bookmarks',
-      ),
-    ).toEqual([
-      {
-        owner_scope: 'qf:reader-a',
-        membership_id: 'col1-bm-custom',
-        bookmark_id: 'bm-custom',
-      },
-    ]);
 
     await sync.removeBookmark({accountId, verseKey: '2:255'});
     await sync.removeBookmark({accountId, verseKey: '2:1'});
+    // One removal per push.
     await expect(
       coordinator.push({accountId, sessionToken: 'dummy-a'}),
-    ).resolves.toMatchObject({status: 'synced'});
+    ).resolves.toMatchObject({status: 'synced', head: 8100, pushed: 1});
+    await expect(
+      coordinator.push({accountId, sessionToken: 'dummy-a'}),
+    ).resolves.toMatchObject({status: 'synced', head: 8100, pushed: 1});
 
-    expect(posted).toEqual({
-      mutations: [
-        {
-          resource: 'COLLECTION_BOOKMARK',
-          type: 'DELETE',
-          data: {collectionId: '__default__', bookmarkId: 'bm-custom'},
-        },
-        {resource: 'BOOKMARK', type: 'DELETE', resourceId: 'bm-plain'},
-      ],
-    });
+    expect(posted).toEqual([
+      {
+        mutations: [
+          {
+            resource: 'COLLECTION_BOOKMARK',
+            type: 'DELETE',
+            data: {collectionId: '__default__', bookmarkId: 'bm-a'},
+          },
+        ],
+      },
+      {
+        mutations: [
+          {
+            resource: 'COLLECTION_BOOKMARK',
+            type: 'DELETE',
+            data: {collectionId: '__default__', bookmarkId: 'bm-b'},
+          },
+        ],
+      },
+    ]);
     expect(await sync.getOutboxEntries(accountId)).toEqual([]);
+    expect(await sync.getStoredHead(accountId)).toBe(8100);
+    const db = await database.getConnection();
     expect(
       await db.getAllAsync(
         'SELECT remote_id FROM bookmarks WHERE owner_scope = ?',
         ['qf:reader-a'],
       ),
     ).toEqual([]);
-    // The bookmark is still in its custom collection on QF.
-    expect(
-      await db.getAllAsync('SELECT membership_id FROM qf_collection_bookmarks'),
-    ).toEqual([{membership_id: 'col1-bm-custom'}]);
     await database.close();
   });
 
@@ -2338,16 +2211,16 @@ describe('SQLite push recovery store', () => {
         return {
           lastMutationAt: 7003,
           mutations: request.mutations.map(mutation => {
-            if (
-              mutation.resource === 'COLLECTION_BOOKMARK' ||
-              !mutation.resourceId
-            ) {
-              throw new Error('expected a remote-backed delete');
+            // A bookmark delete is pushed as a Favorites removal.
+            if (mutation.resource !== 'COLLECTION_BOOKMARK') {
+              throw new Error('expected a Favorites removal');
             }
             return {
-              resource: mutation.resource,
-              type: mutation.type,
-              resourceId: mutation.resourceId,
+              resource: 'COLLECTION_BOOKMARK' as const,
+              type: 'DELETE' as const,
+              collectionId: mutation.data.collectionId,
+              bookmarkId: mutation.data.bookmarkId,
+              membershipId: `${mutation.data.collectionId}-${mutation.data.bookmarkId}`,
               timestamp: 7003,
             };
           }),
@@ -2393,11 +2266,11 @@ describe('SQLite push recovery store', () => {
 
     expect(pushRequests).toHaveLength(1);
     expect(pushRequests[0].mutations).toEqual([
-      expect.objectContaining({
-        resource: 'BOOKMARK',
+      {
+        resource: 'COLLECTION_BOOKMARK',
         type: 'DELETE',
-        resourceId: 'remote-bookmark-1',
-      }),
+        data: {collectionId: '__default__', bookmarkId: 'remote-bookmark-1'},
+      },
     ]);
     await expect(services.sync.getOutboxEntries(accountId)).resolves.toEqual(
       [],
@@ -2794,9 +2667,11 @@ describe('SQLite push recovery store', () => {
           lastMutationAt: 7003,
           mutations: [
             {
-              resource: 'BOOKMARK' as const,
+              resource: 'COLLECTION_BOOKMARK' as const,
               type: 'DELETE' as const,
-              resourceId: 'remote-bookmark-1',
+              collectionId: '__default__',
+              bookmarkId: 'remote-bookmark-1',
+              membershipId: '__default__-remote-bookmark-1',
               timestamp: 7003,
             },
           ],
@@ -2834,9 +2709,9 @@ describe('SQLite push recovery store', () => {
       lastMutationAt: 7002,
       mutations: [
         {
-          resource: 'BOOKMARK',
+          resource: 'COLLECTION_BOOKMARK',
           type: 'DELETE',
-          resourceId: 'remote-bookmark-1',
+          data: {collectionId: '__default__', bookmarkId: 'remote-bookmark-1'},
         },
       ],
     });
@@ -3245,9 +3120,11 @@ describe('SQLite push recovery store', () => {
           lastMutationAt: 7002,
           mutations: [
             {
-              resource: 'BOOKMARK',
+              resource: 'COLLECTION_BOOKMARK',
               type: 'DELETE',
-              resourceId: 'remote-bookmark-2',
+              collectionId: '__default__',
+              bookmarkId: 'remote-bookmark-2',
+              membershipId: '__default__-remote-bookmark-2',
               timestamp: 7002,
             },
           ],
@@ -3280,9 +3157,11 @@ describe('SQLite push recovery store', () => {
           lastMutationAt: 7002,
           mutations: [
             {
-              resource: 'BOOKMARK',
+              resource: 'COLLECTION_BOOKMARK',
               type: 'DELETE',
-              resourceId: 'remote-bookmark-1',
+              collectionId: '__default__',
+              bookmarkId: 'remote-bookmark-1',
+              membershipId: '__default__-remote-bookmark-1',
               timestamp: 7002,
             },
           ],

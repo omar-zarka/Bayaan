@@ -21,13 +21,6 @@ interface BookmarkPayload {
   clientUpdatedAt: number;
 }
 
-// Set on a BOOKMARK DELETE when the bookmark is also in a custom QF
-// collection: it then only leaves Favorites. The in-flight payload freezes
-// this choice for the whole delivery, retries included.
-export interface BookmarkDeletePayload extends BookmarkPayload {
-  leaveFavoritesOnly?: true;
-}
-
 interface NotePayload extends BookmarkPayload {
   content: string;
   verseKeys?: string[];
@@ -162,20 +155,18 @@ function mapBookmark(entry: QfOutboxEntryLike): QfSyncRequestMutation {
     throw new Error('BOOKMARK UPDATE is not supported');
   }
 
+  // Bayaan bookmarks are Quran.com Favorites, so a delete leaves Favorites.
+  // QF decides the rest server-side, as Quran.com web does: it deletes the
+  // bookmark when no custom collection holds it and it is not the reading
+  // bookmark, else it only leaves Favorites. Local membership can be stale.
   if (entry.mutationType === 'DELETE') {
-    const remoteId = requireRemoteId(entry);
-    if (parsePayload<BookmarkDeletePayload>(entry).leaveFavoritesOnly) {
-      return {
-        resource: 'COLLECTION_BOOKMARK',
-        type: 'DELETE',
-        data: {collectionId: QF_DEFAULT_COLLECTION_ID, bookmarkId: remoteId},
-      };
-    }
     return {
-      resource: 'BOOKMARK',
+      resource: 'COLLECTION_BOOKMARK',
       type: 'DELETE',
-      resourceId: remoteId,
-      data: {},
+      data: {
+        collectionId: QF_DEFAULT_COLLECTION_ID,
+        bookmarkId: requireRemoteId(entry),
+      },
     };
   }
 
@@ -290,6 +281,16 @@ function mapReadingSession(entry: QfOutboxEntryLike): QfSyncRequestMutation {
   }
 
   return mutation;
+}
+
+// Every sent bookmark delete is pushed as a Favorites removal (mapBookmark).
+export function isFavoritesRemoval(entry: {
+  resource: QfSyncResource;
+  inFlightMutationType: QfMutationType | null;
+}): boolean {
+  return (
+    entry.resource === 'BOOKMARK' && entry.inFlightMutationType === 'DELETE'
+  );
 }
 
 export function mapOutboxEntryToSyncMutation(

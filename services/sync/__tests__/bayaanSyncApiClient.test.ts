@@ -93,7 +93,7 @@ describe('Bayaan Sync BFF client', () => {
       RequestInit,
     ];
     expect(url).toBe(
-      'https://api-prelive.thebayaan.com/v1/qf/sync?mutationsSince=0&resources=BOOKMARK%2CNOTE%2CREADING_SESSION%2CCOLLECTION_BOOKMARK&metadataOnly=false&limit=1000&page=1',
+      'https://api-prelive.thebayaan.com/v1/qf/sync?mutationsSince=0&resources=BOOKMARK%2CNOTE%2CREADING_SESSION&metadataOnly=false&limit=1000&page=1',
     );
     expect(init).toEqual(
       expect.objectContaining({
@@ -610,7 +610,7 @@ describe('Bayaan Sync BFF client', () => {
     expect(read).not.toHaveBeenCalled();
   });
 
-  it('decodes pulled custom-collection memberships by data or composite id', async () => {
+  it('decodes COLLECTION_BOOKMARK effects by data or composite id', async () => {
     const fetchImpl = jest.fn().mockResolvedValue(
       jsonResponse({
         success: true,
@@ -678,7 +678,7 @@ describe('Bayaan Sync BFF client', () => {
     });
     expect(
       new URL(fetchImpl.mock.calls[0][0]).searchParams.get('resources'),
-    ).toBe('BOOKMARK,NOTE,READING_SESSION,COLLECTION_BOOKMARK');
+    ).toBe('BOOKMARK,NOTE,READING_SESSION');
   });
 
   it.each([

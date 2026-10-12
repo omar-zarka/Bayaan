@@ -20,6 +20,7 @@ export type BayaanSyncApiErrorCode =
   | 'service_unavailable'
   | 'invalid_response'
   | 'response_too_large'
+  | 'not_found'
   | 'request_failed';
 
 export class BayaanSyncApiError extends Error {
@@ -52,14 +53,7 @@ interface BayaanSyncApiClientOptions {
   maxResponseBytes?: number;
 }
 
-// COLLECTION_BOOKMARK reports custom-collection memberships, so a delete can
-// leave Favorites without removing the bookmark from those collections.
-const SYNC_RESOURCES = [
-  'BOOKMARK',
-  'NOTE',
-  'READING_SESSION',
-  'COLLECTION_BOOKMARK',
-] as const;
+const SYNC_RESOURCES = ['BOOKMARK', 'NOTE', 'READING_SESSION'] as const;
 const SYNC_TIMEOUT_MS = 8_000;
 // One supported 200k-character note can require 1.2MB when JSON escapes
 // control characters. Admit one such mutation while bounding every response;
@@ -121,6 +115,7 @@ function mapStatus(response: Response): BayaanSyncApiError {
       : undefined;
   if (status === 401) return new BayaanSyncApiError('session_revoked', status);
   if (status === 409) return new BayaanSyncApiError('sync_conflict', status);
+  if (status === 404) return new BayaanSyncApiError('not_found', status);
   if (status === 429)
     return new BayaanSyncApiError('rate_limited', status, retryAfterMs);
   if (status >= 500) {

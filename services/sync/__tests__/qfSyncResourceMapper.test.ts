@@ -17,7 +17,7 @@ function createOutboxEntry(
 }
 
 describe('qfSyncResourceMapper', () => {
-  it('maps bookmark creates and deletes without leaking local-only fields', () => {
+  it('maps bookmark creates, and deletes as Favorites removals, without leaking local-only fields', () => {
     const bookmarkCreate = createOutboxEntry({
       resource: 'BOOKMARK',
       mutationType: 'CREATE',
@@ -56,33 +56,12 @@ describe('qfSyncResourceMapper', () => {
         clientUpdatedAt: '2024-04-19T07:20:00.000Z',
       },
     });
+    // QF decides server-side whether the bookmark is deleted or only leaves
+    // Favorites (it stays when a custom collection holds it).
     expect(mapOutboxEntryToSyncMutation(bookmarkDelete)).toEqual({
-      resource: 'BOOKMARK',
-      type: 'DELETE',
-      resourceId: 'remote-bookmark-1',
-      data: {},
-    });
-  });
-
-  it('maps a delete of a bookmark in a custom collection to a Favorites removal', () => {
-    const entry = createOutboxEntry({
-      resource: 'BOOKMARK',
-      mutationType: 'DELETE',
-      remoteId: 'bm-custom',
-      payloadJson: JSON.stringify({
-        verseKey: '2:255',
-        surahNumber: 2,
-        ayahNumber: 255,
-        clientCreatedAt: 1713511200000,
-        clientUpdatedAt: 1713511300000,
-        leaveFavoritesOnly: true,
-      }),
-    });
-
-    expect(mapOutboxEntryToSyncMutation(entry)).toEqual({
       resource: 'COLLECTION_BOOKMARK',
       type: 'DELETE',
-      data: {collectionId: '__default__', bookmarkId: 'bm-custom'},
+      data: {collectionId: '__default__', bookmarkId: 'remote-bookmark-1'},
     });
   });
 

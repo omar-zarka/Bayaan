@@ -65,45 +65,21 @@ backend forwards that GET read as a BOOKMARK tombstone, which devices apply
 under the usual remote-id-only, stale and pending-intent guards. An absent flag
 keeps the read as an ordinary bookmark.
 
-**Custom collections (issue #324).** With the optional `collection` scope, QF
-also reports custom-collection memberships as `COLLECTION_BOOKMARK` effects.
-They have no single id: GET carries `data.collectionId` and `data.bookmarkId`,
-and a delete may carry only the composite id `<collectionId>-<bookmarkId>`
-([Get mutations contract](https://api-docs.quran.com/docs/user_related_apis_prelive/get-mutations/)).
-Devices store them per owner in `qf_collection_bookmarks` (migration
-`user_sync_v4`), keyed by that composite id. Favorites memberships are never
-stored there; QF reads them from the BOOKMARK flag. A BOOKMARK tombstone keeps
-the bookmark's memberships, because a bookmark that only left Favorites is still
-in its custom collections if the user bookmarks it again.
+**Deletes leave Favorites; QF decides the rest (issue #324).** Every pushed
+bookmark delete is `{resource: "COLLECTION_BOOKMARK", type: "DELETE", data:
+{collectionId: "__default__", bookmarkId}}` with no resourceId, as Quran.com
+web removes Favorites (`useCollectionToggle.ts`). QF deletes the bookmark only
+when no custom collection holds it and it is not the reading bookmark;
+otherwise it only leaves Favorites. Bayaan keeps no membership table, so stale
+local membership can never wipe a custom collection. The outbox row stays a
+BOOKMARK DELETE; its receipt may carry the composite id `__default__-<id>`,
+the identifier pair, or no identity, and must agree with the sent bookmark.
 
-Deleting a bookmark locally checks those memberships inside the delete
-transaction. Without one, the outbox sends today's BOOKMARK DELETE, which on QF
-removes the bookmark with all its collection links. With one, the BOOKMARK
-DELETE payload is flagged `leaveFavoritesOnly`, and push sends
-`{resource: "COLLECTION_BOOKMARK", type: "DELETE", data: {collectionId:
-"__default__", bookmarkId}}` with no resourceId, so the bookmark leaves
-Favorites and stays in its custom collections. The outbox row stays a BOOKMARK
-row, and the in-flight payload freezes the choice across retries. Its receipt,
-which may carry the composite id, the identifier pair, or no identity, must
-agree with the sent bookmark and then settles locally as that bookmark's DELETE.
-
-A membership pulled after a delete was queued still applies: pulling or
-removing a membership rewrites matching PENDING BOOKMARK DELETE rows to set or
-clear `leaveFavoritesOnly` (with a revision bump). A sent payload stays frozen.
-
-Sessions granted before `collection` was requested see no memberships, so their
-deletes keep today's behaviour until the user signs in again. If QF refuses a
-GET filter that names `COLLECTION_BOOKMARK` with 403, the backend retries it
-once without that resource.
-
-**Known limit:** memberships are learned only from mutations after the stored
-pull cursor. An install that synced before `user_sync_v4`, or that pulled
-through the 403 fallback, never learns memberships created before its cursor,
-and its deletes of those bookmarks still remove them from custom collections.
-This affects pre-live testers only: production sessions are created with
-`collection` from their first pull. A one-time membership backfill (a separate
-`COLLECTION_BOOKMARK` pull from 0 that does not move the main cursor) would
-close it.
+If the bookmark already left Favorites elsewhere (a delete queued offline),
+QF rejects the whole push as not found (backend: `QF_SYNC_NOT_FOUND` 404). A
+removal is therefore always pushed alone, and that 404 settles it: the intent
+already holds. Pulled `COLLECTION_BOOKMARK` effects are not requested and are
+ignored if they arrive.
 
 It does not reinterpret a page number as an ayah, delete a local row merely
 because its remote update is unsupported, enqueue a cloud write, or change the

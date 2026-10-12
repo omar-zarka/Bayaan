@@ -21,6 +21,7 @@ import {
 } from '@/services/sync/bayaanSyncCodec';
 import surahData from '@/data/surahData.json';
 import {refreshUnsentPayloadBlock} from './qfUnsentPayloadBlock';
+import {isFavoritesRemoval} from './qfSyncResourceMapper';
 import {hafsVerseKeyOf, keptVerseKeys} from './hafsVerseKeys';
 import {
   withRetryableQfSyncTransaction as withQfSyncTransaction,
@@ -98,23 +99,6 @@ interface MarkOperationInFlightInput {
   startedAt: number;
 }
 
-function isFavoritesRemoval(sent: QfOutboxEntry): boolean {
-  if (
-    sent.resource !== 'BOOKMARK' ||
-    sent.inFlightMutationType !== 'DELETE' ||
-    !sent.inFlightPayloadJson
-  ) {
-    return false;
-  }
-  const payload: unknown = JSON.parse(sent.inFlightPayloadJson);
-  return (
-    typeof payload === 'object' &&
-    payload !== null &&
-    'leaveFavoritesOnly' in payload &&
-    payload.leaveFavoritesOnly === true
-  );
-}
-
 // A sent Favorites removal is acknowledged as a COLLECTION_BOOKMARK delete,
 // possibly without identity. Once its identity agrees with the sent bookmark,
 // it settles locally exactly like that bookmark's DELETE receipt.
@@ -148,6 +132,19 @@ function favoritesRemovalReceipt(
     resourceId: bookmarkId,
     timestamp: receipt.timestamp,
   };
+}
+
+// QF answers a Favorites removal for a bookmark no longer in Favorites with a
+// 404 for the whole push. A removal is therefore sent alone, so that 404 can
+// settle exactly it: a batch either is one removal, or stops before the first.
+function isolateFavoritesRemoval(candidates: OutboxRow[]): OutboxRow[] {
+  const isRemoval = (row: OutboxRow) =>
+    row.resource === 'BOOKMARK' && row.mutation_type === 'DELETE';
+  if (candidates.length > 0 && isRemoval(candidates[0])) {
+    return [candidates[0]];
+  }
+  const end = candidates.findIndex(isRemoval);
+  return end === -1 ? candidates : candidates.slice(0, end);
 }
 
 interface CommitPushSuccessInput {
@@ -309,9 +306,6 @@ interface BookmarkOutboxPayload {
   rewayahId?: string;
   clientCreatedAt: number;
   clientUpdatedAt: number;
-  // DELETE only: the bookmark is also in a custom QF collection, so it leaves
-  // Favorites instead of being deleted on QF.
-  leaveFavoritesOnly?: true;
 }
 
 interface NoteOutboxPayload {
@@ -609,11 +603,6 @@ export class QfSyncDatabaseService {
       db,
     );
     const deletedAt = Date.now();
-    const remoteId = bookmark.remote_id ?? existingOperation?.remoteId;
-    const leaveFavoritesOnly =
-      remoteId !== null &&
-      remoteId !== undefined &&
-      (await this.hasCustomCollectionMembership(db, ownerScope, remoteId));
     const payload = {
       verseKey: bookmark.verse_key,
       surahNumber: bookmark.surah_number,
@@ -621,7 +610,6 @@ export class QfSyncDatabaseService {
       rewayahId: bookmark.rewayah_id ?? undefined,
       clientCreatedAt: bookmark.created_at,
       clientUpdatedAt: deletedAt,
-      ...(leaveFavoritesOnly ? {leaveFavoritesOnly: true as const} : {}),
     } satisfies BookmarkOutboxPayload;
     if (
       existingOperation?.mutationType === 'CREATE' &&
@@ -697,19 +685,6 @@ export class QfSyncDatabaseService {
         },
       );
     });
-  }
-
-  private async hasCustomCollectionMembership(
-    db: SyncDatabaseConnection,
-    ownerScope: `qf:${string}`,
-    bookmarkId: string,
-  ): Promise<boolean> {
-    const row = await db.getFirstAsync(
-      `SELECT 1 AS found FROM qf_collection_bookmarks
-       WHERE owner_scope = ? AND bookmark_id = ? LIMIT 1`,
-      [ownerScope, bookmarkId],
-    );
-    return row !== null;
   }
 
   async addNote(input: AddNoteInput): Promise<VerseNote> {
@@ -1232,7 +1207,7 @@ export class QfSyncDatabaseService {
          ORDER BY created_at, local_operation_id LIMIT ?`,
         [ownerScope, input.dueAt, input.limit],
       )) as OutboxRow[];
-      for (const candidate of candidates) {
+      for (const candidate of isolateFavoritesRemoval(candidates)) {
         await db.runAsync(
           `UPDATE qf_sync_outbox
            SET delivery_state = 'IN_FLIGHT',
@@ -1362,6 +1337,56 @@ export class QfSyncDatabaseService {
       committed = true;
     });
     return committed;
+  }
+
+  /**
+   * A Favorites removal QF rejected as not found: the bookmark already left
+   * Favorites (or QF) elsewhere, so the intent holds. The local row is gone;
+   * drop the sent operation without touching the stored head.
+   */
+  async settleMissingFavoritesRemoval(input: {
+    accountId: string;
+    localOperationId: string;
+  }): Promise<void> {
+    const connection = await this.database.getConnection();
+    const ownerScope = ownerScopeFromAccountId(input.accountId);
+    await withQfSyncTransaction(connection, async db => {
+      const row = (await db.getFirstAsync(
+        `SELECT * FROM qf_sync_outbox
+         WHERE owner_scope = ? AND local_operation_id = ?`,
+        [ownerScope, input.localOperationId],
+      )) as OutboxRow | null;
+      if (
+        !row ||
+        row.delivery_state !== 'IN_FLIGHT' ||
+        row.resource !== 'BOOKMARK' ||
+        row.in_flight_mutation_type !== 'DELETE'
+      ) {
+        return;
+      }
+      const currentStillEqualsSent =
+        row.revision === row.in_flight_revision &&
+        row.mutation_type === row.in_flight_mutation_type &&
+        row.payload_json === row.in_flight_payload_json;
+      if (currentStillEqualsSent) {
+        await db.runAsync(
+          `DELETE FROM qf_sync_outbox
+           WHERE owner_scope = ? AND local_operation_id = ?`,
+          [ownerScope, input.localOperationId],
+        );
+        return;
+      }
+      // A newer revision (e.g. the verse was bookmarked again) still needs
+      // delivery.
+      await db.runAsync(
+        `UPDATE qf_sync_outbox
+         SET delivery_state = 'PENDING', in_flight_revision = NULL,
+             in_flight_mutation_type = NULL, in_flight_payload_json = NULL,
+             in_flight_started_at = NULL
+         WHERE owner_scope = ? AND local_operation_id = ?`,
+        [ownerScope, input.localOperationId],
+      );
+    });
   }
 
   async releaseInFlightOperations(
