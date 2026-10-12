@@ -87,10 +87,23 @@ row, and the in-flight payload freezes the choice across retries. Its receipt,
 which may carry the composite id, the identifier pair, or no identity, must
 agree with the sent bookmark and then settles locally as that bookmark's DELETE.
 
+A membership pulled after a delete was queued still applies: pulling or
+removing a membership rewrites matching PENDING BOOKMARK DELETE rows to set or
+clear `leaveFavoritesOnly` (with a revision bump). A sent payload stays frozen.
+
 Sessions granted before `collection` was requested see no memberships, so their
 deletes keep today's behaviour until the user signs in again. If QF refuses a
 GET filter that names `COLLECTION_BOOKMARK` with 403, the backend retries it
 once without that resource.
+
+**Known limit:** memberships are learned only from mutations after the stored
+pull cursor. An install that synced before `user_sync_v4`, or that pulled
+through the 403 fallback, never learns memberships created before its cursor,
+and its deletes of those bookmarks still remove them from custom collections.
+This affects pre-live testers only: production sessions are created with
+`collection` from their first pull. A one-time membership backfill (a separate
+`COLLECTION_BOOKMARK` pull from 0 that does not move the main cursor) would
+close it.
 
 It does not reinterpret a page number as an ayah, delete a local row merely
 because its remote update is unsupported, enqueue a cloud write, or change the

@@ -883,6 +883,65 @@ describe('SQLite push recovery store', () => {
     await database.close();
   });
 
+  it('re-flags a queued bookmark delete when its membership arrives later', async () => {
+    const {database, sync, SqliteQfSyncPullStore} =
+      await createServices('membership-late.db');
+    await sync.initialize();
+    const store = new SqliteQfSyncPullStore(database);
+    await store.applyPage(accountId, [
+      {
+        resource: 'BOOKMARK',
+        type: 'CREATE',
+        resourceId: 'bm-late',
+        timestamp: 10,
+        data: {
+          type: 'ayah',
+          key: 2,
+          verseNumber: 255,
+          isInDefaultCollection: true,
+        },
+      },
+    ]);
+    // Deleted before this device pulled the custom-collection membership.
+    await sync.removeBookmark({accountId, verseKey: '2:255'});
+    const queued = async () => {
+      const [entry] = await sync.getOutboxEntries(accountId);
+      return {
+        revision: entry.revision,
+        flagged: JSON.parse(entry.payloadJson).leaveFavoritesOnly === true,
+      };
+    };
+    const before = await queued();
+    expect(before.flagged).toBe(false);
+
+    await store.applyPage(accountId, [
+      {
+        resource: 'COLLECTION_BOOKMARK',
+        type: 'CREATE',
+        membershipId: 'col1-bm-late',
+        collectionId: 'col1',
+        bookmarkId: 'bm-late',
+        timestamp: 11,
+      },
+    ]);
+    const flagged = await queued();
+    expect(flagged).toEqual({revision: before.revision + 1, flagged: true});
+
+    await store.applyPage(accountId, [
+      {
+        resource: 'COLLECTION_BOOKMARK',
+        type: 'DELETE',
+        membershipId: 'col1-bm-late',
+        timestamp: 12,
+      },
+    ]);
+    expect(await queued()).toEqual({
+      revision: before.revision + 2,
+      flagged: false,
+    });
+    await database.close();
+  });
+
   it('leaves Favorites only when a deleted bookmark is also in a custom collection', async () => {
     const {database, sync, SqliteQfSyncPullStore, IntegratedCoordinator} =
       await createServices('favorites-membership.db');

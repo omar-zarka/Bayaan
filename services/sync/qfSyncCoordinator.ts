@@ -366,11 +366,18 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
       return;
     }
     if (mutation.type === 'DELETE') {
-      await db.runAsync(
-        `DELETE FROM qf_collection_bookmarks
+      const existing = await db.getFirstAsync<{bookmark_id: string}>(
+        `SELECT bookmark_id FROM qf_collection_bookmarks
          WHERE owner_scope = ? AND membership_id = ? AND server_updated_at <= ?`,
         [scope, membershipId, mutation.timestamp],
       );
+      if (!existing) return;
+      await db.runAsync(
+        `DELETE FROM qf_collection_bookmarks
+         WHERE owner_scope = ? AND membership_id = ?`,
+        [scope, membershipId],
+      );
+      await this.refreshQueuedBookmarkDeletes(db, scope, existing.bookmark_id);
       return;
     }
     if (!mutation.bookmarkId) return;
@@ -384,6 +391,48 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
        WHERE excluded.server_updated_at >= qf_collection_bookmarks.server_updated_at`,
       [scope, membershipId, mutation.bookmarkId, mutation.timestamp],
     );
+    await this.refreshQueuedBookmarkDeletes(db, scope, mutation.bookmarkId);
+  }
+
+  // A delete queued before its membership was pulled (offline, or rebased
+  // after a 409) must follow the membership it now has. Only PENDING rows are
+  // rewritten: a sent payload stays frozen until its delivery is settled.
+  private async refreshQueuedBookmarkDeletes(
+    db: SyncSqliteConnection,
+    scope: `qf:${string}`,
+    bookmarkId: string,
+  ): Promise<void> {
+    const membership = await db.getFirstAsync(
+      `SELECT 1 AS found FROM qf_collection_bookmarks
+       WHERE owner_scope = ? AND bookmark_id = ? LIMIT 1`,
+      [scope, bookmarkId],
+    );
+    const rows = await db.getAllAsync<{
+      local_operation_id: string;
+      payload_json: string;
+    }>(
+      `SELECT local_operation_id, payload_json FROM qf_sync_outbox
+       WHERE owner_scope = ? AND resource = 'BOOKMARK'
+         AND mutation_type = 'DELETE' AND delivery_state = 'PENDING'
+         AND remote_id = ?`,
+      [scope, bookmarkId],
+    );
+    for (const row of rows) {
+      const payload: unknown = JSON.parse(row.payload_json);
+      if (typeof payload !== 'object' || payload === null) continue;
+      const flagged =
+        'leaveFavoritesOnly' in payload && payload.leaveFavoritesOnly === true;
+      if (flagged === (membership !== null)) continue;
+      const next: Record<string, unknown> = {...payload};
+      if (membership) next.leaveFavoritesOnly = true;
+      else delete next.leaveFavoritesOnly;
+      await db.runAsync(
+        `UPDATE qf_sync_outbox
+         SET payload_json = ?, revision = revision + 1
+         WHERE owner_scope = ? AND local_operation_id = ?`,
+        [JSON.stringify(next), scope, row.local_operation_id],
+      );
+    }
   }
 
   private async applyBookmark(
