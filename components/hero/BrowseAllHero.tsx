@@ -22,6 +22,7 @@ import Svg, {Path} from 'react-native-svg';
 import {SESSION_SEED, pickHeroTheme} from '@/components/hero/heroThemes';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const TILE_COLORS = [
   '#fbbf24',
@@ -330,7 +331,7 @@ const createStyles = (theme: Theme) =>
     label: {
       fontFamily: 'Manrope-Bold',
       fontSize: moderateScale(9),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       marginBottom: moderateScale(2),
     },
     title: {

@@ -54,6 +54,7 @@ import {
   type MushafAllahNameHighlightColor,
   type RewayahId,
 } from '@/store/mushafSettingsStore';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // --- Pre-cache Translation/Transliteration Data --- //
 interface TransliterationData {
@@ -614,8 +615,8 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
   const subscribedFontMgr = useMushafFontMgr();
   const fontMgr =
     mushafPreloadService.initialized && digitalKhattDataService.initialized
@@ -866,9 +867,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           <Text style={styles.settingRowLabel}>
             {themeMode === 'system'
               ? 'System'
-              : (getReadingThemeById(
+              : getReadingThemeById(
                   themeMode === 'light' ? lightThemeId : darkThemeId,
-                )?.name ?? 'System')}
+                )?.name ?? 'System'}
           </Text>
           <Feather
             name="chevron-right"
@@ -1194,7 +1195,9 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
         ]}
         accessibilityRole="button"
         accessibilityState={{expanded, disabled}}
-        accessibilityLabel={`Rewayah: ${getLongLabel(selectedId)}. ${expanded ? 'Collapse' : 'Expand'} to change.`}
+        accessibilityLabel={`Rewayah: ${getLongLabel(selectedId)}. ${
+          expanded ? 'Collapse' : 'Expand'
+        } to change.`}
         disabled={disabled}
         onPress={() => setExpanded(e => !e)}>
         <View style={styles.radioTextContainer}>
@@ -1256,7 +1259,9 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
               <View
                 style={[styles.radioRow, styles.radioRowDisabled]}
                 accessibilityRole="text"
-                accessibilityLabel={`${getLongLabel(id)}, text preview not yet available`}>
+                accessibilityLabel={`${getLongLabel(
+                  id,
+                )}, text preview not yet available`}>
                 <View style={styles.radioCircle} />
                 <View style={styles.radioTextContainer}>
                   <Text style={[styles.radioLabel, styles.radioLabelDisabled]}>
@@ -1569,7 +1574,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: verticalScale(4),
       marginLeft: moderateScale(4),
@@ -1787,7 +1792,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: verticalScale(2),
     },
@@ -1800,7 +1805,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       paddingTop: verticalScale(12),
       paddingBottom: verticalScale(6),

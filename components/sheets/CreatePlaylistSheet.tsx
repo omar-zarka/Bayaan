@@ -21,6 +21,7 @@ import ActionSheet, {
 } from 'react-native-actions-sheet';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -274,7 +275,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.text,
       textAlign: 'center',
       marginBottom: moderateScale(8),
-      letterSpacing: -0.3,
+      letterSpacing: latinLetterSpacing(-0.3),
       minHeight: moderateScale(22),
     },
     inputSection: {

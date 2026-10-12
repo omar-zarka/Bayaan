@@ -31,6 +31,7 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {ExploreView} from '@/components/search/ExploreView';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const RECENT_SEARCHES_KEY = 'recentSearches';
 const MAX_RECENT_SEARCHES = 10;
@@ -629,7 +630,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: moderateScale(10.5),
     fontFamily: 'Manrope-SemiBold',
-    letterSpacing: 1.0,
+    letterSpacing: latinLetterSpacing(1.0),
     textTransform: 'uppercase',
   },
   clearButton: {

@@ -167,6 +167,10 @@ module.exports = {
       : {enabled: false},
     plugins: [
       'expo-router',
+      [
+        'expo-localization',
+        {supportsRTL: true, supportedLocales: {ios: ['en', 'ar']}},
+      ],
       ['expo-audio', {enableBackgroundPlayback: true}],
       'expo-sqlite',
       [

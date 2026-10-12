@@ -14,6 +14,7 @@ import {FloatingPlayer} from '@/components/player/v2/FloatingPlayer';
 import {TabletSidebar} from '@/components/tablet/TabletSidebar';
 import {useResponsive} from '@/hooks/useResponsive';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {useTranslation} from 'react-i18next';
 
 // PNG tab icons for NativeTabs (iOS) — template-rendered by the native tab bar
 const tabIcons = {
@@ -45,6 +46,7 @@ const tabletSidebarComponent = (props: BottomTabBarProps) => (
 
 function IOSTabs() {
   const {theme} = useTheme();
+  const {t} = useTranslation();
   const hasTrack = usePlayerStore(state => {
     const tracks = state.queue.tracks;
     const index = state.queue.currentIndex;
@@ -66,7 +68,7 @@ function IOSTabs() {
         name="(a.home)"
         contentStyle={{backgroundColor: theme.colors.background}}>
         <NativeTabs.Trigger.Icon src={tabIcons.home} renderingMode="template" />
-        <NativeTabs.Trigger.Label>Home</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t('tabs.home')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger
@@ -76,7 +78,7 @@ function IOSTabs() {
           src={tabIcons.surahs}
           renderingMode="template"
         />
-        <NativeTabs.Trigger.Label>Surahs</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t('tabs.surahs')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger
@@ -87,7 +89,7 @@ function IOSTabs() {
           src={tabIcons.search}
           renderingMode="template"
         />
-        <NativeTabs.Trigger.Label>Search</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>{t('tabs.search')}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger
@@ -97,7 +99,9 @@ function IOSTabs() {
           src={tabIcons.collection}
           renderingMode="template"
         />
-        <NativeTabs.Trigger.Label>Collection</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>
+          {t('tabs.collection')}
+        </NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger
@@ -106,13 +110,16 @@ function IOSTabs() {
         <NativeTabs.Trigger.Icon
           sf={{default: 'gearshape', selected: 'gearshape.fill'}}
         />
-        <NativeTabs.Trigger.Label>Settings</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Label>
+          {t('tabs.settings')}
+        </NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
 
 function AndroidTabs() {
+  const {t} = useTranslation();
   return (
     <View style={{flex: 1}}>
       <Tabs
@@ -128,11 +135,17 @@ function AndroidTabs() {
           },
         }}
         tabBar={tabBarComponent}>
-        <Tabs.Screen name="(a.home)" options={{title: 'Home'}} />
-        <Tabs.Screen name="(b.surahs)" options={{title: 'Surahs'}} />
-        <Tabs.Screen name="(b.search)" options={{title: 'Search'}} />
-        <Tabs.Screen name="(c.collection)" options={{title: 'Collection'}} />
-        <Tabs.Screen name="(d.settings)" options={{title: 'Settings'}} />
+        <Tabs.Screen name="(a.home)" options={{title: t('tabs.home')}} />
+        <Tabs.Screen name="(b.surahs)" options={{title: t('tabs.surahs')}} />
+        <Tabs.Screen name="(b.search)" options={{title: t('tabs.search')}} />
+        <Tabs.Screen
+          name="(c.collection)"
+          options={{title: t('tabs.collection')}}
+        />
+        <Tabs.Screen
+          name="(d.settings)"
+          options={{title: t('tabs.settings')}}
+        />
       </Tabs>
       <FloatingPlayer />
     </View>
@@ -145,6 +158,7 @@ function AndroidTabs() {
  * NativeTabs and the Android floating pill when `isTablet` is true.
  */
 function TabletTabs() {
+  const {t} = useTranslation();
   return (
     <View style={{flex: 1}}>
       <Tabs
@@ -160,11 +174,17 @@ function TabletTabs() {
           },
         }}
         tabBar={tabletSidebarComponent}>
-        <Tabs.Screen name="(a.home)" options={{title: 'Home'}} />
-        <Tabs.Screen name="(b.surahs)" options={{title: 'Surahs'}} />
-        <Tabs.Screen name="(b.search)" options={{title: 'Search'}} />
-        <Tabs.Screen name="(c.collection)" options={{title: 'Collection'}} />
-        <Tabs.Screen name="(d.settings)" options={{title: 'Settings'}} />
+        <Tabs.Screen name="(a.home)" options={{title: t('tabs.home')}} />
+        <Tabs.Screen name="(b.surahs)" options={{title: t('tabs.surahs')}} />
+        <Tabs.Screen name="(b.search)" options={{title: t('tabs.search')}} />
+        <Tabs.Screen
+          name="(c.collection)"
+          options={{title: t('tabs.collection')}}
+        />
+        <Tabs.Screen
+          name="(d.settings)"
+          options={{title: t('tabs.settings')}}
+        />
       </Tabs>
     </View>
   );

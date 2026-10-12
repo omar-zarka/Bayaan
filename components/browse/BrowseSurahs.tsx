@@ -24,6 +24,7 @@ import {getJuzForSurah, getJuzName} from '@/data/juzData';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const isGlass = USE_GLASS;
 
@@ -145,7 +146,7 @@ const useStyles = () => {
       fontSize: moderateScale(12),
       fontFamily: 'Manrope-SemiBold',
       textTransform: 'uppercase',
-      letterSpacing: 0.8,
+      letterSpacing: latinLetterSpacing(0.8),
     },
   });
 };
@@ -386,8 +387,8 @@ export default function BrowseSurahs({theme, onBack}: BrowseSurahsProps) {
             option === 'asc'
               ? 'arrow-up'
               : option === 'desc'
-                ? 'arrow-down'
-                : 'calendar';
+              ? 'arrow-down'
+              : 'calendar';
           const label =
             option === 'asc' ? 'Asc' : option === 'desc' ? 'Desc' : 'Rev';
           return (

@@ -21,6 +21,7 @@ import {useLoved} from '@/hooks/useLoved';
 import {PlaylistItem} from '@/components/PlaylistItem';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -370,7 +371,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.textSecondary,
       marginBottom: moderateScale(8),
       textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      letterSpacing: latinLetterSpacing(0.5),
     },
     emptyState: {
       alignItems: 'center',

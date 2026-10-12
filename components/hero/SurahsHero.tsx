@@ -16,6 +16,7 @@ import {
   MESH_PALETTES,
   SurahGradientMesh,
 } from '@/components/hero/SurahGradientMesh';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // Same SECTION_HEIGHT as ScrollingHero for consistency
 const SECTION_HEIGHT = moderateScale(150);
@@ -215,7 +216,7 @@ const createStyles = (
     heroTitle: {
       fontSize: moderateScale(10),
       fontFamily: 'Manrope-Bold',
-      letterSpacing: moderateScale(0.8),
+      letterSpacing: latinLetterSpacing(moderateScale(0.8)),
       color: isDark ? heroTheme.accentDim : heroTheme.accentDark,
     },
     revelationPlace: {

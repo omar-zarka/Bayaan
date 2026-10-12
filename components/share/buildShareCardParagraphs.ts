@@ -40,6 +40,7 @@ import {
 import {getRewayahShortLabel} from '@/utils/rewayahLabels';
 import type {RewayahId} from '@/store/mushafSettingsStore';
 import branding from '@/config/branding';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface QuranEntry {
   verse_key: string;
@@ -264,7 +265,7 @@ export function buildShareCardParagraphs(
         if (isAyaSpace) {
           verseBuilder.pushStyle({
             ...textStyle,
-            letterSpacing: ayaLetterSpacing,
+            letterSpacing: latinLetterSpacing(ayaLetterSpacing),
           });
         } else {
           verseBuilder.pushStyle({...textStyle, letterSpacing: 0});

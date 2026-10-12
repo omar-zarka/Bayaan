@@ -12,6 +12,7 @@ import {moderateScale} from 'react-native-size-matters';
 import {Feather} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';
 import Color from 'color';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -142,7 +143,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: moderateScale(13.5),
     fontFamily: 'Manrope-SemiBold',
-    letterSpacing: 0.2,
+    letterSpacing: latinLetterSpacing(0.2),
   },
   inputContainer: {
     borderWidth: 1,

@@ -30,6 +30,7 @@ import {useTajweedStore} from '@/store/tajweedStore';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import SkiaVerseText from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
 import type {SimilarAyah, MutashabihatPhrase} from '@/types/qul';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
@@ -92,8 +93,8 @@ export const SimilarVersesSheet = (props: SheetProps<'similar-verses'>) => {
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
   const [contentWidth, setContentWidth] = useState(0);
 
   const handleContentLayout = useCallback((e: LayoutChangeEvent) => {
@@ -470,7 +471,7 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'Manrope-Bold',
       color: theme.colors.textSecondary,
       textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      letterSpacing: latinLetterSpacing(0.5),
     },
     phraseCard: {
       backgroundColor: Color(theme.colors.card).alpha(0.5).toString(),

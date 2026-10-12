@@ -15,6 +15,7 @@ import {PlaylistIcon} from '@/components/Icons';
 import {Input} from '@/components/Input';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface PlaylistModalProps {
   visible: boolean;
@@ -234,7 +235,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: moderateScale(22),
     fontFamily: 'Manrope-Bold',
-    letterSpacing: -0.5,
+    letterSpacing: latinLetterSpacing(-0.5),
   },
   createButton: {
     paddingHorizontal: moderateScale(20),
@@ -243,7 +244,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     fontSize: moderateScale(15),
     fontFamily: 'Manrope-SemiBold',
-    letterSpacing: 0.2,
+    letterSpacing: latinLetterSpacing(0.2),
   },
   content: {
     flex: 1,
@@ -304,7 +305,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Manrope-Bold',
     textAlign: 'center',
     marginBottom: moderateScale(8),
-    letterSpacing: -0.3,
+    letterSpacing: latinLetterSpacing(-0.3),
     minHeight: moderateScale(22),
   },
   heroBadge: {
@@ -324,7 +325,7 @@ const styles = StyleSheet.create({
   heroBadgeText: {
     fontSize: moderateScale(12),
     fontFamily: 'Manrope-SemiBold',
-    letterSpacing: 0.1,
+    letterSpacing: latinLetterSpacing(0.1),
   },
   inputSection: {
     marginBottom: 0,

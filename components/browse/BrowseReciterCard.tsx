@@ -10,6 +10,7 @@ import {GlassView} from 'expo-glass-effect';
 import {Link} from 'expo-router';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface BrowseReciterCardProps {
   reciter: Reciter;
@@ -51,7 +52,7 @@ function createStyles(theme: Theme, width: number, height: number) {
       fontSize: moderateScale(11),
       fontFamily: 'Manrope-SemiBold',
       color: theme.colors.text,
-      letterSpacing: -0.2,
+      letterSpacing: latinLetterSpacing(-0.2),
       lineHeight: moderateScale(14),
       includeFontPadding: false,
     },

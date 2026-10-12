@@ -11,6 +11,7 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import * as Clipboard from 'expo-clipboard';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface CopyContentProps {
   verseKey: string;
@@ -224,7 +225,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       marginBottom: moderateScale(4),
       marginLeft: moderateScale(2),
     },

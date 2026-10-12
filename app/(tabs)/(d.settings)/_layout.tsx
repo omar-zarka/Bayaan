@@ -3,9 +3,11 @@ import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {MaxWidthContainer} from '@/components/layout/MaxWidthContainer';
 import branding from '@/config/branding';
+import {useTranslation} from 'react-i18next';
 
 export default function SettingsLayout() {
   const {theme} = useTheme();
+  const {t} = useTranslation();
 
   return (
     <MaxWidthContainer>
@@ -55,6 +57,7 @@ export default function SettingsLayout() {
         />
         <Stack.Screen name="reading-theme" options={{title: 'Reading Theme'}} />
         <Stack.Screen name="whats-new" options={{title: "What's New"}} />
+        <Stack.Screen name="language" options={{title: t('language.title')}} />
       </Stack>
     </MaxWidthContainer>
   );

@@ -35,6 +35,7 @@ import {
   useIsDownloaded,
   useIsDownloadedWithRewayat,
 } from '@/services/player/store/downloadSelectors';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface SurahCardProps {
   id: number;
@@ -202,7 +203,7 @@ export const SurahCard: React.FC<SurahCardProps> = ({
       fontFamily: 'Manrope-Bold',
       color: theme.colors.text,
       textAlign: 'center',
-      letterSpacing: 0.2,
+      letterSpacing: latinLetterSpacing(0.2),
     },
     translatedName: {
       fontSize: moderateScale(9),
@@ -210,7 +211,7 @@ export const SurahCard: React.FC<SurahCardProps> = ({
       color: theme.colors.textSecondary,
       textAlign: 'center',
       opacity: 0.9,
-      letterSpacing: 0.1,
+      letterSpacing: latinLetterSpacing(0.1),
     },
     placeIcon: {
       position: 'absolute',

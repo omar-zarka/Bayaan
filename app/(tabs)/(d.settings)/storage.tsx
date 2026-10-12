@@ -8,6 +8,7 @@ import {useStorageBreakdown} from '@/hooks/useStorageBreakdown';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {clearPlayerCache} from '@/services/player/utils/storage';
 import {Feather} from '@expo/vector-icons';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface StorageCategoryProps {
   color: string;
@@ -310,7 +311,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: moderateScale(10),
       marginLeft: moderateScale(2),

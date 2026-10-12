@@ -17,6 +17,7 @@ import {ReciterImage} from '@/components/ReciterImage';
 import {useHeaderHeight} from '@react-navigation/elements';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 export default function DefaultReciterScreen() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -188,7 +189,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: verticalScale(8),
       marginLeft: moderateScale(2),

@@ -28,6 +28,7 @@ import {LinearGradient} from 'expo-linear-gradient';
 import {getRandomColors} from '@/utils/gradientColors';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // Error Boundary for ScrollingHero
 class ScrollingHeroErrorBoundary extends React.Component<{
@@ -413,7 +414,7 @@ function createStyles(theme: Theme) {
       fontSize: moderateScale(14),
       fontFamily: 'Manrope-Bold',
       color: theme.colors.text,
-      letterSpacing: -0.5,
+      letterSpacing: latinLetterSpacing(-0.5),
     },
     buttonIcon: {
       opacity: 0.8,

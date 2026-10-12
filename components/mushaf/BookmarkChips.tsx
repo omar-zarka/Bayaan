@@ -7,6 +7,7 @@ import Color from 'color';
 import {SURAHS} from '@/data/surahData';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import type {VerseBookmark} from '@/types/verse-annotations';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // Module-level cache — warmed by AppInitializer after DB is ready
 let cachedBookmarks: VerseBookmark[] = [];
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(10.5),
     fontFamily: 'Manrope-SemiBold',
     textTransform: 'uppercase',
-    letterSpacing: 1.0,
+    letterSpacing: latinLetterSpacing(1.0),
     marginTop: moderateScale(12),
     marginBottom: moderateScale(8),
     paddingHorizontal: moderateScale(16),

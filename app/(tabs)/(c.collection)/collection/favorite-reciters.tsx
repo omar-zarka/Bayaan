@@ -22,6 +22,7 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 export default function FavoriteRecitersScreen() {
   const {theme} = useTheme();
@@ -118,7 +119,7 @@ export default function FavoriteRecitersScreen() {
           color: theme.colors.text,
           textAlign: 'center',
           marginBottom: moderateScale(8),
-          letterSpacing: -0.3,
+          letterSpacing: latinLetterSpacing(-0.3),
         },
         subtitle: {
           fontSize: moderateScale(12),

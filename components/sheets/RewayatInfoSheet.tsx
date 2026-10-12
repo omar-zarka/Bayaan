@@ -12,6 +12,7 @@ import Color from 'color';
 import {RewayatIcon} from '@/components/Icons';
 import ReadMore from '@fawazahmed/react-native-read-more';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 export const RewayatInfoSheet = (props: SheetProps<'rewayat-info'>) => {
   const {theme} = useTheme();
@@ -173,7 +174,7 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
       marginBottom: moderateScale(16),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
     },
     rewayatList: {

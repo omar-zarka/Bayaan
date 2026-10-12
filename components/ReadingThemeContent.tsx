@@ -42,6 +42,7 @@ import {
   digitalKhattDataService,
   BASMALLAH_TEXT,
 } from '@/services/mushaf/DigitalKhattDataService';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const PREVIEW_BA = '\u0628';
 
@@ -187,8 +188,8 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
   const fontsReady =
     mushafPreloadService.initialized && digitalKhattDataService.initialized;
   const subscribedFontMgr = useMushafFontMgr();
@@ -500,7 +501,9 @@ const MushafPreviewCanvas: React.FC<MushafPreviewCanvasProps> = React.memo(
             (prevCode >= 0x0660 && prevCode <= 0x0669) || nextCode === 0x06dd;
           verseBuilder.pushStyle({
             ...textStyle,
-            letterSpacing: isAyaSpace ? ayaLetterSpacing : 0,
+            letterSpacing: latinLetterSpacing(
+              isAyaSpace ? ayaLetterSpacing : 0,
+            ),
           });
           verseBuilder.addText(' ');
           verseBuilder.pop();

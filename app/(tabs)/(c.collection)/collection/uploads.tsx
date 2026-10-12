@@ -30,6 +30,7 @@ import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
 import {GradientText} from '@/components/GradientText';
 import {ReciterImage} from '@/components/ReciterImage';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 function stripExtension(filename: string): string {
   return filename.replace(/\.[^/.]+$/, '');
@@ -620,7 +621,7 @@ const createStyles = (theme: {colors: any; fonts: any}) =>
       color: theme.colors.text,
       textAlign: 'center',
       marginBottom: moderateScale(8),
-      letterSpacing: -0.3,
+      letterSpacing: latinLetterSpacing(-0.3),
     },
     subtitle: {
       fontSize: moderateScale(12),

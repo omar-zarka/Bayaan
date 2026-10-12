@@ -6,6 +6,7 @@ import {Theme} from '@/utils/themeUtils';
 import {AntDesign, Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {useSettings} from '@/hooks/useSettings';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 export default function ReciterChoiceScreen() {
   const {theme} = useTheme();
@@ -176,7 +177,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: moderateScale(6),
       marginLeft: moderateScale(2),

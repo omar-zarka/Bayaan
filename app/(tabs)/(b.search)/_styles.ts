@@ -1,6 +1,7 @@
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 export function createStyles(theme: Theme) {
   return ScaledSheet.create({
@@ -34,7 +35,7 @@ export function createStyles(theme: Theme) {
       fontSize: moderateScale(16),
       fontWeight: '600',
       color: theme.colors.text,
-      letterSpacing: 0.5,
+      letterSpacing: latinLetterSpacing(0.5),
     },
     searchItem: {
       flexDirection: 'row',

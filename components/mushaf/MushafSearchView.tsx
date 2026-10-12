@@ -31,6 +31,7 @@ import {BookmarkChips} from './BookmarkChips';
 import {JUZ_START_PAGES} from './constants';
 import {useMushafSettingsStore, RecentRead} from '@/store/mushafSettingsStore';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // ============================================================================
 // Types
@@ -739,8 +740,8 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
               option === 'asc'
                 ? 'arrow-up'
                 : option === 'desc'
-                  ? 'arrow-down'
-                  : 'calendar';
+                ? 'arrow-down'
+                : 'calendar';
             const label =
               option === 'asc' ? 'Asc' : option === 'desc' ? 'Desc' : 'Rev';
             return (
@@ -1083,7 +1084,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: ms(10.5),
     fontFamily: 'Manrope-SemiBold',
-    letterSpacing: 1.0,
+    letterSpacing: latinLetterSpacing(1.0),
     textTransform: 'uppercase',
     marginBottom: ms(8),
     marginTop: ms(12),
@@ -1145,7 +1146,7 @@ const styles = StyleSheet.create({
     fontSize: ms(12),
     fontFamily: 'Manrope-SemiBold',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: latinLetterSpacing(0.8),
   },
 
   // Recent Read chips

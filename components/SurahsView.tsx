@@ -15,6 +15,7 @@ import {getJuzForSurah, getJuzName} from '@/data/juzData';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {ContinueReadingHero} from '@/components/hero/ContinueReadingHero';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface SurahsViewProps {
   onSurahPress: (surah: Surah) => void;
@@ -209,8 +210,8 @@ export default function SurahsView({
                 option === 'asc'
                   ? 'arrow-up'
                   : option === 'desc'
-                    ? 'arrow-down'
-                    : 'calendar';
+                  ? 'arrow-down'
+                  : 'calendar';
               const label =
                 option === 'asc' ? 'Asc' : option === 'desc' ? 'Desc' : 'Rev';
               return (
@@ -349,6 +350,6 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(12),
     fontFamily: 'Manrope-SemiBold',
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: latinLetterSpacing(0.8),
   },
 });

@@ -37,6 +37,7 @@ import {
   RECORDING_TYPE_OPTIONS,
 } from '@/constants/recitationOptions';
 import type {RecordingType} from '@/types/uploads';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 type RecitationType = 'surah' | 'other';
 
@@ -1008,7 +1009,7 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'Manrope-SemiBold',
       color: theme.colors.textSecondary,
       textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      letterSpacing: latinLetterSpacing(0.5),
       marginBottom: moderateScale(10),
     },
     chipRow: {

@@ -26,6 +26,7 @@ import {useTajweedStore} from '@/store/tajweedStore';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import SkiaVerseText from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
 import type {SimilarAyah, MutashabihatPhrase} from '@/types/qul';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
@@ -102,8 +103,8 @@ export const SimilarVersesContent: React.FC<SimilarVersesContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
   const [contentWidth, setContentWidth] = useState(0);
 
   const handleContentLayout = useCallback((e: LayoutChangeEvent) => {
@@ -383,7 +384,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       marginBottom: moderateScale(6),
       marginLeft: moderateScale(2),
     },

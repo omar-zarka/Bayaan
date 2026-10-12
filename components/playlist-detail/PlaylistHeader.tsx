@@ -9,6 +9,7 @@ import {Theme} from '@/utils/themeUtils';
 import {PlaylistIcon, PlayIcon, ShuffleIcon} from '@/components/Icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface PlaylistHeaderProps {
   title: string;
@@ -145,7 +146,7 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       color: theme.colors.text,
       textAlign: 'center',
       marginBottom: moderateScale(8),
-      letterSpacing: -0.3,
+      letterSpacing: latinLetterSpacing(-0.3),
     },
     subtitle: {
       fontSize: moderateScale(12),

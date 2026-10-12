@@ -30,6 +30,7 @@ import {
 import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {ThemePicker} from '@/components/settings/ThemePicker';
 import branding from '@/config/branding';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const isExternalLink = (type: string): boolean => {
   return [
@@ -84,6 +85,13 @@ const settingsItems = [
   {
     section: 'App & Data',
     items: [
+      {
+        title: 'Language',
+        type: 'language',
+        description: 'Choose the app language',
+        icon: 'globe',
+        iconType: 'feather',
+      },
       {
         title: 'Storage',
         type: 'storage',
@@ -245,6 +253,9 @@ export default function SettingsScreen() {
         break;
       case 'reciterChoice':
         router.push('/(d.settings)/reciter-choice');
+        break;
+      case 'language':
+        router.push('/(d.settings)/language');
         break;
       case 'storage':
         router.push('/(d.settings)/storage');
@@ -412,7 +423,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: theme.colors.textSecondary,
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: moderateScale(6),
       marginLeft: moderateScale(2),

@@ -15,6 +15,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import branding from '@/config/branding';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 const isGlass = USE_GLASS;
@@ -99,7 +100,8 @@ export const SystemPlaylistHeader: React.FC<SystemPlaylistHeaderProps> = ({
         <View style={styles.contentContainer}>
           {/* System Playlist Badge */}
           <View style={styles.badge}>
-            <Text style={styles.badgeText}>{`${branding.appName} Curated`}</Text>
+            <Text
+              style={styles.badgeText}>{`${branding.appName} Curated`}</Text>
           </View>
 
           {/* Title and Description */}
@@ -195,7 +197,7 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       fontSize: moderateScale(11),
       fontFamily: theme.fonts.semiBold,
       color: theme.colors.textSecondary,
-      letterSpacing: 0.3,
+      letterSpacing: latinLetterSpacing(0.3),
       textTransform: 'uppercase',
     },
     title: {
@@ -204,7 +206,7 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       color: theme.colors.text,
       textAlign: 'center',
       marginBottom: moderateScale(8),
-      letterSpacing: -0.5,
+      letterSpacing: latinLetterSpacing(-0.5),
     },
     description: {
       fontSize: moderateScale(14),

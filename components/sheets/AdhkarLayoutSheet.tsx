@@ -24,6 +24,7 @@ import {
   DISPLAY_MIN,
   DISPLAY_MAX,
 } from '@/store/adhkarSettingsStore';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -276,7 +277,7 @@ const createStyles = (theme: Theme) =>
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
       marginBottom: verticalScale(8),
       marginLeft: moderateScale(4),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
     },
     card: {

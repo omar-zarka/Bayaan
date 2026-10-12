@@ -24,6 +24,7 @@ import {
   type BundledTranslationId,
 } from '@/types/translation';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // ─── Data loading (module scope, runs once) ───────────────────────────────
 const quranData = require('@/data/quran.json') as QuranData;
@@ -327,7 +328,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(11.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.7).toString(),
-      letterSpacing: 0.3,
+      letterSpacing: latinLetterSpacing(0.3),
     },
     divider: {
       height: 1,
@@ -338,7 +339,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: verticalScale(6),
     },
@@ -375,7 +376,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(11),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.text).alpha(0.6).toString(),
-      letterSpacing: 0.3,
+      letterSpacing: latinLetterSpacing(0.3),
     },
     // Footer
     footer: {
@@ -413,6 +414,6 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(12.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.6).toString(),
-      letterSpacing: 0.3,
+      letterSpacing: latinLetterSpacing(0.3),
     },
   });

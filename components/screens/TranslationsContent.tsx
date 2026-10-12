@@ -41,6 +41,7 @@ import {lightHaptics} from '@/utils/haptics';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {AVAILABLE_TRANSLATIONS} from '@/data/availableTranslations';
 import {AVAILABLE_TAFASEER} from '@/data/availableTafaseer';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 type ActiveTab = 'Translations' | 'Tafaseer';
 const TAB_OPTIONS: ActiveTab[] = ['Translations', 'Tafaseer'];
@@ -836,7 +837,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
     },
 
@@ -853,7 +854,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
     },
     langCount: {
@@ -897,7 +898,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.text).alpha(0.55).toString(),
-      letterSpacing: 0.3,
+      letterSpacing: latinLetterSpacing(0.3),
     },
 
     // Card grouping

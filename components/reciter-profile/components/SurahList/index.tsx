@@ -14,6 +14,7 @@ import {SurahItem} from '@/components/SurahItem';
 import {SurahCard} from '@/components/cards/SurahCard';
 import {Surah} from '@/data/surahData';
 import {getJuzForSurah, getJuzName} from '@/data/juzData';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 // Define types matching useSettings and ReciterProfile
 type ReciterProfileViewMode = 'card' | 'list';
@@ -400,6 +401,6 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(12),
       fontFamily: 'Manrope-SemiBold',
       textTransform: 'uppercase',
-      letterSpacing: 0.8,
+      letterSpacing: latinLetterSpacing(0.8),
     },
   });

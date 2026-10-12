@@ -5,6 +5,7 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {VersionDisplay} from '@/components/VersionDisplay';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface FeatureProps {
   title: string;
@@ -202,7 +203,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: moderateScale(10),
       marginLeft: moderateScale(2),

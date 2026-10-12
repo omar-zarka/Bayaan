@@ -26,6 +26,7 @@ import {
 } from './random-recitation/backgrounds';
 import {SESSION_SEED} from '@/components/hero/heroThemes';
 import {COPY_VARIANTS} from './random-recitation/types';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 function showToast(message: string) {
   if (Platform.OS === 'android') {
@@ -173,7 +174,7 @@ const createStyles = (theme: Theme) =>
     title: {
       fontFamily: 'Manrope-Bold',
       fontSize: moderateScale(9),
-      letterSpacing: moderateScale(0.5),
+      letterSpacing: latinLetterSpacing(moderateScale(0.5)),
       marginBottom: verticalScale(2),
       textTransform: 'uppercase',
     },

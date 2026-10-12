@@ -7,6 +7,7 @@ import Color from 'color';
 import {Link} from 'expo-router';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface RewayatCardProps {
   rewayat: RewayatInfo;
@@ -119,7 +120,7 @@ function createStyles(
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.45).toString(),
       textTransform: 'uppercase',
-      letterSpacing: 0.8,
+      letterSpacing: latinLetterSpacing(0.8),
     },
     textContainer: {
       gap: moderateScale(2),
@@ -128,7 +129,7 @@ function createStyles(
       fontSize: moderateScale(14),
       fontFamily: theme.fonts.semiBold,
       color: theme.colors.text,
-      letterSpacing: -0.3,
+      letterSpacing: latinLetterSpacing(-0.3),
       lineHeight: moderateScale(18),
     },
     subtitle: {

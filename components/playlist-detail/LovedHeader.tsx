@@ -8,6 +8,7 @@ import {PlayIcon, ShuffleIcon, HeartIcon} from '@/components/Icons';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface LovedHeaderProps {
   title: string;
@@ -125,7 +126,7 @@ const createStyles = (theme: Theme, insets: EdgeInsets) =>
       color: theme.colors.text,
       textAlign: 'center',
       marginBottom: moderateScale(8),
-      letterSpacing: -0.3,
+      letterSpacing: latinLetterSpacing(-0.3),
     },
     subtitle: {
       fontSize: moderateScale(12),

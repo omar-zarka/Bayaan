@@ -27,6 +27,7 @@ import {useRouter, Link} from 'expo-router';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useUploadsStore} from '@/store/uploadsStore';
 import {createUserUploadTrack} from '@/utils/track';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface RecentReciterCardProps {
   imageUrl?: string;
@@ -198,8 +199,9 @@ export const RecentReciterCard = ({
         return;
       }
 
-      const availableSurahIds =
-        await getAvailableSurahsForRewayat(rewayatToUseId);
+      const availableSurahIds = await getAvailableSurahsForRewayat(
+        rewayatToUseId,
+      );
 
       const allSurahsForRewayat = availableSurahIds
         .map(id => getSurahById(id))
@@ -479,7 +481,7 @@ function createStyles(theme: {
       fontSize: moderateScale(11.5),
       fontFamily: 'Manrope-SemiBold',
       color: theme.colors.text,
-      letterSpacing: -0.3,
+      letterSpacing: latinLetterSpacing(-0.3),
     },
     // Bottom zone: surah + playback controls
     playbackZone: {
@@ -500,7 +502,7 @@ function createStyles(theme: {
       fontSize: moderateScale(9.5),
       fontFamily: 'Manrope-Medium',
       color: Color(theme.colors.text).alpha(0.7).toString(),
-      letterSpacing: -0.2,
+      letterSpacing: latinLetterSpacing(-0.2),
     },
     progressRow: {
       flexDirection: 'row',

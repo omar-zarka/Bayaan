@@ -65,6 +65,7 @@ import PageEdgeDecoration, {
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {qcfFontLoader} from '@/services/mushaf/QCFFontLoader';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
+import {forceLTR} from '@/utils/rtl';
 
 const TOTAL_PAGES = 604;
 const ANIMATION_DURATION = 300;
@@ -1087,6 +1088,7 @@ export default function MushafViewer({
             index,
           })}
           inverted
+          style={forceLTR}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           windowSize={7}
@@ -1142,6 +1144,7 @@ export default function MushafViewer({
             index,
           })}
           inverted
+          style={forceLTR}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           windowSize={7}

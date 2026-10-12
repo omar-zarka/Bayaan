@@ -13,6 +13,7 @@ import {HIGHLIGHT_COLORS, HighlightColor} from '@/types/verse-annotations';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import SkiaVersePreview from '@/components/share/SkiaVersePreview';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const COLORS = Object.entries(HIGHLIGHT_COLORS) as [HighlightColor, string][];
 
@@ -129,7 +130,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       marginBottom: moderateScale(4),
       marginLeft: moderateScale(2),
     },

@@ -19,6 +19,7 @@ import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHe
 import {SheetManager} from 'react-native-actions-sheet';
 import Color from 'color';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 export default function PlaylistsScreen() {
   const {theme} = useTheme();
@@ -92,7 +93,7 @@ export default function PlaylistsScreen() {
           color: theme.colors.text,
           textAlign: 'center',
           marginBottom: moderateScale(8),
-          letterSpacing: -0.3,
+          letterSpacing: latinLetterSpacing(-0.3),
         },
         subtitle: {
           fontSize: moderateScale(12),

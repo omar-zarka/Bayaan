@@ -3,6 +3,7 @@ import {View, Text} from 'react-native';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface CategorySectionHeaderProps {
   title: string;
@@ -35,6 +36,6 @@ const createStyles = (theme: Theme) =>
       fontFamily: theme.fonts.semiBold,
       color: theme.colors.textSecondary,
       textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      letterSpacing: latinLetterSpacing(0.5),
     },
   });

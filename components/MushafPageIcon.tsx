@@ -36,6 +36,7 @@ import {
   getQCFSurahNameChar,
 } from '@/constants/surahNameGlyphs';
 import Color from 'color';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 const ICON_PAGE = 604;
 const LINES_PER_PAGE = 15;
@@ -58,8 +59,8 @@ const MushafPageIcon: React.FC<MushafPageIconProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : uthmaniFont === 'v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
 
   // Icon canvas dimensions (slightly taller than square)
   const canvasWidth = size;
@@ -302,7 +303,7 @@ const MushafPageIcon: React.FC<MushafPageIconProps> = ({
                   : (justResult.simpleSpacing - SPACEWIDTH) * scale;
               paragraphBuilder.pushStyle({
                 ...textStyle,
-                letterSpacing: spacing,
+                letterSpacing: latinLetterSpacing(spacing),
               });
               paragraphBuilder.addText(' ');
               paragraphBuilder.pop();

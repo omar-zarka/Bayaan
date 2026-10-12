@@ -31,6 +31,7 @@ import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHe
 import {shuffleArray} from '@/utils/arrayUtils';
 import Color from 'color';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface DownloadDataItem {
   download: DownloadedSurah;
@@ -148,7 +149,7 @@ export default function DownloadsScreen() {
           color: theme.colors.text,
           textAlign: 'center',
           marginBottom: moderateScale(8),
-          letterSpacing: -0.3,
+          letterSpacing: latinLetterSpacing(-0.3),
         },
         subtitle: {
           fontSize: moderateScale(12),

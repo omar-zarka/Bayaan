@@ -1,3 +1,5 @@
+import i18n from '@/i18n';
+import {uiFontFiles} from '@/i18n/fonts';
 import React, {useEffect, useState, useRef, useCallback, useMemo} from 'react';
 import {Stack, useRouter} from 'expo-router';
 import {GestureHandlerRootView} from 'react-native-gesture-handler';
@@ -147,13 +149,7 @@ function RootLayout() {
 
   // Critical fonts — block splash screen on these only
   const [fontsLoaded, fontError] = useFonts({
-    'Manrope-Regular': require('@/assets/fonts/Manrope-Regular.ttf'),
-    'Manrope-Bold': require('@/assets/fonts/Manrope-Bold.ttf'),
-    'Manrope-Medium': require('@/assets/fonts/Manrope-Medium.ttf'),
-    'Manrope-SemiBold': require('@/assets/fonts/Manrope-SemiBold.ttf'),
-    'Manrope-Light': require('@/assets/fonts/Manrope-Light.ttf'),
-    'Manrope-ExtraLight': require('@/assets/fonts/Manrope-ExtraLight.ttf'),
-    'Manrope-ExtraBold': require('@/assets/fonts/Manrope-ExtraBold.ttf'),
+    ...uiFontFiles,
     SurahNames: require('@/assets/fonts/surah_names.ttf'),
     SurahNames2: require('@/assets/fonts/surah_names_2.ttf'),
   });
@@ -332,23 +328,23 @@ function RootLayout() {
           const file = audioFiles[0];
           const recitation = await importFile(
             file.path,
-            file.fileName || 'Shared Audio',
+            file.fileName || i18n.t('app.sharedAudio'),
           );
           resetShareIntent();
           await SplashScreen.hideAsync();
-          showToast('File imported');
+          showToast(i18n.t('app.fileImported'));
           SheetManager.show('organize-recitation', {
             payload: {recitation},
           });
         } else {
           const mapped = audioFiles.map(f => ({
             uri: f.path,
-            name: f.fileName || 'Shared Audio',
+            name: f.fileName || i18n.t('app.sharedAudio'),
           }));
           await importFiles(mapped);
           resetShareIntent();
           await SplashScreen.hideAsync();
-          showToast(`${audioFiles.length} files imported`);
+          showToast(i18n.t('app.filesImported', {count: audioFiles.length}));
           router.push('/collection/uploads');
         }
       } catch (error) {
@@ -414,7 +410,7 @@ function RootLayout() {
     SplashScreen.hideAsync();
     return (
       <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
-        <Text>Error loading fonts</Text>
+        <Text>{i18n.t('app.fontError')}</Text>
       </View>
     );
   }
@@ -423,7 +419,7 @@ function RootLayout() {
     SplashScreen.hideAsync();
     return (
       <View style={{flex: 1, alignItems: 'center', justifyContent: 'center'}}>
-        <Text>Error initializing player: {setupError.message}</Text>
+        <Text>{i18n.t('app.initError', {message: setupError.message})}</Text>
       </View>
     );
   }

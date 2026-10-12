@@ -3,6 +3,7 @@ import {View, Pressable, StyleSheet} from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {Feather} from '@expo/vector-icons';
 import {Theme} from '@/utils/themeUtils';
+import {latinLetterSpacing} from '@/utils/rtl';
 
 interface SectionHeaderProps {
   title: string;
@@ -46,7 +47,7 @@ const styles = StyleSheet.create({
     fontSize: moderateScale(14),
     fontWeight: '600',
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: latinLetterSpacing(0.5),
   },
   toggleButton: {
     padding: moderateScale(4),
