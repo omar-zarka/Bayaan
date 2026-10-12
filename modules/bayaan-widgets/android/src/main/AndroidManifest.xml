@@ -18,5 +18,99 @@
         android:name="android.appwidget.provider"
         android:resource="@xml/continue_listening_info" />
     </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.quicksurah.QuickSurahReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_quick_surah_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/quick_surah_info" />
+    </receiver>
+    <activity
+      android:name="expo.modules.bayaanwidgets.quicksurah.QuickSurahConfigActivity"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+      </intent-filter>
+    </activity>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_pinned_reciter_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/pinned_reciter_info" />
+    </receiver>
+    <activity
+      android:name="expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterConfigActivity"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+      </intent-filter>
+    </activity>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.ayahoftheday.AyahOfTheDayReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_ayah_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/ayah_of_the_day_info" />
+    </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="android.intent.action.TIME_SET" />
+        <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+        <action android:name="android.intent.action.DATE_CHANGED" />
+      </intent-filter>
+    </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.continuereading.ContinueReadingReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_continue_reading_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/continue_reading_info" />
+    </receiver>
+    <receiver
+      android:name="expo.modules.bayaanwidgets.tasbeeh.TasbeehReceiver"
+      android:exported="true"
+      android:label="@string/bayaan_widget_tasbeeh_label">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+      </intent-filter>
+      <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/tasbeeh_info" />
+    </receiver>
+    <activity
+      android:name="expo.modules.bayaanwidgets.tasbeeh.TasbeehConfigActivity"
+      android:exported="true"
+      android:excludeFromRecents="true"
+      android:taskAffinity=""
+      android:theme="@android:style/Theme.Translucent.NoTitleBar">
+      <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_CONFIGURE" />
+      </intent-filter>
+    </activity>
   </application>
 </manifest>

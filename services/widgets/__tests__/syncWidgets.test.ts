@@ -359,6 +359,28 @@ describe('widget snapshot flush', () => {
     expect(mockWriteSnapshot).toHaveBeenCalledTimes(2);
   });
 
+  it('reloads the configured widgets when it caches artwork they may show', async () => {
+    const sync = loadModule();
+    mockChangedKinds.mockReturnValue(['ContinueListening']);
+    mockBuildSnapshot.mockReturnValue({
+      nowPlaying: {track: {surahId: 55, reciterId: '', isUserUpload: false}},
+      upNext: [],
+      recent: [],
+      defaultReciter: null,
+    });
+    mockCacheArtwork.mockImplementation(async (_url, file) => {
+      mockCachedFiles.add(file);
+      return true;
+    });
+    sync.flushWidgetSnapshot();
+    await jest.advanceTimersByTimeAsync(0);
+    expect(mockReloadWidgets).toHaveBeenCalledWith([
+      'QuickSurah',
+      'PinnedReciter',
+      'ContinueReading',
+    ]);
+  });
+
   it('caches the surah card of every track but not of uploads', async () => {
     const sync = loadModule();
     mockBuildSnapshot.mockReturnValue({

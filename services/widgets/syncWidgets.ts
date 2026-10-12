@@ -10,6 +10,7 @@ import {
   addWidgetCommandListener,
   takeQueuedCommands,
   selectFreshCommands,
+  WidgetKind,
   WidgetSnapshot,
 } from 'bayaan-widgets';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -30,6 +31,13 @@ import {handleWidgetCommand} from './handleWidgetCommand';
 
 const DEBOUNCE_MS = 1000;
 const ARTWORK_RETRY_MS = 10 * 60 * 1000;
+// Widgets showing artwork that the snapshot does not reference. They render
+// from the shared artwork cache, so a file cached here can be one they wait on.
+export const ARTWORK_KINDS: WidgetKind[] = [
+  'QuickSurah',
+  'PinnedReciter',
+  'ContinueReading',
+];
 
 let lastSnapshot: WidgetSnapshot | null = null;
 let timer: ReturnType<typeof setTimeout> | null = null;
@@ -115,7 +123,9 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
     // files. The diff against lastSnapshot picks up the new artworkFile.
     ensureArtwork(next)
       .then(added => {
-        if (added) flushWidgetSnapshot();
+        if (!added) return;
+        flushWidgetSnapshot();
+        reloadWidgets(ARTWORK_KINDS);
       })
       .catch(error => {
         console.error('[WidgetSync] Artwork sync failed:', error);

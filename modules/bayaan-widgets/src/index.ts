@@ -2,12 +2,21 @@ import {NativeBayaanWidgets} from './NativeBayaanWidgets';
 import type {WidgetSnapshot} from './snapshot';
 import type {WidgetKind} from './widgetKinds';
 import {parseQueuedCommands, type QueuedWidgetCommand} from './commands';
+import type {WidgetCatalog} from './catalog';
+import {
+  EMPTY_ARTWORK_REQUESTS,
+  parseArtworkRequests,
+  type WidgetArtworkRequests,
+} from './artworkRequests';
 import {parsePendingTasbeeh, type PendingTasbeeh} from './tasbeeh';
 
 export * from './snapshot';
 export * from './commands';
 export * from './tasbeeh';
 export * from './widgetKinds';
+export * from './catalog';
+export * from './artworkRequests';
+export * from './dayMath';
 
 export function isWidgetsAvailable(): boolean {
   return NativeBayaanWidgets !== null;
@@ -42,6 +51,15 @@ export async function cacheArtwork(
 
 export function hasArtwork(fileName: string): boolean {
   return NativeBayaanWidgets?.hasArtwork(fileName) ?? false;
+}
+
+export function writeCatalog(catalog: WidgetCatalog): void {
+  NativeBayaanWidgets?.writeCatalog(JSON.stringify(catalog));
+}
+
+export function readArtworkRequests(): WidgetArtworkRequests {
+  if (!NativeBayaanWidgets) return EMPTY_ARTWORK_REQUESTS;
+  return parseArtworkRequests(NativeBayaanWidgets.readArtworkRequests());
 }
 
 export function addWidgetCommandListener(listener: () => void): {

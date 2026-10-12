@@ -13,6 +13,7 @@
     "test": "jest --watchAll",
     "test:ci": "jest --watchAll=false --ci --reporters=default",
     "test:widget-fixtures": "bash scripts/check-widget-fixtures.sh",
+    "generate:widget-data": "tsx scripts/generate-widget-data.ts",
     "check:rewayah-manifest": "node scripts/rewayah/gen-manifest.mjs --check",
     "eas-build-pre-install": "node scripts/rewayah/gen-manifest.mjs --check",
     "lint": "eslint .",

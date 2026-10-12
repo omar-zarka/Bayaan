@@ -1,7 +1,9 @@
+import pendingFixture from '../__fixtures__/tasbeeh.pending.json';
 import {
   localDayKey,
   mergeTasbeehIncrements,
   parsePendingTasbeeh,
+  planTasbeehOps,
 } from '../tasbeeh';
 
 describe('localDayKey', () => {
@@ -31,6 +33,39 @@ describe('parsePendingTasbeeh', () => {
     expect(parsePendingTasbeeh('x')).toEqual([]);
     expect(
       parsePendingTasbeeh(JSON.stringify([{dhikrId: 'a', count: 1}])),
+    ).toEqual([]);
+  });
+});
+
+describe('planTasbeehOps', () => {
+  it('applies a reset, then the later taps, for today only', () => {
+    const pending = parsePendingTasbeeh(JSON.stringify(pendingFixture));
+    expect(pending).toHaveLength(4);
+    expect(planTasbeehOps(pending, '2026-10-10')).toEqual({
+      '91': {reset: true, increments: 2},
+    });
+  });
+
+  it('sums taps without a reset', () => {
+    expect(
+      planTasbeehOps(
+        [
+          {dhikrId: 'a', count: 1, day: 'd'},
+          {dhikrId: 'a', count: 4, day: 'd'},
+          {dhikrId: 'b', count: 0, day: 'd'},
+        ],
+        'd',
+      ),
+    ).toEqual({a: {reset: false, increments: 5}});
+  });
+});
+
+describe('parsePendingTasbeeh reset flag', () => {
+  it('rejects a non boolean reset', () => {
+    expect(
+      parsePendingTasbeeh(
+        JSON.stringify([{dhikrId: 'a', count: 0, day: 'd', reset: 'yes'}]),
+      ),
     ).toEqual([]);
   });
 });

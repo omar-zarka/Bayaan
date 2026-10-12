@@ -182,4 +182,23 @@ describe('buildSnapshot', () => {
       openingText: 'opening',
     });
   });
+
+  it('labels last read with the surah the mushaf header shows', () => {
+    const headerMap: Record<number, number> = {293: 18};
+    const snap = buildSnapshot(
+      input({
+        lastReadPage: 293,
+        surahIdForPage: page => headerMap[page] ?? null,
+      }),
+    );
+    expect(snap.lastRead?.surahId).toBe(18);
+    expect(snap.lastRead?.surahName).toBe(SURAHS[17].name);
+  });
+
+  it('falls back to the first surah on the page when the header map has no entry', () => {
+    const snap = buildSnapshot(
+      input({lastReadPage: 293, surahIdForPage: () => null}),
+    );
+    expect(snap.lastRead?.surahId).toBe(17);
+  });
 });

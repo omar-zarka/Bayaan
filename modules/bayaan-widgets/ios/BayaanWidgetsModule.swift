@@ -66,12 +66,31 @@ public class BayaanWidgetsModule: Module {
         to: dir.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
+    // ListeningAccessory reads the same snapshot slice as ContinueListening.
     Function("reloadWidgets") { (kinds: [String]) in
-      for kind in kinds { WidgetCenter.shared.reloadTimelines(ofKind: kind) }
+      for kind in kinds {
+        WidgetCenter.shared.reloadTimelines(ofKind: kind)
+        if kind == "ContinueListening" {
+          WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
+        }
+      }
     }
 
     Function("takeQueuedCommands") { () -> String in takeString("widgets.commandQueue") }
     Function("takePendingTasbeeh") { () -> String in takeString("widgets.pendingTasbeeh") }
+
+    Function("writeCatalog") { (json: String) in
+      guard let dir = widgetsDir() else { return }
+      try? json.data(using: .utf8)?.write(
+        to: dir.appendingPathComponent("catalog.json"), options: .atomic)
+    }
+
+    // Written by the widget extension (ArtworkRequestStore); read only, the
+    // app skips files it already cached.
+    Function("readArtworkRequests") { () -> String in
+      guard let id = appGroupId(), let defaults = UserDefaults(suiteName: id) else { return "{}" }
+      return defaults.string(forKey: "widgets.artworkRequests") ?? "{}"
+    }
 
     Function("hasArtwork") { (fileName: String) -> Bool in
       guard let dir = widgetsDir() else { return false }

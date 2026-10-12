@@ -26,6 +26,7 @@ struct SetPlaybackIntent: AudioPlaybackIntent {
     // Optimistic render first, then hand the command to the app.
     PlaybackOverrideStore.write(isPlaying: playing)
     WidgetCenter.shared.reloadTimelines(ofKind: "ContinueListening")
+    WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
     WidgetCommandQueue.enqueue(["type": "setPlayback", "playing": playing])
     return .result()
   }
@@ -39,13 +40,16 @@ struct PlayTrackIntent: AudioPlaybackIntent {
   @Parameter(title: "Surah") var surahId: Int
   @Parameter(title: "Reciter") var reciterId: String?
   @Parameter(title: "Rewayah") var rewayatId: String?
+  // Start from this ayah (Ayah of the Day); nil plays from the start.
+  @Parameter(title: "Ayah") var ayah: Int?
 
   init() {}
 
-  init(surahId: Int, reciterId: String?, rewayatId: String?) {
+  init(surahId: Int, reciterId: String?, rewayatId: String?, ayah: Int? = nil) {
     self.surahId = surahId
     self.reciterId = reciterId
     self.rewayatId = rewayatId
+    self.ayah = ayah
   }
 
   func perform() async throws -> some IntentResult {
@@ -54,8 +58,28 @@ struct PlayTrackIntent: AudioPlaybackIntent {
       "surahId": surahId,
       "reciterId": reciterId ?? NSNull(),
       "rewayatId": rewayatId ?? NSNull(),
-      "ayah": NSNull(),
+      "ayah": ayah ?? NSNull(),
     ])
+    return .result()
+  }
+}
+
+/// Resumes the reciter's last surah (Pinned Reciter).
+@available(iOS 17.0, *)
+struct PlayReciterIntent: AudioPlaybackIntent {
+  static var title: LocalizedStringResource = "Play Reciter"
+  static var isDiscoverable = false
+
+  @Parameter(title: "Reciter") var reciterId: String
+
+  init() {}
+
+  init(reciterId: String) {
+    self.reciterId = reciterId
+  }
+
+  func perform() async throws -> some IntentResult {
+    WidgetCommandQueue.enqueue(["type": "playReciter", "reciterId": reciterId])
     return .result()
   }
 }

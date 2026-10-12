@@ -15,6 +15,7 @@ import {
   StatusBar as RNStatusBar,
   Appearance,
   InteractionManager,
+  Linking,
   type AppStateStatus,
 } from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
@@ -37,6 +38,7 @@ import {NetworkStatusMonitor} from '@/components/NetworkStatusMonitor';
 import {useNetworkMonitor} from '@/hooks/useNetworkMonitor';
 import {PostHogProvider, usePostHog} from 'posthog-react-native';
 import {startWidgetSync} from '@/services/widgets/syncWidgets';
+import {startConfiguredWidgetSync} from '@/services/widgets/syncConfiguredWidgets';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {ExpoAudioProvider} from '@/services/audio';
 import {useShareIntent} from 'expo-share-intent';
@@ -209,7 +211,12 @@ function RootLayout() {
   // stores instead of overwriting the widgets with an empty state.
   useEffect(() => {
     if (!appIsReady) return;
-    return startWidgetSync();
+    const stopSnapshot = startWidgetSync();
+    const stopConfigured = startConfiguredWidgetSync();
+    return () => {
+      stopSnapshot();
+      stopConfigured();
+    };
   }, [appIsReady]);
 
   // Tajweed data — defer until after first frame + interactions complete
@@ -381,21 +388,32 @@ function RootLayout() {
   useEffect(() => {
     if (!appIsReady || !isPlayerReady || hasShareIntent) return;
 
-    const lastScreenWasMushaf = mushafSessionStore.getLastScreenWasMushaf();
-    const lastReadPage = mushafSessionStore.getLastReadPage();
+    let cancelled = false;
+    // A launch from a deep link (widget tap, notification) already routed
+    // to its target; pushing the mushaf on top would hide it.
+    Linking.getInitialURL()
+      .catch(() => null)
+      .then(initialUrl => {
+        if (cancelled) return;
+        const lastScreenWasMushaf = mushafSessionStore.getLastScreenWasMushaf();
+        const lastReadPage = mushafSessionStore.getLastReadPage();
 
-    if (lastScreenWasMushaf) {
-      router.push({
-        pathname: '/mushaf',
-        params: lastReadPage ? {page: String(lastReadPage)} : undefined,
+        if (!lastScreenWasMushaf || initialUrl) {
+          setMushafRestoreHandled(true);
+          return;
+        }
+        router.push({
+          pathname: '/mushaf',
+          params: lastReadPage ? {page: String(lastReadPage)} : undefined,
+        });
+        // Let the navigation animation finish behind the splash before revealing
+        InteractionManager.runAfterInteractions(() => {
+          setMushafRestoreHandled(true);
+        });
       });
-      // Let the navigation animation finish behind the splash before revealing
-      InteractionManager.runAfterInteractions(() => {
-        setMushafRestoreHandled(true);
-      });
-    } else {
-      setMushafRestoreHandled(true);
-    }
+    return () => {
+      cancelled = true;
+    };
   }, [appIsReady, isPlayerReady, hasShareIntent]);
 
   // Hide splash once mushaf restore (if any) has settled.
