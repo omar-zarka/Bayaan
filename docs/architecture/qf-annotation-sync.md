@@ -7,19 +7,24 @@ replace native iOS/Android or two-device provider QA.
 
 ## Signed-out device storage
 
-An explicit sign-out deletes the account's rows from the device, as Quran.com
-web does (`useLogout` clears bookmarks and reading history to prevent leakage
-on shared devices). Sign-out first asks the lifecycle to deliver queued edits
-(bounded to five seconds), stops sync, revokes the session, then deletes the
-account's bookmarks, notes, highlights, reading location, outbox, payload
-blocks, note conflicts and stored head in one transaction. The next sign-in
-pulls the account again from QF. Guest rows and the guest-import ledger
-(decisions and counts only) stay.
+An explicit sign-out deletes the account's synced rows from the device, as
+Quran.com web does (`useLogout` clears bookmarks and reading history to prevent
+leakage on shared devices). Sign-out first asks the lifecycle to deliver queued
+edits (bounded to five seconds), stops sync, revokes the session, then deletes
+the account's bookmarks, notes, reading location, outbox, payload blocks, note
+conflicts and stored head in one transaction. The next sign-in pulls the
+account again from QF. Guest rows and the guest-import ledger (decisions and
+counts only) stay.
 
-Losses to know: edits still queued after the flush window (e.g. signing out
-offline) are dropped, and highlights are not synced by QF, so an account's
-highlights do not come back. A revoked or expired session is not a sign-out
-and keeps the rows for that account's return.
+Highlights stay too, scoped to the account and hidden while signed out: QF does
+not sync them, so the device holds the only copy. They return when the same
+account signs in again. Once highlights sync through QF App State (a
+`highlights` collection, pending QF approval and App State launch), they can
+join the purge.
+
+Edits still queued after the flush window (e.g. signing out offline) are
+dropped. A revoked or expired session is not a sign-out and keeps the rows for
+that account's return.
 
 ## Guest decisions cover rows, not an account's lifetime
 

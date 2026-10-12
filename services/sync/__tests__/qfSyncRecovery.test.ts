@@ -930,7 +930,7 @@ describe('SQLite push recovery store', () => {
     await database.close();
   });
 
-  it('purges exactly one signed-out account and its sync position', async () => {
+  it('purges exactly one signed-out account and its sync position, keeping highlights', async () => {
     const {database, sync, annotations} =
       await createServices('signout-purge.db');
     await sync.initialize();
@@ -975,7 +975,8 @@ describe('SQLite push recovery store', () => {
     };
     expect(await scopes('bookmarks')).toEqual(['guest', 'qf:reader-b']);
     expect(await scopes('notes')).toEqual([]);
-    expect(await scopes('highlights')).toEqual([]);
+    // Highlights are not synced by QF: the account keeps its only copy.
+    expect(await scopes('highlights')).toEqual(['qf:reader-a']);
     expect(await scopes('qf_sync_outbox')).toEqual(['qf:reader-b']);
     expect(await sync.getStoredHead(accountId)).toBe(0);
     await database.close();
