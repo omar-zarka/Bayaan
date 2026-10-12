@@ -22,8 +22,9 @@ account signs in again. Once highlights sync through QF App State (a
 `highlights` collection, pending QF approval and App State launch), they can
 join the purge.
 
-Edits still queued after the flush window (e.g. signing out offline) are
-dropped. A revoked or expired session is not a sign-out and keeps the rows for
+If edits are still queued after the flush window (e.g. signing out offline),
+sign-out asks first ("N changes haven't synced to Quran.com yet and will be
+lost"), with Cancel as the default; they are dropped only if the user confirms. A revoked or expired session is not a sign-out and keeps the rows for
 that account's return.
 
 ## Guest decisions cover rows, not an account's lifetime

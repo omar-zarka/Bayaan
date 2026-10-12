@@ -1,5 +1,5 @@
 import React, {useCallback} from 'react';
-import {ActivityIndicator, Pressable, Text, View} from 'react-native';
+import {ActivityIndicator, Alert, Pressable, Text, View} from 'react-native';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import Color from 'color';
 import {useTheme} from '@/hooks/useTheme';
@@ -17,6 +17,21 @@ import {qfSyncDatabaseService} from '@/services/sync/qfSyncDatabaseService';
 
 // How long sign-out waits for queued edits to reach QF before purging.
 const SIGN_OUT_FLUSH_MS = 5_000;
+
+// Resolves true only when the user accepts losing changes not yet synced.
+function confirmUnsyncedSignOut(count: number): Promise<boolean> {
+  return new Promise(resolve => {
+    Alert.alert(
+      'Unsynced changes',
+      `${count} ${count === 1 ? "change hasn't" : "changes haven't"} synced to Quran.com yet and will be lost if you sign out now.`,
+      [
+        {text: 'Cancel', style: 'cancel', onPress: () => resolve(false)},
+        {text: 'Sign out', style: 'destructive', onPress: () => resolve(true)},
+      ],
+      {cancelable: true, onDismiss: () => resolve(false)},
+    );
+  });
+}
 
 export function QfAccountCard() {
   const {theme} = useTheme();
@@ -41,10 +56,20 @@ export function QfAccountCard() {
     const accountId = useBayaanAuthStore.getState().profile?.accountId ?? null;
     // Best effort: deliver queued edits before this account's rows go.
     qfSyncLifecycle.requestSync();
+    let flushTimer: ReturnType<typeof setTimeout> | undefined;
     await Promise.race([
       qfSyncLifecycle.waitForIdle().catch(() => undefined),
-      new Promise(resolve => setTimeout(resolve, SIGN_OUT_FLUSH_MS)),
+      new Promise(resolve => {
+        flushTimer = setTimeout(resolve, SIGN_OUT_FLUSH_MS);
+      }),
     ]);
+    clearTimeout(flushTimer);
+    if (accountId) {
+      const unsynced = (
+        await qfSyncDatabaseService.getOutboxEntries(accountId).catch(() => [])
+      ).length;
+      if (unsynced > 0 && !(await confirmUnsyncedSignOut(unsynced))) return;
+    }
     const attempt = useBayaanAuthStore.getState().invalidateAttempt();
     await Promise.allSettled([
       qfSyncLifecycle.stop(),
