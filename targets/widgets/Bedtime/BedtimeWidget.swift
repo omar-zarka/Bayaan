@@ -10,7 +10,10 @@ struct BedtimeConfigIntent: WidgetConfigurationIntent {
   @Parameter(title: "Surah") var surah: SurahEntity?
   @Parameter(title: "Reciter") var reciter: ReciterEntity?
   @Parameter(title: "Sleep timer", default: .m30) var minutes: SleepMinutesOption
+  // Compiled out for forks without ambient audio (RFC-021).
+  #if !BAYAAN_NO_FEATURE_AMBIENT
   @Parameter(title: "Ambient sound", default: .off) var ambient: AmbientOption
+  #endif
 }
 
 struct BedtimeSettings: Hashable {
@@ -70,9 +73,14 @@ struct BedtimeProvider: AppIntentTimelineProvider {
 
   private func settings(_ c: BedtimeConfigIntent) -> BedtimeSettings {
     let configured = CatalogStore.load()?.reciter(c.reciter?.id)?.name
+    #if BAYAAN_NO_FEATURE_AMBIENT
+    let ambient = AmbientOption.off
+    #else
+    let ambient = c.ambient
+    #endif
     return BedtimeSettings(surahId: c.surah?.id ?? 67, reciterId: c.reciter?.id,
                            reciterName: configured ?? SnapshotStore.load()?.defaultReciter?.name,
-                           minutes: c.minutes.minutes, ambient: c.ambient)
+                           minutes: c.minutes.minutes, ambient: ambient)
   }
 }
 

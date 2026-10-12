@@ -32,6 +32,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.StaticAyah
@@ -43,7 +44,7 @@ import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import java.util.TimeZone
 
@@ -66,11 +67,11 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
     val root = GlanceModifier.fillMaxSize().background(WidgetColors.BACKGROUND).cornerRadius(20.dp)
     if (ayah == null) {
       Box(root, contentAlignment = Alignment.Center) {
-        Text("Open Bayaan", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
+        Text("Open ${AppBrand.name(context)}", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
       }
       return
     }
-    val open = deepLink(context, "bayaan://quran/${ayah.surahId}?ayah=${ayah.ayah}")
+    val open = appLink(context, "quran/${ayah.surahId}?ayah=${ayah.ayah}")
     val listen = commandAction(context, playTrackCommand(ayah.surahId, null, null, ayah.ayah), "ayah/${ayah.key}")
     val width = size.width.value
     when {

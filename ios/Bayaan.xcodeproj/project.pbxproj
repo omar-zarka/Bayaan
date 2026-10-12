@@ -101,6 +101,7 @@
 		XX3C49F596644F1073CB7FXX /* Exceptions for "widgets" folder in "Bayaan" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				_shared/AppIdentity.swift,
 				_shared/ContentIntents.swift,
 				_shared/PlaybackIntents.swift,
 				_shared/PlaybackResume.swift,
@@ -920,6 +921,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = $accent;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = $widgetBackground;
+				BAYAAN_URL_SCHEME = bayaan;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
@@ -964,6 +966,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = $accent;
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = $widgetBackground;
+				BAYAAN_URL_SCHEME = bayaan;
 				CLANG_ANALYZER_NONNULL = YES;
 				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";

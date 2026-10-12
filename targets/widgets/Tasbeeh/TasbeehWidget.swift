@@ -138,7 +138,7 @@ struct TasbeehView: View {
         } else {
           VStack(spacing: 6) {
             BayaanLogo(size: 20)
-            Text("Open Bayaan to set up Tasbeeh").font(.caption.weight(.semibold)).multilineTextAlignment(.center)
+            Text("Open \(AppBrand.name) to set up Tasbeeh").font(.caption.weight(.semibold)).multilineTextAlignment(.center)
           }
           .padding(12)
         }
@@ -148,7 +148,7 @@ struct TasbeehView: View {
     .containerBackground(for: .widget) {
       if family == .accessoryCircular { AccessoryWidgetBackground() } else { WidgetPalette.background }
     }
-    .widgetURL(URL(string: "bayaan://adhkar"))
+    .widgetURL(AppLinks.url("adhkar"))
   }
 
   private func dhikrText(_ dhikr: WidgetCatalogDhikr, size: CGFloat, alignment: TextAlignment) -> some View {

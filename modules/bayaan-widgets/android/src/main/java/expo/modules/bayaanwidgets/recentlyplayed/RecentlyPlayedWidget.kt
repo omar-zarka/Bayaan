@@ -22,6 +22,7 @@ import androidx.glance.layout.height
 import androidx.glance.layout.padding
 import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.RecentShelf
@@ -33,7 +34,7 @@ import expo.modules.bayaanwidgets.ui.SurahTile
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import expo.modules.bayaanwidgets.ui.recordMissingArtwork
 
@@ -58,9 +59,9 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
   @Composable
   private fun Content(context: Context, shelf: RecentShelf) {
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
-    val root = contentRoot().clickable(deepLink(context, "bayaan://player"))
+    val root = contentRoot().clickable(appLink(context, "player"))
     if (shelf.tracks.isEmpty()) {
-      ContentMessage(root, "Open Bayaan", "Your recent surahs show here")
+      ContentMessage(root, "Open ${AppBrand.name(context)}", "Your recent surahs show here")
       return
     }
     Column(root.padding(14.dp)) {

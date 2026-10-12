@@ -95,16 +95,32 @@ export function occasionFor(
   return weekday === FRIDAY && hour < JUMUAH_END_HOUR ? 'jumuah' : null;
 }
 
+/**
+ * Cards a fork can turn off with feature flags (RFC-021): `adhkar` for the
+ * adhkar cards, `sleepTimer` for the bedtime card. Their hours fall back to
+ * listening.
+ */
+export interface BayaanNowCards {
+  adhkar: boolean;
+  bedtime: boolean;
+}
+
+export const ALL_BAYAAN_NOW_CARDS: Readonly<BayaanNowCards> = {
+  adhkar: true,
+  bedtime: true,
+};
+
 export function bayaanNowMode(
   hour: number,
   isPlaying: boolean,
   occasion: OccasionId | null,
+  cards: Readonly<BayaanNowCards> = ALL_BAYAAN_NOW_CARDS,
 ): BayaanNowMode {
   if (isPlaying) return 'listening';
   if (occasion !== null) return 'occasion';
-  if (hour >= 4 && hour < 11) return 'morningAdhkar';
-  if (hour >= 15 && hour < 20) return 'eveningAdhkar';
-  if (hour >= 21 || hour < 4) return 'bedtime';
+  if (cards.adhkar && hour >= 4 && hour < 11) return 'morningAdhkar';
+  if (cards.adhkar && hour >= 15 && hour < 20) return 'eveningAdhkar';
+  if (cards.bedtime && (hour >= 21 || hour < 4)) return 'bedtime';
   return 'listening';
 }
 

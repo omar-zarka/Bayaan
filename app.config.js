@@ -232,6 +232,7 @@ module.exports = {
       './withIOSTeam.js',
       './plugins/withBayaanCar.js',
       './plugins/withAppShortcuts.js',
+      './plugins/withBayaanWidgets.js',
     ],
   },
 };

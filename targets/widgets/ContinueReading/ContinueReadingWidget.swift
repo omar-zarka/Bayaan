@@ -54,7 +54,7 @@ struct ContinueReadingView: View {
       .containerBackground(for: .widget) {
         if family == .accessoryRectangular { Color.clear } else { WidgetPalette.background }
       }
-      .widgetURL(URL(string: "bayaan://mushaf/\(page)"))
+      .widgetURL(AppLinks.url("mushaf/\(page)"))
   }
 
   @ViewBuilder private var content: some View {

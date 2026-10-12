@@ -38,6 +38,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextAlign
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.CatalogDhikr
 import expo.modules.bayaanwidgets.CatalogModels
@@ -54,7 +55,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.dpToPx
 import java.util.TimeZone
 
@@ -80,7 +81,7 @@ class TasbeehWidget : GlanceAppWidget() {
       Column(root.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically) {
         Logo(20)
         Spacer(GlanceModifier.height(6.dp))
-        Text("Open Bayaan to set up Tasbeeh", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center))
+        Text("Open ${AppBrand.name(context)} to set up Tasbeeh", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center))
       }
       return
     }
@@ -93,7 +94,7 @@ class TasbeehWidget : GlanceAppWidget() {
     val size = LocalSize.current
     if (size.width >= WidgetSizes.MEDIUM.width) {
       val reset = actionRunCallback<ResetTasbeehAction>(actionParametersOf(TasbeehActions.DHIKR_ID to dhikr.id))
-      Row(root.padding(14.dp).clickable(deepLink(context, "bayaan://adhkar")), verticalAlignment = Alignment.CenterVertically) {
+      Row(root.padding(14.dp).clickable(appLink(context, "adhkar")), verticalAlignment = Alignment.CenterVertically) {
         Box(GlanceModifier.clickable(increment)) { Ring(context, count, dhikr.repeatCount, 84) }
         Spacer(GlanceModifier.width(14.dp))
         Column(GlanceModifier.defaultWeight().fillMaxHeight(), horizontalAlignment = Alignment.End) {

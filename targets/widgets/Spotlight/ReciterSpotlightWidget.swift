@@ -57,7 +57,7 @@ struct ReciterSpotlightView: View {
       if let r = entry.reciter {
         if family == .systemSmall { small(r) } else { medium(r) }
       } else {
-        ContentMessage(title: "Open Bayaan", detail: "to meet today's reciter")
+        ContentMessage(title: "Open \(AppBrand.name)", detail: "to meet today's reciter")
       }
     }
     .foregroundStyle(.white)

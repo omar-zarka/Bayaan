@@ -37,6 +37,7 @@ import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.R
 import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.StaticData
+import expo.modules.bayaanwidgets.WidgetFeatures
 import expo.modules.bayaanwidgets.WidgetInputs
 import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.RoundButton
@@ -66,7 +67,9 @@ class BedtimeWidget : GlanceAppWidget() {
 
 /** The Bedtime widget body; Bayaan Now shows it with ContentConfigJson.DEFAULT_BEDTIME. */
 @Composable
-fun BedtimeContent(context: Context, config: BedtimeConfig, inputs: WidgetInputs) {
+fun BedtimeContent(context: Context, configured: BedtimeConfig, inputs: WidgetInputs) {
+  // Without ambient audio (RFC-021) a stored sound is neither shown nor sent.
+  val config = if (WidgetFeatures.ambient(context)) configured else configured.copy(ambient = null)
   val content = remember(inputs.contentJson) { inputs.contentJson?.let { ContentModels.decodeContent(it) } }
   val catalog = remember(inputs.catalogJson) { inputs.catalogJson?.let { CatalogModels.decode(it) } }
   val snapshot = remember(inputs.snapshotJson) { inputs.snapshotJson?.let { SnapshotModels.decode(it) } }

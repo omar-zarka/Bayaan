@@ -5,7 +5,7 @@ import ImageIO
 import SwiftUI
 import WidgetKit
 
-private let playerURL = URL(string: "bayaan://player")!
+private let playerURL = AppLinks.url("player")!
 
 /// Now Playing Live Activity: Lock Screen (also StandBy, scaled by the system)
 /// and Dynamic Island. Started and updated by the app (NowPlayingActivityBridge).

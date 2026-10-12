@@ -30,6 +30,7 @@ import androidx.glance.state.GlanceStateDefinition
 import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ContentConfigJson
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.ContentModels
@@ -45,7 +46,7 @@ import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playPlaylistCommand
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import expo.modules.bayaanwidgets.ui.recordMissingArtwork
@@ -88,7 +89,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
     when (state) {
       is LibraryShelfState.Downloads -> {
-        val root = contentRoot().clickable(deepLink(context, "bayaan://collection/downloads"))
+        val root = contentRoot().clickable(appLink(context, "collection/downloads"))
         if (state.items.isEmpty()) {
           ContentMessage(root, "No downloads yet", "Downloaded surahs show here")
           return
@@ -100,7 +101,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
       }
       is LibraryShelfState.Playlist -> {
         val p = state.playlist
-        val root = contentRoot().clickable(deepLink(context, "bayaan://collection/playlists"))
+        val root = contentRoot().clickable(appLink(context, "collection/playlists"))
         val playAll = commandAction(context, playPlaylistCommand(p.id, null), "library/playlist/${p.id}")
         val header: @Composable () -> Unit = {
           ShelfHeader(p.name, ContentLogic.surahCount(p.itemCount)) { RoundButton(android.R.drawable.ic_media_play, "Play ${p.name}", playAll) }
@@ -109,7 +110,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
           Column(root.padding(14.dp)) {
             header()
             Spacer(GlanceModifier.defaultWeight())
-            Text("Open the playlist in Bayaan", style = TextStyle(color = WidgetColors.TERTIARY, fontSize = 12.sp))
+            Text("Open the playlist in ${AppBrand.name(context)}", style = TextStyle(color = WidgetColors.TERTIARY, fontSize = 12.sp))
             Spacer(GlanceModifier.defaultWeight())
           }
           return
@@ -120,7 +121,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
       }
       LibraryShelfState.PlaylistUnavailable ->
         ContentMessage(contentRoot().clickable(configure(context, appWidgetId)), "Playlist unavailable", "Tap to choose another")
-      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", "to load your library")
+      LibraryShelfState.NoContent -> ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", "to load your library")
     }
   }
 

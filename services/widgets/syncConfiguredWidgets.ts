@@ -25,6 +25,7 @@ import {
 } from './buildSnapshot';
 import {buildCatalog, TASBEEH_ADHKAR} from './buildCatalog';
 import {ARTWORK_KINDS, flushWidgetSnapshot} from './syncWidgets';
+import {enabledKinds, isWidgetEnabled} from './enabledWidgets';
 
 // Quick Surah defaults, Pinned Reciter's popular rows, Continue Reading's empty state.
 export const ALWAYS_CACHED_SURAHS: readonly number[] = [1, 18, 36, 56, 67];
@@ -90,17 +91,20 @@ export async function ensureConfiguredArtwork(): Promise<boolean> {
       artworkInFlight.delete(url);
     }
   }
-  if (added) reloadWidgets(ARTWORK_KINDS);
+  if (added) reloadWidgets(enabledKinds(ARTWORK_KINDS));
   return added;
 }
 
 export function syncCatalog(): void {
   try {
-    const catalog = buildCatalog(RECITERS, TASBEEH_ADHKAR);
+    const catalog = buildCatalog(
+      RECITERS,
+      isWidgetEnabled('Tasbeeh') ? TASBEEH_ADHKAR : [],
+    );
     const json = JSON.stringify(catalog);
     if (json === lastCatalogJson) return;
     writeCatalog(catalog);
-    reloadWidgets(CATALOG_KINDS);
+    reloadWidgets(enabledKinds(CATALOG_KINDS));
     lastCatalogJson = json;
   } catch (error) {
     console.error('[WidgetSync] Failed to write the widget catalog:', error);

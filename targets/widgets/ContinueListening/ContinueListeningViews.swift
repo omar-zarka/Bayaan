@@ -3,7 +3,7 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-private let deepLinkPlayer = URL(string: "bayaan://player")!
+private let deepLinkPlayer = AppLinks.url("player")!
 
 // Fixed near-black in both appearances, like Podcasts and Spotify, so the
 // artwork is the only color and white text always has contrast.

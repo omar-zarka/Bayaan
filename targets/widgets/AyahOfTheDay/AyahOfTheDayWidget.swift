@@ -51,12 +51,12 @@ struct AyahOfTheDayView: View {
       if let ayah = entry.ayah {
         content(ayah)
       } else {
-        Text("Open Bayaan").font(.caption.weight(.semibold))
+        Text("Open \(AppBrand.name)").font(.caption.weight(.semibold))
       }
     }
     .foregroundStyle(.white)
     .containerBackground(for: .widget) { WidgetPalette.background }
-    .widgetURL(entry.ayah.flatMap { URL(string: "bayaan://quran/\($0.surahId)?ayah=\($0.ayah)") })
+    .widgetURL(entry.ayah.flatMap { AppLinks.url("quran/\($0.surahId)?ayah=\($0.ayah)") })
   }
 
   @ViewBuilder private func content(_ ayah: StaticAyah) -> some View {

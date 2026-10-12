@@ -29,6 +29,7 @@ import {
 import {collectSnapshotInput} from './collectSnapshotInput';
 import {handleWidgetCommand} from './handleWidgetCommand';
 import {noteSnapshotForLiveActivity} from './live-activity/syncLiveActivity';
+import {enabledKinds} from './enabledWidgets';
 
 const DEBOUNCE_MS = 1000;
 const ARTWORK_RETRY_MS = 10 * 60 * 1000;
@@ -146,7 +147,7 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
         : changed;
     if (kinds.length === 0) return;
     writeSnapshot(next);
-    reloadWidgets(kinds);
+    reloadWidgets(enabledKinds(kinds));
     lastSnapshot = next;
     notifySnapshotListeners(prev, next);
     noteSnapshotForLiveActivity(next);
@@ -156,7 +157,7 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
       .then(added => {
         if (!added) return;
         flushWidgetSnapshot();
-        reloadWidgets(ARTWORK_KINDS);
+        reloadWidgets(enabledKinds(ARTWORK_KINDS));
       })
       .catch(error => {
         console.error('[WidgetSync] Artwork sync failed:', error);

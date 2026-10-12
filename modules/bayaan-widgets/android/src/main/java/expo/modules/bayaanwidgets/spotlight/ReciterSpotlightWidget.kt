@@ -33,6 +33,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.ContentModels
 import expo.modules.bayaanwidgets.GlanceState
@@ -48,7 +49,7 @@ import expo.modules.bayaanwidgets.ui.SurahCard
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.contentRoot
 import expo.modules.bayaanwidgets.ui.playReciterCommand
 import expo.modules.bayaanwidgets.ui.playTrackCommand
@@ -77,7 +78,7 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
   @Composable
   private fun Content(context: Context, r: WidgetSpotlightReciter?) {
     if (r == null) {
-      ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", "to meet today's reciter")
+      ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", "to meet today's reciter")
       return
     }
     val play = commandAction(context, playReciterCommand(r.id), "spotlight/${r.id}")

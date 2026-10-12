@@ -10,6 +10,8 @@
 	</array>
 	<key>BayaanAppGroup</key>
 	<string>group.com.bayaan.app</string>
+	<key>BayaanURLScheme</key>
+	<string>bayaan</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

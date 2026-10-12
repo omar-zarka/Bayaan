@@ -27,6 +27,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.ContentStaticData
@@ -41,7 +42,7 @@ import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.commandAction
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import expo.modules.bayaanwidgets.ui.playTrackCommand
 import java.util.TimeZone
 
@@ -66,7 +67,7 @@ fun OccasionContent(context: Context, nowMs: Long) {
   val data = ContentStaticData.occasions(context)
   val hijri = ContentLogic.hijri(nowMs, tz, IcuHijri)
   if (data == null || hijri == null) {
-    ContentMessage(contentRoot().clickable(deepLink(context, "bayaan://")), "Open Bayaan", null)
+    ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", null)
     return
   }
   val size = LocalSize.current
@@ -81,7 +82,7 @@ fun OccasionContent(context: Context, nowMs: Long) {
       ?: playTrackCommand(ayah.surahId, null, null, ayah.ayah)
     val listenLabel = if (occasion.listenSurahId == null) "Listen" else "Listen to Al-Kahf"
     val listen = commandAction(context, command, "occasion/${occasion.id}/${ayah.key}")
-    val open = deepLink(context, "bayaan://quran/${ayah.surahId}?ayah=${ayah.ayah}")
+    val open = appLink(context, "quran/${ayah.surahId}?ayah=${ayah.ayah}")
     val pad = if (large) 16 else 14
     Column(contentRoot().padding(pad.dp).clickable(open)) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -104,7 +105,7 @@ fun OccasionContent(context: Context, nowMs: Long) {
     return
   }
   val upcoming = ContentLogic.nextOccasions(DayMath.dayNumber(nowMs, tz), if (large) 3 else 2, IcuHijri)
-  Column(contentRoot().padding(14.dp).clickable(deepLink(context, "bayaan://"))) {
+  Column(contentRoot().padding(14.dp).clickable(appLink(context, ""))) {
     Row(GlanceModifier.fillMaxWidth()) {
       Text(hijriText, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
         style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))

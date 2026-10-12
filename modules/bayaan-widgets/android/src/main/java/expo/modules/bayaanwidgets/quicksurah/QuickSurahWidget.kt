@@ -35,6 +35,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.CatalogModels
 import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.SnapshotModels
@@ -98,7 +99,7 @@ class QuickSurahWidget : GlanceAppWidget() {
     val first = surahs.firstOrNull()
     if (first == null) {
       Box(root.padding(14.dp), contentAlignment = Alignment.Center) {
-        Text("Open Bayaan to set up", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
+        Text("Open ${AppBrand.name(context)} to set up", style = TextStyle(color = WidgetColors.WHITE, fontWeight = FontWeight.Medium))
       }
       return
     }

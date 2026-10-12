@@ -24,6 +24,7 @@ import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import expo.modules.bayaanwidgets.AppBrand
 import expo.modules.bayaanwidgets.ArabicBitmap
 import expo.modules.bayaanwidgets.ContentLogic
 import expo.modules.bayaanwidgets.ContentStaticData
@@ -34,7 +35,7 @@ import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.contentRoot
-import expo.modules.bayaanwidgets.ui.deepLink
+import expo.modules.bayaanwidgets.ui.appLink
 import java.util.TimeZone
 
 class HijriDateWidget : GlanceAppWidget() {
@@ -59,7 +60,7 @@ fun HijriSmallContent(context: Context, nowMs: Long) {
   val hijri = ContentLogic.hijri(nowMs, tz, IcuHijri)
   val month = hijri?.let { data?.month(it.month) }
   val occasion = data?.occasion(ContentLogic.occasionAt(nowMs, tz, IcuHijri))
-  Column(contentRoot().padding(12.dp).clickable(deepLink(context, "bayaan://"))) {
+  Column(contentRoot().padding(12.dp).clickable(appLink(context, ""))) {
     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
       if (month != null) ArabicText(context, month.arabic, ArabicBitmap.DHIKR_FONT, 72f, 22f, 15f, 10f, 1, center = false)
       Spacer(GlanceModifier.defaultWeight())
@@ -67,7 +68,7 @@ fun HijriSmallContent(context: Context, nowMs: Long) {
     }
     Spacer(GlanceModifier.defaultWeight())
     if (hijri == null) {
-      Text("Open Bayaan", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+      Text("Open ${AppBrand.name(context)}", style = TextStyle(color = WidgetColors.WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
     } else {
       Text(hijri.day.toString(), style = TextStyle(color = WidgetColors.WHITE, fontSize = 40.sp, fontWeight = FontWeight.Bold))
       Text("${month?.name ?: ""} ${hijri.year} AH", maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))

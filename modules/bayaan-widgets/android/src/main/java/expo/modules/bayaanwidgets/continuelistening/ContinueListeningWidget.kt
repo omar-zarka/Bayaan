@@ -51,6 +51,7 @@ import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
+import expo.modules.bayaanwidgets.AppLinks
 import expo.modules.bayaanwidgets.OverrideExpiryWorker
 import expo.modules.bayaanwidgets.WidgetCommandActivity
 import expo.modules.bayaanwidgets.PlaybackOverride
@@ -159,7 +160,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
   private fun Content(context: Context, s: WidgetSnapshot?, override: PlaybackOverride?) {
     val track = s?.nowPlaying?.track ?: s?.recent?.firstOrNull() ?: s?.upNext?.firstOrNull()
     val openPlayer = actionStartActivity(
-      Intent(Intent.ACTION_VIEW, Uri.parse("bayaan://player")).setPackage(context.packageName),
+      Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.url(context, "player"))).setPackage(context.packageName),
     )
 
     Box(

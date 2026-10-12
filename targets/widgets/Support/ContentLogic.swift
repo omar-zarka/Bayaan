@@ -85,12 +85,13 @@ enum ContentLogic {
              hour: hour(date, timeZone: timeZone))
   }
 
-  static func mode(hour: Int, isPlaying: Bool, occasion: String?) -> BayaanNowMode {
+  /// `adhkar` and `bedtime` turn those cards off (RFC-021); their hours fall back to listening.
+  static func mode(hour: Int, isPlaying: Bool, occasion: String?, adhkar: Bool = true, bedtime: Bool = true) -> BayaanNowMode {
     if isPlaying { return .listening }
     if occasion != nil { return .occasion }
-    if hour >= 4 && hour < 11 { return .morningAdhkar }
-    if hour >= 15 && hour < 20 { return .eveningAdhkar }
-    if hour >= 21 || hour < 4 { return .bedtime }
+    if adhkar && hour >= 4 && hour < 11 { return .morningAdhkar }
+    if adhkar && hour >= 15 && hour < 20 { return .eveningAdhkar }
+    if bedtime && (hour >= 21 || hour < 4) { return .bedtime }
     return .listening
   }
 

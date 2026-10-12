@@ -81,7 +81,7 @@ struct LibraryShelfView: View {
           VStack(alignment: .leading, spacing: 10) {
             header
             Spacer(minLength: 0)
-            Text("Open the playlist in Bayaan").font(.caption).opacity(0.6)
+            Text("Open the playlist in \(AppBrand.name)").font(.caption).opacity(0.6)
             Spacer(minLength: 0)
           }
           .padding(14)
@@ -91,7 +91,7 @@ struct LibraryShelfView: View {
       case .playlistUnavailable:
         ContentMessage(title: "Playlist unavailable", detail: "Edit the widget to choose another")
       case .noContent:
-        ContentMessage(title: "Open Bayaan", detail: "to load your library")
+        ContentMessage(title: "Open \(AppBrand.name)", detail: "to load your library")
       }
     }
     .foregroundStyle(.white)
@@ -101,8 +101,8 @@ struct LibraryShelfView: View {
 
   private var url: URL? {
     switch entry.state {
-    case .downloads: return URL(string: "bayaan://collection/downloads")
-    case .playlist, .playlistUnavailable: return URL(string: "bayaan://collection/playlists")
+    case .downloads: return AppLinks.url("collection/downloads")
+    case .playlist, .playlistUnavailable: return AppLinks.url("collection/playlists")
     case .noContent: return nil
     }
   }

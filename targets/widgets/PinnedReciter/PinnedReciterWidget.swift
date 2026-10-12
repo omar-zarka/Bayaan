@@ -17,7 +17,7 @@ struct PinnedReciterEntry: TimelineEntry {
 
 struct PinnedReciterProvider: AppIntentTimelineProvider {
   func placeholder(in context: Context) -> PinnedReciterEntry {
-    PinnedReciterEntry(date: .now, state: .ready(id: "", name: "Bayaan", artworkFile: nil, rows: []))
+    PinnedReciterEntry(date: .now, state: .ready(id: "", name: AppBrand.name, artworkFile: nil, rows: []))
   }
 
   func snapshot(for configuration: PinnedReciterConfigIntent, in context: Context) async -> PinnedReciterEntry {

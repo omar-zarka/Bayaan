@@ -66,12 +66,12 @@ struct AdhkarView: View {
       if let data = entry.data, let dhikr = entry.featured {
         if family == .systemSmall { small(data, dhikr) } else { medium(data, dhikr) }
       } else {
-        ContentMessage(title: "Open Bayaan")
+        ContentMessage(title: "Open \(AppBrand.name)")
       }
     }
     .foregroundStyle(.white)
     .containerBackground(for: .widget) { WidgetPalette.background }
-    .widgetURL(entry.data.flatMap { URL(string: "bayaan://adhkar/\($0.superId)") })
+    .widgetURL(entry.data.flatMap { AppLinks.url("adhkar/\($0.superId)") })
   }
 
   private func small(_ data: AdhkarPeriodData, _ dhikr: FeaturedDhikr) -> some View {
