@@ -40,7 +40,7 @@ leaves that surah alone.
 
 Each annotation sync cycle, after its push, lists the documents and merges
 each surah per verse against the copy last synced (`qf_highlight_sync`, added
-by `user_sync_v4`): a side that left a verse unchanged takes the other side's
+by `user_sync_v5`): a side that left a verse unchanged takes the other side's
 value, and when both changed the same verse this device wins. The merge is
 written locally only if the surah still matches what was read (an edit
 mid-sync waits for the next round), then to QF with `If-Match` (or

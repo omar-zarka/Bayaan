@@ -4,7 +4,7 @@ import {cleanUpLegacyNotes} from '../migrations/legacyNotesCleanup';
 import {migrateUserSyncV1} from '../migrations/userSyncV1';
 import {migrateUserSyncV2} from '../migrations/userSyncV2';
 import {migrateUserSyncV3} from '../migrations/userSyncV3';
-import {migrateUserSyncV4} from '../migrations/userSyncV4';
+import {migrateUserSyncV5} from '../migrations/userSyncV5';
 
 jest.mock('expo-sqlite', () => ({openDatabaseAsync: jest.fn()}));
 jest.mock('../migrations/legacyNotesCleanup', () => ({
@@ -13,7 +13,7 @@ jest.mock('../migrations/legacyNotesCleanup', () => ({
 jest.mock('../migrations/userSyncV1', () => ({migrateUserSyncV1: jest.fn()}));
 jest.mock('../migrations/userSyncV2', () => ({migrateUserSyncV2: jest.fn()}));
 jest.mock('../migrations/userSyncV3', () => ({migrateUserSyncV3: jest.fn()}));
-jest.mock('../migrations/userSyncV4', () => ({migrateUserSyncV4: jest.fn()}));
+jest.mock('../migrations/userSyncV5', () => ({migrateUserSyncV5: jest.fn()}));
 
 const mockDb = {closeAsync: jest.fn()};
 const handle = mockDb as unknown as SQLite.SQLiteDatabase;
@@ -23,7 +23,7 @@ const migrations = [
   ['user sync v1', jest.mocked(migrateUserSyncV1)],
   ['user sync v2', jest.mocked(migrateUserSyncV2)],
   ['user sync v3', jest.mocked(migrateUserSyncV3)],
-  ['user sync v4', jest.mocked(migrateUserSyncV4)],
+  ['user sync v5', jest.mocked(migrateUserSyncV5)],
 ] as const;
 
 function deferred<T>() {
@@ -190,8 +190,8 @@ describe('VerseAnnotationDatabase initialization', () => {
     expect(openDatabase).toHaveBeenNthCalledWith(2, 'recovery.db');
     expect(mockDb.closeAsync).toHaveBeenCalledTimes(1);
     expect(recoveredDb.closeAsync).not.toHaveBeenCalled();
-    expect(migrateUserSyncV4).toHaveBeenCalledTimes(1);
-    expect(migrateUserSyncV4).toHaveBeenCalledWith(recoveredHandle);
+    expect(migrateUserSyncV5).toHaveBeenCalledTimes(1);
+    expect(migrateUserSyncV5).toHaveBeenCalledWith(recoveredHandle);
   });
 
   it('still allows reopening after closing a successfully initialized instance', async () => {

@@ -46,7 +46,7 @@ type GuestImport =
 interface Services {
   mock: MockModule;
   v3Version: string;
-  v4Version: string;
+  v5Version: string;
   database: AnnotationDatabase;
   annotations: Annotations;
   sync: SyncDatabase;
@@ -72,7 +72,7 @@ const TAGS = ['v2.1.2', 'v2.2.1', FIRST_LAUNCH_TAG, 'v2.3.0'];
 const LEGACY = ['shouba', 'bazzi', 'qumbul', 'qaloon', 'doori', 'soosi'];
 const ANNOTATION_TABLES = ['bookmarks', 'notes', 'highlights'];
 const ORPHAN = 'notes_new';
-// Tables userSyncV1 to V4 create. None may hold rows for guest data: guest
+// Tables userSyncV1 to V5 create. None may hold rows for guest data: guest
 // annotations reach the outbox only through an explicit signed-in merge
 // (qfGuestImportService.merge), never during the migration.
 const SYNC_TABLES = [
@@ -164,7 +164,7 @@ function loadServices(copyTag: string | null, shared?: MockModule): Services {
     result = {
       mock,
       v3Version: require('../migrations/userSyncV3').USER_SYNC_V3_VERSION,
-      v4Version: require('../migrations/userSyncV4').USER_SYNC_V4_VERSION,
+      v5Version: require('../migrations/userSyncV5').USER_SYNC_V5_VERSION,
       database: require('../VerseAnnotationDatabase').verseAnnotationDatabase,
       annotations: require('../VerseAnnotationDatabaseService')
         .verseAnnotationDatabaseService,
@@ -371,7 +371,7 @@ describe.each(TAGS)('userSyncV1 on %s verse-annotations.db', tag => {
         USER_SYNC_V1_VERSION,
         USER_SYNC_V2_VERSION,
         s.v3Version,
-        s.v4Version,
+        s.v5Version,
       ].sort(),
     );
   });
