@@ -56,6 +56,8 @@ export interface CarSnapshotInput {
   surahToJuz: Record<number, number>;
   resolveReciterArtwork: (reciter: Reciter) => CarArtwork;
   surahArtworkBase?: string;
+  /** False when the fork turns off `userUploads` (RFC-021): no Uploads row. */
+  uploadsEnabled?: boolean;
 }
 
 export const DEFAULT_SURAH_ARTWORK_BASE =
@@ -526,6 +528,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const moreFrom = buildMoreFrom(top, input.surahs, input.recentTracks);
   const loved = buildLovedList(input);
   const downloads = buildDownloadsList(input);
+  const uploadsEnabled = input.uploadsEnabled ?? true;
   const uploads = buildUploadsList(input);
   const playlists = playlistEntries(input, nonEmptyListIds);
 
@@ -604,7 +607,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
   const lists: Record<string, CarList> = {
     loved,
     downloads,
-    uploads,
+    ...(uploadsEnabled ? {uploads} : {}),
     playlists: {id: 'playlists', title: 'Playlists', items: playlists},
     'favorite-reciters': {
       id: 'favorite-reciters',
@@ -616,7 +619,7 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
     lists[list.id] = list;
   });
 
-  const library: CarItem[] = [
+  const libraryAll: CarItem[] = [
     {
       id: 'lib:loved',
       title: 'Loved',
@@ -656,6 +659,9 @@ export function buildCarSnapshot(input: CarSnapshotInput): CarSnapshot {
       },
     },
   ];
+  const library = uploadsEnabled
+    ? libraryAll
+    : libraryAll.filter(item => item.id !== 'lib:uploads');
 
   const juzMap = new Map<number, number[]>();
   input.surahs.forEach(s => {

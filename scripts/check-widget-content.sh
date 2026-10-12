@@ -72,6 +72,11 @@ for c in v["mode"] as! [[String: Any]] {
   precondition(mode.rawValue == c["expect"] as! String, "mode \(c)")
   precondition(close(ContentLogic.relevance(mode: mode, isPlaying: playing), c["relevance"] as! Double), "relevance \(c)")
 }
+// RFC-021: cards a fork turns off fall back to listening (same as contextRules.test.ts).
+precondition(ContentLogic.mode(hour: 8, isPlaying: false, occasion: nil, adhkar: false) == .listening, "mode without adhkar")
+precondition(ContentLogic.mode(hour: 17, isPlaying: false, occasion: nil, adhkar: false) == .listening, "mode without adhkar")
+precondition(ContentLogic.mode(hour: 22, isPlaying: false, occasion: nil, bedtime: false) == .listening, "mode without bedtime")
+precondition(ContentLogic.mode(hour: 22, isPlaying: false, occasion: nil, adhkar: false) == .bedtime, "bedtime without adhkar")
 for p in v["adhkarRelevance"] as! [[Any]] { precondition(close(ContentLogic.adhkarRelevance(hour: p[0] as! Int), p[1] as! Double), "adhkarRelevance \(p)") }
 for p in v["occasionRelevance"] as! [[Any]] { precondition(close(ContentLogic.occasionRelevance(p[0] as? String), p[1] as! Double), "occasionRelevance \(p)") }
 for p in v["bedtimeRelevance"] as! [[Any]] { precondition(close(ContentLogic.bedtimeRelevance(hour: p[0] as! Int), p[1] as! Double), "bedtimeRelevance \(p)") }

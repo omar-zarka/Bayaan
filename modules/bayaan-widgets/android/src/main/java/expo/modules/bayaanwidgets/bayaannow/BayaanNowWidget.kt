@@ -2,6 +2,7 @@
 package expo.modules.bayaanwidgets.bayaannow
 
 import expo.modules.bayaanwidgets.AppBrand
+import expo.modules.bayaanwidgets.WidgetFeatures
 import android.content.Context
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
@@ -86,7 +87,10 @@ class BayaanNowWidget : GlanceAppWidget() {
     val tz = TimeZone.getDefault()
     val snapshot = remember(inputs.snapshotJson) { inputs.snapshotJson?.let { SnapshotModels.decode(it) } }
     val playing = ContentLogic.playingAt(snapshot, now)
-    val mode = ContentLogic.mode(ContentLogic.hour(now, tz), playing, ContentLogic.occasionAt(now, tz, IcuHijri))
+    val mode = ContentLogic.mode(
+      ContentLogic.hour(now, tz), playing, ContentLogic.occasionAt(now, tz, IcuHijri),
+      adhkar = WidgetFeatures.adhkar(context), bedtime = WidgetFeatures.sleepTimer(context),
+    )
     val small = LocalSize.current.width < WidgetSizes.MEDIUM.width
     when (mode) {
       BayaanNowMode.LISTENING -> NowPlayingCard(context, snapshot, now)

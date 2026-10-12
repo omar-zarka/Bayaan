@@ -10,6 +10,8 @@ const {
   resolveWidgetConfig,
   applyWidgetBuildSettings,
   renderAndroidValues,
+  compilationConditions,
+  loadForkSources,
 } = require('../withBayaanWidgets');
 
 const ROOT = path.join(__dirname, '..', '..');
@@ -85,7 +87,107 @@ describe('applyWidgetBuildSettings', () => {
   });
 });
 
+const QARIAH = {
+  widgets: undefined,
+  flags: {adhkar: false, ambientAudioOverlay: false, sleepTimer: true},
+};
+
+function swiftSources(dir) {
+  return fs.readdirSync(dir, {withFileTypes: true}).flatMap(entry => {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) return swiftSources(full);
+    return entry.name.endsWith('.swift') ? [fs.readFileSync(full, 'utf8')] : [];
+  });
+}
+
+describe('enabled widgets', () => {
+  it('reads branding.js and featureFlags.ts', () => {
+    const sources = loadForkSources(ROOT);
+    expect(sources.widgets).toBeUndefined();
+    expect(sources.flags.adhkar).toBe(true);
+    expect(sources.flags.ambientAudioOverlay).toBe(true);
+  });
+
+  it('defines no Swift conditions for the default config', () => {
+    const config = resolveWidgetConfig({}, loadForkSources(ROOT));
+    expect(compilationConditions(config)).toEqual([]);
+  });
+
+  it('defines a condition per disabled widget and feature', () => {
+    const config = resolveWidgetConfig({}, {...QARIAH, widgets: undefined});
+    expect(compilationConditions(config)).toEqual([
+      'BAYAAN_NO_WIDGET_TASBEEH',
+      'BAYAAN_NO_WIDGET_ADHKAR',
+      'BAYAAN_NO_FEATURE_ADHKAR',
+      'BAYAAN_NO_FEATURE_AMBIENT',
+    ]);
+  });
+
+  it('uses only conditions the widget sources check', () => {
+    const swift = swiftSources(path.join(ROOT, 'targets', 'widgets')).join(
+      '\n',
+    );
+    const config = resolveWidgetConfig({}, {widgets: [], flags: {}});
+    const all = [
+      ...compilationConditions(config),
+      'BAYAAN_NO_FEATURE_ADHKAR',
+      'BAYAAN_NO_FEATURE_SLEEP_TIMER',
+      'BAYAAN_NO_FEATURE_AMBIENT',
+    ];
+    for (const condition of all) {
+      expect(swift).toContain(condition);
+    }
+  });
+
+  it('adds conditions to both widget configurations and removes them again', () => {
+    const fork = resolveWidgetConfig(
+      {scheme: 'qariah'},
+      {widgets: ['ContinueListening', 'QuickSurah'], flags: QARIAH.flags},
+    );
+    const out = applyWidgetBuildSettings(PBXPROJ, fork);
+    const blocks = widgetConfigs(out);
+    const debug = blocks.find(b => b.name === 'Debug').body;
+    const release = blocks.find(b => b.name === 'Release').body;
+    expect(debug).toMatch(
+      /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG BAYAAN_NO_WIDGET_CONTINUE_READING .*BAYAAN_NO_FEATURE_AMBIENT";/,
+    );
+    expect(release).toMatch(
+      /SWIFT_ACTIVE_COMPILATION_CONDITIONS = "\$\(inherited\) BAYAAN_NO_WIDGET_CONTINUE_READING /,
+    );
+    expect(release).not.toContain('BAYAAN_NO_WIDGET_QUICK_SURAH');
+    // The app target is untouched.
+    expect(out.match(/BAYAAN_NO_WIDGET_CONTINUE_READING/g)).toHaveLength(2);
+    expect(applyWidgetBuildSettings(out, fork)).toBe(out);
+
+    const restored = applyWidgetBuildSettings(
+      out,
+      resolveWidgetConfig({scheme: 'bayaan'}, loadForkSources(ROOT)),
+    );
+    expect(restored).toBe(PBXPROJ);
+  });
+});
+
 describe('renderAndroidValues', () => {
+  it('turns off disabled widgets and features', () => {
+    const xml = renderAndroidValues(resolveWidgetConfig({}, QARIAH));
+    expect(xml).toContain(
+      '<bool name="bayaan_widget_enabled_adhkar">false</bool>',
+    );
+    expect(xml).toContain(
+      '<bool name="bayaan_widget_enabled_tasbeeh">false</bool>',
+    );
+    expect(xml).toContain(
+      '<bool name="bayaan_widget_enabled_bedtime">true</bool>',
+    );
+    expect(xml).toContain(
+      '<bool name="bayaan_widgets_feature_ambient">false</bool>',
+    );
+    expect(xml).toContain(
+      '<string name="bayaan_widget_now_desc">What fits this moment: listening, occasions or bedtime.</string>',
+    );
+    expect(xml).not.toContain('live_activity');
+  });
+
   it('matches the committed app resources for the default config', () => {
     const committed = fs.readFileSync(
       path.join(ROOT, 'android/app/src/main/res/values/bayaan_widgets.xml'),
@@ -93,7 +195,10 @@ describe('renderAndroidValues', () => {
     );
     expect(
       renderAndroidValues(
-        resolveWidgetConfig({name: 'Bayaan', scheme: 'bayaan'}),
+        resolveWidgetConfig(
+          {name: 'Bayaan', scheme: 'bayaan'},
+          loadForkSources(ROOT),
+        ),
       ),
     ).toBe(committed);
   });

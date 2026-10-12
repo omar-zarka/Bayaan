@@ -84,6 +84,20 @@ describe('Bayaan Now', () => {
   });
 });
 
+describe('Bayaan Now with cards turned off', () => {
+  it('falls back to listening in the adhkar and bedtime hours', () => {
+    const noAdhkar = {adhkar: false, bedtime: true};
+    const noBedtime = {adhkar: true, bedtime: false};
+    expect(bayaanNowMode(8, false, null, noAdhkar)).toBe('listening');
+    expect(bayaanNowMode(17, false, null, noAdhkar)).toBe('listening');
+    expect(bayaanNowMode(22, false, null, noAdhkar)).toBe('bedtime');
+    expect(bayaanNowMode(22, false, null, noBedtime)).toBe('listening');
+    expect(bayaanNowMode(8, false, null, noBedtime)).toBe('morningAdhkar');
+    expect(bayaanNowMode(8, false, 'jumuah', noAdhkar)).toBe('occasion');
+    expect(bayaanNowMode(8, true, null, noAdhkar)).toBe('listening');
+  });
+});
+
 describe('single widget relevance', () => {
   it('matches the vectors', () => {
     for (const [hour, r] of vectors.adhkarRelevance as [number, number][])

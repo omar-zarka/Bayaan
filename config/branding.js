@@ -48,4 +48,8 @@ module.exports = {
   // surface (Mushaf-settings toggle, inline render, action-sheet row) stays
   // off. A fork sets both to its own provider + render component (see
   // docs/rfcs/018-community-reflections-provider.md).
+  //
+  // RFC-021: `widgets` (the native widget surfaces to ship) is left
+  // undefined, so every widget ships. A fork lists the ones it wants (see
+  // docs/rfcs/021-native-widget-seams.md); feature flags still apply.
 };

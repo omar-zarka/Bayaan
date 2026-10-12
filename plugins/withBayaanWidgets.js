@@ -6,9 +6,15 @@
 //     the `bayaan_widgets_url_scheme` Android string.
 //   - App name: Android widget-picker labels that carry the brand ("Bayaan
 //     Now"). Runtime copy reads the app label / CFBundleDisplayName instead.
+//   - Enabled widgets: config/branding.js `widgets` plus config/featureFlags.ts
+//     (resolved by config/nativeWidgets.js). iOS gets BAYAAN_NO_WIDGET_* and
+//     BAYAAN_NO_FEATURE_* Swift compilation conditions on the widget target
+//     (none for the default config); Android gets `bayaan_widget_enabled_*`
+//     and `bayaan_widgets_feature_*` booleans the library manifest and code read.
 // The committed ios/ and android/ trees carry this plugin's default output.
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const {
   IOSConfig,
   withDangerousMod,
@@ -16,6 +22,12 @@ const {
   withInfoPlist,
   createRunOncePlugin,
 } = require('expo/config-plugins');
+const {
+  NATIVE_WIDGET_IDS,
+  ANDROID_WIDGET_IDS,
+  NATIVE_WIDGET_FEATURES,
+  resolveNativeWidgets,
+} = require('../config/nativeWidgets');
 
 const WIDGET_TARGET = 'BayaanWidgetsExtension';
 const DEFAULT_SCHEME = 'bayaan';
@@ -43,8 +55,77 @@ function resolveName(config) {
   return name || DEFAULT_NAME;
 }
 
-function resolveWidgetConfig(config) {
-  return {scheme: resolveScheme(config), name: resolveName(config)};
+/** config/featureFlags.ts is TypeScript, so transpile it to read the flags. */
+function readFeatureFlags(file) {
+  const ts = require('typescript');
+  const {outputText} = ts.transpileModule(fs.readFileSync(file, 'utf8'), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2019,
+    },
+  });
+  const mod = {exports: {}};
+  vm.runInNewContext(outputText, {module: mod, exports: mod.exports, require});
+  const flags = mod.exports.featureFlags;
+  if (!flags || typeof flags !== 'object') {
+    throw new Error(`[withBayaanWidgets] ${file} does not export featureFlags`);
+  }
+  return flags;
+}
+
+/** The fork seams this plugin reads besides app.config.js. */
+function loadForkSources(projectRoot) {
+  const branding = require(path.resolve(projectRoot, 'config', 'branding.js'));
+  return {
+    widgets: branding.widgets,
+    flags: readFeatureFlags(
+      path.resolve(projectRoot, 'config', 'featureFlags.ts'),
+    ),
+  };
+}
+
+/**
+ * @param config the Expo config (`name`, `scheme`)
+ * @param sources `{widgets, flags}` from branding.js and featureFlags.ts
+ */
+function resolveWidgetConfig(config, sources = {}) {
+  const {enabled, features} = resolveNativeWidgets(
+    sources.widgets,
+    sources.flags,
+  );
+  return {
+    scheme: resolveScheme(config),
+    name: resolveName(config),
+    enabled,
+    features,
+  };
+}
+
+function snakeCase(id) {
+  return id.replace(/([a-z0-9])([A-Z])/g, '$1_$2').toLowerCase();
+}
+
+/** Swift conditions for what is off; empty for the default config. */
+function compilationConditions(widgetConfig) {
+  const widgets = NATIVE_WIDGET_IDS.filter(
+    id => !widgetConfig.enabled.includes(id),
+  ).map(id => `BAYAAN_NO_WIDGET_${snakeCase(id).toUpperCase()}`);
+  const features = Object.keys(NATIVE_WIDGET_FEATURES)
+    .filter(feature => !widgetConfig.features[feature])
+    .map(feature => `BAYAAN_NO_FEATURE_${snakeCase(feature).toUpperCase()}`);
+  return [...widgets, ...features];
+}
+
+/** Bayaan Now's gallery description, without the cards a fork turned off. */
+function bayaanNowDescription(features) {
+  const parts = [
+    'listening',
+    ...(features.adhkar ? ['adhkar'] : []),
+    'occasions',
+    ...(features.sleepTimer ? ['bedtime'] : []),
+  ];
+  const last = parts.pop();
+  return `What fits this moment: ${parts.join(', ')} or ${last}.`;
 }
 
 // ─── Xcode project (text edit, so the file's formatting is kept) ────────────
@@ -56,6 +137,14 @@ function escapeRegExp(value) {
 function formatSettingValue(value) {
   if (/^[A-Za-z0-9_$./]+$/.test(value)) return value;
   return `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`;
+}
+
+function unquote(value) {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    return trimmed.slice(1, -1).replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+  }
+  return trimmed;
 }
 
 const SETTING_LINE = /^\t\t\t\t("?[A-Za-z0-9_[\]=*]+"?) = (.*);$/;
@@ -123,9 +212,42 @@ function setBuildSetting(lines, name, value) {
   return copy;
 }
 
+const OWNED_CONDITION = /^BAYAAN_NO_/;
+
+/**
+ * Replaces this plugin's conditions in SWIFT_ACTIVE_COMPILATION_CONDITIONS,
+ * keeping everything else (DEBUG, $(inherited)). Leaves the line untouched
+ * when nothing changes, so the default config is a no-op.
+ */
+function setOwnedConditions(lines, conditions) {
+  const name = 'SWIFT_ACTIVE_COMPILATION_CONDITIONS';
+  const line = lines.find(l => settingName(l) === name);
+  const current = line
+    ? unquote(SETTING_LINE.exec(line)[2]).split(/\s+/).filter(Boolean)
+    : [];
+  const kept = current.filter(token => !OWNED_CONDITION.test(token));
+  let next = kept;
+  if (conditions.length > 0) {
+    next = [...(kept.length > 0 ? kept : ['$(inherited)']), ...conditions];
+  } else if (
+    kept.length < current.length &&
+    kept.join(' ') === '$(inherited)'
+  ) {
+    // Only the $(inherited) this plugin added is left.
+    next = [];
+  }
+  if (next.join(' ') === current.join(' ')) return lines;
+  if (next.length === 0) return setBuildSetting(lines, name, null);
+  return setBuildSetting(lines, name, next.join(' '));
+}
+
 function applyWidgetBuildSettings(pbxproj, widgetConfig) {
+  const conditions = compilationConditions(widgetConfig);
   return editTargetBuildSettings(pbxproj, WIDGET_TARGET, lines =>
-    setBuildSetting(lines, 'BAYAAN_URL_SCHEME', widgetConfig.scheme),
+    setOwnedConditions(
+      setBuildSetting(lines, 'BAYAAN_URL_SCHEME', widgetConfig.scheme),
+      conditions,
+    ),
   );
 }
 
@@ -144,7 +266,7 @@ function escapeXml(value) {
 function renderAndroidValues(widgetConfig) {
   return [
     '<?xml version="1.0" encoding="utf-8"?>',
-    '<!-- Generated by plugins/withBayaanWidgets.js from app.config.js (RFC-021). Do not edit. -->',
+    '<!-- Generated by plugins/withBayaanWidgets.js (RFC-021) from app.config.js, config/branding.js and config/featureFlags.ts. Do not edit. -->',
     '<resources>',
     `  <string name="bayaan_widgets_url_scheme" translatable="false">${escapeXml(
       widgetConfig.scheme,
@@ -152,6 +274,21 @@ function renderAndroidValues(widgetConfig) {
     `  <string name="bayaan_widget_now_label">${escapeXml(
       `${widgetConfig.name} Now`,
     )}</string>`,
+    `  <string name="bayaan_widget_now_desc">${escapeXml(
+      bayaanNowDescription(widgetConfig.features),
+    )}</string>`,
+    ...ANDROID_WIDGET_IDS.map(
+      id =>
+        `  <bool name="bayaan_widget_enabled_${snakeCase(
+          id,
+        )}">${widgetConfig.enabled.includes(id)}</bool>`,
+    ),
+    ...Object.keys(NATIVE_WIDGET_FEATURES).map(
+      feature =>
+        `  <bool name="bayaan_widgets_feature_${snakeCase(feature)}">${
+          widgetConfig.features[feature]
+        }</bool>`,
+    ),
     '</resources>',
     '',
   ].join('\n');
@@ -160,7 +297,13 @@ function renderAndroidValues(widgetConfig) {
 // ─── Plugin ─────────────────────────────────────────────────────────────────
 
 function withBayaanWidgets(config) {
-  const widgetConfig = resolveWidgetConfig(config);
+  const projectRoot =
+    (config._internal && config._internal.projectRoot) ||
+    path.join(__dirname, '..');
+  const widgetConfig = resolveWidgetConfig(
+    config,
+    loadForkSources(projectRoot),
+  );
 
   config = withInfoPlist(config, cfg => {
     cfg.modResults.BayaanURLScheme = widgetConfig.scheme;
@@ -209,3 +352,5 @@ module.exports = createRunOncePlugin(
 module.exports.resolveWidgetConfig = resolveWidgetConfig;
 module.exports.applyWidgetBuildSettings = applyWidgetBuildSettings;
 module.exports.renderAndroidValues = renderAndroidValues;
+module.exports.compilationConditions = compilationConditions;
+module.exports.loadForkSources = loadForkSources;

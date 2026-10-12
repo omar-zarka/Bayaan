@@ -192,4 +192,14 @@ class ContentLogicTest {
     assertNull(ContentLogic.trackEndMs(full.copy(nowPlaying = full.nowPlaying!!.copy(isPlaying = false))))
     assertNull(ContentLogic.trackEndMs(null))
   }
+
+  // RFC-021: same cases as contextRules.test.ts and check-widget-content.sh.
+  @Test fun modeWithCardsTurnedOff() {
+    assertEquals(BayaanNowMode.LISTENING, ContentLogic.mode(8, false, null, adhkar = false))
+    assertEquals(BayaanNowMode.LISTENING, ContentLogic.mode(17, false, null, adhkar = false))
+    assertEquals(BayaanNowMode.BEDTIME, ContentLogic.mode(22, false, null, adhkar = false))
+    assertEquals(BayaanNowMode.LISTENING, ContentLogic.mode(22, false, null, bedtime = false))
+    assertEquals(BayaanNowMode.MORNING_ADHKAR, ContentLogic.mode(8, false, null, bedtime = false))
+    assertEquals(BayaanNowMode.OCCASION, ContentLogic.mode(8, false, "jumuah", adhkar = false))
+  }
 }

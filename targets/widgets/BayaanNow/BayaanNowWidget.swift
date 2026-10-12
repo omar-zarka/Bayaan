@@ -40,7 +40,8 @@ struct BayaanNowProvider: TimelineProvider {
     dates.sort()
     return dates.enumerated().map { i, d in
       let playing = playback(at: d)?.isPlaying ?? false
-      let mode = ContentLogic.mode(hour: ContentLogic.hour(d), isPlaying: playing, occasion: ContentLogic.occasion(at: d))
+      let mode = ContentLogic.mode(hour: ContentLogic.hour(d), isPlaying: playing, occasion: ContentLogic.occasion(at: d),
+                                   adhkar: WidgetFeatures.adhkar, bedtime: WidgetFeatures.sleepTimer)
       return BayaanNowEntry(
         date: d, mode: mode, snapshot: snapshot, override: override, content: content,
         relevance: .scored(ContentLogic.relevance(mode: mode, isPlaying: playing), from: d,
@@ -52,12 +53,23 @@ struct BayaanNowProvider: TimelineProvider {
 struct BayaanNowWidget: Widget {
   let kind = "BayaanNow"
 
+  /// Leaves out the cards a fork turned off; the Android picker's
+  /// bayaan_widget_now_desc is generated the same way (RFC-021).
+  static var gallerySummary: String {
+    var parts = ["listening"]
+    if WidgetFeatures.adhkar { parts.append("adhkar") }
+    parts.append("occasions")
+    if WidgetFeatures.sleepTimer { parts.append("bedtime") }
+    let last = parts.removeLast()
+    return "What fits this moment: \(parts.joined(separator: ", ")) or \(last)."
+  }
+
   var body: some WidgetConfiguration {
     StaticConfiguration(kind: kind, provider: BayaanNowProvider()) { entry in
       BayaanNowView(entry: entry)
     }
     .configurationDisplayName("\(AppBrand.name) Now")
-    .description("What fits this moment: listening, adhkar, occasions or bedtime.")
+    .description(Self.gallerySummary)
     .supportedFamilies([.systemSmall, .systemMedium])
     .contentMarginsDisabled()
   }

@@ -19,6 +19,7 @@ import {
   surahArtworkFileName,
   SnapshotInput,
 } from './buildSnapshot';
+import {isWidgetEnabled} from './enabledWidgets';
 
 const OPENING_WORDS = 6;
 const countsForToday = createCountDayTracker();
@@ -56,11 +57,16 @@ export function collectSnapshotInput(now: Date): SnapshotInput {
     lastReadPage: mushafSessionStore.getLastReadPage(),
     openingTextForPage,
     surahIdForPage,
-    tasbeeh: buildTasbeehEntries(
-      TASBEEH_ADHKAR,
-      countsForToday(useAdhkarStore.getState().dhikrCounts, localDayKey(now)),
-      localDayKey(now),
-    ),
+    tasbeeh: isWidgetEnabled('Tasbeeh')
+      ? buildTasbeehEntries(
+          TASBEEH_ADHKAR,
+          countsForToday(
+            useAdhkarStore.getState().dhikrCounts,
+            localDayKey(now),
+          ),
+          localDayKey(now),
+        )
+      : {},
     artworkFileFor: id => {
       const file = artworkFileName(id);
       return hasArtwork(file) ? file : null;

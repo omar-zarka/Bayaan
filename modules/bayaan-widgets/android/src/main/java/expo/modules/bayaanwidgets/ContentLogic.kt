@@ -97,12 +97,13 @@ object ContentLogic {
     return snapshot.generatedAt + remainingMs
   }
 
-  fun mode(hour: Int, isPlaying: Boolean, occasion: String?): BayaanNowMode = when {
+  /** adhkar and bedtime turn those cards off (RFC-021); their hours fall back to listening. */
+  fun mode(hour: Int, isPlaying: Boolean, occasion: String?, adhkar: Boolean = true, bedtime: Boolean = true): BayaanNowMode = when {
     isPlaying -> BayaanNowMode.LISTENING
     occasion != null -> BayaanNowMode.OCCASION
-    hour in 4..10 -> BayaanNowMode.MORNING_ADHKAR
-    hour in 15..19 -> BayaanNowMode.EVENING_ADHKAR
-    hour >= 21 || hour < 4 -> BayaanNowMode.BEDTIME
+    adhkar && hour in 4..10 -> BayaanNowMode.MORNING_ADHKAR
+    adhkar && hour in 15..19 -> BayaanNowMode.EVENING_ADHKAR
+    bedtime && (hour >= 21 || hour < 4) -> BayaanNowMode.BEDTIME
     else -> BayaanNowMode.LISTENING
   }
 
