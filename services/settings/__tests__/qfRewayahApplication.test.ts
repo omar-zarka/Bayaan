@@ -24,11 +24,15 @@ jest.mock('../../../data/mushaf/digitalkhatt/dk_words_soosi.db', () => 9);
 // Exercise the real cache builder with deterministic SQLite boundary fixtures,
 // not a switchRewayah mock. No native/provider/network success is implied.
 let mockRead: ((database: string) => Promise<void>) | undefined;
+// Copies are content-addressed ('dk_layout.<hash>.db'); fixtures use the
+// logical name.
+const logicalName = (database: string) =>
+  database.replace(/\.[0-9a-f]{6,}\.db$/, '.db');
 const mockOpen = jest.fn(async (database: string) => ({
   getFirstAsync: async () => ({name: 'words'}),
   getAllAsync: async () => {
-    await mockRead?.(database);
-    return database === 'dk_layout.db'
+    await mockRead?.(logicalName(database));
+    return logicalName(database) === 'dk_layout.db'
       ? [
           {
             page_number: 1,
@@ -38,7 +42,7 @@ const mockOpen = jest.fn(async (database: string) => ({
             last_word_id: 1,
           },
         ]
-      : [{id: 1, text: database, location: '1:1:1'}];
+      : [{id: 1, text: logicalName(database), location: '1:1:1'}];
   },
   closeAsync: async () => undefined,
 }));
@@ -305,7 +309,9 @@ test('a queued manual rewayah switch wins with its own complete cache', async ()
     .switchRewayah('qalun')
     .then(() => mushaf.getState().setRewayah('qalun'));
   block.release();
-  await Promise.all([remote, manual]);
+  // The manual switch overtakes the remote load, which then publishes nothing.
+  await expect(remote).rejects.toThrow('Settings application superseded');
+  await manual;
   expect(mushaf.getState().rewayah).toBe('qalun');
   expect(cache.rewayah).toBe('qalun');
   expect(cache.getVerseWords('1:1')[0].text).toBe('dk_words_qaloon.db');

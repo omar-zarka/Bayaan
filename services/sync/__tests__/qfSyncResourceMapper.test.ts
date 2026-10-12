@@ -86,6 +86,14 @@ describe('qfSyncResourceMapper', () => {
     });
   });
 
+  it('syncs split-verse anchors as their Hafs verses in note ranges', () => {
+    expect(buildVerseRanges(['2:255:7', '2:255', '2:256'])).toEqual([
+      '2:255-2:256',
+    ]);
+    expect(buildVerseRanges(['2:255:7'])).toEqual(['2:255-2:255']);
+    expect(() => buildVerseRanges(['2:255:0'])).toThrow();
+  });
+
   it('rejects bookmark updates because QF only accepts bookmark create or delete intent', () => {
     const bookmarkUpdate = createOutboxEntry({
       resource: 'BOOKMARK',

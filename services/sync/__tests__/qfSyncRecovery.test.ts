@@ -834,6 +834,131 @@ describe('SQLite push recovery store', () => {
     },
   );
 
+  it('syncs a split-verse bookmark as its Hafs verse and keeps its anchor after the receipt', async () => {
+    const {database, sync, SqliteQfSyncPullStore, IntegratedCoordinator} =
+      await createServices('split-verse-bookmark.db');
+    await sync.initialize();
+    await seedHead(database, 8000);
+    // A Warsh verse that starts mid-way through Hafs 2:255 is stored at the
+    // anchor '2:255:7'; the highlight commits in the same transaction.
+    await sync.applyAnnotationChanges({
+      accountId,
+      changes: {
+        addBookmarks: [
+          {
+            verseKey: '2:255:7',
+            surahNumber: 2,
+            ayahNumber: 255,
+            rewayahId: 'warsh',
+          },
+        ],
+        upsertHighlights: [
+          {
+            verseKey: '2:255:7',
+            surahNumber: 2,
+            ayahNumber: 255,
+            rewayahId: 'warsh',
+            color: 'yellow',
+          },
+        ],
+      },
+    });
+    const [queued] = await sync.getOutboxEntries(accountId);
+    expect(queued).toMatchObject({
+      resource: 'BOOKMARK',
+      mutationType: 'CREATE',
+    });
+
+    const pushed: BayaanSyncPushRequest[] = [];
+    const transport = {
+      push: async (
+        _token: string,
+        request: BayaanSyncPushRequest,
+      ): Promise<BayaanSyncPushResult> => {
+        pushed.push(request);
+        return {
+          lastMutationAt: 8100,
+          mutations: [
+            {
+              resource: 'BOOKMARK',
+              type: 'CREATE',
+              resourceId: 'bm-split',
+              timestamp: 8100,
+              data: {type: 'ayah', key: 2, verseNumber: 255, mushaf: 4},
+            },
+          ],
+        };
+      },
+      pull: async (): Promise<BayaanSyncPullPage> => ({
+        lastMutationAt: 8100,
+        mutations: [],
+      }),
+    };
+    const coordinator = new IntegratedCoordinator({
+      transport,
+      store: new SqliteQfSyncPullStore(database),
+      pushStore: sync,
+      sleep: async () => undefined,
+    });
+    await expect(
+      coordinator.push({accountId, sessionToken: 'dummy-a'}),
+    ).resolves.toMatchObject({status: 'synced'});
+
+    expect(pushed[0].mutations[0]).toMatchObject({
+      resource: 'BOOKMARK',
+      type: 'CREATE',
+      data: {key: 2, verseNumber: 255},
+    });
+    const db = await database.getConnection();
+    expect(
+      await db.getAllAsync(
+        'SELECT verse_key, remote_id FROM bookmarks WHERE owner_scope = ?',
+        ['qf:reader-a'],
+      ),
+    ).toEqual([{verse_key: '2:255:7', remote_id: 'bm-split'}]);
+    expect(
+      await db.getAllAsync(
+        'SELECT verse_key, color FROM highlights WHERE owner_scope = ?',
+        ['qf:reader-a'],
+      ),
+    ).toEqual([{verse_key: '2:255:7', color: 'yellow'}]);
+    expect(await sync.getOutboxEntries(accountId)).toEqual([]);
+    await database.close();
+  });
+
+  it('writes guest annotation changes in the guest scope without an outbox', async () => {
+    const {database, sync, annotations} = await createServices(
+      'guest-annotation-changes.db',
+    );
+    await sync.initialize();
+    await annotations.applyAnnotationChangesInOwnerScope('guest', {
+      addBookmarks: [
+        {verseKey: '1:2', surahNumber: 1, ayahNumber: 2, rewayahId: 'hafs'},
+      ],
+      upsertHighlights: [
+        {
+          verseKey: '1:2',
+          surahNumber: 1,
+          ayahNumber: 2,
+          rewayahId: 'hafs',
+          color: 'green',
+        },
+      ],
+    });
+    await annotations.applyAnnotationChangesInOwnerScope('guest', {
+      removeBookmarks: ['1:2'],
+    });
+    const db = await database.getConnection();
+    expect(await db.getAllAsync('SELECT owner_scope FROM bookmarks')).toEqual(
+      [],
+    );
+    expect(
+      await db.getAllAsync('SELECT owner_scope, verse_key FROM highlights'),
+    ).toEqual([{owner_scope: 'guest', verse_key: '1:2'}]);
+    expect(await db.getAllAsync('SELECT * FROM qf_sync_outbox')).toEqual([]);
+    await database.close();
+  });
+
   it('applies membership effects by composite id, per owner, ignoring Favorites and stale deletes', async () => {
     const {database, sync, SqliteQfSyncPullStore} = await createServices(
       'membership-effects.db',

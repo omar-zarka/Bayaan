@@ -54,6 +54,7 @@ jest.mock('@/components/Icons', () => ({
 }));
 
 jest.mock('@/utils/haptics', () => ({lightHaptics: jest.fn()}));
+jest.mock('burnt', () => ({toast: jest.fn()}));
 jest.mock('@/utils/translationLookup', () => ({
   getTranslationTextRaw: () => '',
 }));
@@ -69,8 +70,16 @@ jest.mock('@/services/mushaf/QulDataService', () => ({
 
 jest.mock('@/services/mushaf/DigitalKhattDataService', () => ({
   digitalKhattDataService: {
+    rewayah: 'hafs',
+    isRewayahReady: () => true,
+    getRewayahLoadState: () => 'ready',
     getVerseText: () => '',
+    getVerseWords: () => [],
     getPageForVerse: () => 1,
+    subscribeCacheChanges: () => () => undefined,
+    getCacheVersion: () => 0,
+    retainRewayah: () => () => undefined,
+    ensureRewayahLoaded: jest.fn(async () => undefined),
   },
 }));
 

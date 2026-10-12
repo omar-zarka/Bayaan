@@ -14,6 +14,7 @@ import {
 import type {QfOutboxEntry} from './qfSyncDatabaseService';
 import {type QfSyncTransactionDatabase} from './qfSyncTransaction';
 import {mapOutboxEntryToSyncMutation} from './qfSyncResourceMapper';
+import {hafsVerseKeyOf, keptVerseKeys, sameHafsVerses} from './hafsVerseKeys';
 import surahData from '@/data/surahData.json';
 import {
   withRetryableQfSyncTransaction as withQfSyncTransaction,
@@ -462,13 +463,17 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
     }
     const createdAt = remoteDate(data.clientCreatedAt, mutation.timestamp);
     if (existing) {
+      const [keptKey] = keptVerseKeys(
+        typeof existing.verse_key === 'string' ? [existing.verse_key] : [],
+        [verseKey],
+      );
       await db.runAsync(
         `UPDATE bookmarks
          SET verse_key = ?, surah_number = ?, ayah_number = ?, remote_id = ?,
              server_created_at = COALESCE(server_created_at, ?), server_updated_at = ?
          WHERE owner_scope = ? AND id = ?`,
         [
-          verseKey,
+          keptKey,
           surah,
           ayah,
           mutation.resourceId,
@@ -526,13 +531,21 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
     if (typeof data.body !== 'string' || data.saveToQR !== false) {
       throw new Error('Invalid remote private note');
     }
-    const verseKeys = expandVerseRanges(data.ranges);
-    const [surahNumber, ayahNumber] = verseKeys[0].split(':').map(Number);
+    const remoteVerseKeys = expandVerseRanges(data.ranges);
     const createdAt = remoteDate(data.clientCreatedAt, mutation.timestamp);
     const canonical = await db.getFirstAsync<NoteRow>(
       `SELECT * FROM notes WHERE owner_scope = ? AND remote_id = ?`,
       [scope, mutation.resourceId],
     );
+    // A note on a split Hafs verse keeps its local anchors when QF names the
+    // same Hafs verses.
+    const verseKeys = keptVerseKeys(
+      canonical ? (canonical.verse_keys ?? canonical.verse_key).split(',') : [],
+      remoteVerseKeys,
+    );
+    const [surahNumber, ayahNumber] = hafsVerseKeyOf(verseKeys[0])
+      .split(':')
+      .map(Number);
     if (
       canonical?.server_updated_at !== null &&
       canonical?.server_updated_at !== undefined &&
@@ -603,7 +616,7 @@ export class SqliteQfSyncPullStore implements QfSyncPullStore {
       pendingRow?.in_flight_mutation_type === mutation.type &&
       sent !== null &&
       sent.content === data.body &&
-      sentVerseKeys.join(',') === verseKeys.join(',');
+      sameHafsVerses(sentVerseKeys, remoteVerseKeys);
     if (pulledMatchesSentRevision && pendingRow && sent) {
       const currentStillEqualsSent =
         pendingRow.revision === pendingRow.in_flight_revision &&

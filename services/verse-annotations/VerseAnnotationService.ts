@@ -2,6 +2,7 @@ import {verseAnnotationDatabaseService} from '@/services/database/VerseAnnotatio
 import {qfSyncDatabaseService} from '@/services/sync/qfSyncDatabaseService';
 import type {
   AnnotationOwnerScope,
+  AnnotationRowChanges,
   HighlightColor,
 } from '@/types/verse-annotations';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
@@ -68,6 +69,7 @@ export interface VerseAnnotationOperation {
     typeof verseAnnotationDatabaseService.upsertHighlightForOwnerScope
   >;
   removeHighlight(verseKey: string): Promise<void>;
+  applyAnnotationChanges(changes: AnnotationRowChanges): Promise<void>;
 }
 
 class VerseAnnotationService {
@@ -217,6 +219,17 @@ class VerseAnnotationService {
     return this.runInScope(operation => operation.removeHighlight(verseKey));
   }
 
+  /**
+   * The bookmark / highlight writes of one change in ONE transaction (all or
+   * none) in the active scope; each row names the rewayah it is saved in.
+   * Signed in, bookmark writes reach the sync outbox in the same commit.
+   */
+  async applyAnnotationChanges(changes: AnnotationRowChanges): Promise<void> {
+    return this.runInScope(operation =>
+      operation.applyAnnotationChanges(changes),
+    );
+  }
+
   async setHighlight(
     verseKey: string,
     surahNumber: number,
@@ -311,6 +324,8 @@ class VerseAnnotationService {
           token.ownerScope,
           verseKey,
         ),
+      applyAnnotationChanges: changes =>
+        this.applyAnnotationChangesInScope(token, changes),
     };
   }
 
@@ -379,6 +394,30 @@ class VerseAnnotationService {
       await verseAnnotationDatabaseService.removeBookmark(verseKey);
     }
     requestSync(token.accountId);
+  }
+
+  private async applyAnnotationChangesInScope(
+    token: AnnotationOperationToken,
+    changes: AnnotationRowChanges,
+  ): Promise<void> {
+    if (token.accountId) {
+      await qfSyncDatabaseService.applyAnnotationChanges({
+        accountId: token.accountId,
+        changes,
+      });
+    } else {
+      await verseAnnotationDatabaseService.applyAnnotationChangesInOwnerScope(
+        token.ownerScope,
+        changes,
+      );
+    }
+    if (
+      (changes.removeBookmarks?.length ?? 0) +
+        (changes.addBookmarks?.length ?? 0) >
+      0
+    ) {
+      requestSync(token.accountId);
+    }
   }
 
   private async addNoteInScope(

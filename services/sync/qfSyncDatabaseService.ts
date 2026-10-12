@@ -2,6 +2,7 @@ import type {
   AnnotationOwnerScope,
   VerseBookmark,
   VerseNote,
+  AnnotationRowChanges,
 } from '@/types/verse-annotations';
 import {
   verseAnnotationDatabase,
@@ -20,6 +21,7 @@ import {
 } from '@/services/sync/bayaanSyncCodec';
 import surahData from '@/data/surahData.json';
 import {refreshUnsentPayloadBlock} from './qfUnsentPayloadBlock';
+import {hafsVerseKeyOf, keptVerseKeys} from './hafsVerseKeys';
 import {
   withRetryableQfSyncTransaction as withQfSyncTransaction,
   atQfSqliteBoundary,
@@ -475,89 +477,10 @@ export class QfSyncDatabaseService {
   async addBookmark(input: AddBookmarkInput): Promise<VerseBookmark> {
     const connection = await this.database.getConnection();
     const ownerScope = ownerScopeFromAccountId(input.accountId);
-    const rewayahId = input.rewayahId ?? DEFAULT_REWAYAH_ID;
     let bookmark: VerseBookmark | undefined;
 
     await withQfSyncTransaction(connection, async db => {
-      // Read and INSERT OR IGNORE share the private/exclusive transaction.
-      // A persisted row is not new intent: retain its retry/uncertain evidence.
-      const existingBookmark = await this.getBookmarkRow(
-        db,
-        ownerScope,
-        input.verseKey,
-      );
-      const existingOperation = await this.getBookmarkOutboxEntry(
-        db,
-        ownerScope,
-        input.verseKey,
-      );
-      bookmark = await this.annotations.addBookmarkForOwnerScope(
-        ownerScope,
-        input.verseKey,
-        input.surahNumber,
-        input.ayahNumber,
-        rewayahId,
-        db,
-      );
-
-      if (existingBookmark) return;
-
-      const payload = {
-        verseKey: input.verseKey,
-        surahNumber: input.surahNumber,
-        ayahNumber: input.ayahNumber,
-        rewayahId,
-        clientCreatedAt: bookmark.createdAt,
-        clientUpdatedAt: bookmark.createdAt,
-      } satisfies BookmarkOutboxPayload;
-      if (
-        existingOperation?.deliveryState === 'PENDING' &&
-        existingOperation.mutationType === 'DELETE' &&
-        existingOperation.remoteId
-      ) {
-        await db.runAsync(
-          `UPDATE bookmarks
-           SET remote_id = ?, server_updated_at = ?
-           WHERE owner_scope = ? AND id = ?`,
-          [
-            existingOperation.remoteId,
-            existingOperation.baseServerUpdatedAt,
-            ownerScope,
-            bookmark.id,
-          ],
-        );
-        await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
-        return;
-      }
-      if (existingOperation && existingOperation.deliveryState !== 'PENDING') {
-        await db.runAsync(
-          `UPDATE qf_sync_outbox
-           SET mutation_type = 'CREATE', local_id = ?, remote_id = NULL,
-               payload_json = ?, base_server_updated_at = NULL,
-               created_at = ?, revision = revision + 1
-           WHERE owner_scope = ? AND local_operation_id = ?`,
-          [
-            bookmark.id,
-            JSON.stringify(payload),
-            bookmark.createdAt,
-            ownerScope,
-            existingOperation.localOperationId,
-          ],
-        );
-        return;
-      }
-
-      await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
-      await this.enqueueMutation(db, {
-        accountId: input.accountId,
-        ownerScope,
-        resource: 'BOOKMARK',
-        mutationType: 'CREATE',
-        localId: bookmark.id,
-        remoteId: bookmark.remoteId,
-        payload,
-        createdAt: bookmark.createdAt,
-      });
+      bookmark = await this.addBookmarkInTransaction(db, ownerScope, input);
     });
 
     if (!bookmark) {
@@ -567,86 +490,212 @@ export class QfSyncDatabaseService {
     return bookmark;
   }
 
+  private async addBookmarkInTransaction(
+    db: SyncDatabaseConnection,
+    ownerScope: `qf:${string}`,
+    input: AddBookmarkInput,
+  ): Promise<VerseBookmark> {
+    const rewayahId = input.rewayahId ?? DEFAULT_REWAYAH_ID;
+    // Read and INSERT OR IGNORE share the private/exclusive transaction.
+    // A persisted row is not new intent: retain its retry/uncertain evidence.
+    const existingBookmark = await this.getBookmarkRow(
+      db,
+      ownerScope,
+      input.verseKey,
+    );
+    const existingOperation = await this.getBookmarkOutboxEntry(
+      db,
+      ownerScope,
+      input.verseKey,
+    );
+    const bookmark = await this.annotations.addBookmarkForOwnerScope(
+      ownerScope,
+      input.verseKey,
+      input.surahNumber,
+      input.ayahNumber,
+      rewayahId,
+      db,
+    );
+
+    if (existingBookmark) return bookmark;
+
+    const payload = {
+      verseKey: input.verseKey,
+      surahNumber: input.surahNumber,
+      ayahNumber: input.ayahNumber,
+      rewayahId,
+      clientCreatedAt: bookmark.createdAt,
+      clientUpdatedAt: bookmark.createdAt,
+    } satisfies BookmarkOutboxPayload;
+    if (
+      existingOperation?.deliveryState === 'PENDING' &&
+      existingOperation.mutationType === 'DELETE' &&
+      existingOperation.remoteId
+    ) {
+      await db.runAsync(
+        `UPDATE bookmarks
+         SET remote_id = ?, server_updated_at = ?
+         WHERE owner_scope = ? AND id = ?`,
+        [
+          existingOperation.remoteId,
+          existingOperation.baseServerUpdatedAt,
+          ownerScope,
+          bookmark.id,
+        ],
+      );
+      await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
+      return bookmark;
+    }
+    if (existingOperation && existingOperation.deliveryState !== 'PENDING') {
+      await db.runAsync(
+        `UPDATE qf_sync_outbox
+         SET mutation_type = 'CREATE', local_id = ?, remote_id = NULL,
+             payload_json = ?, base_server_updated_at = NULL,
+             created_at = ?, revision = revision + 1
+         WHERE owner_scope = ? AND local_operation_id = ?`,
+        [
+          bookmark.id,
+          JSON.stringify(payload),
+          bookmark.createdAt,
+          ownerScope,
+          existingOperation.localOperationId,
+        ],
+      );
+      return bookmark;
+    }
+
+    await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
+    await this.enqueueMutation(db, {
+      accountId: input.accountId,
+      ownerScope,
+      resource: 'BOOKMARK',
+      mutationType: 'CREATE',
+      localId: bookmark.id,
+      remoteId: bookmark.remoteId,
+      payload,
+      createdAt: bookmark.createdAt,
+    });
+    return bookmark;
+  }
+
   async removeBookmark(input: RemoveBookmarkInput): Promise<void> {
     const connection = await this.database.getConnection();
     const ownerScope = ownerScopeFromAccountId(input.accountId);
 
     await withQfSyncTransaction(connection, async db => {
-      const bookmark = await this.getBookmarkRow(
-        db,
-        ownerScope,
-        input.verseKey,
-      );
-      if (!bookmark) {
-        return;
-      }
+      await this.removeBookmarkInTransaction(db, ownerScope, input);
+    });
+  }
 
-      const existingOperation = await this.getBookmarkOutboxEntry(
-        db,
-        ownerScope,
-        input.verseKey,
-      );
+  private async removeBookmarkInTransaction(
+    db: SyncDatabaseConnection,
+    ownerScope: `qf:${string}`,
+    input: RemoveBookmarkInput,
+  ): Promise<void> {
+    const bookmark = await this.getBookmarkRow(db, ownerScope, input.verseKey);
+    if (!bookmark) {
+      return;
+    }
 
-      await this.annotations.removeBookmarkInOwnerScope(
-        ownerScope,
-        input.verseKey,
-        db,
-      );
-      const deletedAt = Date.now();
-      const remoteId = bookmark.remote_id ?? existingOperation?.remoteId;
-      const leaveFavoritesOnly =
-        remoteId !== null &&
-        remoteId !== undefined &&
-        (await this.hasCustomCollectionMembership(db, ownerScope, remoteId));
-      const payload = {
-        verseKey: bookmark.verse_key,
-        surahNumber: bookmark.surah_number,
-        ayahNumber: bookmark.ayah_number,
-        rewayahId: bookmark.rewayah_id ?? undefined,
-        clientCreatedAt: bookmark.created_at,
-        clientUpdatedAt: deletedAt,
-        ...(leaveFavoritesOnly ? {leaveFavoritesOnly: true as const} : {}),
-      } satisfies BookmarkOutboxPayload;
-      if (
-        existingOperation?.mutationType === 'CREATE' &&
-        existingOperation.deliveryState === 'PENDING' &&
-        !existingOperation.remoteId
-      ) {
-        await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
-        return;
-      }
-      if (existingOperation && existingOperation.deliveryState !== 'PENDING') {
-        await db.runAsync(
-          `UPDATE qf_sync_outbox
-           SET mutation_type = 'DELETE', local_id = ?, remote_id = ?,
-               payload_json = ?, base_server_updated_at = ?, created_at = ?,
-               revision = revision + 1
-           WHERE owner_scope = ? AND local_operation_id = ?`,
-          [
-            bookmark.id,
-            bookmark.remote_id ?? existingOperation.remoteId,
-            JSON.stringify(payload),
-            bookmark.server_updated_at,
-            deletedAt,
-            ownerScope,
-            existingOperation.localOperationId,
-          ],
-        );
-        return;
-      }
+    const existingOperation = await this.getBookmarkOutboxEntry(
+      db,
+      ownerScope,
+      input.verseKey,
+    );
 
+    await this.annotations.removeBookmarkInOwnerScope(
+      ownerScope,
+      input.verseKey,
+      db,
+    );
+    const deletedAt = Date.now();
+    const remoteId = bookmark.remote_id ?? existingOperation?.remoteId;
+    const leaveFavoritesOnly =
+      remoteId !== null &&
+      remoteId !== undefined &&
+      (await this.hasCustomCollectionMembership(db, ownerScope, remoteId));
+    const payload = {
+      verseKey: bookmark.verse_key,
+      surahNumber: bookmark.surah_number,
+      ayahNumber: bookmark.ayah_number,
+      rewayahId: bookmark.rewayah_id ?? undefined,
+      clientCreatedAt: bookmark.created_at,
+      clientUpdatedAt: deletedAt,
+      ...(leaveFavoritesOnly ? {leaveFavoritesOnly: true as const} : {}),
+    } satisfies BookmarkOutboxPayload;
+    if (
+      existingOperation?.mutationType === 'CREATE' &&
+      existingOperation.deliveryState === 'PENDING' &&
+      !existingOperation.remoteId
+    ) {
       await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
-      await this.enqueueMutation(db, {
-        accountId: input.accountId,
+      return;
+    }
+    if (existingOperation && existingOperation.deliveryState !== 'PENDING') {
+      await db.runAsync(
+        `UPDATE qf_sync_outbox
+         SET mutation_type = 'DELETE', local_id = ?, remote_id = ?,
+             payload_json = ?, base_server_updated_at = ?, created_at = ?,
+             revision = revision + 1
+         WHERE owner_scope = ? AND local_operation_id = ?`,
+        [
+          bookmark.id,
+          bookmark.remote_id ?? existingOperation.remoteId,
+          JSON.stringify(payload),
+          bookmark.server_updated_at,
+          deletedAt,
+          ownerScope,
+          existingOperation.localOperationId,
+        ],
+      );
+      return;
+    }
+
+    await this.clearBookmarkOutbox(db, ownerScope, input.verseKey);
+    await this.enqueueMutation(db, {
+      accountId: input.accountId,
+      ownerScope,
+      resource: 'BOOKMARK',
+      mutationType: 'DELETE',
+      localId: bookmark.id,
+      remoteId: bookmark.remote_id ?? undefined,
+      payload,
+      createdAt: deletedAt,
+      baseServerUpdatedAt: bookmark.server_updated_at ?? undefined,
+    });
+  }
+
+  /**
+   * The bookmark and highlight writes of one change for a signed-in account,
+   * all or none in one transaction. Bookmark writes take the same outbox path
+   * as addBookmark / removeBookmark, so their intent commits with the rows.
+   */
+  async applyAnnotationChanges(input: {
+    accountId: string;
+    changes: AnnotationRowChanges;
+  }): Promise<void> {
+    const connection = await this.database.getConnection();
+    const ownerScope = ownerScopeFromAccountId(input.accountId);
+    await withQfSyncTransaction(connection, async db => {
+      await this.annotations.applyAnnotationChangesInOwnerScope(
         ownerScope,
-        resource: 'BOOKMARK',
-        mutationType: 'DELETE',
-        localId: bookmark.id,
-        remoteId: bookmark.remote_id ?? undefined,
-        payload,
-        createdAt: deletedAt,
-        baseServerUpdatedAt: bookmark.server_updated_at ?? undefined,
-      });
+        input.changes,
+        {
+          transaction: db,
+          removeBookmark: async (verseKey, txn) => {
+            await this.removeBookmarkInTransaction(txn, ownerScope, {
+              accountId: input.accountId,
+              verseKey,
+            });
+          },
+          addBookmark: async (row, txn) => {
+            await this.addBookmarkInTransaction(txn, ownerScope, {
+              accountId: input.accountId,
+              ...row,
+            });
+          },
+        },
+      );
     });
   }
 
@@ -1906,11 +1955,18 @@ export class QfSyncDatabaseService {
       ) {
         throw new Error('Invalid returned bookmark');
       }
+      const local = await db.getFirstAsync<{verse_key: string}>(
+        `SELECT verse_key FROM bookmarks WHERE owner_scope = ? AND id = ?`,
+        [ownerScope, row.local_id],
+      );
+      const [verseKey] = keptVerseKeys(local ? [local.verse_key] : [], [
+        `${surah}:${ayah}`,
+      ]);
       await db.runAsync(
         `UPDATE bookmarks
          SET verse_key = ?, surah_number = ?, ayah_number = ?
          WHERE owner_scope = ? AND id = ?`,
-        [`${surah}:${ayah}`, surah, ayah, ownerScope, row.local_id],
+        [verseKey, surah, ayah, ownerScope, row.local_id],
       );
       return;
     }
@@ -1918,8 +1974,18 @@ export class QfSyncDatabaseService {
       if (typeof data.body !== 'string' || data.saveToQR !== false) {
         throw new Error('Invalid returned private note');
       }
-      const verseKeys = expandReturnedRanges(data.ranges);
-      const [surah, ayah] = verseKeys[0].split(':').map(Number);
+      const local = await db.getFirstAsync<{
+        verse_key: string;
+        verse_keys: string | null;
+      }>(
+        `SELECT verse_key, verse_keys FROM notes WHERE owner_scope = ? AND id = ?`,
+        [ownerScope, row.local_id],
+      );
+      const verseKeys = keptVerseKeys(
+        local ? (local.verse_keys ?? local.verse_key).split(',') : [],
+        expandReturnedRanges(data.ranges),
+      );
+      const [surah, ayah] = hafsVerseKeyOf(verseKeys[0]).split(':').map(Number);
       await db.runAsync(
         `UPDATE notes
          SET verse_key = ?, surah_number = ?, ayah_number = ?, content = ?,
