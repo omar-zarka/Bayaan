@@ -310,20 +310,32 @@ class VerseAnnotationService {
           token.ownerScope,
           verseKey,
         ),
-      upsertHighlight: (verseKey, surahNumber, ayahNumber, color, rewayahId) =>
-        verseAnnotationDatabaseService.upsertHighlightForOwnerScope(
+      upsertHighlight: async (
+        verseKey,
+        surahNumber,
+        ayahNumber,
+        color,
+        rewayahId,
+      ) => {
+        const highlight =
+          await verseAnnotationDatabaseService.upsertHighlightForOwnerScope(
+            token.ownerScope,
+            verseKey,
+            surahNumber,
+            ayahNumber,
+            color,
+            rewayahId ?? currentRewayah(),
+          );
+        requestSync(token.accountId);
+        return highlight;
+      },
+      removeHighlight: async verseKey => {
+        await verseAnnotationDatabaseService.removeHighlightInOwnerScope(
           token.ownerScope,
           verseKey,
-          surahNumber,
-          ayahNumber,
-          color,
-          rewayahId ?? currentRewayah(),
-        ),
-      removeHighlight: verseKey =>
-        verseAnnotationDatabaseService.removeHighlightInOwnerScope(
-          token.ownerScope,
-          verseKey,
-        ),
+        );
+        requestSync(token.accountId);
+      },
       applyAnnotationChanges: changes =>
         this.applyAnnotationChangesInScope(token, changes),
     };
@@ -413,7 +425,9 @@ class VerseAnnotationService {
     }
     if (
       (changes.removeBookmarks?.length ?? 0) +
-        (changes.addBookmarks?.length ?? 0) >
+        (changes.addBookmarks?.length ?? 0) +
+        (changes.removeHighlights?.length ?? 0) +
+        (changes.upsertHighlights?.length ?? 0) >
       0
     ) {
       requestSync(token.accountId);

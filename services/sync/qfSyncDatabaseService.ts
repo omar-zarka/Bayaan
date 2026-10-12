@@ -24,6 +24,16 @@ import {refreshUnsentPayloadBlock} from './qfUnsentPayloadBlock';
 import {isFavoritesRemoval} from './qfSyncResourceMapper';
 import {hafsVerseKeyOf, keptVerseKeys} from './hafsVerseKeys';
 import {
+  ayahNumberOf,
+  ayahPartOf,
+  decodeHighlightDocument,
+  encodeHighlightDocument,
+  sameHighlights,
+  verseKeyOf,
+  type QfHighlightEntries,
+  type QfHighlightEntry,
+} from './qfHighlightMerge';
+import {
   withRetryableQfSyncTransaction as withQfSyncTransaction,
   atQfSqliteBoundary,
 } from './qfSqliteRetry';
@@ -347,6 +357,70 @@ export interface QfReadingLocation {
   serverUpdatedAt?: number;
   createdAt: number;
   updatedAt: number;
+}
+
+export interface QfSyncedHighlights {
+  etag: string;
+  entries: QfHighlightEntries;
+}
+
+export interface QfHighlightSyncSnapshot {
+  local: Map<number, QfHighlightEntries>;
+  synced: Map<number, QfSyncedHighlights>;
+}
+
+interface HighlightSyncRow {
+  surah_number: number;
+  etag: string;
+  entries_json: string;
+}
+
+interface LocalHighlightRow {
+  verse_key: string;
+  surah_number: number;
+  color: string;
+  rewayah_id: string | null;
+}
+
+function parseSyncedEntries(json: string): QfHighlightEntries | undefined {
+  try {
+    return decodeHighlightDocument(JSON.parse(json));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Rows a document cannot carry (an unknown colour or a verse key outside its
+ * surah) are left out, so sync neither uploads nor deletes them.
+ */
+async function readLocalHighlights(
+  db: Pick<QfSyncSqliteExecutor, 'getAllAsync'>,
+  ownerScope: `qf:${string}`,
+  surahNumber?: number,
+): Promise<Map<number, QfHighlightEntries>> {
+  const rows = await db.getAllAsync<LocalHighlightRow>(
+    surahNumber === undefined
+      ? `SELECT verse_key, surah_number, color, rewayah_id FROM highlights
+         WHERE owner_scope = ?`
+      : `SELECT verse_key, surah_number, color, rewayah_id FROM highlights
+         WHERE owner_scope = ? AND surah_number = ?`,
+    surahNumber === undefined ? [ownerScope] : [ownerScope, surahNumber],
+  );
+  const bySurah = new Map<number, Record<string, QfHighlightEntry>>();
+  for (const row of rows) {
+    const part = ayahPartOf(row.verse_key, row.surah_number);
+    const decoded = part
+      ? decodeHighlightDocument({
+          v: [[part, row.color, row.rewayah_id ?? 'hafs']],
+        })
+      : undefined;
+    if (!part || !decoded) continue;
+    const entries = bySurah.get(row.surah_number) ?? {};
+    entries[part] = decoded[part];
+    bySurah.set(row.surah_number, entries);
+  }
+  return bySurah;
 }
 
 function ownerScopeFromAccountId(accountId: string): `qf:${string}` {
@@ -1397,10 +1471,141 @@ export class QfSyncDatabaseService {
    * are kept too: QF does not sync them, so this device holds the only copy
    * until they sync through QF App State.
    */
+  /** This account's highlights and last synced documents, per surah. */
+  async getHighlightSyncSnapshot(
+    accountId: string,
+  ): Promise<QfHighlightSyncSnapshot> {
+    const connection = await this.database.getConnection();
+    const ownerScope = ownerScopeFromAccountId(accountId);
+    return atQfSqliteBoundary(async () => {
+      const local = await readLocalHighlights(connection, ownerScope);
+      const rows = await connection.getAllAsync<HighlightSyncRow>(
+        `SELECT surah_number, etag, entries_json FROM qf_highlight_sync
+         WHERE owner_scope = ?`,
+        [ownerScope],
+      );
+      const synced = new Map<number, QfSyncedHighlights>();
+      for (const row of rows) {
+        const entries = parseSyncedEntries(row.entries_json);
+        if (entries) {
+          synced.set(row.surah_number, {etag: row.etag, entries});
+        }
+      }
+      return {local, synced};
+    });
+  }
+
+  /**
+   * Replaces one surah's highlights with a merged set, unless they changed
+   * since `expected` was read; then nothing is written and false returned so
+   * the next sync merges the newer edit.
+   */
+  async applySyncedHighlights(input: {
+    accountId: string;
+    surahNumber: number;
+    expected: QfHighlightEntries;
+    next: QfHighlightEntries;
+  }): Promise<boolean> {
+    const connection = await this.database.getConnection();
+    const ownerScope = ownerScopeFromAccountId(input.accountId);
+    let applied = false;
+    await withQfSyncTransaction(connection, async db => {
+      const current =
+        (await readLocalHighlights(db, ownerScope, input.surahNumber)).get(
+          input.surahNumber,
+        ) ?? {};
+      if (!sameHighlights(current, input.expected)) return;
+      for (const part of Object.keys(current)) {
+        if (input.next[part]) continue;
+        await db.runAsync(
+          `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+          [ownerScope, verseKeyOf(input.surahNumber, part)],
+        );
+      }
+      for (const [part, entry] of Object.entries(input.next)) {
+        const existing = current[part];
+        if (
+          existing?.color === entry.color &&
+          existing.rewayahId === entry.rewayahId
+        ) {
+          continue;
+        }
+        await db.runAsync(
+          `INSERT INTO highlights (id, owner_scope, verse_key, surah_number, ayah_number, color, created_at, rewayah_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT(owner_scope, verse_key) DO UPDATE SET color = excluded.color, rewayah_id = excluded.rewayah_id`,
+          [
+            generateId(),
+            ownerScope,
+            verseKeyOf(input.surahNumber, part),
+            input.surahNumber,
+            ayahNumberOf(part),
+            entry.color,
+            Date.now(),
+            entry.rewayahId,
+          ],
+        );
+      }
+      applied = true;
+    });
+    return applied;
+  }
+
+  /** Records the document QF now holds for a surah; null forgets it. */
+  async saveSyncedHighlights(input: {
+    accountId: string;
+    surahNumber: number;
+    synced: QfSyncedHighlights | null;
+  }): Promise<void> {
+    const connection = await this.database.getConnection();
+    const ownerScope = ownerScopeFromAccountId(input.accountId);
+    await withQfSyncTransaction(connection, async db => {
+      if (!input.synced) {
+        await db.runAsync(
+          `DELETE FROM qf_highlight_sync WHERE owner_scope = ? AND surah_number = ?`,
+          [ownerScope, input.surahNumber],
+        );
+        return;
+      }
+      await db.runAsync(
+        `INSERT INTO qf_highlight_sync (owner_scope, surah_number, etag, entries_json)
+         VALUES (?, ?, ?, ?)
+         ON CONFLICT(owner_scope, surah_number) DO UPDATE SET
+           etag = excluded.etag, entries_json = excluded.entries_json`,
+        [
+          ownerScope,
+          input.surahNumber,
+          input.synced.etag,
+          JSON.stringify(encodeHighlightDocument(input.synced.entries)),
+        ],
+      );
+    });
+  }
+
   async purgeAccountData(accountId: string): Promise<void> {
     const connection = await this.database.getConnection();
     const ownerScope = ownerScopeFromAccountId(accountId);
     await withQfSyncTransaction(connection, async db => {
+      // Only highlights exactly as last synced have a copy on Quran.com.
+      // The rest (App State off, offline, rejected, unsynced edits) stay on
+      // the device, scoped to the account, and merge back on sign-in.
+      const local = await readLocalHighlights(db, ownerScope);
+      const synced = await db.getAllAsync<HighlightSyncRow>(
+        `SELECT surah_number, etag, entries_json FROM qf_highlight_sync
+         WHERE owner_scope = ?`,
+        [ownerScope],
+      );
+      for (const row of synced) {
+        const entries = parseSyncedEntries(row.entries_json);
+        const current = local.get(row.surah_number) ?? {};
+        if (!entries || !sameHighlights(current, entries)) continue;
+        for (const part of Object.keys(entries)) {
+          await db.runAsync(
+            `DELETE FROM highlights WHERE owner_scope = ? AND verse_key = ?`,
+            [ownerScope, verseKeyOf(row.surah_number, part)],
+          );
+        }
+      }
       for (const table of [
         'bookmarks',
         'notes',
@@ -1409,6 +1614,7 @@ export class QfSyncDatabaseService {
         'qf_sync_payload_blocks',
         'qf_note_conflicts',
         'qf_sync_state',
+        'qf_highlight_sync',
       ]) {
         await db.runAsync(`DELETE FROM ${table} WHERE owner_scope = ?`, [
           ownerScope,
