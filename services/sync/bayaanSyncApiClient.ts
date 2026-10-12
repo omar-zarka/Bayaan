@@ -52,7 +52,14 @@ interface BayaanSyncApiClientOptions {
   maxResponseBytes?: number;
 }
 
-const SYNC_RESOURCES = ['BOOKMARK', 'NOTE', 'READING_SESSION'] as const;
+// COLLECTION_BOOKMARK reports custom-collection memberships, so a delete can
+// leave Favorites without removing the bookmark from those collections.
+const SYNC_RESOURCES = [
+  'BOOKMARK',
+  'NOTE',
+  'READING_SESSION',
+  'COLLECTION_BOOKMARK',
+] as const;
 const SYNC_TIMEOUT_MS = 8_000;
 // One supported 200k-character note can require 1.2MB when JSON escapes
 // control characters. Admit one such mutation while bounding every response;

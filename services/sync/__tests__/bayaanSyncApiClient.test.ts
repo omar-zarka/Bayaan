@@ -2,6 +2,10 @@ import {
   BayaanSyncApiClient,
   BayaanSyncApiError,
 } from '@/services/sync/bayaanSyncApiClient';
+import {
+  BayaanSyncDecodeError,
+  decodeBayaanSyncRequestMutation,
+} from '@/services/sync/bayaanSyncCodec';
 
 jest.mock('expo/fetch', () => ({
   fetch: (...args: unknown[]) =>
@@ -89,7 +93,7 @@ describe('Bayaan Sync BFF client', () => {
       RequestInit,
     ];
     expect(url).toBe(
-      'https://api-prelive.thebayaan.com/v1/qf/sync?mutationsSince=0&resources=BOOKMARK%2CNOTE%2CREADING_SESSION&metadataOnly=false&limit=1000&page=1',
+      'https://api-prelive.thebayaan.com/v1/qf/sync?mutationsSince=0&resources=BOOKMARK%2CNOTE%2CREADING_SESSION%2CCOLLECTION_BOOKMARK&metadataOnly=false&limit=1000&page=1',
     );
     expect(init).toEqual(
       expect.objectContaining({
@@ -604,6 +608,173 @@ describe('Bayaan Sync BFF client', () => {
       }),
     ).rejects.toMatchObject({code: 'service_unavailable', status: 502});
     expect(read).not.toHaveBeenCalled();
+  });
+
+  it('decodes pulled custom-collection memberships by data or composite id', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: {
+          lastMutationAt: 3,
+          mutations: [
+            {
+              resource: 'COLLECTION_BOOKMARK',
+              type: 'CREATE',
+              timestamp: 1,
+              data: {
+                collectionId: 'col1',
+                bookmarkId: 'bm1',
+                type: 'ayah',
+                key: 2,
+                verseNumber: 255,
+              },
+            },
+            {
+              resource: 'COLLECTION_BOOKMARK',
+              type: 'DELETE',
+              resourceId: 'col1-bm2',
+              timestamp: 2,
+            },
+            {
+              resource: 'COLLECTION_BOOKMARK',
+              type: 'DELETE',
+              timestamp: 3,
+              data: {collectionId: 'col1', bookmarkId: 'bm3'},
+            },
+          ],
+        },
+      }),
+    );
+    await expect(
+      new BayaanSyncApiClient({apiUrl, fetchImpl}).pull(opaqueSession, {
+        mutationsSince: 0,
+      }),
+    ).resolves.toEqual({
+      lastMutationAt: 3,
+      mutations: [
+        {
+          resource: 'COLLECTION_BOOKMARK',
+          type: 'CREATE',
+          membershipId: 'col1-bm1',
+          collectionId: 'col1',
+          bookmarkId: 'bm1',
+          timestamp: 1,
+        },
+        {
+          resource: 'COLLECTION_BOOKMARK',
+          type: 'DELETE',
+          membershipId: 'col1-bm2',
+          timestamp: 2,
+        },
+        {
+          resource: 'COLLECTION_BOOKMARK',
+          type: 'DELETE',
+          membershipId: 'col1-bm3',
+          collectionId: 'col1',
+          bookmarkId: 'bm3',
+          timestamp: 3,
+        },
+      ],
+    });
+    expect(
+      new URL(fetchImpl.mock.calls[0][0]).searchParams.get('resources'),
+    ).toBe('BOOKMARK,NOTE,READING_SESSION,COLLECTION_BOOKMARK');
+  });
+
+  it.each([
+    {resource: 'COLLECTION_BOOKMARK', type: 'DELETE', timestamp: 1},
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'CREATE',
+      timestamp: 1,
+      data: {collectionId: 'col1'},
+    },
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'DELETE',
+      resourceId: 'col1-other',
+      timestamp: 1,
+      data: {collectionId: 'col1', bookmarkId: 'bm1'},
+    },
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'CREATE',
+      timestamp: 1,
+      data: {collectionId: 'col1', bookmarkId: 'bm1', name: 'unexpected'},
+    },
+  ])('rejects a pulled membership it cannot identify: %j', async mutation => {
+    const fetchImpl = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: {lastMutationAt: 1, mutations: [mutation]},
+      }),
+    );
+    await expect(
+      new BayaanSyncApiClient({apiUrl, fetchImpl}).pull(opaqueSession, {
+        mutationsSince: 0,
+      }),
+    ).rejects.toMatchObject({code: 'invalid_response'});
+  });
+
+  it('pushes a Favorites removal and accepts a receipt without identity', async () => {
+    const fetchImpl = jest.fn().mockResolvedValue(
+      jsonResponse({
+        success: true,
+        data: {
+          lastMutationAt: 9,
+          mutations: [
+            {resource: 'COLLECTION_BOOKMARK', type: 'DELETE', timestamp: 9},
+          ],
+        },
+      }),
+    );
+    const removal = {
+      resource: 'COLLECTION_BOOKMARK' as const,
+      type: 'DELETE' as const,
+      data: {collectionId: '__default__' as const, bookmarkId: 'bm1'},
+    };
+    await expect(
+      new BayaanSyncApiClient({apiUrl, fetchImpl}).push(opaqueSession, {
+        lastMutationAt: 8,
+        mutations: [removal],
+      }),
+    ).resolves.toEqual({
+      lastMutationAt: 9,
+      mutations: [
+        {resource: 'COLLECTION_BOOKMARK', type: 'DELETE', timestamp: 9},
+      ],
+    });
+    expect(JSON.parse(fetchImpl.mock.calls[0][1].body)).toEqual({
+      mutations: [removal],
+    });
+  });
+
+  it.each([
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'CREATE',
+      data: {collectionId: '__default__', bookmarkId: 'bm1'},
+    },
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'DELETE',
+      data: {collectionId: 'col1', bookmarkId: 'bm1'},
+    },
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'DELETE',
+      resourceId: 'x',
+      data: {collectionId: '__default__', bookmarkId: 'bm1'},
+    },
+    {
+      resource: 'COLLECTION_BOOKMARK',
+      type: 'DELETE',
+      data: {collectionId: '__default__'},
+    },
+  ])('refuses to send any other collection write: %j', mutation => {
+    expect(() => decodeBayaanSyncRequestMutation(mutation)).toThrow(
+      BayaanSyncDecodeError,
+    );
   });
 
   it('aborts a stalled sync request at its deadline', async () => {

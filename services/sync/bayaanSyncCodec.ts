@@ -27,9 +27,28 @@ export interface BayaanSyncMutation {
   data?: Record<string, string | number | boolean | string[]>;
 }
 
+// QF's virtual collection id for Quran.com Favorites.
+export const QF_DEFAULT_COLLECTION_ID = '__default__';
+
+// A bookmark's membership of a custom QF collection. QF has no single id for
+// it: membershipId is its composite "<collectionId>-<bookmarkId>". A pulled
+// effect always carries membershipId; a push receipt may carry no identity.
+export interface BayaanCollectionBookmarkMutation {
+  resource: 'COLLECTION_BOOKMARK';
+  type: QfMutationType;
+  membershipId?: string;
+  collectionId?: string;
+  bookmarkId?: string;
+  timestamp: number;
+}
+
+export type BayaanSyncEffect =
+  | BayaanSyncMutation
+  | BayaanCollectionBookmarkMutation;
+
 export interface BayaanSyncPullPage {
   lastMutationAt: number;
-  mutations: BayaanSyncMutation[];
+  mutations: BayaanSyncEffect[];
   page?: number;
   limit?: number;
   total?: number;
@@ -38,16 +57,28 @@ export interface BayaanSyncPullPage {
   receivedMutationCount?: number;
 }
 
-export interface BayaanSyncRequestMutation {
+export interface BayaanAnnotationRequestMutation {
   resource: QfSyncResource;
   type: QfMutationType;
   resourceId?: string;
   data?: Record<string, string | number | boolean | string[]>;
 }
 
+// The only collection write Bayaan makes: a bookmark that is also in a custom
+// collection leaves Favorites instead of being deleted on QF.
+export interface BayaanFavoritesRemovalRequest {
+  resource: 'COLLECTION_BOOKMARK';
+  type: 'DELETE';
+  data: {collectionId: typeof QF_DEFAULT_COLLECTION_ID; bookmarkId: string};
+}
+
+export type BayaanSyncRequestMutation =
+  | BayaanAnnotationRequestMutation
+  | BayaanFavoritesRemovalRequest;
+
 export interface BayaanSyncPushResult {
   lastMutationAt: number;
-  mutations: BayaanSyncMutation[];
+  mutations: BayaanSyncEffect[];
 }
 
 export interface BayaanSyncPullDecodeRequest {
@@ -254,12 +285,80 @@ function decodeData(
   return value as Record<string, string | number | boolean | string[]>;
 }
 
+const COLLECTION_BOOKMARK_DATA_KEYS = new Set([
+  'collectionId',
+  'bookmarkId',
+  'type',
+  'bookmarkType',
+  'key',
+  'verseNumber',
+  'mushafId',
+  'mushaf',
+  'clientCreatedAt',
+  'clientUpdatedAt',
+]);
+
+function boundedId(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 && value.length <= 256
+    ? value
+    : undefined;
+}
+
+function decodeCollectionBookmark(
+  value: Record<string, unknown>,
+  isPushReceipt: boolean,
+): BayaanCollectionBookmarkMutation {
+  if (
+    typeof value.type !== 'string' ||
+    !MUTATION_TYPES.has(value.type as QfMutationType) ||
+    !isSafeTimestamp(value.timestamp) ||
+    (value.resourceId !== undefined && !boundedId(value.resourceId)) ||
+    (value.data !== undefined &&
+      (!isObject(value.data) ||
+        !hasOnlyKeys(value.data, COLLECTION_BOOKMARK_DATA_KEYS)))
+  ) {
+    return invalid();
+  }
+  const data = isObject(value.data) ? value.data : {};
+  if (
+    (data.collectionId !== undefined && !boundedId(data.collectionId)) ||
+    (data.bookmarkId !== undefined && !boundedId(data.bookmarkId))
+  ) {
+    return invalid();
+  }
+  const collectionId = boundedId(data.collectionId);
+  const bookmarkId = boundedId(data.bookmarkId);
+  const membershipId =
+    collectionId && bookmarkId
+      ? `${collectionId}-${bookmarkId}`
+      : boundedId(value.resourceId);
+  if (
+    membershipId &&
+    value.resourceId !== undefined &&
+    value.resourceId !== membershipId
+  ) {
+    return invalid();
+  }
+  if (!membershipId && !isPushReceipt) return invalid();
+  return {
+    resource: 'COLLECTION_BOOKMARK',
+    type: value.type as QfMutationType,
+    ...(membershipId ? {membershipId} : {}),
+    ...(collectionId ? {collectionId} : {}),
+    ...(bookmarkId ? {bookmarkId} : {}),
+    timestamp: value.timestamp,
+  };
+}
+
 function decodeMutation(
   value: unknown,
   projectBookmarks = false,
-): BayaanSyncMutation | null {
+): BayaanSyncEffect | null {
   if (!isObject(value) || !hasOnlyKeys(value, MUTATION_KEYS)) {
     return invalid();
+  }
+  if (value.resource === 'COLLECTION_BOOKMARK') {
+    return decodeCollectionBookmark(value, !projectBookmarks);
   }
   if (
     typeof value.resource !== 'string' ||
@@ -301,6 +400,28 @@ function decodeMutation(
   };
 }
 
+function decodeFavoritesRemovalRequest(
+  value: Record<string, unknown>,
+): BayaanFavoritesRemovalRequest {
+  if (
+    !hasOnlyKeys(value, REQUEST_MUTATION_KEYS) ||
+    value.type !== 'DELETE' ||
+    value.resourceId !== undefined ||
+    !isObject(value.data) ||
+    !hasOnlyKeys(value.data, new Set(['collectionId', 'bookmarkId'])) ||
+    value.data.collectionId !== QF_DEFAULT_COLLECTION_ID
+  ) {
+    return invalid();
+  }
+  const bookmarkId = boundedId(value.data.bookmarkId);
+  if (!bookmarkId) return invalid();
+  return {
+    resource: 'COLLECTION_BOOKMARK',
+    type: 'DELETE',
+    data: {collectionId: QF_DEFAULT_COLLECTION_ID, bookmarkId},
+  };
+}
+
 export function decodeBayaanSyncRequestMutation(
   value: unknown,
 ): BayaanSyncRequestMutation {
@@ -312,6 +433,9 @@ export function decodeBayaanSyncRequestMutation(
     typeof value.type !== 'string' ||
     !MUTATION_TYPES.has(value.type as QfMutationType)
   ) {
+    if (isObject(value) && value.resource === 'COLLECTION_BOOKMARK') {
+      return decodeFavoritesRemovalRequest(value);
+    }
     return invalid();
   }
   const resource = value.resource as QfSyncResource;
@@ -425,7 +549,7 @@ function decodeResponse(
   const received = Array.isArray(data.mutations) ? data.mutations : [];
   const mutations = received
     .map(mutation => decodeMutation(mutation, projectBookmarks))
-    .filter((mutation): mutation is BayaanSyncMutation => mutation !== null);
+    .filter((mutation): mutation is BayaanSyncEffect => mutation !== null);
   return {
     lastMutationAt: data.lastMutationAt,
     mutations,

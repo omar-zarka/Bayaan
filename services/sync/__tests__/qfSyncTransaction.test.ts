@@ -69,6 +69,7 @@ import {withQfSyncTransaction} from '@/services/sync/qfSyncTransaction';
 import {migrateUserSyncV1} from '@/services/database/migrations/userSyncV1';
 import {migrateUserSyncV2} from '@/services/database/migrations/userSyncV2';
 import {migrateUserSyncV3} from '@/services/database/migrations/userSyncV3';
+import {migrateUserSyncV4} from '@/services/database/migrations/userSyncV4';
 import {QfSyncLifecycle} from '@/services/sync/qfSyncLifecycle';
 import {useQfSyncStore} from '@/store/qfSyncStore';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
@@ -197,6 +198,7 @@ async function createServices() {
   await migrateUserSyncV1(root);
   await migrateUserSyncV2(root);
   await migrateUserSyncV3(root);
+  await migrateUserSyncV4(root);
   const provider = {
     initialize: async () => undefined,
     getConnection: async () => root as unknown as SQLiteDatabase,
@@ -1630,7 +1632,7 @@ for (const platform of ['ios', 'web']) {
         ),
       ).toBeNull();
       expect(await pull.getStoredHead('reader')).toBe(0);
-      expect(root.transactions).toHaveLength(4);
+      expect(root.transactions).toHaveLength(5);
       expect(root.transactions.every(txn => txn.closed)).toBe(true);
       if (platform === 'web') {
         expect(mockOpenDatabaseAsync).toHaveBeenCalledWith(root.databasePath, {
