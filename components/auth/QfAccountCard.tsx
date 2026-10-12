@@ -13,6 +13,10 @@ import type {Theme} from '@/utils/themeUtils';
 import {QfSyncStatusRow} from './QfSyncStatusRow';
 import {qfSyncLifecycle} from '@/services/sync/qfSyncLifecycle';
 import {qfSettingsSyncLifecycle} from '@/services/settings/qfSettingsSyncLifecycle';
+import {qfSyncDatabaseService} from '@/services/sync/qfSyncDatabaseService';
+
+// How long sign-out waits for queued edits to reach QF before purging.
+const SIGN_OUT_FLUSH_MS = 5_000;
 
 export function QfAccountCard() {
   const {theme} = useTheme();
@@ -34,6 +38,13 @@ export function QfAccountCard() {
   }, [setError, setSigningIn]);
 
   const signOut = useCallback(async () => {
+    const accountId = useBayaanAuthStore.getState().profile?.accountId ?? null;
+    // Best effort: deliver queued edits before this account's rows go.
+    qfSyncLifecycle.requestSync();
+    await Promise.race([
+      qfSyncLifecycle.waitForIdle().catch(() => undefined),
+      new Promise(resolve => setTimeout(resolve, SIGN_OUT_FLUSH_MS)),
+    ]);
     const attempt = useBayaanAuthStore.getState().invalidateAttempt();
     await Promise.allSettled([
       qfSyncLifecycle.stop(),
@@ -46,6 +57,13 @@ export function QfAccountCard() {
     } catch {
       // Logout attempts local cleanup even when remote revocation is offline.
       // Do not leak its rejection from a native press handler.
+    }
+    try {
+      // Like Quran.com web, a signed-out account leaves no copy on a shared
+      // device; the next sign-in pulls it again.
+      if (accountId) await qfSyncDatabaseService.purgeAccountData(accountId);
+    } catch (error) {
+      console.error('[QfAccountCard] Account data purge failed:', error);
     } finally {
       setSignedOut(attempt);
     }

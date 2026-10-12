@@ -930,6 +930,57 @@ describe('SQLite push recovery store', () => {
     await database.close();
   });
 
+  it('purges exactly one signed-out account and its sync position', async () => {
+    const {database, sync, annotations} =
+      await createServices('signout-purge.db');
+    await sync.initialize();
+    await seedHead(database, 8000);
+    await sync.addBookmark({
+      accountId,
+      verseKey: '1:1',
+      surahNumber: 1,
+      ayahNumber: 1,
+    });
+    await sync.addNote({
+      accountId,
+      verseKey: '1:2',
+      surahNumber: 1,
+      ayahNumber: 2,
+      content: 'private',
+    });
+    await annotations.upsertHighlightForOwnerScope(
+      'qf:reader-a',
+      '1:3',
+      1,
+      3,
+      'blue',
+      'hafs',
+    );
+    await sync.addBookmark({
+      accountId: 'reader-b',
+      verseKey: '2:1',
+      surahNumber: 2,
+      ayahNumber: 1,
+    });
+    await annotations.addBookmark('3:1', 3, 1, 'hafs');
+
+    await sync.purgeAccountData(accountId);
+
+    const db = await database.getConnection();
+    const scopes = async (table: string): Promise<string[]> => {
+      const rows: {owner_scope: string}[] = await db.getAllAsync(
+        `SELECT DISTINCT owner_scope FROM ${table} ORDER BY owner_scope`,
+      );
+      return rows.map(row => row.owner_scope);
+    };
+    expect(await scopes('bookmarks')).toEqual(['guest', 'qf:reader-b']);
+    expect(await scopes('notes')).toEqual([]);
+    expect(await scopes('highlights')).toEqual([]);
+    expect(await scopes('qf_sync_outbox')).toEqual(['qf:reader-b']);
+    expect(await sync.getStoredHead(accountId)).toBe(0);
+    await database.close();
+  });
+
   it('writes guest annotation changes in the guest scope without an outbox', async () => {
     const {database, sync, annotations} = await createServices(
       'guest-annotation-changes.db',

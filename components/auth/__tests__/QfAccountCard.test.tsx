@@ -88,6 +88,7 @@ import {
 } from '@/services/auth/bayaanSessionStorage';
 import {BayaanAuthProvider} from '@/providers/BayaanAuthProvider';
 import {qfSyncLifecycle} from '@/services/sync/qfSyncLifecycle';
+import {qfSyncDatabaseService} from '@/services/sync/qfSyncDatabaseService';
 import {qfSettingsSyncLifecycle} from '@/services/settings/qfSettingsSyncLifecycle';
 import {useBayaanAuthStore} from '@/store/bayaanAuthStore';
 
@@ -115,6 +116,10 @@ function jsonResponse(body: unknown, status = 200) {
 
 beforeEach(async () => {
   jest.restoreAllMocks();
+  // Sign-out purges the account's SQLite rows; no database exists here.
+  jest
+    .spyOn(qfSyncDatabaseService, 'purgeAccountData')
+    .mockResolvedValue(undefined);
   mockUseLinkingURL.mockReset();
   mockReplace.mockReset();
   mockSecureStore.clear();
@@ -550,14 +555,23 @@ describe('QfAccountCard', () => {
     await act(async () => card.unmount());
   });
 
-  it('stops account lifecycle work before logging out', async () => {
+  it('flushes, stops account lifecycle work, logs out, then purges the account', async () => {
     const events: string[] = [];
+    jest.spyOn(qfSyncLifecycle, 'requestSync').mockImplementation(() => {
+      events.push('flush');
+    });
+    jest.spyOn(qfSyncLifecycle, 'waitForIdle').mockResolvedValue(undefined);
     jest.spyOn(qfSyncLifecycle, 'stop').mockImplementation(async () => {
       events.push('stop');
     });
     jest.spyOn(bayaanAuthService, 'logout').mockImplementation(async () => {
       events.push('logout');
     });
+    jest
+      .spyOn(qfSyncDatabaseService, 'purgeAccountData')
+      .mockImplementation(async accountId => {
+        events.push(`purge:${accountId}`);
+      });
     useBayaanAuthStore.getState().setAuthenticated({
       accountId: 'bayaan-account-id',
     });
@@ -573,7 +587,12 @@ describe('QfAccountCard', () => {
       await findButton(renderedScreen).props.onPress();
     });
 
-    expect(events).toEqual(['stop', 'logout']);
+    expect(events).toEqual([
+      'flush',
+      'stop',
+      'logout',
+      'purge:bayaan-account-id',
+    ]);
     expect(useBayaanAuthStore.getState().status).toBe('signed_out');
     await act(async () => {
       renderedScreen.unmount();

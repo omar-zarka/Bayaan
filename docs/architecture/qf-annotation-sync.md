@@ -7,11 +7,19 @@ replace native iOS/Android or two-device provider QA.
 
 ## Signed-out device storage
 
-Current behavior retains account-scoped SQLite annotations and their durable
-outbox on explicit sign-out. Guest scope does not expose or upload those rows;
-only returning to the same account resumes them. This is not a device-data purge.
-The shared-device retention/purge policy still needs a product decision before
-launch; no destructive cleanup is inferred from signing out.
+An explicit sign-out deletes the account's rows from the device, as Quran.com
+web does (`useLogout` clears bookmarks and reading history to prevent leakage
+on shared devices). Sign-out first asks the lifecycle to deliver queued edits
+(bounded to five seconds), stops sync, revokes the session, then deletes the
+account's bookmarks, notes, highlights, reading location, outbox, payload
+blocks, note conflicts and stored head in one transaction. The next sign-in
+pulls the account again from QF. Guest rows and the guest-import ledger
+(decisions and counts only) stay.
+
+Losses to know: edits still queued after the flush window (e.g. signing out
+offline) are dropped, and highlights are not synced by QF, so an account's
+highlights do not come back. A revoked or expired session is not a sign-out
+and keeps the rows for that account's return.
 
 ## Guest decisions cover rows, not an account's lifetime
 
