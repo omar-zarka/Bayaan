@@ -1,6 +1,7 @@
 // @ai-generated
 import {damerauLevenshtein, maxEditsFor} from './fuzzy';
 import {ARTICLES, latinSkeleton, toSearchKey, tokenize} from './normalize';
+import {swapKeyboardLayout} from './keyboardLayout'; // @ai
 
 export const TIER = {
   exact: 100,
@@ -200,7 +201,10 @@ export function createSearchIndex<T>(
       query: string,
       limit: number = Number.POSITIVE_INFINITY,
     ): SearchHit<T>[] {
-      return run(prepareQuery(query), limit);
+      const hits = run(prepareQuery(query), limit);
+      if (hits.length > 0 || options.keyboardFallback === false) return hits;
+      const swapped = swapKeyboardLayout(query);
+      return swapped ? run(prepareQuery(swapped), limit) : hits;
     },
   };
 }
