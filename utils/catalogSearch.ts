@@ -2,23 +2,8 @@
 import Fuse from 'fuse.js';
 import type {Reciter} from '@/data/reciterData';
 import type {Surah} from '@/data/surahData';
-
-/** Normalize only search keys; source names and Quran text remain untouched. */
-export function normalizeSearchText(text: string): string {
-  return text
-    .normalize('NFKC')
-    .replace(/[\u0660-\u0669]/g, digit => String(digit.charCodeAt(0) - 0x0660))
-    .replace(/[\u06f0-\u06f9]/g, digit => String(digit.charCodeAt(0) - 0x06f0))
-    .replace(/[\u0610-\u061a\u064b-\u065f\u0670\u06d6-\u06ed\u0640]/g, '')
-    .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
-    .replace(/[أإآٱ]/g, 'ا')
-    .replace(/[ىی]/g, 'ي')
-    .replace(/ک/g, 'ك')
-    .replace(/ة/g, 'ه')
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, ' ');
-}
+export {normalizeSearchText} from '@/utils/search/normalize'; // @ai
+import {normalizeSearchText} from '@/utils/search/normalize'; // @ai
 
 export function matchesSearchText(text: string, query: string): boolean {
   const normalizedText = normalizeSearchText(text);
