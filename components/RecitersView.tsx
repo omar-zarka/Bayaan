@@ -46,7 +46,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAdhkarStore} from '@/store/adhkarStore';
 import {AdhkarBentoCard} from '@/components/adhkar/AdhkarBentoCard';
 import {
-  ADHKAR_TILE_MARGIN,
+  ADHKAR_TILE_GAP,
   ADHKAR_TILE_WIDTH,
   AdhkarNowPlayingCard,
   useHasAdhkarSession,
@@ -137,7 +137,7 @@ const MemoizedFlatList = React.memo(
       contentContainerStyle={styles.sectionContent}
       ListHeaderComponent={
         showAdhkarTile ? (
-          <View style={{marginRight: ADHKAR_TILE_MARGIN}}>
+          <View style={{alignSelf: 'stretch'}}>
             <AdhkarNowPlayingCard variant="tile" />
           </View>
         ) : null
@@ -173,7 +173,7 @@ const MemoizedFlatList = React.memo(
                     : 140) *
             index +
           (showAdhkarTile && variant === 'recent'
-            ? ADHKAR_TILE_WIDTH + ADHKAR_TILE_MARGIN
+            ? ADHKAR_TILE_WIDTH + ADHKAR_TILE_GAP
             : 0),
         index,
       })}
