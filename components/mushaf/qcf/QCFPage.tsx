@@ -61,6 +61,7 @@ import {
   getQCFFontVariant, // @ai
 } from '@/services/mushaf/QCFFontLoader';
 import {qcfLayoutCacheService} from '@/services/mushaf/QCFLayoutCacheService';
+import {fitQCFLinePositions} from '@/services/mushaf/QCFVerticalLayout'; // @ai
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {getTextAllahNameCharMap} from '@/services/mushaf/AllahNameHighlightService';
@@ -220,7 +221,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
     [pageNumber],
   );
 
-  const lineYPositions = useMemo(
+  const rawLineYPositions = useMemo(
     // @ai-start
     () =>
       calculateLineYPositions(
@@ -449,7 +450,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
   // @ai-end
 
   // @ai-start
-  const renderEntries = useMemo<RenderEntry[]>(() => {
+  const rawRenderEntries = useMemo<RenderEntry[]>(() => {
     if (!fontMgr || !fontReady || !layoutMetrics) return [];
 
     const fontSize = layoutMetrics.fontSize;
@@ -551,7 +552,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
     const entries: RenderEntry[] = [];
     for (let i = 0; i < pageLines.length; i++) {
       const line = pageLines[i];
-      const yPos = lineYPositions[i];
+      const yPos = rawLineYPositions[i];
 
       if (line.line_type === 'surah_name') {
         // Rendered separately as a SkiaSurahHeader element; see the
@@ -623,12 +624,41 @@ const QCFPage: React.FC<QCFPageProps> = ({
     fontFamily,
     layoutMetrics,
     pageLines,
-    lineYPositions,
+    rawLineYPositions,
     pageNumber,
     showAllahNameHighlight,
     showTajweed,
     textColor,
   ]);
+
+  // V4's paragraph boxes are taller than the legacy line pitch. Fit their
+  // measured bottoms above the page's reserved footer, keeping glyph sizes
+  // and V2 spacing unchanged. Headers, highlights and hit tests share this fit.
+  const lineYPositions = useMemo(
+    () =>
+      showTajweed
+        ? fitQCFLinePositions(
+            rawLineYPositions,
+            rawRenderEntries.map(entry => ({
+              lineIndex: entry.lineIndex,
+              height: entry.paragraph.getHeight(),
+            })),
+            CONTENT_HEIGHT,
+          )
+        : rawLineYPositions,
+    [showTajweed, rawLineYPositions, rawRenderEntries, CONTENT_HEIGHT],
+  );
+
+  const renderEntries = useMemo(
+    () =>
+      lineYPositions === rawLineYPositions
+        ? rawRenderEntries
+        : rawRenderEntries.map(entry => ({
+            ...entry,
+            yPos: lineYPositions[entry.lineIndex],
+          })),
+    [lineYPositions, rawLineYPositions, rawRenderEntries],
+  );
 
   // @ai-end
   // Surah-header lines (line_type === 'surah_name'). DK's SkiaSurahHeader
