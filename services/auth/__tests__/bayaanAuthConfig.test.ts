@@ -187,3 +187,87 @@ describe('bayaan auth public config', () => {
     },
   );
 });
+
+describe('branding qfBffBase', () => {
+  const env = {
+    EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: 'true',
+    EXPO_PUBLIC_BAYAAN_API_URL: 'https://api-prelive.thebayaan.com',
+  };
+
+  afterEach(() => {
+    jest.dontMock('../../../config/branding');
+  });
+
+  function loadWithBranding(qfBffBase: string) {
+    jest.resetModules();
+    jest.doMock('../../../config/branding', () => ({qfBffBase}));
+    return require('../../../config/bayaanAuth');
+  }
+
+  it('uses the branding BFF base instead of the env API URL', () => {
+    const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+    expect(readBayaanAuthConfig(env, ' https://bff.fork.test ')).toEqual({
+      qfSyncEnabled: true,
+      apiUrl: 'https://bff.fork.test',
+    });
+  });
+
+  it.each([undefined, '', '  '])(
+    'uses the env API URL when the branding BFF base is %p',
+    qfBffBase => {
+      const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+      expect(readBayaanAuthConfig(env, qfBffBase)).toEqual({
+        qfSyncEnabled: true,
+        apiUrl: 'https://api-prelive.thebayaan.com',
+      });
+    },
+  );
+
+  describe.each(['true', 'false'])('sync flag %s', flag => {
+    it.each([
+      'https://oauth2.quran.foundation',
+      'https://prelive-oauth2.quran.foundation/authorize',
+      'https://apis.quran.foundation',
+      ' https://apis-prelive.quran.foundation/auth/me ',
+    ])('rejects a QF host as the branding BFF base (%s)', qfBffBase => {
+      const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+      expect(() =>
+        readBayaanAuthConfig(
+          {...env, EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: flag},
+          qfBffBase,
+        ),
+      ).toThrow('qfBffBase');
+    });
+  });
+
+  it('reads the BFF base from branding at runtime', () => {
+    setPublicEnv({EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: 'true'});
+
+    const {bayaanAuthConfig} = loadWithBranding('https://bff.fork.test');
+
+    expect(bayaanAuthConfig).toEqual({
+      qfSyncEnabled: true,
+      apiUrl: 'https://bff.fork.test',
+    });
+  });
+
+  it('fails at load when branding points the BFF at a QF host', () => {
+    setPublicEnv({EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: 'true'});
+
+    expect(() => loadWithBranding('https://apis.quran.foundation')).toThrow(
+      'qfBffBase',
+    );
+  });
+
+  it('keeps the Bayaan default: no branding BFF base, env API URL', () => {
+    setPublicEnv({EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: 'true'});
+
+    const {bayaanAuthConfig} = loadBayaanAuthConfig();
+
+    expect(require('../../../config/branding').qfBffBase).toBeUndefined();
+    expect(bayaanAuthConfig.apiUrl).toBe('https://api-prelive.thebayaan.com');
+  });
+});

@@ -126,6 +126,14 @@ export interface Branding {
    */
   contentApiBase?: string;
   /**
+   * Base URL for the QF backend-for-frontend (sign-in, user-data sync and
+   * settings sync). Absent: `EXPO_PUBLIC_BAYAAN_API_URL`. A fork that runs
+   * its own BFF points this at it; catalog and content requests keep their
+   * own base. Must not be a Quran Foundation OAuth or API host.
+   * No trailing slash.
+   */
+  qfBffBase?: string;
+  /**
    * RFC-008 — optional component that replaces the Listen-tab top
    * region (the default `RecitersHero`). Forks return a React
    * component; `undefined` keeps Bayaan's `RecitersHero` verbatim.

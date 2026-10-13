@@ -1,3 +1,5 @@
+import branding from '@/config/branding';
+
 const FORBIDDEN_PUBLIC_KEY_PATTERNS = [
   /QF_AUTHORIZATION_CODE/i,
   /QF.*TOKEN/i,
@@ -97,19 +99,33 @@ export function assertNoForbiddenPublicBayaanAuthEnv(
   }
 }
 
+function assertNoForbiddenQfBffBase(qfBffBase: string | undefined) {
+  // The BFF is never QF itself, whatever the sync flag says.
+  const parsedUrl = qfBffBase ? parsePublicUrl(qfBffBase) : null;
+  if (parsedUrl && isForbiddenQfHost(parsedUrl)) {
+    throw new Error('Forbidden branding auth config detected: qfBffBase');
+  }
+}
+
+/**
+ * `qfBffBase` is `branding.qfBffBase`. When set, it replaces
+ * `EXPO_PUBLIC_BAYAAN_API_URL` as the BFF base URL.
+ */
 export function readBayaanAuthConfig(
   env: PublicBayaanAuthEnv,
+  qfBffBase?: string,
 ): BayaanAuthConfig {
   assertNoForbiddenPublicBayaanAuthEnv(env);
+  assertNoForbiddenQfBffBase(qfBffBase);
 
   return {
     qfSyncEnabled:
       env.EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED?.trim().toLowerCase() === 'true',
-    apiUrl: env.EXPO_PUBLIC_BAYAAN_API_URL?.trim() ?? '',
+    apiUrl: qfBffBase?.trim() || env.EXPO_PUBLIC_BAYAAN_API_URL?.trim() || '',
   };
 }
 
-export const bayaanAuthConfig = readBayaanAuthConfig({
+const publicBayaanAuthEnv: PublicBayaanAuthEnv = {
   EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED:
     process.env.EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED,
   EXPO_PUBLIC_BAYAAN_API_URL: process.env.EXPO_PUBLIC_BAYAAN_API_URL,
@@ -123,4 +139,9 @@ export const bayaanAuthConfig = readBayaanAuthConfig({
   EXPO_PUBLIC_USER_API_URL: process.env.EXPO_PUBLIC_USER_API_URL,
   EXPO_PUBLIC_QF_DISCOVERY_URL: process.env.EXPO_PUBLIC_QF_DISCOVERY_URL,
   EXPO_PUBLIC_QF_PROFILE_URL: process.env.EXPO_PUBLIC_QF_PROFILE_URL,
-});
+};
+
+export const bayaanAuthConfig = readBayaanAuthConfig(
+  publicBayaanAuthEnv,
+  branding.qfBffBase,
+);
