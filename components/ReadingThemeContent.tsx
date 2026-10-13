@@ -8,6 +8,7 @@ import {
   useColorScheme,
   Platform,
   ActivityIndicator,
+  type ScrollViewProps,
 } from 'react-native';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
@@ -78,11 +79,13 @@ const SPACEWIDTH = 100;
 
 interface ReadingThemeContentProps {
   onBack: () => void;
+  contentInsetAdjustmentBehavior?: ScrollViewProps['contentInsetAdjustmentBehavior'];
 }
 
 // @ai-start
 export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
   onBack,
+  contentInsetAdjustmentBehavior,
 }) => {
   const {theme, themeMode, setThemeMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -194,8 +197,8 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
     mushafRenderer === 'dk_indopak'
       ? 'DigitalKhattIndoPak'
       : mushafRenderer === 'dk_v1'
-        ? 'DigitalKhattV1'
-        : 'DigitalKhattV2';
+      ? 'DigitalKhattV1'
+      : 'DigitalKhattV2';
   const fontsReady =
     mushafPreloadService.initialized && digitalKhattDataService.initialized;
   const subscribedFontMgr = useMushafFontMgr();
@@ -204,6 +207,7 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
   return (
     <ScrollView
       showsVerticalScrollIndicator={false}
+      contentInsetAdjustmentBehavior={contentInsetAdjustmentBehavior}
       contentContainerStyle={styles.container}>
       {/* Miniature preview */}
       {fontsReady && selectedReadingTheme ? (
