@@ -1,6 +1,13 @@
 // @ai-generated
 import {damerauLevenshtein, maxEditsFor} from './fuzzy';
-import {ARTICLES, latinSkeleton, toSearchKey, tokenize} from './normalize';
+import {
+  ARTICLES,
+  latinSkeleton,
+  stripArabicArticle,
+  stripLatinArticle,
+  toSearchKey,
+  tokenize,
+} from './normalize';
 import {swapKeyboardLayout} from './keyboardLayout'; // @ai
 
 export const TIER = {
@@ -59,16 +66,27 @@ interface PreparedQuery {
   tokens: string[];
   compact: string;
   skeleton: string;
+  // Content tokens without articles, joined: what skeleton hits are
+  // spell-checked against.
+  raw: string;
 }
 
 function prepareField(text: string, weight: number): PreparedField {
   const key = toSearchKey(text);
-  const tokens = tokenize(key);
-  const content = tokens.filter(token => !ARTICLES.has(token));
+  const baseTokens = tokenize(key);
+  const content = baseTokens
+    .filter(token => !ARTICLES.has(token))
+    .map(stripLatinArticle);
   const skeleton = content.map(latinSkeleton);
+  // Article-less Arabic variants are extra tokens, so "بق" prefix-matches
+  // "البقره" the way "ba" matches "baqarah".
+  const tokens = baseTokens.flatMap(token => {
+    const bare = stripArabicArticle(token);
+    return bare === token ? [token] : [token, bare];
+  });
   return {
     key,
-    compact: tokens.join(''),
+    compact: baseTokens.join(''),
     tokens,
     tokenSkeletons: tokens.map(token =>
       ARTICLES.has(token) ? '' : latinSkeleton(token),
@@ -82,15 +100,35 @@ function prepareField(text: string, weight: number): PreparedField {
 function prepareQuery(query: string): PreparedQuery {
   const key = toSearchKey(query.slice(0, MAX_QUERY_LENGTH));
   const tokens = tokenize(key);
+  const content = tokens
+    .filter(token => !ARTICLES.has(token))
+    .map(stripLatinArticle);
   return {
     key,
     tokens,
     compact: tokens.join(''),
-    skeleton: tokens
-      .filter(token => !ARTICLES.has(token))
-      .map(latinSkeleton)
-      .join(''),
+    skeleton: content.map(latinSkeleton).join(''),
+    raw: content.join(''),
   };
+}
+
+/** Edit distance from `query` to the closest-length prefix of `text`. */
+function prefixDistance(query: string, text: string): number {
+  let best = Number.POSITIVE_INFINITY;
+  for (let length = query.length - 1; length <= query.length + 2; length++) {
+    if (length < 1 || length > text.length) continue;
+    best = Math.min(best, damerauLevenshtein(query, text.slice(0, length), 5));
+  }
+  return Number.isFinite(best) ? best : damerauLevenshtein(query, text, 5);
+}
+
+/**
+ * Skeleton hits are transliteration variants only when the real spelling is
+ * also close; a shared consonant pattern alone ("mary" / "mursalat") is noise.
+ */
+function skeletonTier(distance: number, maxDistance: number): number {
+  if (distance > maxDistance) return 0;
+  return TIER.skeleton - Math.min(10, 2 * distance);
 }
 
 function scoreWholeField(field: PreparedField, query: PreparedQuery): number {
@@ -100,13 +138,14 @@ function scoreWholeField(field: PreparedField, query: PreparedQuery): number {
   if (query.compact.length < 3) return 0;
   if (field.key.includes(query.key)) return TIER.substring;
   if (field.compact.includes(query.compact)) return TIER.compact;
-  if (query.skeleton.length < 2) return 0;
+  if (query.skeleton.length < 3) return 0;
   let best = 0;
   field.skeletonSuffixes.forEach((suffix, i) => {
     if (!suffix.startsWith(query.skeleton)) return;
-    const raw = field.rawSuffixes[i].slice(0, query.compact.length + 2);
-    const distance = damerauLevenshtein(query.compact, raw, 5);
-    best = Math.max(best, TIER.skeleton - Math.min(10, 2 * distance));
+    const distance = prefixDistance(query.raw, field.rawSuffixes[i]);
+    // Whole-field hits can span words ("saud shuraim" for "sudais"), so they
+    // get a tighter spelling budget than single-word hits.
+    best = Math.max(best, skeletonTier(distance, query.raw.length / 3));
   });
   return best;
 }
@@ -117,7 +156,11 @@ function scoreToken(
   isLast: boolean,
 ): number {
   const tokenSkeleton = latinSkeleton(token);
-  const maxEdits = maxEditsFor(token.length);
+  const latinBare = stripLatinArticle(token);
+  // Typo budget and comparison use the word without its article, so shared
+  // "ال" / "al" prefixes neither inflate the budget nor pass the letter gate.
+  const bare = stripArabicArticle(latinBare);
+  const maxEdits = maxEditsFor(bare.length);
   let best = 0;
   for (const field of fields) {
     for (let t = 0; t < field.tokens.length; t++) {
@@ -129,23 +172,26 @@ function scoreToken(
         tier = TIER.wordPrefix;
       } else if (
         token.length >= 3 &&
-        tokenSkeleton.length >= 2 &&
+        tokenSkeleton.length >= 3 &&
         field.tokenSkeletons[t].startsWith(tokenSkeleton)
       ) {
-        // Closer spellings rank first among skeleton matches.
-        const distance = damerauLevenshtein(token, fieldToken, 5);
-        tier = TIER.skeleton - Math.min(10, 2 * distance);
-      } else if (
-        maxEdits > 0 &&
+        const distance = prefixDistance(
+          latinBare,
+          stripLatinArticle(fieldToken),
+        );
+        tier = skeletonTier(distance, latinBare.length / 2);
+      }
+      if (tier === 0 && maxEdits > 0) {
+        const fieldBare = stripArabicArticle(stripLatinArticle(fieldToken));
         // Typos rarely hit both leading letters; this skips most DL work.
-        (token[0] === fieldToken[0] || token[1] === fieldToken[1])
-      ) {
-        const target =
-          isLast && fieldToken.length > token.length
-            ? fieldToken.slice(0, token.length)
-            : fieldToken;
-        const distance = damerauLevenshtein(token, target, maxEdits);
-        if (distance <= maxEdits) tier = TIER.fuzzy - 5 * distance;
+        if (bare[0] === fieldBare[0] || bare[1] === fieldBare[1]) {
+          const target =
+            isLast && fieldBare.length > bare.length
+              ? fieldBare.slice(0, bare.length)
+              : fieldBare;
+          const distance = damerauLevenshtein(bare, target, maxEdits);
+          if (distance <= maxEdits) tier = TIER.fuzzy - 5 * distance;
+        }
       }
       best = Math.max(best, tier * field.weight);
     }

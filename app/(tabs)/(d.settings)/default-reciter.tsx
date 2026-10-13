@@ -44,16 +44,19 @@ export default function DefaultReciterScreen() {
   }, []);
 
   // @ai-start
+  // Stable subset so rankReciters reuses its index across keystrokes.
+  const completeReciters = useMemo(
+    () => RECITERS.filter(hasCompleteQuran),
+    [hasCompleteQuran],
+  );
   const handleSearch = useCallback(
     (query: string) => {
       setSearchQuery(query);
       setSearchResults(
-        query.trim()
-          ? [...rankReciters(query, RECITERS.filter(hasCompleteQuran))]
-          : [],
+        query.trim() ? [...rankReciters(query, completeReciters)] : [],
       );
     },
-    [hasCompleteQuran],
+    [completeReciters],
   );
   // @ai-end
 

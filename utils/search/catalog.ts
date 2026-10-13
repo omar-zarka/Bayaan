@@ -1,6 +1,6 @@
 // @ai-generated
 import {SURAHS, type Surah} from '@/data/surahData';
-import {RECITERS, type Reciter} from '@/data/reciterData';
+import {RECITERS, getRecitersVersion, type Reciter} from '@/data/reciterData';
 import {SURAH_ALIASES} from '@/data/searchAliases';
 import {FEATURED_RECITER_NAMES} from '@/data/featuredReciters';
 import {getReciterDisplayName} from '@/i18n/format';
@@ -11,7 +11,7 @@ import {
   type SearchHit,
   type SearchIndex,
 } from './createSearchIndex';
-import {toSearchKey} from './normalize';
+import {toSearchKey, tokenize} from './normalize';
 
 // "surah 36", "sura yasin", "سورة يس": the prefix word carries no meaning.
 const SURAH_PREFIX = /^(surah|surat|sura|soorah|سوره|سورت)\s+/;
@@ -30,12 +30,26 @@ export function createSurahSearch(
   });
   return {
     search(query: string, limit?: number): SearchHit<Surah>[] {
-      const key = toSearchKey(query).replace(SURAH_PREFIX, '');
-      if (/^\d+$/.test(key)) {
-        const surah = surahs.find(item => item.id === Number(key));
+      const key = toSearchKey(query);
+      const unprefixed = key.replace(SURAH_PREFIX, '');
+      if (/^\d+$/.test(unprefixed)) {
+        const surah = surahs.find(item => item.id === Number(unprefixed));
         return surah ? [{item: surah, score: TIER.exact}] : [];
       }
-      return index.search(key, limit);
+      const tokens = tokenize(unprefixed);
+      const numbers = new Set(
+        tokens.filter(token => /^\d+$/.test(token)).map(Number),
+      );
+      if (numbers.size === 0 && unprefixed === key) {
+        // Pass the raw query: the wrong-keyboard fallback needs keys that
+        // toSearchKey strips (";" is ك, "." is ز on the Arabic layout).
+        return index.search(query, limit);
+      }
+      const text = tokens.filter(token => !/^\d+$/.test(token)).join(' ');
+      const hits = index.search(text);
+      // "Al-Fatihah (1)": the number picks among name matches.
+      const numbered = hits.filter(hit => numbers.has(hit.item.id));
+      return (numbered.length > 0 ? numbered : hits).slice(0, limit);
     },
   };
 }
@@ -67,14 +81,13 @@ function getSurahIndex(): SearchIndex<Surah> {
 }
 
 // RECITERS is filled in place by dataService (splice), possibly after the
-// first query. Rebuild whenever its identity signature changes.
+// first query, and refreshed in the background with the same shape. Rebuild
+// on its version (bumped by dataService) or a length change.
 let reciterIndex: SearchIndex<Reciter> | null = null;
 let reciterSignature = '';
 
 function getReciterIndex(): SearchIndex<Reciter> {
-  const signature = `${RECITERS.length}:${RECITERS[0]?.id ?? ''}:${
-    RECITERS[RECITERS.length - 1]?.id ?? ''
-  }`;
+  const signature = `${getRecitersVersion()}:${RECITERS.length}`;
   if (!reciterIndex || signature !== reciterSignature) {
     reciterIndex = createReciterSearch(RECITERS);
     reciterSignature = signature;
@@ -103,12 +116,26 @@ export function rankSurahs(
   return restrict(getSurahIndex().search(query), within);
 }
 
+// Subsets (favorites, complete-Quran reciters) get their own index so items
+// missing from RECITERS, or searched before it loads, are still found.
+const subsetIndexes = new WeakMap<readonly Reciter[], SearchIndex<Reciter>>();
+
+function getSubsetIndex(within: readonly Reciter[]): SearchIndex<Reciter> {
+  let index = subsetIndexes.get(within);
+  if (!index) {
+    index = createReciterSearch(within);
+    subsetIndexes.set(within, index);
+  }
+  return index;
+}
+
 export function rankReciters(
   query: string,
   within?: readonly Reciter[],
 ): readonly Reciter[] {
   if (!query.trim()) return within ?? RECITERS;
-  return restrict(getReciterIndex().search(query), within);
+  const index = within ? getSubsetIndex(within) : getReciterIndex();
+  return index.search(query).map(hit => hit.item);
 }
 
 export interface CatalogSearchResult {

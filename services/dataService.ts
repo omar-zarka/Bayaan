@@ -1,6 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {Surah, SURAHS} from '../data/surahData';
-import {Reciter, Rewayat, RECITERS} from '../data/reciterData';
+import {
+  Reciter,
+  Rewayat,
+  RECITERS,
+  markRecitersUpdated, // @ai
+} from '../data/reciterData';
 import {usePlayerStore} from './player/store/playerStore';
 import {useReciterStore} from '../store/reciterStore';
 import {useApiHealthStore} from '../store/apiHealthStore';
@@ -70,6 +75,7 @@ async function setStoredData<T>(key: string, data: T): Promise<void> {
 
 function populateReciters(data: Reciter[]): void {
   RECITERS.splice(0, RECITERS.length, ...data);
+  markRecitersUpdated(); // @ai
   // Refresh the store's default reciter now that RECITERS is populated
   useReciterStore.getState().refreshDefaultReciter();
   useReciterStore.setState({isInitialized: true});

@@ -68,10 +68,24 @@ export const ARTICLES: ReadonlySet<string> = new Set([
  * to "abd", keep the first letter, drop later vowels (and y), q -> k,
  * ph -> f, then collapse doubled letters. Non-Latin tokens pass through.
  */
+/** "alafasi" -> "afasi": a romanized article glued to the word. */
+export function stripLatinArticle(token: string): string {
+  return token.length > 4 && /^(al|el)[a-z]/.test(token)
+    ? token.slice(2)
+    : token;
+}
+
+/**
+ * "البقره" -> "بقره": Arabic names carry the article inside the token, so
+ * prefix matching ("بق") and typo budgets work on the word without it.
+ */
+export function stripArabicArticle(token: string): string {
+  return token.length > 3 && token.startsWith('ال') ? token.slice(2) : token;
+}
+
 export function latinSkeleton(token: string): string {
   if (!/^[a-z]+$/.test(token)) return token;
-  let word = token;
-  if (word.length > 4 && /^(al|el)/.test(word)) word = word.slice(2);
+  let word = stripLatinArticle(token);
   word = word.replace(/^abd[uea]?[lrsnzdt]?(?=[a-z]{3}|$)/, 'abd');
   const first = word[0] === 'q' ? 'k' : word[0];
   const rest = word
