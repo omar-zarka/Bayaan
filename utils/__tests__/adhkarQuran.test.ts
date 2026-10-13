@@ -27,9 +27,10 @@ function loadHafsWords(): Map<string, DKWordInfo[]> {
   const db = new Database(DK_HAFS_DB, {readonly: true});
   try {
     const byVerse = new Map<string, DKWordInfo[]>();
-    const stmt = db.prepare('SELECT location, text FROM words ORDER BY id');
-    for (const raw of stmt.iterate()) {
-      const {location, text} = raw as {location: string; text: string};
+    const stmt = db.prepare<[], {location: string; text: string}>(
+      'SELECT location, text FROM words ORDER BY id',
+    );
+    for (const {location, text} of stmt.iterate()) {
       const [surah, ayah, word] = location.split(':');
       const verseKey = `${surah}:${ayah}`;
       const info: DKWordInfo = {

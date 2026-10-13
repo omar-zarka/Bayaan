@@ -167,7 +167,7 @@ export function joinSpanText(
     const words = getVerseWords(verseKey);
     if (words.length === 0) return '';
     const ayah = Number(verseKey.split(':')[1]);
-    const from = ayah === span.ayahFrom ? span.wordFrom ?? 1 : 1;
+    const from = ayah === span.ayahFrom ? (span.wordFrom ?? 1) : 1;
     const to =
       ayah === span.ayahTo && span.wordTo !== undefined
         ? span.wordTo

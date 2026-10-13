@@ -33,14 +33,18 @@ function runLength(text: string, from: number, char: string): number {
   return end - from;
 }
 
-// Drops single parentheses left without their partner inside one segment
-// (a pair split by a (( )), [ ] or Quran boundary).
-function withoutUnpairedParens(text: string): string {
+// Drops brackets left without their partner inside one segment (a pair
+// split by a (( )), [ ] or Quran boundary, or a ﴿ the data never closes).
+function withoutUnpaired(
+  text: string,
+  openChar: string,
+  closeChar: string,
+): string {
   const open: number[] = [];
   const drop = new Set<number>();
   for (let i = 0; i < text.length; i++) {
-    if (text[i] === '(') open.push(i);
-    if (text[i] === ')') {
+    if (text[i] === openChar) open.push(i);
+    if (text[i] === closeChar) {
       const match = open.pop();
       if (match === undefined) drop.add(i);
     }
@@ -55,12 +59,32 @@ function withoutUnpairedParens(text: string): string {
 }
 
 function cleanSegmentText(raw: string): string {
-  const text = withoutUnpairedParens(raw)
+  const text = withoutUnpaired(withoutUnpaired(raw, '(', ')'), '﴿', '﴾')
     .replace(/\s+/g, ' ')
+    .replace(/\(\s*\.?\s*/g, '(')
+    .replace(/\s+\)/g, ')')
     .replace(LEADING_PUNCTUATION, '')
     .replace(/\s+([،,.:;؛])/g, '$1')
     .trim();
   return LETTER_OR_DIGIT.test(text) ? text : '';
+}
+
+// Offsets of a single "( ... )" pair that wraps the whole text (a "." may
+// follow it), the way rows without (( )) mark their dhikr; else none.
+function outerParenPair(text: string): number[] {
+  const start = text.search(/\S/);
+  if (start < 0 || text[start] !== '(') return [];
+  let depth = 0;
+  for (let i = start; i < text.length; i++) {
+    if (text[i] === '(') depth += 1;
+    if (text[i] === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return /^\s*\.?\s*$/.test(text.slice(i + 1)) ? [start, i] : [];
+      }
+    }
+  }
+  return [];
 }
 
 /**
@@ -80,6 +104,7 @@ export function parseAdhkarArabic(
   quranRanges: readonly AdhkarTextRange[] = [],
 ): AdhkarSegment[] {
   const hasDhikrMarks = arabic.includes('((');
+  const skipped = new Set(hasDhikrMarks ? [] : outerParenPair(arabic));
   const segments: AdhkarSegment[] = [];
   let buffer = '';
   let inDhikr = false;
@@ -118,6 +143,10 @@ export function parseAdhkarArabic(
     }
 
     const char = arabic[i];
+    if (skipped.has(i)) {
+      i += 1;
+      continue;
+    }
     if (char === '(' && arabic[i + 1] === '(') {
       const run = runLength(arabic, i, '(');
       if (inDhikr) {

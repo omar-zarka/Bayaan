@@ -5,7 +5,9 @@
  */
 import React, {useMemo, useState} from 'react';
 import {Text, View, type StyleProp, type TextStyle} from 'react-native';
-import SkiaVerseText from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
+import SkiaVerseText, {
+  type SkiaVerseTextAlign,
+} from '@/components/player/v2/PlayerContent/QuranView/SkiaVerseText';
 import {useRewayahVerseTexts} from '@/components/share/useRewayahVerseTexts';
 import {getAllahNameHighlightColorHex} from '@/constants/mushafAllahHighlight';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
@@ -32,6 +34,7 @@ interface AdhkarQuranPassageProps {
   fontSize: number;
   color: string;
   horizontalPadding: number;
+  textAlign: SkiaVerseTextAlign;
 }
 
 export function AdhkarQuranPassage({
@@ -41,6 +44,7 @@ export function AdhkarQuranPassage({
   fontSize,
   color,
   horizontalPadding,
+  textAlign,
 }: AdhkarQuranPassageProps): React.ReactElement {
   const {theme} = useTheme();
   const [width, setWidth] = useState(0);
@@ -81,6 +85,10 @@ export function AdhkarQuranPassage({
 
   return (
     <View
+      // The canvas has no text of its own; screen readers read the passage.
+      accessible
+      accessibilityRole="text"
+      accessibilityLabel={fallbackText}
       style={{
         width: '100%',
         direction: 'rtl',
@@ -102,6 +110,7 @@ export function AdhkarQuranPassage({
           arabicTextWeight={arabicTextWeight}
           showAllahNameHighlight={showAllahNameHighlight}
           allahNameHighlightColor={allahNameHighlightColor}
+          textAlign={textAlign}
         />
       ) : null}
     </View>

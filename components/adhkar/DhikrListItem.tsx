@@ -12,7 +12,7 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Dhikr} from '@/types/adhkar';
-import {cleanAdhkarTranslation} from '@/utils/adhkarText';
+import {adhkarCopyText, cleanAdhkarTranslation} from '@/utils/adhkarText';
 import {AdhkarArabicText} from './AdhkarArabicText';
 import Color from 'color';
 // @ai-start
@@ -20,6 +20,8 @@ import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
 import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
 // @ai-end
+
+const CARD_ARABIC_SIZE = moderateScale(18);
 
 interface DhikrListItemProps {
   dhikr: Dhikr;
@@ -42,7 +44,7 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
       <View
         style={[styles.container, style]}
         accessibilityRole="button"
-        accessibilityLabel={dhikr.translation || dhikr.arabic}>
+        accessibilityLabel={dhikr.translation || adhkarCopyText(dhikr.arabic)}>
         {/* Ornate top border pattern */}
         <View style={styles.ornamentBar}>
           <View style={styles.ornamentLeft} />
@@ -59,8 +61,9 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
           <AdhkarArabicText
             dhikrId={dhikr.id}
             arabic={dhikr.arabic}
-            fontSize={moderateScale(18)}
+            fontSize={CARD_ARABIC_SIZE}
             style={styles.arabicText}
+            align="center"
           />
         </View>
 
@@ -138,7 +141,7 @@ const createStyles = (theme: Theme) => {
       paddingBottom: moderateScale(16),
     },
     arabicText: {
-      fontSize: moderateScale(18),
+      fontSize: CARD_ARABIC_SIZE,
       fontFamily: 'ScheherazadeNew-Regular',
       color: theme.colors.text,
       textAlign: 'center',

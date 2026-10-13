@@ -19,11 +19,15 @@ jest.mock('../AdhkarQuranPassage', () => {
     AdhkarQuranPassage: ({
       span,
       fallbackText,
+      textAlign,
     }: {
       span: {surah: number; ayahFrom: number};
       fallbackText: string;
+      textAlign: string;
     }) => (
-      <MockText testID={`quran-${span.surah}:${span.ayahFrom}`}>
+      <MockText
+        testID={`quran-${span.surah}:${span.ayahFrom}`}
+        nativeID={`align-${textAlign}`}>
         {fallbackText}
       </MockText>
     ),
@@ -39,7 +43,7 @@ function arabicOf(id: string): string {
   return row.arabic;
 }
 
-function render(id: string): ReactTestRenderer {
+function render(id: string, align?: 'center' | 'right'): ReactTestRenderer {
   let renderer: ReactTestRenderer | undefined;
   act(() => {
     renderer = TestRenderer.create(
@@ -48,6 +52,7 @@ function render(id: string): ReactTestRenderer {
         arabic={arabicOf(id)}
         fontSize={20}
         style={{fontSize: 20, color: '#111111'}}
+        align={align}
       />,
     );
   });
@@ -59,6 +64,13 @@ function quranBlocks(renderer: ReactTestRenderer, id: string): number {
   return renderer.root
     .findAll(node => node.type === TEXT)
     .filter(node => node.props.testID === `quran-${id}`).length;
+}
+
+function quranAligns(renderer: ReactTestRenderer): string[] {
+  return renderer.root
+    .findAll(node => node.type === TEXT)
+    .filter(node => typeof node.props.nativeID === 'string')
+    .map(node => node.props.nativeID);
 }
 
 function spanStyles(renderer: ReactTestRenderer): Array<{
@@ -105,5 +117,14 @@ describe('AdhkarArabicText', () => {
     const texts = spanStyles(renderer);
     expect(texts).toHaveLength(1);
     expect(texts[0].text.startsWith('أَعُوذُ')).toBe(true);
+  });
+
+  it('right-aligns Quran blocks by default and centers them on request', () => {
+    expect(quranAligns(render('quranic-1'))).toEqual(['align-right']);
+    expect(quranAligns(render('76', 'center'))).toEqual([
+      'align-center',
+      'align-center',
+      'align-center',
+    ]);
   });
 });

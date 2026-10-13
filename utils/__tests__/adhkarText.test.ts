@@ -125,6 +125,56 @@ describe('parseAdhkarArabic', () => {
   });
 });
 
+describe('outer parentheses and unpaired brackets', () => {
+  it('drops one pair that wraps a whole row without (( )) (rows 1, 3)', () => {
+    for (const id of ['1', '3']) {
+      const segments = parseAdhkarArabic(row(id).arabic);
+      expect(segments).toHaveLength(1);
+      expect(segments[0].kind).toBe('dhikr');
+      expect(segments[0].text).not.toMatch(/^[(.]|\)$|\s\)/);
+    }
+  });
+
+  it('keeps inner parentheses of a wrapped row (row 5)', () => {
+    const [segment] = parseAdhkarArabic(row('5').arabic);
+    expect(segment.text.startsWith('(')).toBe(false);
+    expect(segment.text).toMatch(/\([^()]+\)/);
+  });
+
+  it('keeps parentheses that do not wrap the whole row', () => {
+    expect(parseAdhkarArabic('(أ) ب')[0].text).toBe('(أ) ب');
+  });
+
+  it('drops a ﴿ the data never closes from copy text (row 50)', () => {
+    const text = adhkarCopyText(row('50').arabic);
+    expect(text).not.toMatch(/[﴿﴾]/);
+  });
+
+  it('leaves every row with balanced parentheses and ornate brackets', () => {
+    function balanced(text: string, open: string, close: string): boolean {
+      let depth = 0;
+      for (const char of text) {
+        if (char === open) depth += 1;
+        if (char === close) depth -= 1;
+        if (depth < 0) return false;
+      }
+      return depth === 0;
+    }
+    for (const {id, arabic} of rows) {
+      for (const segment of parseAdhkarArabic(arabic)) {
+        expect({id, ok: balanced(segment.text, '(', ')')}).toEqual({
+          id,
+          ok: true,
+        });
+        expect({id, ok: balanced(segment.text, '﴿', '﴾')}).toEqual({
+          id,
+          ok: true,
+        });
+      }
+    }
+  });
+});
+
 describe('adhkarCopyText', () => {
   it('gives the dhikr with additions and no marks or narration', () => {
     expect(nfc(adhkarCopyText(row('20').arabic))).toBe(

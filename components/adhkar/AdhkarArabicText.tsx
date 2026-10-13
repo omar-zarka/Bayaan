@@ -31,6 +31,8 @@ interface AdhkarArabicTextProps {
   style: StyleProp<TextStyle>;
   /** Horizontal padding the base style applies, for Quran blocks. */
   horizontalPadding?: number;
+  /** Alignment of Quran blocks; match the base style's textAlign. */
+  align?: 'center' | 'right';
 }
 
 type Block =
@@ -62,6 +64,7 @@ export function AdhkarArabicText({
   fontSize,
   style,
   horizontalPadding = 0,
+  align = 'right',
 }: AdhkarArabicTextProps): React.ReactElement {
   const {theme} = useTheme();
 
@@ -125,6 +128,7 @@ export function AdhkarArabicText({
             fontSize={toneSize(block.segment.kind)}
             color={toneColors[block.segment.kind]}
             horizontalPadding={horizontalPadding}
+            textAlign={align}
           />
         ),
       )}
