@@ -10,9 +10,10 @@ import Color from 'color';
 import {
   getLanguagePreference,
   setLanguagePreference,
+  AVAILABLE_LANGUAGES,
   type LanguagePreference,
 } from '@/i18n/language';
-import {LANGUAGES, SUPPORTED_LANGUAGES} from '@/i18n/languages';
+import {LANGUAGES} from '@/i18n/languages';
 
 export default function LanguageScreen() {
   const {theme} = useTheme();
@@ -29,7 +30,7 @@ export default function LanguageScreen() {
       hint: t('language.systemDescription'),
     },
     // Each language is listed by its own name, in its own script.
-    ...SUPPORTED_LANGUAGES.map(code => ({
+    ...AVAILABLE_LANGUAGES.map(code => ({
       value: code,
       label: LANGUAGES[code].endonym,
     })),

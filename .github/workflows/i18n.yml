@@ -7,6 +7,9 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -29,17 +32,19 @@ jobs:
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
 
-      # Blocking: every key used in code exists in the English locale files.
+      # Blocking: every key used in code exists in the English files and in
+      # every shipped language.
       - name: Keys in sync with code
         run: npx i18next-cli extract --ci --dry-run
 
-      # Blocking: no hardcoded UI text, and t() params match the placeholders.
+      # Blocking: no hardcoded text in <Text>, <TextInput>, <Button> or the
+      # text props listed in i18next.config.ts.
       - name: Hardcoded strings and placeholders
         if: success() || failure()
         run: npx i18next-cli lint
 
-      # Advisory: translation progress per language. In-progress languages
-      # may be incomplete; shipped ones are enforced by i18n/__tests__.
+      # Advisory: translation progress for shipped languages. In-progress
+      # languages are left out of i18next.config.ts on purpose.
       - name: Translation status
         if: success() || failure()
         continue-on-error: true

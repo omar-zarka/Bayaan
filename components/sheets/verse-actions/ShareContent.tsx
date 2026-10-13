@@ -237,7 +237,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       }
       if (hasNoOwnText(result.texts)) {
         showToast(
-          'Nothing to share',
+          t('selectionFailure.nothingToShare'), // @ai
           noOwnTextMessage(result.rewayah),
           'error',
         );

@@ -284,7 +284,7 @@
     "notAvailable": "Tafseer not available for this verse"
   },
   "communityReflections": {
-    "loadFailed": "Couldn’t load reflections. Try again later.",
+    "loadFailed": "Couldn't load reflections. Try again later.",
     "empty": "No reflections yet",
     "count_one": "{{count}} reflection",
     "count_other": "{{count}} reflections",
@@ -304,6 +304,9 @@
       "shared": "Nothing was shared. Please try again.",
       "saved": "Nothing was saved. Please try again.",
       "played": "Nothing was played. Please try again."
-    }
+    },
+    "nothingToCopy": "Nothing to copy",
+    "nothingToShare": "Nothing to share",
+    "noOwnText": "In {{rewayah}}, this selection is read as part of a neighboring verse."
   }
 }

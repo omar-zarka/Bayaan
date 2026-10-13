@@ -223,7 +223,7 @@ export default function TranslationsContent() {
   const bottomInset = useBottomInset();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(
-    currentLanguageConfig.readsQuranArabic ? 'Tafaseer' : 'Translations',
+    currentLanguageConfig.understandsArabic ? 'Tafaseer' : 'Translations',
   );
 
   // --- Translation state ---

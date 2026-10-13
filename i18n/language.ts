@@ -6,6 +6,7 @@ import {getLocales} from 'expo-localization';
 import * as Updates from 'expo-updates';
 
 import {
+  LANGUAGES,
   SOURCE_LANGUAGE,
   SUPPORTED_LANGUAGES,
   getLanguageConfig,
@@ -17,13 +18,29 @@ import {resources} from './resources';
 export {SUPPORTED_LANGUAGES, type AppLanguage};
 export type LanguagePreference = 'system' | AppLanguage;
 
+/**
+ * Languages offered in the picker and matched against the device language.
+ * In-progress languages are development-only so a half-translated language
+ * never reaches release users.
+ */
+export const AVAILABLE_LANGUAGES: AppLanguage[] = SUPPORTED_LANGUAGES.filter(
+  language => __DEV__ || LANGUAGES[language].status === 'shipped',
+);
+
+function isAvailableLanguage(value: unknown): value is AppLanguage {
+  return (
+    isAppLanguage(value) &&
+    AVAILABLE_LANGUAGES.some(language => language === value)
+  );
+}
+
 const storage = createMMKV({id: 'i18n'});
 const PREFERENCE_KEY = 'language_preference';
 const RTL_RELOAD_GUARD_KEY = 'rtl_reload_attempted_v3';
 
 export function getLanguagePreference(): LanguagePreference {
   const stored = storage.getString(PREFERENCE_KEY);
-  if (stored === 'system' || isAppLanguage(stored)) {
+  if (stored === 'system' || isAvailableLanguage(stored)) {
     return stored;
   }
   return 'system';
@@ -32,7 +49,7 @@ export function getLanguagePreference(): LanguagePreference {
 export function getDeviceLanguage(): AppLanguage {
   try {
     for (const locale of getLocales()) {
-      if (isAppLanguage(locale.languageCode)) {
+      if (isAvailableLanguage(locale.languageCode)) {
         return locale.languageCode;
       }
     }
@@ -63,7 +80,27 @@ export const currentLanguageConfig = getLanguageConfig(currentLanguage);
  * and remain available in every interface language.
  */
 export const defaultShowEnglishReadingAids =
-  !currentLanguageConfig.readsQuranArabic;
+  !currentLanguageConfig.understandsArabic;
+
+/** Latin transliteration is no help to readers of an Arabic-script language. */
+export const defaultShowTransliteration =
+  defaultShowEnglishReadingAids && currentLanguageConfig.script !== 'Arab';
+
+interface RestartText {
+  title?: string;
+  message?: string;
+}
+
+/** Restart alert strings, falling back to English for incomplete languages. */
+function restartText(): Required<RestartText> {
+  const source = resources[SOURCE_LANGUAGE].common.languageRestart;
+  const common: {languageRestart?: RestartText} =
+    resources[currentLanguage].common;
+  return {
+    title: common.languageRestart?.title ?? source.title,
+    message: common.languageRestart?.message ?? source.message,
+  };
+}
 
 async function reloadApp(): Promise<void> {
   // Reload the React Native runtime in both development and standalone builds,
@@ -85,7 +122,7 @@ async function reloadApp(): Promise<void> {
     return;
   }
   // i18n/index.ts imports this file, so read the strings from the resources.
-  const {title, message} = resources[currentLanguage].common.languageRestart;
+  const {title, message} = restartText();
   Alert.alert(title, message);
 }
 

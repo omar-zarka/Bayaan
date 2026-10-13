@@ -2,10 +2,13 @@
 // i18next-cli config: extraction, lint and status checks for the locale files.
 // See docs/i18n/README.md for the commands and what CI enforces.
 import {defineConfig} from 'i18next-cli';
-import {SOURCE_LANGUAGE, SUPPORTED_LANGUAGES} from './i18n/languages';
+import {SHIPPED_LANGUAGES, SOURCE_LANGUAGE} from './i18n/languages';
 
 export default defineConfig({
-  locales: [...SUPPORTED_LANGUAGES],
+  // Only shipped languages must be complete. In-progress languages are left
+  // out so CI doesn't demand (or write) their missing keys; the locale tests
+  // still check the keys they do have.
+  locales: SHIPPED_LANGUAGES,
   extract: {
     input: [
       'app/**/*.{ts,tsx}',

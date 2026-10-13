@@ -30,7 +30,7 @@ The stack is `i18next` + `react-i18next`, `expo-localization` for the device lan
 
 ## The rules
 
-1. **No hardcoded UI text.** Every string a user can see or hear goes through `t()`. That includes `accessibilityLabel`, `placeholder`, `Alert.alert` titles and toasts. Dev-only screens are the only exception (see `lint.ignore` in `i18next.config.ts`, or put a `// i18next-instrument-ignore` comment on the line before the element).
+1. **No hardcoded UI text.** Every string a user can see or hear goes through `t()`. That includes `accessibilityLabel`, `placeholder`, `Alert.alert` titles and toasts. Dev-only screens are the only exception (see `lint.ignore` in `i18next.config.ts`, or put a `// i18next-instrument-ignore` comment on the line before the element). The lint step only sees literal text in JSX (`<Text>`, `<TextInput>`, `<Button>` and the props listed in the config), so strings in template literals, `Alert.alert` and `showToast` are on you and the reviewer.
 2. **Ask the registry, never the language code.** Write `currentLanguageConfig.direction === 'rtl'` or `getLanguageConfig(language).digits`, not `currentLanguage === 'ar'`. If no property fits, add one to `LanguageConfig` with a doc comment and set it for every language. The only code comparison allowed is against `SOURCE_LANGUAGE` (English), for strings that are their own English labels.
 3. **Quran text and names are data, not UI strings.** Quran text, Arabic surah names and reciter names never go in locale files and never go through machine translation. Surah names come from `data/surahData`; reciter names come from the API (see [Names and other data](#names-and-other-data)).
 4. **Every key goes into every shipped language in the same PR.** The locale tests fail if a shipped language is missing a key, has an extra one, or has an empty value.
@@ -76,6 +76,7 @@ i18next picks a plural form from the language's CLDR rules and looks up `key_<ca
 | English | `one`, `other` |
 | Arabic | `zero`, `one`, `two`, `few` (3 to 10, and 103 to 110 and so on), `many` (11 to 99, 111 to 199 and so on), `other` (100, 101, 102 and so on) |
 | Amharic | `one` (0 and 1), `other` |
+| French | `one` (0 and 1), `many` (large round numbers such as 1,000,000), `other` |
 
 Write all of them for every plural key. For example, `sheets.json`:
 
@@ -103,20 +104,22 @@ A form may leave out `{{count}}` when the word already says the number (`تدب�
 
 ## Right-to-left
 
-- **Layout flips on its own.** `i18n/language.ts` calls `I18nManager.forceRTL` and `swapLeftAndRightInRTL(true)`, so `flexDirection: 'row'`, `marginLeft` and `textAlign: 'left'` all mirror in Arabic. Don't add `row-reverse` or swap margins by hand to fix RTL.
+- **Layout flips on its own.** `i18n/language.ts` turns on RTL with `I18nManager.forceRTL`. In RTL, `flexDirection: 'row'` runs right to left, and with `swapLeftAndRightInRTL(true)` (the default, set explicitly) `marginLeft`, `paddingLeft` and absolute `left`/`right` swap sides. `textAlign: 'left'` follows the text's direction, so it aligns to the right in Arabic. Don't add `row-reverse` or swap margins by hand to fix RTL.
+- **These don't flip:** `transform: [{translateX}]`, Animated slide directions, gesture `dx` values and horizontal `ScrollView` offsets on Android. Check them in Arabic and negate where needed.
 - **A direction change needs a reload.** `setLanguagePreference` restarts the app when the direction changes. `currentLanguage` is fixed for the session.
 - **Mirror directional icons** with `flipX`: back buttons, chevrons, "next" arrows.
 - **Don't mirror** media transport (play, skip, rewind), playback progress bars, clocks, checkmarks, logos, or the Quran page itself. Wrap media controls and sliders in `forceLTR`. Material Design and Apple's HIG both say to keep these left to right.
 - **Horizontal `FlatList`s** follow the native direction even inside `forceLTR`; check their scroll and index logic in Arabic.
-- **Mixed-direction strings.** A Latin name inside an Arabic sentence (or the reverse) can scramble the punctuation around it. Wrap the inserted value in Unicode isolates, FSI (`⁨`) and PDI (`⁩`), when that happens. Don't use the older LRE/RLE characters.
+- **Mixed-direction strings.** A Latin name inside an Arabic sentence (or the reverse) can scramble the punctuation around it. Wrap the inserted value in Unicode isolates, FSI (`\u2068`) and PDI (`\u2069`), when that happens. Don't use the older LRE/RLE characters.
 
 ---
 
 ## Numbers, dates and fonts
 
 - **Digits.** Arabic UI text uses Arabic-Indic digits (`٣`), applied by a postprocessor in `i18n/index.ts` and by `localizeDigits`. The digits come from the registry's `digits` field. Note that CLDR's defaults depend on the region: plain `ar` and North African locales (`ar-MA`, `ar-DZ`, `ar-TN`) use Western digits. If we ever follow the region, read it from `expo-localization` rather than the language code.
-- **Hermes limits.** No `Intl.PluralRules` (we polyfill it), and on iOS Hermes ignores `-u-nu-` numbering overrides. That's why digits are swapped by `localizeDigits` instead of `Intl.NumberFormat`.
-- **Dates.** Use `getIntlLocale(language)` with `toLocaleDateString` or `Intl.DateTimeFormat`.
+- **Hermes limits.** No `Intl.PluralRules` (we polyfill it), and `-u-nu-` numbering overrides are not reliable on iOS (observed, not documented). That's why digits are swapped by `localizeDigits` and separators come from the registry instead of `Intl.NumberFormat`.
+- **Separators.** `groupSeparator` and `decimalSeparator` in the registry must match CLDR for the language's digits (French uses a narrow no-break space and a comma, Indonesian and Turkish a dot and a comma). The registry test compares them with `Intl.NumberFormat`.
+- **Dates.** Use `getIntlLocale(language)` with `toLocaleDateString` or `Intl.DateTimeFormat`, then pass the result through `localizeDigits` so dates use the same digits as the rest of the UI.
 - **Fonts.** The UI is styled with `Manrope-*` family names. `i18n/fonts.ts` maps those names to the font listed as the language's `uiFont`, so styles never change per language. Arabic uses IBM Plex Sans Arabic. A new script needs a font that covers it; the registry test checks the mapping. Quran text always renders with Digital Khatt, never a UI font.
 
 ---
@@ -128,7 +131,7 @@ UI strings live in locale files. Content that comes with the data has its own ru
 | Data | Rule |
 |------|------|
 | Surah names | `getSurahDisplayName`: the Arabic name for languages whose `bilingualContent` is `'ar'`, otherwise the transliteration. The English meaning (`getSurahMeaning`) is hidden when the Arabic name is shown. |
-| Reciter names | `getReciterDisplayName`: the API's `name_arabic` for Arabic, then the bundled `data/reciterNamesAr.json`, then the English name. Planned: a per-language `names` map from the backend, looked up as locale, then English, then Arabic. Reciter names are transliterated, never translated. |
+| Reciter names | `getReciterDisplayName`: for languages whose `bilingualContent` is `'ar'`, the API's `name_arabic`, then the bundled `data/reciterNamesAr.json`, then the English name. Planned: a per-language `names` map from the backend, looked up as locale, then English, then Arabic. Reciter names are transliterated, never translated. |
 | Tafsir editions | Titles come from `home.tafseerNames` in the active locale, then the edition's Arabic or English name (by `bilingualContent`). |
 | Adhkar categories | `getSuperCategoryDisplayTitle` picks the Arabic title when the language shows Arabic content. |
 | User uploads | Shown exactly as the user named them. |
@@ -139,15 +142,20 @@ When a backend field exists only in Arabic and English, the registry's `bilingua
 
 ## Adding a language
 
-1. **Registry.** Add the code to `SUPPORTED_LANGUAGES` and an entry to `LANGUAGES` in `i18n/languages.ts` with `status: 'inProgress'`. The endonym, script and direction must match CLDR; `npx jest i18n/__tests__/languages.test.ts` checks them.
-2. **Locale files.** Create `i18n/locales/<code>/` with every namespace file and register them in `i18n/resources.ts`. Missing keys fall back to English while the language is in progress.
-3. **iOS.** Add the code to `supportedLocales.ios` in `app.config.js` (the registry test checks this). It makes the language appear in iOS's per-app language settings.
+1. **Registry.** Add the code to `SUPPORTED_LANGUAGES` and an entry to `LANGUAGES` in `i18n/languages.ts` with `status: 'inProgress'`. The endonym, script, direction and separators must match CLDR; `npx jest i18n/__tests__/languages.test.ts` checks them. For the policy fields:
+   - `digits`: the CLDR default for the bare language (`new Intl.NumberFormat(code).resolvedOptions().numberingSystem`) unless there's a product reason. A new numbering system needs an entry in `DIGIT_ZERO`.
+   - `bilingualContent`: `'ar'` if readers expect Arabic surah names (Urdu, Persian), otherwise `'en'`.
+   - `understandsArabic`: `true` only if readers understand Quranic Arabic without a translation (Arabic itself).
+2. **Locale files.** Create `i18n/locales/<code>/` with every namespace file and register them in `i18n/resources.ts`. While the language is in progress, missing or empty keys fall back to English, CI doesn't require them, and the language only appears in development builds.
+3. **Platform settings (at ship time).** Add the code to `supportedLocales.ios` in `app.config.js` so the language appears in iOS's per-app language settings; the registry test requires it for shipped languages. Consider `supportedLocales.android` for Android 13+ per-app languages too.
 4. **Font.** If the script is new, bundle a font that covers it, add it to `UiFont` and `i18n/fonts.ts`, and add the script to `FONT_SCRIPTS` in the registry test. For Amharic (Ethiopic script), use Noto Sans Ethiopic, which is under the OFL licence.
 5. **Plurals.** Write every CLDR category the language has for each plural key (the locale tests list them).
 6. **Glossary.** Add a column to the [glossary](#glossary) and follow it.
 7. **Review.** A native speaker reviews every string, machine-drafted or not. LLMs translate noticeably worse into low-resource languages such as Amharic.
 8. **Check on a device.** Look at Home, the player, the mushaf, settings and a few sheets with the language selected.
-9. **Ship.** Set `status: 'shipped'` once the language is complete. From then on the tests require every key.
+9. **Ship.** Set `status: 'shipped'` once the language is complete. From then on the tests and CI require every key.
+
+Native surfaces (widgets, CarPlay, Android Auto) are outside this system; check them separately.
 
 ---
 
@@ -155,9 +163,9 @@ When a backend field exists only in Arabic and English, the registry's `bilingua
 
 | Command | What it does | In CI |
 |---------|--------------|-------|
-| `npm run i18n:check` | Fails if code uses a key the English files lack, if UI text is hardcoded, or if `t()` params don't match the placeholders | Blocking |
-| `npx jest i18n/` | Registry matches CLDR; shipped languages have every key, every plural category and the same placeholders as English | Blocking (Test workflow) |
-| `npm run i18n:status` | Translation progress per language | Advisory |
+| `npm run i18n:check` | Fails if code uses a key that the English files or a shipped language lack, or if JSX text is hardcoded (see rule 1 for what it can't see) | Blocking |
+| `npx jest i18n/` | Registry matches CLDR; shipped languages have every key; every language has its plural categories and the same placeholders as English | Blocking (Test workflow) |
+| `npm run i18n:status` | Translation progress for shipped languages (in-progress languages are left out of the CLI config) | Advisory |
 | `npm run i18n:unused` | Keys no code references. Keys built at runtime (`` `ambient.sounds.${id}` ``) show up too, so check before deleting | Advisory |
 
 The workflow is `.github/workflows/i18n.yml`. The CLI never deletes keys on its own (`removeUnusedKeys: false`).

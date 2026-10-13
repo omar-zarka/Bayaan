@@ -20,6 +20,12 @@ export type Script = 'Latn' | 'Arab';
 /** CLDR numbering system used for digits in UI text. */
 export type Digits = 'latn' | 'arab';
 
+/** Code point of the digit zero in each numbering system. */
+export const DIGIT_ZERO: Readonly<Record<Digits, number>> = {
+  latn: 0x30,
+  arab: 0x660,
+};
+
 /** Font family the Manrope style aliases resolve to (see i18n/fonts.ts). */
 export type UiFont = 'manrope' | 'plexSansArabic';
 
@@ -32,6 +38,9 @@ export interface LanguageConfig {
   direction: 'ltr' | 'rtl';
   script: Script;
   digits: Digits;
+  /** CLDR separators for `digits` (checked against Intl in the tests). */
+  groupSeparator: string;
+  decimalSeparator: string;
   uiFont: UiFont;
   /** False for cursive scripts, where letter spacing breaks joining. */
   allowsLetterSpacing: boolean;
@@ -41,13 +50,15 @@ export interface LanguageConfig {
    */
   bilingualContent: 'ar' | 'en';
   /**
-   * Readers understand the Quran's Arabic directly: English translation and
-   * transliteration start off, and tafsir comes before translations.
+   * Readers understand Arabic: the English translation starts off and tafsir
+   * comes before translations. Transliteration also starts off for any
+   * Arabic-script language (see `defaultShowTransliteration`).
    */
-  readsQuranArabic: boolean;
+  understandsArabic: boolean;
   /**
-   * 'shipped' languages must be complete (enforced by the locale tests).
-   * 'inProgress' languages can have missing keys, which fall back to English.
+   * 'shipped' languages must be complete (enforced by the locale tests and
+   * CI). 'inProgress' languages may have missing keys, which fall back to
+   * English, and are only offered in development builds.
    */
   status: 'shipped' | 'inProgress';
 }
@@ -60,10 +71,12 @@ export const LANGUAGES: Readonly<Record<AppLanguage, LanguageConfig>> = {
     direction: 'ltr',
     script: 'Latn',
     digits: 'latn',
+    groupSeparator: ',',
+    decimalSeparator: '.',
     uiFont: 'manrope',
     allowsLetterSpacing: true,
     bilingualContent: 'en',
-    readsQuranArabic: false,
+    understandsArabic: false,
     status: 'shipped',
   },
   ar: {
@@ -73,13 +86,20 @@ export const LANGUAGES: Readonly<Record<AppLanguage, LanguageConfig>> = {
     direction: 'rtl',
     script: 'Arab',
     digits: 'arab',
+    groupSeparator: '٬',
+    decimalSeparator: '٫',
     uiFont: 'plexSansArabic',
     allowsLetterSpacing: false,
     bilingualContent: 'ar',
-    readsQuranArabic: true,
+    understandsArabic: true,
     status: 'shipped',
   },
 };
+
+/** Languages complete enough for release builds. */
+export const SHIPPED_LANGUAGES: AppLanguage[] = SUPPORTED_LANGUAGES.filter(
+  language => LANGUAGES[language].status === 'shipped',
+);
 
 export function isAppLanguage(value: unknown): value is AppLanguage {
   return (

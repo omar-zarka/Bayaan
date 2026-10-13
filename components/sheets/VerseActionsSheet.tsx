@@ -401,7 +401,11 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
         return;
       }
       if (hasNoOwnText(result.texts)) {
-        showToast('Nothing to copy', noOwnTextMessage(result.rewayah), 'error');
+        showToast(
+          t('selectionFailure.nothingToCopy'), // @ai
+          noOwnTextMessage(result.rewayah),
+          'error',
+        );
         return;
       }
       // Each verse exactly as the mushaf shows it, with its own marker; the

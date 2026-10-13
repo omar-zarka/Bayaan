@@ -5,7 +5,7 @@ import {initReactI18next} from 'react-i18next';
 import {currentLanguage} from './language';
 import {localizeDigits} from './format';
 import {resources, defaultNS, namespaces} from './resources';
-import {getLanguageConfig} from './languages';
+import {SOURCE_LANGUAGE, getLanguageConfig} from './languages';
 
 const localizedDigits: PostProcessorModule = {
   type: 'postProcessor',
@@ -19,11 +19,13 @@ i18n
   .init({
     resources,
     lng: currentLanguage,
-    fallbackLng: 'en',
+    fallbackLng: SOURCE_LANGUAGE,
     ns: namespaces,
     defaultNS,
     initAsync: false,
     returnNull: false,
+    // An empty value (a key not translated yet) falls back to English.
+    returnEmptyString: false,
     interpolation: {escapeValue: false},
     postProcess:
       getLanguageConfig(currentLanguage).digits === 'latn'

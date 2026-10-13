@@ -3,7 +3,7 @@ import {SURAHS} from '@/data/surahData';
 import arNamesById from '@/data/reciterNamesAr.json';
 import fallbackReciters from '@/data/reciters-fallback.json';
 import {currentLanguage, type AppLanguage} from './language';
-import {getLanguageConfig} from './languages';
+import {DIGIT_ZERO, getLanguageConfig} from './languages';
 
 function reciterNameKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -17,33 +17,30 @@ for (const reciter of fallbackReciters as {id: string; name: string}[]) {
   }
 }
 
-const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
-
 /** Converts ASCII digits to the language's digits (Arabic-Indic for Arabic). */
 export function localizeDigits(
   value: string | number,
   language: AppLanguage = currentLanguage,
 ): string {
   const text = String(value);
-  if (getLanguageConfig(language).digits !== 'arab') {
+  const zero = DIGIT_ZERO[getLanguageConfig(language).digits];
+  if (zero === DIGIT_ZERO.latn) {
     return text;
   }
-  return text.replace(/[0-9]/g, digit => ARABIC_INDIC_DIGITS[Number(digit)]);
+  return text.replace(/[0-9]/g, digit =>
+    String.fromCodePoint(zero + Number(digit)),
+  );
 }
 
 function usesArabicContent(language: AppLanguage): boolean {
   return getLanguageConfig(language).bilingualContent === 'ar';
 }
 
-function groupSeparator(language: AppLanguage): string {
-  return getLanguageConfig(language).digits === 'arab' ? '٬' : ',';
-}
-
 /** Decimal separator that matches the language's digits. */
 export function decimalSeparator(
   language: AppLanguage = currentLanguage,
 ): string {
-  return getLanguageConfig(language).digits === 'arab' ? '٫' : '.';
+  return getLanguageConfig(language).decimalSeparator;
 }
 
 /** Formats an integer with grouping separators and localized digits. */
@@ -53,7 +50,10 @@ export function formatNumber(
 ): string {
   const grouped = Math.trunc(value)
     .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator(language));
+    .replace(
+      /\B(?=(\d{3})+(?!\d))/g,
+      getLanguageConfig(language).groupSeparator,
+    );
   return localizeDigits(grouped, language);
 }
 

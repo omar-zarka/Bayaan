@@ -1,7 +1,22 @@
 // @ai-generated
 import {currentLanguage, type AppLanguage} from './language';
-import {getLanguageConfig} from './languages';
+import {SOURCE_LANGUAGE, getLanguageConfig} from './languages';
 import {resources} from './resources';
+
+interface HomeTables {
+  languages?: Record<string, string>;
+  tafseerNames?: Record<string, string>;
+}
+
+/** A home.json table for `language`, with English filling any gaps. */
+function homeTable(
+  language: AppLanguage,
+  table: keyof HomeTables,
+): Record<string, string> {
+  const source: HomeTables = resources[SOURCE_LANGUAGE].home;
+  const localized: HomeTables = resources[language].home;
+  return {...source[table], ...localized[table]};
+}
 
 interface NamedTafseer {
   identifier?: string;
@@ -23,7 +38,7 @@ export function getTafseerLanguageDisplayName(
     kurdish: 'ku',
   };
   const normalized = editionLanguage.trim().toLowerCase();
-  const names: Record<string, string> = resources[language].home.languages;
+  const names = homeTable(language, 'languages');
   return names[codes[normalized] ?? normalized] ?? editionLanguage;
 }
 
@@ -32,7 +47,7 @@ export function getTafseerDisplayName(
   edition: NamedTafseer,
   language: AppLanguage = currentLanguage,
 ): string {
-  const names: Record<string, string> = resources[language].home.tafseerNames;
+  const names = homeTable(language, 'tafseerNames');
   return (
     names[edition.identifier ?? edition.id ?? ''] ??
     (getLanguageConfig(language).bilingualContent === 'ar'
