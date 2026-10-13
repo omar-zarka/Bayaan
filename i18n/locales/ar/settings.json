@@ -159,6 +159,7 @@
     "sections": {
       "quranData": "بيانات القرآن",
       "audioSources": "مصادر الصوت",
+      "adhkarSources": "مصادر الأذكار",
       "designResources": "موارد التصميم",
       "openSource": "مكتبات مفتوحة المصدر",
       "specialThanks": "شكر خاص",
@@ -174,6 +175,9 @@
       "duraihim": "صوتيات أذكار حصن المسلم",
       "removalTitle": "إزالة المحتوى",
       "removal": "يمكن لأصحاب الحقوق طلب إزالة أي محتوى عبر {{supportUrl}}.",
+      "hisnmuslim": "نصوص الأذكار وترجماتها وكتابتها بالحروف اللاتينية",
+      "tanzil": "كتابة القرآن بالحروف اللاتينية",
+      "wikipediaNames": "معاني أسماء الله الحسنى، CC BY-SA 4.0",
       "svgrepo": "أيقونات ورسومات جميلة مفتوحة المصدر",
       "manropeTitle": "خط Manrope",
       "manrope": "عائلة خطوط هندسية حديثة بلا زوائد",

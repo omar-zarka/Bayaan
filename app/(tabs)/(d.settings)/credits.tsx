@@ -74,6 +74,26 @@ function getCredits(
       ],
     },
     {
+      section: t('credits.sections.adhkarSources'),
+      items: [
+        {
+          title: 'hisnmuslim.com',
+          description: t('credits.items.hisnmuslim'),
+          link: 'https://www.hisnmuslim.com',
+        },
+        {
+          title: 'Tanzil',
+          description: t('credits.items.tanzil'),
+          link: 'https://tanzil.net',
+        },
+        {
+          title: 'Wikipedia',
+          description: t('credits.items.wikipediaNames'),
+          link: 'https://en.wikipedia.org/wiki/Names_of_God_in_Islam',
+        },
+      ],
+    },
+    {
       section: t('credits.sections.designResources'),
       items: [
         {

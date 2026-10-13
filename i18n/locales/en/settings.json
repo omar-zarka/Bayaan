@@ -159,6 +159,7 @@
     "sections": {
       "quranData": "Quran Data",
       "audioSources": "Audio Sources",
+      "adhkarSources": "Adhkar Sources",
       "designResources": "Design Resources",
       "openSource": "Open Source Libraries",
       "specialThanks": "Special Thanks",
@@ -174,6 +175,9 @@
       "duraihim": "Hisn al-Muslim adhkar audio",
       "removalTitle": "Content removal",
       "removal": "Rights holders can request the removal of any content through {{supportUrl}}.",
+      "hisnmuslim": "Adhkar text, translations and transliterations",
+      "tanzil": "Quran transliteration",
+      "wikipediaNames": "99 Names meanings, CC BY-SA 4.0",
       "svgrepo": "Beautiful open source icons and illustrations",
       "manropeTitle": "Manrope Font",
       "manrope": "Modern geometric sans-serif font family",
