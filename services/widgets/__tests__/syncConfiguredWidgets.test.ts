@@ -1,5 +1,9 @@
 // services/widgets/__tests__/syncConfiguredWidgets.test.ts
-import type {PendingTasbeeh, WidgetArtworkRequests} from 'bayaan-widgets';
+import type {
+  PendingTasbeeh,
+  PendingWidgetEvent,
+  WidgetArtworkRequests,
+} from 'bayaan-widgets';
 import type {Reciter} from '@/data/reciterData';
 
 const mockWriteCatalog = jest.fn();
@@ -8,6 +12,8 @@ const mockCacheArtwork = jest.fn<Promise<boolean>, [string, string]>();
 const mockCached = new Set<string>();
 let mockRequests: WidgetArtworkRequests = {surahIds: [], reciterIds: []};
 let mockPending: PendingTasbeeh[] = [];
+const mockTakePendingWidgetEvents = jest.fn<PendingWidgetEvent[], []>();
+const mockTrackAdhkarSessionCompleted = jest.fn();
 const mockFlush = jest.fn();
 const mockIncrement = jest.fn<Promise<number>, [string]>();
 const mockReset = jest.fn<Promise<void>, [string]>();
@@ -33,6 +39,13 @@ jest.mock('bayaan-widgets', () => ({
     const p = mockPending;
     mockPending = [];
     return p;
+  },
+  takePendingWidgetEvents: () => mockTakePendingWidgetEvents(),
+}));
+jest.mock('@/services/analytics/AnalyticsService', () => ({
+  analyticsService: {
+    trackAdhkarSessionCompleted: (p: unknown) =>
+      mockTrackAdhkarSessionCompleted(p),
   },
 }));
 jest.mock('react-native', () => {
@@ -92,6 +105,9 @@ beforeEach(() => {
   mockCached.clear();
   mockRequests = {surahIds: [], reciterIds: []};
   mockPending = [];
+  mockTakePendingWidgetEvents.mockReset();
+  mockTakePendingWidgetEvents.mockReturnValue([]);
+  mockTrackAdhkarSessionCompleted.mockReset();
   mockFlush.mockReset();
   mockIncrement.mockReset();
   mockIncrement.mockResolvedValue(1);
@@ -220,6 +236,39 @@ describe('consumeTasbeehIncrements', () => {
     const sync = loadModule();
     await sync.consumeTasbeehIncrements(new Date(2026, 9, 10, 12));
     expect(mockFlush).not.toHaveBeenCalled();
+  });
+});
+
+describe('consumeWidgetEvents', () => {
+  it('sends queued adhkar completions to analytics once', () => {
+    const sync = loadModule();
+    mockTakePendingWidgetEvents.mockReturnValueOnce([
+      {
+        name: 'adhkar_session_completed',
+        props: {
+          category: 'evening-adhkar',
+          duration_ms: 90000,
+          dhikr_count: 24,
+        },
+      },
+    ]);
+    sync.consumeWidgetEvents();
+    expect(mockTrackAdhkarSessionCompleted).toHaveBeenCalledWith({
+      category: 'evening-adhkar',
+      duration_ms: 90000,
+      dhikr_count: 24,
+    });
+    mockTakePendingWidgetEvents.mockReturnValueOnce([]);
+    sync.consumeWidgetEvents();
+    expect(mockTrackAdhkarSessionCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps going when the native queue throws', () => {
+    const sync = loadModule();
+    mockTakePendingWidgetEvents.mockImplementationOnce(() => {
+      throw new Error('boom');
+    });
+    expect(() => sync.consumeWidgetEvents()).not.toThrow();
   });
 });
 
