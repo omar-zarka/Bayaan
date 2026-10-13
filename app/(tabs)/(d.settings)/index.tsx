@@ -53,45 +53,45 @@ const getSettingsSections = (t: TFunction<['settings', 'common']>) => {
   const appName = branding.appName;
   return [
     {
-      section: t('index.sections.quran'),
+      section: t('settings:index.sections.quran'),
       items: [
         {
-          title: t('index.items.mushafSettings.title'),
+          title: t('settings:index.items.mushafSettings.title'),
           type: 'mushafSettings',
-          description: t('index.items.mushafSettings.description'),
+          description: t('settings:index.items.mushafSettings.description'),
           icon: 'quran',
           iconType: 'custom',
         },
         {
-          title: t('index.items.translations.title'),
+          title: t('settings:index.items.translations.title'),
           type: 'translations',
-          description: t('index.items.translations.description'),
+          description: t('settings:index.items.translations.description'),
           icon: 'dualPages',
           iconType: 'custom',
         },
       ],
     },
     {
-      section: t('index.sections.audio'),
+      section: t('settings:index.sections.audio'),
       items: [
         {
-          title: t('index.items.defaultReciter.title'),
+          title: t('settings:index.items.defaultReciter.title'),
           type: 'defaultReciter',
-          description: t('index.items.defaultReciter.description'),
+          description: t('settings:index.items.defaultReciter.description'),
           icon: 'personAudio',
           iconType: 'custom',
         },
         {
-          title: t('index.items.reciterChoice.title'),
+          title: t('settings:index.items.reciterChoice.title'),
           type: 'reciterChoice',
-          description: t('index.items.reciterChoice.description'),
+          description: t('settings:index.items.reciterChoice.description'),
           icon: 'selectionList',
           iconType: 'custom',
         },
       ],
     },
     {
-      section: t('index.sections.appData'),
+      section: t('settings:index.sections.appData'),
       items: [
         {
           title: t('common:language.title'),
@@ -101,82 +101,82 @@ const getSettingsSections = (t: TFunction<['settings', 'common']>) => {
           iconType: 'feather',
         },
         {
-          title: t('index.items.storage.title'),
+          title: t('settings:index.items.storage.title'),
           type: 'storage',
-          description: t('index.items.storage.description'),
+          description: t('settings:index.items.storage.description'),
           icon: 'database',
           iconType: 'custom',
         },
       ],
     },
     {
-      section: t('index.sections.feedback'),
+      section: t('settings:index.sections.feedback'),
       items: [
         {
-          title: t('index.items.rateApp.title'),
+          title: t('settings:index.items.rateApp.title'),
           type: 'rateApp',
-          description: t('index.items.rateApp.description'),
+          description: t('settings:index.items.rateApp.description'),
           icon: 'star',
           iconType: 'custom',
         },
         {
-          title: t('index.items.featureRequest.title'),
+          title: t('settings:index.items.featureRequest.title'),
           type: 'featureRequest',
-          description: t('index.items.featureRequest.description'),
+          description: t('settings:index.items.featureRequest.description'),
           icon: 'lightbulb',
           iconType: 'custom',
         },
         {
-          title: t('index.items.support.title'),
+          title: t('settings:index.items.support.title'),
           type: 'support',
-          description: t('index.items.support.description', {appName}),
+          description: t('settings:index.items.support.description', {appName}),
           icon: 'chatBubble',
           iconType: 'custom',
         },
       ],
     },
     {
-      section: t('index.sections.about', {appName}),
+      section: t('settings:index.sections.about', {appName}),
       items: [
         {
-          title: t('index.items.whatsNew.title'),
+          title: t('settings:index.items.whatsNew.title'),
           type: 'whatsNew',
-          description: t('index.items.whatsNew.description'),
+          description: t('settings:index.items.whatsNew.description'),
           icon: 'giftBox',
           iconType: 'custom',
         },
         {
-          title: t('index.items.about.title', {appName}),
+          title: t('settings:index.items.about.title', {appName}),
           type: 'about',
-          description: t('index.items.about.description'),
+          description: t('settings:index.items.about.description'),
           icon: 'infoRounded',
           iconType: 'custom',
         },
         {
-          title: t('index.items.credits.title'),
+          title: t('settings:index.items.credits.title'),
           type: 'credits',
-          description: t('index.items.credits.description'),
+          description: t('settings:index.items.credits.description'),
           icon: 'medal',
           iconType: 'custom',
         },
         {
-          title: t('index.items.github.title'),
+          title: t('settings:index.items.github.title'),
           type: 'github',
-          description: t('index.items.github.description', {appName}),
+          description: t('settings:index.items.github.description', {appName}),
           icon: 'github',
           iconType: 'feather',
         },
         {
-          title: t('index.items.terms.title'),
+          title: t('settings:index.items.terms.title'),
           type: 'terms',
-          description: t('index.items.terms.description'),
+          description: t('settings:index.items.terms.description'),
           icon: 'docCheck',
           iconType: 'custom',
         },
         {
-          title: t('index.items.privacy.title'),
+          title: t('settings:index.items.privacy.title'),
           type: 'privacy',
-          description: t('index.items.privacy.description'),
+          description: t('settings:index.items.privacy.description'),
           icon: 'shieldLock',
           iconType: 'custom',
         },
@@ -346,7 +346,9 @@ export default function SettingsScreen() {
         showsVerticalScrollIndicator={false}>
         {/* Appearance */}
         <View style={styles.section}>
-          <Text style={styles.sectionHeader}>{t('index.appearance')}</Text>
+          <Text style={styles.sectionHeader}>
+            {t('settings:index.appearance')}
+          </Text>
           <ThemePicker />
         </View>
 
@@ -395,7 +397,7 @@ export default function SettingsScreen() {
         {/* Privacy Section */}
         <View style={styles.section}>
           <Text style={styles.sectionHeader}>
-            {t('index.analytics.section')}
+            {t('settings:index.analytics.section')}
           </Text>
           {renderCard(
             <View style={styles.settingsRow}>
@@ -408,10 +410,10 @@ export default function SettingsScreen() {
               </View>
               <View style={styles.settingsTextContainer}>
                 <Text style={styles.settingsTitle}>
-                  {t('index.analytics.title')}
+                  {t('settings:index.analytics.title')}
                 </Text>
                 <Text style={styles.settingsDescription}>
-                  {t('index.analytics.description', {
+                  {t('settings:index.analytics.description', {
                     appName: branding.appName,
                   })}
                 </Text>
@@ -430,6 +432,8 @@ export default function SettingsScreen() {
 
         {/* Developer Section */}
         {__DEV__ && (
+          // Dev-only tools stay in English. // @ai
+          // i18next-instrument-ignore
           <View style={styles.section}>
             <Text style={styles.sectionHeader}>DEVELOPER</Text>
             {renderCard(

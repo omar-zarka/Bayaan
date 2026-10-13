@@ -4,6 +4,7 @@
 
 // @ai-start
 import i18n from '@/i18n';
+import {currentLanguageConfig} from '@/i18n/language'; // @ai
 import type enContent from '@/i18n/locales/en/content.json';
 // @ai-end
 
@@ -223,7 +224,7 @@ export function getSuperCategoryDisplayTitle(category: {
   title: string;
   arabicTitle?: string | null;
 }): string {
-  if (i18n.language === 'ar' && category.arabicTitle) {
+  if (currentLanguageConfig.bilingualContent === 'ar' && category.arabicTitle) {
     return category.arabicTitle;
   }
   return category.title;

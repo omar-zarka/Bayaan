@@ -1,5 +1,6 @@
 // @ai-generated
 import {resources, namespaces} from '../resources';
+import {LANGUAGES, SOURCE_LANGUAGE, SUPPORTED_LANGUAGES} from '../languages';
 
 const PLURAL_SUFFIX = /_(zero|one|two|few|many|other)$/;
 const PLACEHOLDER = /{{\s*([\w.]+)\s*(?:,[^}]*)?}}/g;
@@ -43,17 +44,55 @@ function placeholders(values: string[], ignoreCount: boolean): string[] {
   return [...names].sort();
 }
 
-describe.each(namespaces)('locale namespace "%s"', ns => {
-  const en = group(flatten(resources.en[ns] as Tree));
-  const ar = group(flatten(resources.ar[ns] as Tree));
+/** CLDR plural categories, from Node's full ICU data. */
+function pluralCategories(language: string): string[] {
+  return new Intl.PluralRules(language).resolvedOptions().pluralCategories;
+}
 
-  it('has the same keys in English and Arabic', () => {
-    expect([...ar.keys()].sort()).toEqual([...en.keys()].sort());
+const translatedLanguages = SUPPORTED_LANGUAGES.filter(
+  language => language !== SOURCE_LANGUAGE,
+);
+
+describe.each(namespaces)('locale namespace "%s"', ns => {
+  const flatSource = flatten(resources[SOURCE_LANGUAGE][ns] as Tree);
+  const source = group(flatSource);
+
+  it('has no empty strings in the source language', () => {
+    for (const [key, {values}] of source) {
+      for (const value of values) {
+        expect({key, empty: value.trim() === ''}).toEqual({key, empty: false});
+      }
+    }
   });
 
-  it('has no empty strings', () => {
-    for (const groups of [en, ar]) {
-      for (const [key, {values}] of groups) {
+  it('defines every source plural category for each plural key', () => {
+    const categories = pluralCategories(SOURCE_LANGUAGE);
+    for (const [key, {plural}] of source) {
+      if (!plural) continue;
+      const missing = categories.filter(c => !(`${key}_${c}` in flatSource));
+      expect({key, missing}).toEqual({key, missing: []});
+    }
+  });
+
+  describe.each(translatedLanguages)('%s', language => {
+    const flat = flatten(resources[language][ns] as Tree);
+    const translated = group(flat);
+    const {status} = LANGUAGES[language];
+
+    it('has no keys that the source language lacks', () => {
+      const extra = [...translated.keys()].filter(key => !source.has(key));
+      expect(extra).toEqual([]);
+    });
+
+    if (status === 'shipped') {
+      it('has every source key (shipped languages are complete)', () => {
+        const missing = [...source.keys()].filter(key => !translated.has(key));
+        expect(missing).toEqual([]);
+      });
+    }
+
+    it('has no empty strings', () => {
+      for (const [key, {values}] of translated) {
         for (const value of values) {
           expect({key, empty: value.trim() === ''}).toEqual({
             key,
@@ -61,28 +100,27 @@ describe.each(namespaces)('locale namespace "%s"', ns => {
           });
         }
       }
-    }
-  });
+    });
 
-  it('uses the same interpolation variables', () => {
-    for (const [key, enEntry] of en) {
-      const arEntry = ar.get(key);
-      if (!arEntry) continue;
-      const ignoreCount = enEntry.plural;
-      expect({key, vars: placeholders(arEntry.values, ignoreCount)}).toEqual({
-        key,
-        vars: placeholders(enEntry.values, ignoreCount),
-      });
-    }
-  });
+    it('uses the same interpolation variables as the source', () => {
+      for (const [key, sourceEntry] of source) {
+        const entry = translated.get(key);
+        if (!entry) continue;
+        const ignoreCount = sourceEntry.plural;
+        expect({key, vars: placeholders(entry.values, ignoreCount)}).toEqual({
+          key,
+          vars: placeholders(sourceEntry.values, ignoreCount),
+        });
+      }
+    });
 
-  it('defines an _other form for every plural key', () => {
-    const flatAr = flatten(resources.ar[ns] as Tree);
-    const flatEn = flatten(resources.en[ns] as Tree);
-    for (const [key, {plural}] of en) {
-      if (!plural) continue;
-      expect({key, en: `${key}_other` in flatEn}).toEqual({key, en: true});
-      expect({key, ar: `${key}_other` in flatAr}).toEqual({key, ar: true});
-    }
+    it("defines every one of the language's plural categories", () => {
+      const categories = pluralCategories(language);
+      for (const [key, {plural}] of source) {
+        if (!plural || !translated.has(key)) continue;
+        const missing = categories.filter(c => !(`${key}_${c}` in flat));
+        expect({key, missing}).toEqual({key, missing: []});
+      }
+    });
   });
 });
