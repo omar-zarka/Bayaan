@@ -12,6 +12,8 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Dhikr} from '@/types/adhkar';
+import {cleanAdhkarTranslation} from '@/utils/adhkarText';
+import {AdhkarArabicText} from './AdhkarArabicText';
 import Color from 'color';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -54,14 +56,21 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
 
         {/* Arabic text */}
         <View style={styles.arabicContainer}>
-          <Text style={styles.arabicText}>{dhikr.arabic}</Text>
+          <AdhkarArabicText
+            dhikrId={dhikr.id}
+            arabic={dhikr.arabic}
+            fontSize={moderateScale(18)}
+            style={styles.arabicText}
+          />
         </View>
 
         {/* Translation */}
         {showTranslation && dhikr.translation ? (
           <View style={styles.annotationContainer}>
             <View style={styles.annotationLine} />
-            <Text style={styles.translationText}>{dhikr.translation}</Text>
+            <Text style={styles.translationText}>
+              {cleanAdhkarTranslation(dhikr.translation)}
+            </Text>
           </View>
         ) : null}
 

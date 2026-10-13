@@ -18,6 +18,8 @@ import {Theme} from '@/utils/themeUtils';
 import {AdhkarAudioControls} from './AdhkarAudioControls';
 import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
 import {Dhikr} from '@/types/adhkar';
+import {adhkarCopyText, cleanAdhkarTranslation} from '@/utils/adhkarText';
+import {AdhkarArabicText} from './AdhkarArabicText';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 import {isRTL} from '@/utils/rtl';
@@ -88,7 +90,7 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
 
   const handleShare = useCallback(async () => {
     const content = [
-      dhikr.arabic,
+      adhkarCopyText(dhikr.arabic),
       showTranslation && dhikr.translation ? `\n\n${dhikr.translation}` : '',
       showTransliteration && dhikr.transliteration
         ? `\n\n${dhikr.transliteration}`
@@ -121,7 +123,13 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
         {/* Arabic Text */}
         {dhikr.arabic ? (
           <View style={styles.arabicSection}>
-            <Text style={styles.arabicText}>{dhikr.arabic}</Text>
+            <AdhkarArabicText
+              dhikrId={dhikr.id}
+              arabic={dhikr.arabic}
+              fontSize={moderateScale(arabicFontSize)}
+              style={styles.arabicText}
+              horizontalPadding={moderateScale(8)}
+            />
           </View>
         ) : null}
 
@@ -147,7 +155,9 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
         {/* Translation */}
         {showTranslation && dhikr.translation ? (
           <View style={styles.translationSection}>
-            <Text style={styles.translationText}>{dhikr.translation}</Text>
+            <Text style={styles.translationText}>
+              {cleanAdhkarTranslation(dhikr.translation)}
+            </Text>
           </View>
         ) : null}
 
