@@ -1,4 +1,8 @@
-import {isTrackFinished, minimumPlayTimeMs} from '../adhkarTrackEnd';
+import {
+  isCarriedOverStatus,
+  isTrackFinished,
+  minimumPlayTimeMs,
+} from '../adhkarTrackEnd';
 
 describe('minimumPlayTimeMs', () => {
   it('waits 2 s for long or unknown tracks and half the length of short ones', () => {
@@ -58,5 +62,35 @@ describe('isTrackFinished', () => {
         12000,
       ),
     ).toBe(false);
+  });
+});
+
+describe('isCarriedOverStatus', () => {
+  const shortEnded = {
+    currentTime: 1.05,
+    duration: 1.05,
+    playing: false,
+    didJustFinish: true,
+  };
+
+  it('flags a stale ended status from a short previous clip after a source change', () => {
+    // Without the guard, the 1.05 s duration shrinks the time guard to 525 ms
+    // and the stale status would advance past the new track.
+    expect(isTrackFinished(shortEnded, 600)).toBe(true);
+    expect(isCarriedOverStatus(shortEnded, shortEnded)).toBe(true);
+  });
+
+  it('judges the first status that differs from the carried-over one', () => {
+    const fresh = {
+      currentTime: 0,
+      duration: 30,
+      playing: true,
+      didJustFinish: false,
+    };
+    expect(isCarriedOverStatus(fresh, shortEnded)).toBe(false);
+  });
+
+  it('judges everything when nothing was carried over', () => {
+    expect(isCarriedOverStatus(shortEnded, null)).toBe(false);
   });
 });

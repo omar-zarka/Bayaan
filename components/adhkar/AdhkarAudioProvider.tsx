@@ -14,7 +14,11 @@ import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 
 import {getAudioSource} from '@/utils/adhkarAudio';
-import {isTrackFinished} from '@/utils/adhkarTrackEnd';
+import {
+  isCarriedOverStatus,
+  isTrackFinished,
+  type TrackEndStatus,
+} from '@/utils/adhkarTrackEnd';
 
 /**
  * Context value for direct player access
@@ -121,11 +125,24 @@ const AudioPlayerManager: React.FC<{
     }
   }, [shouldPlay]);
 
+  // Status carried over from the previous source; ignored until a new one arrives.
+  const staleStatus = useRef<TrackEndStatus | null>(null);
+  const latestStatus = useRef<TrackEndStatus | null>(null);
+  latestStatus.current = status
+    ? {
+        currentTime: status.currentTime ?? 0,
+        duration: status.duration ?? 0,
+        playing: status.playing,
+        didJustFinish: status.didJustFinish,
+      }
+    : null;
+
   // When audio source changes, reset tracking state and record start time
   useEffect(() => {
     hasHandledEnd.current = false;
     currentTrackingSource.current = audioSource;
     trackStartTime.current = Date.now();
+    staleStatus.current = latestStatus.current;
   }, [audioSource]);
 
   useEffect(() => {
@@ -140,15 +157,21 @@ const AudioPlayerManager: React.FC<{
       return;
     }
 
+    const current: TrackEndStatus = {
+      currentTime: status.currentTime ?? 0,
+      duration: status.duration ?? 0,
+      playing: status.playing,
+      didJustFinish: status.didJustFinish,
+    };
+
+    // Do not judge a status left over from the previous source.
+    if (isCarriedOverStatus(current, staleStatus.current)) return;
+    staleStatus.current = null;
+
     // The time guard skips stale status from the previous track; it scales
     // down for clips shorter than 4 s (see utils/adhkarTrackEnd.ts).
     const finished = isTrackFinished(
-      {
-        currentTime: status.currentTime ?? 0,
-        duration: status.duration ?? 0,
-        playing: status.playing,
-        didJustFinish: status.didJustFinish,
-      },
+      current,
       Date.now() - trackStartTime.current,
     );
 

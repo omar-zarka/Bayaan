@@ -30,3 +30,19 @@ export function isTrackFinished(
     !status.playing
   );
 }
+
+// After a source change the player keeps reporting the previous player's last
+// status until the new one emits. A status identical to the one captured at
+// the change is carried over and must not be judged.
+export function isCarriedOverStatus(
+  status: TrackEndStatus,
+  staleStatus: TrackEndStatus | null,
+): boolean {
+  if (!staleStatus) return false;
+  return (
+    status.currentTime === staleStatus.currentTime &&
+    status.duration === staleStatus.duration &&
+    status.playing === staleStatus.playing &&
+    status.didJustFinish === staleStatus.didJustFinish
+  );
+}

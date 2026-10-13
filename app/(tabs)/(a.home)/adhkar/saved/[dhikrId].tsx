@@ -229,6 +229,12 @@ const SavedDhikrReaderScreen: React.FC = () => {
     playAllScrollTarget.current = null;
   }, []);
 
+  // Any scroll that comes to rest ends the auto-scroll, even one that moved
+  // nothing.
+  const handleMomentumScrollEnd = useCallback(() => {
+    playAllScrollTarget.current = null;
+  }, []);
+
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
   }).current;
@@ -301,6 +307,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
           getItemLayout={getItemLayout}
           onViewableItemsChanged={onViewableItemsChanged}
           onScrollBeginDrag={handleScrollBeginDrag}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
           viewabilityConfig={viewabilityConfig}
           windowSize={3}
           maxToRenderPerBatch={2}

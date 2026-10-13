@@ -2330,7 +2330,7 @@ Claude-Session: https://claude.ai/code/session_011eqXmha1bR7cUTY365d9K1"
 - Produces:
   - `AUDIO_FIXES: Readonly<Record<string, string | null>>`
   - `applyAudioFixes(seed: SeedFile): SeedFile`
-  - Rows with `audio_file: null`: 72, 149, quranic-5, quranic-30, quranic-40 and the six evening rows. Task 7 makes Play All skip them.
+  - Rows with `audio_file: null`: 72, 149, quranic-5, quranic-30, quranic-40 and the six evening rows. Task 7 makes Play All skip them. Superseded by the Task 6 addenda (2026-10-12/13): every row now has audio.
 
 The mapping is from audit `04-audio-content.md`, section A, where two Whisper models agree. It applies to these rows:
 
@@ -3116,12 +3116,10 @@ Per project memory, prefer the cloud simulator build from PR #333 over local nat
    - Saved still shows 77 (now without the bracketed evening note) and 83 (badge "Recite 7 times");
    - the tasbeeh count is kept.
 2. **Morning:** 23 items. 97 is absent; 93, 94 and 95 are present.
-3. **Evening:** 21 items. The third item starts "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ"; 93, 94 and 95 are absent; 97 is present. The evening rows show the muted audio icon and no play button.
-4. **Play All on Evening.** It plays 75 and 76, then skips evening-77 and evening-78 and continues at 79. The pager follows.
-   - Swipe by hand onto evening-80: playback pauses there.
-   - Press play on the Play All control: it jumps to 82 and plays.
+3. **Evening:** 21 items. The third item starts "أَمْسَيْنَا وَأَمْسَى الْمُلْكُ"; 93, 94 and 95 are absent; 97 is present. Superseded by the Task 6 addenda (2026-10-12/13): every row now has audio.
+4. **Play All on Evening.** Play All on Evening plays every row in Alafasy's voice; swipe by hand to 82 mid-play and Play All continues from there.
 5. **Play All on 99 Names.** It runs through to the end without stalling on short names (for example name-67, about 1.05 s).
-6. **Quranic Duas.** quranic-6 plays "ربنا لا تؤاخذنا إن نسينا أو أخطأنا". quranic-16 plays the full 3:193. quranic-5, quranic-30 and quranic-40 show no play button.
+6. **Quranic Duas.** quranic-6 plays "ربنا لا تؤاخذنا إن نسينا أو أخطأنا". quranic-16 plays the full 3:193. quranic-5, quranic-30 and quranic-40 now play.
 7. **Widgets** (needs a native build; do this only in the release build pass): the evening adhkar widget never shows 94, and the count reads 21.
 
 - [ ] **Step 5: Hand off**
@@ -3140,7 +3138,7 @@ Hand off to the controller. The controller pushes and opens the PR against `deve
 3. Rendering of the `(( ))` markers and bracketed alternatives in the reader, copy and share.
 4. Digital Khatt (SkiaVerseText) for Quran text inside adhkar (Ayat al-Kursi, the Quls, the 40 Quranic duas).
 5. Loudness normalization and peak limiting (207 clips above 0 dBFS; rows 72, 73 and 143 about 6 LU quiet), and re-encoding name-67 (AAC in an .mp3 file).
-6. Sourcing new audio: evening recordings, plus quranic-5, quranic-30, quranic-40, row 72 and row 149.
+6. Sourcing new audio: evening recordings, plus quranic-5, quranic-30, quranic-40, row 72 and row 149. Superseded by the Task 6 addenda (2026-10-12/13): every row now has audio.
 
 **Also deferred:**
 - Making `seedDatabase` transactional (audit 05, B3).

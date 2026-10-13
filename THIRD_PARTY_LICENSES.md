@@ -53,17 +53,27 @@ The word text of the seven non-Hafs rewayah databases (`data/mushaf/digitalkhatt
 
 ## Adhkar content & audio
 
-The Arabic adhkar text, English translations, and accompanying MP3 recitations
-bundled in `assets/audio/adhkar/` and referenced in `data/adhkar.json` are
-sourced from **Hisn al-Muslim** (https://www.hisnmuslim.com) — the compilation
-"Fortress of the Muslim" by Sa'id bin Ali bin Wahf al-Qahtani. Audio recitations
-are from the publicly available HisnMuslim archive. Bayaan redistributes this
-content for non-commercial Islamic use and attributes the source here and in
-the app's About screen.
+The Arabic adhkar text and English translations in `data/adhkar.json` are
+sourced from **Hisn al-Muslim** (https://www.hisnmuslim.com), the compilation
+"Fortress of the Muslim" by Sa'id bin Ali bin Wahf al-Qahtani.
 
-If you are the content owner and have concerns about redistribution, please
-open an issue at https://github.com/thebayaan/Bayaan/issues so we can address
-it promptly.
+The MP3 recitations bundled in `assets/audio/adhkar/` come from two reciters:
+
+- **Mishary Rashid Alafasy:** the Morning and Evening adhkar and the 40
+  Quranic duas. The Morning and Evening recitations are cut from his official
+  1434H recordings on his YouTube channel. The Quranic duas are cut from his
+  Quran recitation as distributed by mp3quran.net (https://mp3quran.net).
+- **Hamad al-Duraihim, via IslamHouse.com:** all other Hisn al-Muslim audio,
+  including rows 72 and 149. These recitations are from the publicly available
+  HisnMuslim archive (https://www.hisnmuslim.com) and IslamHouse.com
+  (https://islamhouse.com).
+
+Bayaan redistributes this content for non-commercial Islamic use and
+attributes the sources here and in the app's Credits screen.
+
+If you are the content owner and have concerns about redistribution, rights
+holders can request removal through the support link in the app's Credits
+screen, and we will address it promptly.
 
 ## npm production dependencies
 
