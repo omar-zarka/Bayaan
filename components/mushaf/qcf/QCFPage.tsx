@@ -17,7 +17,14 @@
 // surah-start pages look identical between DK and QCF modes.
 
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {View, StyleSheet, Platform} from 'react-native';
+import {
+  View,
+  StyleSheet,
+  Platform,
+  Text,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native'; // @ai
 import {
   Canvas,
   Group,
@@ -197,6 +204,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
   const fontReady =
     loadedFont?.family === fontFamily && loadedFont?.manager === fontMgr;
   // @ai-end
+  const [loadAttempt, setLoadAttempt] = useState(0); // @ai
   const [error, setError] = useState<string | null>(null);
 
   const pageLines = useMemo<DKLine[]>(
@@ -404,7 +412,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [fontMgr, pageNumber, fontFamily, fontVariant]);
+  }, [fontMgr, pageNumber, fontFamily, fontVariant, loadAttempt]);
   // @ai-end
 
   // @ai-start
@@ -809,13 +817,45 @@ const QCFPage: React.FC<QCFPageProps> = ({
     return <View style={styles.page} />;
   }
 
+  // @ai-start
+  if (error) {
+    return (
+      <View style={[styles.page, styles.loadStatus]}>
+        <Text style={{color: textColor}}>Unable to load this page.</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => setLoadAttempt(attempt => attempt + 1)}>
+          <Text style={{color: textColor, textDecorationLine: 'underline'}}>
+            Try again
+          </Text>
+        </Pressable>
+        {showTajweed && (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => {
+              if (useMushafSettingsStore.getState().showTajweed) {
+                useMushafSettingsStore.getState().toggleTajweed();
+              }
+            }}>
+            <Text style={{color: textColor, textDecorationLine: 'underline'}}>
+              Turn off tajweed
+            </Text>
+          </Pressable>
+        )}
+      </View>
+    );
+  }
+
   if (!fontReady || renderEntries.length === 0) {
     return (
       <GestureDetector gesture={composedGesture}>
-        <View style={styles.page} />
+        <View style={[styles.page, styles.loadStatus]}>
+          <ActivityIndicator color={textColor} />
+        </View>
       </GestureDetector>
     );
   }
+  // @ai-end
 
   return (
     <GestureDetector gesture={composedGesture}>
@@ -896,6 +936,13 @@ const QCFPage: React.FC<QCFPageProps> = ({
 };
 
 const styles = StyleSheet.create({
+  // @ai-start
+  loadStatus: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 16,
+  },
+  // @ai-end
   page: {
     width: SCREEN_WIDTH,
     height: SCREEN_HEIGHT,
