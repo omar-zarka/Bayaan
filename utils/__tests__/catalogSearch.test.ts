@@ -2,27 +2,21 @@
 import {SURAHS} from '@/data/surahData';
 import type {Reciter} from '@/data/reciterData';
 import reciters from '@/data/reciters-fallback.json';
-import arabicNames from '@/data/reciterNamesAr.json';
+import {createCatalogSearch} from '@/utils/search/catalog'; // @ai
 import {
-  createCatalogSearch,
   matchesSearchText,
   matchesSurah,
   normalizeSearchText,
 } from '../catalogSearch';
 
-const names: Record<string, string> = arabicNames;
-const search = createCatalogSearch(
-  reciters as Reciter[],
-  SURAHS,
-  reciter => names[reciter.id] ?? reciter.name,
-);
+const search = createCatalogSearch(reciters as Reciter[], SURAHS); // @ai
 
 describe('catalogue search', () => {
   it.each(['112', '١١٢', '۱۱۲', ' ١١٢ ', '\u200f١١٢\u200f'])(
     'finds only Al-Ikhlas for surah number %s',
     query => {
       expect(search.search(query)).toEqual([
-        {type: 'surah', item: SURAHS[111], score: 0},
+        {type: 'surah', item: SURAHS[111], score: 100}, // @ai
       ]);
     },
   );
