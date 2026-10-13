@@ -26,6 +26,7 @@ import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+import {rankReciters} from '@/utils/search/catalog'; // @ai
 // @ai-end
 
 // @ai-start
@@ -65,17 +66,12 @@ export default function FavoriteRecitersScreen() {
     headerRight: favoriteReciters.length > 0 ? renderHeaderRight : undefined,
   });
 
+  // @ai-start
   const filteredReciters = useMemo(
-    () =>
-      favoriteReciters.filter(
-        reciter =>
-          reciter.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          getReciterDisplayName(reciter)
-            .toLowerCase()
-            .includes(searchQuery.toLowerCase()),
-      ),
+    () => [...rankReciters(searchQuery, favoriteReciters)],
     [favoriteReciters, searchQuery],
   );
+  // @ai-end
 
   const styles = useMemo(
     () =>

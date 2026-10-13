@@ -87,8 +87,12 @@ function restrict<T extends {id: number | string}>(
   within: readonly T[] | undefined,
 ): T[] {
   if (!within) return hits.map(hit => hit.item);
-  const allowed = new Set(within.map(item => item.id));
-  return hits.filter(hit => allowed.has(hit.item.id)).map(hit => hit.item);
+  // Return the caller's objects (e.g. persisted favorites), not the index's.
+  const byId = new Map(within.map(item => [item.id, item]));
+  return hits.flatMap(hit => {
+    const own = byId.get(hit.item.id);
+    return own ? [own] : [];
+  });
 }
 
 export function rankSurahs(

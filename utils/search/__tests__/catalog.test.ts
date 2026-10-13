@@ -62,6 +62,12 @@ describe('rankReciters', () => {
     expect(rankReciters('warsh').length).toBeGreaterThan(0);
   });
 
+  it("returns the caller's own objects from the subset", () => {
+    RECITERS.splice(0, RECITERS.length, ...reciters);
+    const persistedCopy = {...reciters.find(r => r.id === ALAFASI)!};
+    expect(rankReciters('alafasi', [persistedCopy])[0]).toBe(persistedCopy);
+  });
+
   it('restricts results to the given subset', () => {
     RECITERS.splice(0, RECITERS.length, ...reciters);
     const subset = reciters.filter(r => r.id !== ALAFASI);

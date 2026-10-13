@@ -7,11 +7,8 @@ import {useApiHealthStore} from '../store/apiHealthStore';
 import fallbackReciters from '../data/reciters-fallback.json';
 // @ai-start
 import {getReciterDisplayName} from '@/i18n/format';
-import {
-  normalizeSearchText,
-  matchesSearchText,
-  matchesSurah,
-} from '@/utils/catalogSearch';
+import {normalizeSearchText, matchesSearchText} from '@/utils/catalogSearch';
+import {rankSurahs} from '@/utils/search/catalog';
 // @ai-end
 
 const BAYAAN_API_URL = process.env.EXPO_PUBLIC_BAYAAN_API_URL;
@@ -135,7 +132,7 @@ export function getSurahById(id: number): Surah | undefined {
 
 // @ai-start
 export function searchSurahs(query: string): Surah[] {
-  return SURAHS.filter(surah => matchesSurah(surah, query));
+  return [...rankSurahs(query)]; // @ai
 }
 // @ai-end
 

@@ -1,5 +1,5 @@
 // @ai-generated
-import React, {useState, useCallback, useMemo} from 'react';
+import React, {useState, useCallback, useDeferredValue, useMemo} from 'react';
 import {
   View,
   Text,
@@ -18,7 +18,10 @@ import {Theme} from '@/utils/themeUtils';
 import {SearchInput} from '@/components/SearchInput';
 import {ReciterImage} from '@/components/ReciterImage';
 import {useTranslation} from 'react-i18next';
-import {matchesSearchText} from '@/utils/catalogSearch';
+import {
+  createSearchIndex,
+  type SearchField,
+} from '@/utils/search/createSearchIndex';
 
 export interface ReciterPickerItem {
   id: string;
@@ -41,18 +44,10 @@ interface ReciterPickerSheetProps {
   onDone?: () => void;
 }
 
-function filterItems(
-  items: ReciterPickerItem[],
-  searchQuery: string,
-): ReciterPickerItem[] {
-  if (!searchQuery.trim()) return items;
-
-  return items.filter(
-    item =>
-      matchesSearchText(item.name, searchQuery) ||
-      item.searchTerms.some(term => matchesSearchText(term, searchQuery)),
-  );
-}
+const PICKER_FIELDS: readonly SearchField<ReciterPickerItem>[] = [
+  {get: item => item.name, weight: 1},
+  {get: item => item.searchTerms, weight: 0.9},
+];
 
 export function ReciterPickerSheet({
   sheetId,
@@ -68,9 +63,17 @@ export function ReciterPickerSheet({
   const {t} = useTranslation(['sheets', 'common']);
   const [searchQuery, setSearchQuery] = useState('');
 
+  const searchIndex = useMemo(
+    () => createSearchIndex(items, {fields: PICKER_FIELDS}),
+    [items],
+  );
+  const deferredQuery = useDeferredValue(searchQuery);
   const filteredItems = useMemo(
-    () => filterItems(items, searchQuery),
-    [items, searchQuery],
+    () =>
+      deferredQuery.trim()
+        ? searchIndex.search(deferredQuery).map(hit => hit.item)
+        : items,
+    [items, searchIndex, deferredQuery],
   );
 
   const renderItem = useCallback(
