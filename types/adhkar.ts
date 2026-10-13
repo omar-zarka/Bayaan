@@ -61,6 +61,9 @@ export interface SuperCategory {
   sortOrder: number;
   section: SuperCategorySection;
   categoryIds: string[]; // References to adhkar_categories.id
+  // Explicit ordered dhikr list (morning and evening differ inside category
+  // 27). null: every dhikr of categoryIds, in category order.
+  dhikrIds: string[] | null;
 }
 
 // Seed data structure (matches JSON file format)
@@ -91,4 +94,8 @@ export interface AdhkarSeedData {
     audio_file: string | null;
     order_index: number;
   }>;
+  // Ordered dhikr ids per super category id (seeded into
+  // super_categories.dhikr_ids). Super categories not listed show their
+  // categories in full.
+  super_category_dhikr_ids?: Record<string, string[]>;
 }

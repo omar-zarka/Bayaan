@@ -85,6 +85,8 @@ const ADDED: Record<string, unknown> = {
   'verse-annotations.db/bookmarks.rewayah_id': 'hafs',
   'verse-annotations.db/notes.rewayah_id': 'hafs',
   'verse-annotations.db/highlights.rewayah_id': 'hafs',
+  // Data version 6 ALTERs super_categories; pre-existing rows get NULL.
+  'adhkar.db/super_categories.dhikr_ids': null,
 };
 
 // Seeded rewayah id per bookmark index (see scripts/golden-dbs/populate.golden.ts)

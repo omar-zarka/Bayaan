@@ -65,12 +65,27 @@ interface SuperCategoryRow {
   sort_order: number;
   section: string;
   category_ids: string; // JSON array stored as string
+  dhikr_ids: string | null; // JSON array of dhikr ids, or NULL (version 6)
 }
 
 /** Escape a value for direct SQL interpolation (single-quoted string or NULL). */
 function esc(value: string | null | undefined): string {
   if (value == null) return 'NULL';
   return `'${value.replace(/'/g, "''")}'`;
+}
+
+/** Parse super_categories.dhikr_ids (JSON array of ids) or return null. */
+function parseDhikrIds(value: string | null): string[] | null {
+  if (value === null) return null;
+  const parsed: unknown = JSON.parse(value);
+  if (!Array.isArray(parsed)) return null;
+  const items: unknown[] = parsed;
+  const ids: string[] = [];
+  for (const item of items) {
+    if (typeof item !== 'string') return null;
+    ids.push(item);
+  }
+  return ids;
 }
 
 // History and bump rules: services/database/adhkarDataVersion.ts
@@ -181,9 +196,21 @@ class AdhkarDatabaseService {
         column TEXT DEFAULT 'left',
         sort_order INTEGER DEFAULT 0,
         section TEXT DEFAULT 'main',
-        category_ids TEXT NOT NULL
+        category_ids TEXT NOT NULL,
+        dhikr_ids TEXT
       );
     `);
+
+    // Data version 6 added dhikr_ids. CREATE TABLE IF NOT EXISTS does not add
+    // columns to a table an older release created, so add it explicitly.
+    const superColumns = await this.db.getAllAsync<{name: string}>(
+      'PRAGMA table_info(super_categories)',
+    );
+    if (!superColumns.some(column => column.name === 'dhikr_ids')) {
+      await this.db.execAsync(
+        'ALTER TABLE super_categories ADD COLUMN dhikr_ids TEXT;',
+      );
+    }
 
     // Create meta table for version tracking
     await this.db.execAsync(`
@@ -356,6 +383,36 @@ class AdhkarDatabaseService {
     }));
   }
 
+  // Get adhkar by id, in the order of `ids` (unknown ids are skipped)
+  async getAdhkarByIds(ids: readonly string[]): Promise<Dhikr[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    if (ids.length === 0) return [];
+
+    const placeholders = ids.map(() => '?').join(', ');
+    const rows = await this.db.getAllAsync<DhikrRow>(
+      `SELECT * FROM adhkar WHERE id IN (${placeholders})`,
+      [...ids],
+    );
+    const byId = new Map(rows.map(row => [row.id, row]));
+    const result: Dhikr[] = [];
+    for (const id of ids) {
+      const dhikr = byId.get(id);
+      if (!dhikr) continue;
+      result.push({
+        id: dhikr.id,
+        categoryId: dhikr.category_id,
+        arabic: dhikr.arabic,
+        translation: dhikr.translation,
+        transliteration: dhikr.transliteration,
+        instruction: dhikr.instruction,
+        repeatCount: dhikr.repeat_count,
+        audioFile: dhikr.audio_file,
+        sortOrder: dhikr.sort_order,
+      });
+    }
+    return result;
+  }
+
   // Get a single dhikr by ID
   async getDhikr(id: string): Promise<Dhikr | null> {
     if (!this.db) throw new Error('Database not initialized');
@@ -492,6 +549,7 @@ class AdhkarDatabaseService {
       sortOrder: row.sort_order,
       section: row.section as SuperCategorySection,
       categoryIds: JSON.parse(row.category_ids),
+      dhikrIds: parseDhikrIds(row.dhikr_ids),
     }));
   }
 
@@ -516,6 +574,7 @@ class AdhkarDatabaseService {
       sortOrder: row.sort_order,
       section: row.section as SuperCategorySection,
       categoryIds: JSON.parse(row.category_ids),
+      dhikrIds: parseDhikrIds(row.dhikr_ids),
     }));
   }
 
@@ -540,6 +599,7 @@ class AdhkarDatabaseService {
       sortOrder: row.sort_order,
       section: row.section as SuperCategorySection,
       categoryIds: JSON.parse(row.category_ids),
+      dhikrIds: parseDhikrIds(row.dhikr_ids),
     };
   }
 
@@ -648,7 +708,9 @@ class AdhkarDatabaseService {
   }
 
   // Seed super categories
-  async seedSuperCategories(): Promise<void> {
+  async seedSuperCategories(
+    dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>> = {},
+  ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     const db = this.db;
@@ -1036,19 +1098,21 @@ class AdhkarDatabaseService {
 
     // Clear and batch insert all super categories
     const superValues = allSuperCategories
-      .map(
-        cat =>
-          `(${esc(cat.id)}, ${esc(cat.title)}, ${esc(cat.arabic_title)}, ${esc(
-            cat.color,
-          )}, ${cat.height_multiplier}, ${esc(cat.column)}, ${
-            cat.sort_order
-          }, ${esc(cat.section)}, ${esc(JSON.stringify(cat.category_ids))})`,
-      )
+      .map(cat => {
+        const dhikrIds = dhikrIdsBySuperId[cat.id];
+        return `(${esc(cat.id)}, ${esc(cat.title)}, ${esc(
+          cat.arabic_title,
+        )}, ${esc(cat.color)}, ${cat.height_multiplier}, ${esc(cat.column)}, ${
+          cat.sort_order
+        }, ${esc(cat.section)}, ${esc(JSON.stringify(cat.category_ids))}, ${
+          dhikrIds ? esc(JSON.stringify(dhikrIds)) : 'NULL'
+        })`;
+      })
       .join(',\n');
 
     await db.execAsync(`
       DELETE FROM super_categories;
-      INSERT INTO super_categories (id, title, arabic_title, color, height_multiplier, column, sort_order, section, category_ids)
+      INSERT INTO super_categories (id, title, arabic_title, color, height_multiplier, column, sort_order, section, category_ids, dhikr_ids)
       VALUES ${superValues};
     `);
   }
