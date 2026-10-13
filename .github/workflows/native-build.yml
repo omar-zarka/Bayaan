@@ -18,18 +18,22 @@ on:
         description: Build a standalone Android preview APK
         type: boolean
         default: false
+      debug_preview:
+        description: Use a faster ARM64 debug APK for emulator testing (requires Metro)
+        type: boolean
+        default: false
     # @ai-end
 
 permissions:
   contents: read # @ai
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.debug_preview }} # @ai
   cancel-in-progress: true
 
 jobs:
   android:
-    name: ${{ inputs.preview_apk && 'Standalone preview APK' || 'Gradle assembleDebug' }} # @ai
+    name: ${{ inputs.preview_apk && (inputs.debug_preview && 'Debug preview APK' || 'Standalone preview APK') || 'Gradle assembleDebug' }} # @ai
     runs-on: ubuntu-latest
     timeout-minutes: 90
     # No secrets are used. android/ is committed, so no prebuild step is needed.
@@ -77,18 +81,23 @@ jobs:
       # Release bundles JavaScript and uses the committed debug key when no
       # release credentials are configured. This is an installable test build.
       - name: Assemble standalone preview APK
-        if: ${{ inputs.preview_apk }}
+        if: ${{ inputs.preview_apk && !inputs.debug_preview }}
         working-directory: android
         env:
           NODE_OPTIONS: --max-old-space-size=4096
         run: ./gradlew :app:assembleRelease --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a,x86_64
+
+      - name: Assemble debug preview APK
+        if: ${{ inputs.preview_apk && inputs.debug_preview }}
+        working-directory: android
+        run: ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a
 
       - name: Upload preview APK
         if: ${{ inputs.preview_apk }}
         uses: actions/upload-artifact@v4
         with:
           name: bayaan-android-preview
-          path: android/app/build/outputs/apk/release/*.apk
+          path: android/app/build/outputs/apk/${{ inputs.debug_preview && 'debug' || 'release' }}/*.apk
           if-no-files-found: error
           retention-days: 14
       # @ai-end
