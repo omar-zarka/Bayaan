@@ -108,17 +108,25 @@ class QCFFontLoader {
     variant: QCFFontVariant,
   ): Promise<void> {
     const localUri = await this.downloadIfNeeded(page, variant);
-    const data =
-      variant === 'v4-dark'
-        ? Skia.Data.fromBytes(
-            withQCFDarkPalette(await new File(localUri).bytes()),
-          )
-        : await Skia.Data.fromURI(localUri);
-    const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(data);
-    if (!typeface) {
-      throw new Error(`QCF page ${page}: typeface creation returned null`);
+    try {
+      const data =
+        variant === 'v4-dark'
+          ? Skia.Data.fromBytes(
+              withQCFDarkPalette(await new File(localUri).bytes()),
+            )
+          : await Skia.Data.fromURI(localUri);
+      const typeface = Skia.Typeface.MakeFreeTypeFaceFromData(data);
+      if (!typeface) {
+        throw new Error(`QCF page ${page}: typeface creation returned null`);
+      }
+      fontMgr.registerFont(typeface, qcfFontFamilyForPage(page, variant));
+    } catch (error) {
+      // A corrupt cached font must not make every future retry fail.
+      await FileSystem.deleteAsync(localUri, {idempotent: true}).catch(
+        () => undefined,
+      );
+      throw error;
     }
-    fontMgr.registerFont(typeface, qcfFontFamilyForPage(page, variant));
   }
 
   private downloadIfNeeded(
@@ -152,12 +160,18 @@ class QCFFontLoader {
       variant === 'v2'
         ? `${REMOTE_BASE}/${filename}`
         : `${TAJWEED_REMOTE_BASE}/p${page}.ttf`;
-    const result = await FileSystem.downloadAsync(remoteUri, localUri);
-    if (result.status !== 200) {
-      await FileSystem.deleteAsync(localUri, {idempotent: true}).catch(
+    const temporaryUri = `${localUri}.download`;
+    try {
+      const result = await FileSystem.downloadAsync(remoteUri, temporaryUri);
+      if (result.status !== 200) {
+        throw new Error(`QCF page ${page}: download HTTP ${result.status}`);
+      }
+      await FileSystem.moveAsync({from: temporaryUri, to: localUri});
+    } catch (error) {
+      await FileSystem.deleteAsync(temporaryUri, {idempotent: true}).catch(
         () => undefined,
       );
-      throw new Error(`QCF page ${page}: download HTTP ${result.status}`);
+      throw error;
     }
     return localUri;
   }
