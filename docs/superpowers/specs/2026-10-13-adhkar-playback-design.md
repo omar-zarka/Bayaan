@@ -30,7 +30,7 @@ Goals:
 Non-goals:
 - No floating button. iOS 26 exposes neither the tab bar frame nor its minimized state, so a floating button cannot follow the tab bar. Osman rejected a static one.
 - No new full player UI and no change to the Quran mini player.
-- No persistence of a session across app launches.
+- No time-of-day suggestions. Osman wants a dedicated Home row that suggests adhkar and Quran for the moment (Morning Adhkar, Al-Mulk at night). It gets its own spec after this one, reusing `services/car/snapshot/situational.ts` (section 11).
 - No next/previous buttons on the lock screen. expo-audio 57 offers only play, pause and seek there.
 - The tasbeeh counter, ambient audio and the Quran players are unchanged, apart from their coordination with adhkar.
 
@@ -64,6 +64,8 @@ interface AdhkarSession {
   status: SessionStatus;
   error: boolean;          // last play attempt failed (3.4)
   trackToken: number;      // increments on every track change
+  positionSec: number;     // saved position in the current clip (3.5)
+  lastActiveAt: number;    // epoch ms of the last play, pause or track change
 }
 
 interface SessionItem {
@@ -75,7 +77,7 @@ interface SessionItem {
 type AdhkarSessionState = {session: AdhkarSession | null};
 ```
 
-`session === null` means nothing is playing or paused. Every surface in section 4 hides when it is null.
+`session === null` means nothing is playing, paused or saved. Every surface in section 4 hides when it is null.
 
 ### 3.3 Rules
 
@@ -86,7 +88,7 @@ type AdhkarSessionState = {session: AdhkarSession | null};
 5. **Swiping in the reader.** In the reader of the active `all` session's list, a hand swipe moves playback to the new page. This keeps the "follows a hand swipe" behavior shipped in #365. In `single` mode, swiping does not touch playback: the clip keeps playing and the other pages show an idle play button.
 6. **Leaving the reader** does not stop playback.
 7. **Stop.** The close button on the Home tile or the Adhkar screen row ends the session.
-8. **Quran wins over adhkar, both ways.** Starting adhkar pauses the main Quran player and the mushaf player. Starting either of them ends the adhkar session.
+8. **One thing plays at a time.** Starting adhkar pauses the main Quran player and the mushaf player. Starting either of them pauses the adhkar session. The session stays saved, so the Home tile can resume it.
 9. **Rows without audio** are skipped by advance and by Play All. A card without audio has no play button, as today.
 
 The reducer test suite has one or more cases per rule.
@@ -98,7 +100,22 @@ The reducer test suite has one or more cases per rule.
 - **Retries.** If `play()` throws, or the player does not report `playing` within 1.5 s of a play request, the engine retries once. If the retry fails, it sets `status: 'paused'` and `error: true`. The UI then shows a paused state the user can tap again. Nothing stays stuck in "playing".
 - **The player is the source of truth for play state.** A pause or play from the lock screen, headphones or Control Center arrives through `playbackStatusUpdate`. The engine dispatches `playerPaused` or `playerResumed` so the store follows. It does not fight it.
 - **Coordination.** `AudioCoordinator` gains an `'adhkar'` source with `adhkarWillPlay()`, which pauses the main and mushaf players. `mainWillPlay()` and `mushafWillPlay()` end the adhkar session. The existing `usePlayerStore` subscription in `AdhkarAudioProvider` is removed.
+- **Lazy load.** A restored session (3.5) does not load audio until the user presses play. Then the engine loads the current clip and seeks to `positionSec`.
 - **Audio mode.** The engine relies on the app-wide audio mode that `ExpoAudioService` already sets (`interruptionMode: 'doNotMix'`, background playback on). It does not call `setAudioModeAsync` itself.
+
+### 3.5 Saved sessions
+
+- **What is saved.** A session is saved with zustand `persist` on MMKV, like `store/adhkarSettingsStore.ts`. Only these fields are saved: `listId`, `listTitle`, `mode`, `loop`, the current `dhikrId`, `positionSec` and `lastActiveAt`. `items` is not saved.
+- **When it is saved.** On pause, on track change and when the app goes to the background. It is not saved on every progress tick.
+- **Restore.** At launch the store rebuilds `items` from `adhkarService` for `listId` and finds the index of the saved `dhikrId`. The session comes back as `paused`. If the list or the dhikr no longer exists, the saved session is dropped.
+- **Stale rules.** A saved session that is not playing is dropped when:
+  - it is a Morning session and the evening window starts;
+  - it is an Evening session and the next morning window starts;
+  - it is any other list and 24 hours have passed since `lastActiveAt`.
+
+  The stale check runs at launch, when the app returns to the foreground, and before any surface renders the tile.
+- **Time windows.** The app has no prayer times, so the windows use the clock, like the CarPlay picks in `services/car/snapshot/situational.ts`. Morning runs 04:00 to 14:59 and Evening runs 15:00 to 03:59. The windows live in one module, `services/adhkar/timeWindows.ts`, so the suggestions row (section 11) and a later move to real prayer times change one file.
+- **Ending a session.** Finishing the list, a single clip ending, or the close button ends the session and clears the saved copy.
 
 ## 4. Surfaces
 
@@ -116,7 +133,7 @@ All new copy uses i18n keys in every locale (`npm run i18n:check` must pass). Th
 - Applies to category lists and the Saved list.
 
 ### 4.3 Home tile (`components/RecitersView.tsx`, Continue Listening row)
-- While a session exists, the first tile in Continue Listening is an adhkar tile showing:
+- While a session exists (playing, paused or restored), the first tile in Continue Listening is an adhkar tile showing:
   - the list title;
   - `adhkar.position`;
   - the bars or a paused icon;
@@ -177,7 +194,7 @@ The Live Activity and lock screen use the URL `bayaan://adhkar-playing`. A new r
 - **Planner:** a pure `planAdhkarActivity(memory, session)` in `services/widgets/live-activity/`:
   - it starts an activity when a session first plays;
   - it updates on index or play-state changes;
-  - it ends the activity when the session ends;
+  - it ends the activity when the session ends, when the session pauses because Quran started, or after 15 minutes paused;
   - a dismissed activity is not restarted until a new session starts.
 
   Unit tests cover each transition.
@@ -194,12 +211,15 @@ The Live Activity and lock screen use the URL `bayaan://adhkar-playing`. A new r
 | The same dhikr is in Morning and Evening | Only the session's `listId` gets the indicator and the pill. The other list shows nothing. |
 | The saved list changes during a Saved session | The session keeps its copy. The indicator matches by `dhikrId` and shows only if the row still exists. |
 | Clips shorter than 2 s | They advance. Covered by the track-token test. |
-| The app is killed | The session is gone on relaunch. The Live Activity is ended by the system's stale date (10 minutes after the last update) or at next launch. |
+| The app is killed | The saved session comes back paused at its dhikr and position, unless it is stale. The Live Activity is ended by the system's stale date (10 minutes after the last update) or at next launch. |
+| The app is reopened after the window changes | A Morning session saved at 10:00 is gone at 16:00. An Evening session saved at 20:00 is still there at 23:00 and gone at 05:00. |
+| A Quran surah starts during Play All | Adhkar pauses at its position and the tile shows it paused. Pressing play pauses the surah and resumes adhkar where it stopped. |
 
 ## 9. Testing
 
 - **Unit tests (jest):**
   - the reducer, with every rule in 3.3 and every row in section 8 that is pure;
+  - saving and restore: saved fields only, restore by `dhikrId`, a missing list or dhikr is dropped, and every stale rule, including the window boundaries at 03:59, 04:00, 14:59 and 15:00;
   - the engine with a mocked expo-audio player: track token, retry and failure, remote pause, coordination;
   - `openPlayingDhikr` routing;
   - `planAdhkarActivity`;
@@ -211,8 +231,9 @@ The Live Activity and lock screen use the URL `bayaan://adhkar-playing`. A new r
   3. In the list, scroll away: the pill appears with the right arrow, and tapping it scrolls back.
   4. Swipe in the reader: no text shift.
   5. Play a card in another list during Play All: that card plays.
-  6. Start a surah: the adhkar session ends and the tile disappears.
-  7. Lock screen title updates.
+  6. Start a surah: adhkar pauses and the tile shows it paused; resuming it pauses the surah.
+  7. Kill and relaunch the app: the tile is back, paused, and plays from the saved position.
+  8. Lock screen title updates.
 - **Device check on Osman's phone (with his go-ahead):** auto-advance through five clips with the screen locked; the Live Activity updates and its tap target works.
 
 ## 10. Delivery
@@ -222,3 +243,10 @@ The Live Activity and lock screen use the URL `bayaan://adhkar-playing`. A new r
   - **Plan B:** section 7, the Live Activity. It ships as a second PR stacked on Plan A, because it touches Swift and the widget extension.
 - Both go through SDD, with tsc, Prettier 3, jest and `npm run i18n:check` clean before review.
 - After each PR is ready, the branch is merged into the local `build/combined-test` branch for device testing. It is never pushed.
+
+## 11. Follow-up: a "For now" Home row
+
+Osman wants a dedicated Home row for time-of-day suggestions covering both reading and listening: Morning or Evening Adhkar, Al-Mulk at night, Al-Kahf on Friday. It is out of scope here and gets its own spec. Starting points:
+- `services/car/snapshot/situational.ts` already picks Al-Kahf on Fridays, Al-Mulk at night and time-of-day playlists for CarPlay;
+- `services/adhkar/timeWindows.ts` from this spec;
+- the Continue Listening adhkar tile, which stays in this spec as the place for a session in progress.
