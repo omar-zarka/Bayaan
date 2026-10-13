@@ -335,7 +335,8 @@
     "count_two": "تدبّران",
     "count_few": "{{count}} تدبّرات",
     "count_many": "{{count}} تدبّرًا",
-    "count_other": "{{count}} تدبّر"
+    "count_other": "{{count}} تدبّر",
+    "openLabel": "افتح تدبّر {{author}}"
   },
   "selectionFailure": {
     "unnumbered": "ليست آية مرقّمة في رواية {{rewayah}}",

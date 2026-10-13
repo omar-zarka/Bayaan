@@ -6,7 +6,9 @@
     "settings": "Mushaf settings",
     "shareMessage": "Check out page {{page}} of the Quran on {{appName}}",
     "loadFailedTitle": "Couldn't load the mushaf",
-    "loadFailedBody": "Check that your device has some free storage, then try again."
+    "loadFailedBody": "Check that your device has some free storage, then try again.",
+    "pageLoadFailed": "Unable to load this page.",
+    "turnOffTajweed": "Turn off tajweed"
   },
   "toolbar": {
     "options": "Options",

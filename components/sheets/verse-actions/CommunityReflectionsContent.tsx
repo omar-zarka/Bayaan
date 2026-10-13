@@ -151,6 +151,7 @@ interface ReflectionRowProps {
 }
 
 function ReflectionRow({reflection, styles, theme}: ReflectionRowProps) {
+  const {t} = useTranslation('sheets'); // @ai
   // Community-authored URL supplied by a fork's provider — only web schemes
   // may reach Linking.openURL (blocks intent://, javascript:, file:, …).
   const isWebUrl = /^https?:\/\//i.test(reflection.url);
@@ -161,7 +162,9 @@ function ReflectionRow({reflection, styles, theme}: ReflectionRowProps) {
   return (
     <Pressable
       accessibilityRole="link"
-      accessibilityLabel={`Open ${reflection.author.name}'s reflection`}
+      accessibilityLabel={t('communityReflections.openLabel', {
+        author: reflection.author.name,
+      })}
       disabled={!isWebUrl}
       style={({pressed}) => [
         styles.reflectionCard,

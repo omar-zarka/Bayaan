@@ -287,7 +287,8 @@
     "loadFailed": "Couldn’t load reflections. Try again later.",
     "empty": "No reflections yet",
     "count_one": "{{count}} reflection",
-    "count_other": "{{count}} reflections"
+    "count_other": "{{count}} reflections",
+    "openLabel": "Open {{author}}'s reflection"
   },
   "selectionFailure": {
     "unnumbered": "Not a numbered verse in {{rewayah}}",

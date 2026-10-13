@@ -33,6 +33,17 @@ function cldrDirection(code: string): string | undefined {
       return String(info.direction);
     }
   }
+  // Node < 22 exposes the older `textInfo` getter instead.
+  if (
+    typeof locale === 'object' &&
+    locale !== null &&
+    'textInfo' in locale &&
+    typeof locale.textInfo === 'object' &&
+    locale.textInfo !== null &&
+    'direction' in locale.textInfo
+  ) {
+    return String(locale.textInfo.direction);
+  }
   return undefined;
 }
 
