@@ -56,7 +56,10 @@ import org.json.JSONObject
 import java.util.TimeZone
 
 class BayaanNowWidget : GlanceAppWidget() {
-  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.SMALL_TALL, WidgetSizes.MEDIUM))
+  // MEDIUM_TALL gives a 3x2 or 4x2 adhkar session two lines instead of the compact one; listening and bedtime only check width.
+  override val sizeMode = SizeMode.Responsive(
+    setOf(WidgetSizes.SMALL, WidgetSizes.SMALL_TALL, WidgetSizes.MEDIUM, WidgetSizes.MEDIUM_TALL),
+  )
   override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
