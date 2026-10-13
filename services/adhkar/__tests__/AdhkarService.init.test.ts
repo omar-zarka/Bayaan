@@ -41,6 +41,7 @@ describe('AdhkarService.initialize', () => {
     expect(adhkarDatabaseService.reseed).toHaveBeenCalledWith(
       expect.objectContaining({categories: adhkarSeed.categories}),
       adhkarSeed.super_category_dhikr_ids,
+      adhkarSeed.super_category_audio_overrides,
     );
     expect(adhkarDatabaseService.seedDatabase).not.toHaveBeenCalled();
     expect(adhkarDatabaseService.seedSuperCategories).not.toHaveBeenCalled();

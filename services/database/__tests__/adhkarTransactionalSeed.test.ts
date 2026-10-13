@@ -74,6 +74,20 @@ describe('transactional reseed', () => {
     expect(morning?.dhikrIds).toEqual(['1', '2']);
   });
 
+  it('stores per-list audio overrides with the reseed', async () => {
+    await adhkarDatabaseService.reseed(
+      OLD_SEED,
+      {'evening-adhkar': ['1']},
+      {'evening-adhkar': {'1': 'adhkar_evening_1.mp3'}},
+    );
+    const evening =
+      await adhkarDatabaseService.getSuperCategory('evening-adhkar');
+    expect(evening?.audioOverrides).toEqual({'1': 'adhkar_evening_1.mp3'});
+    const morning =
+      await adhkarDatabaseService.getSuperCategory('morning-adhkar');
+    expect(morning?.audioOverrides).toBeNull();
+  });
+
   it('keeps the previous data and version when the seed throws midway', async () => {
     await setStoredVersion(ADHKAR_DATA_VERSION - 1);
     const db = await openDatabaseAsync('adhkar.db');
