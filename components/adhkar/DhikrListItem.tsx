@@ -12,8 +12,9 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Dhikr} from '@/types/adhkar';
-import {adhkarCardLabel, cleanAdhkarTranslation} from '@/utils/adhkarText';
+import {adhkarCardLabel} from '@/utils/adhkarText';
 import {AdhkarArabicText} from './AdhkarArabicText';
+import {AdhkarLatinText} from './AdhkarLatinText';
 import Color from 'color';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -22,6 +23,7 @@ import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
 // @ai-end
 
 const CARD_ARABIC_SIZE = moderateScale(18);
+const CARD_TRANSLATION_SIZE = moderateScale(13);
 
 interface DhikrListItemProps {
   dhikr: Dhikr;
@@ -71,9 +73,13 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
         {showTranslation && dhikr.translation ? (
           <View style={styles.annotationContainer}>
             <View style={styles.annotationLine} />
-            <Text style={styles.translationText}>
-              {cleanAdhkarTranslation(dhikr.translation)}
-            </Text>
+            <AdhkarLatinText
+              text={dhikr.translation}
+              variant="translation"
+              fontSize={CARD_TRANSLATION_SIZE}
+              color={theme.colors.textSecondary}
+              style={styles.translationText}
+            />
           </View>
         ) : null}
 
@@ -158,7 +164,7 @@ const createStyles = (theme: Theme) => {
       marginBottom: moderateScale(12),
     },
     translationText: {
-      fontSize: moderateScale(13),
+      fontSize: CARD_TRANSLATION_SIZE,
       fontFamily: theme.fonts.regular,
       color: accentColor,
       textAlign: 'center',
