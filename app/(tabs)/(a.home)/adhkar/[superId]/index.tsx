@@ -32,6 +32,10 @@ import {DhikrListItem} from '@/components/adhkar/DhikrListItem';
 import {CategorySectionHeader} from '@/components/adhkar/CategorySectionHeader';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {PlayAllButton} from '@/components/adhkar/PlayAllButton';
+import {
+  AdhkarJumpPill,
+  jumpPillDirection,
+} from '@/components/adhkar/AdhkarJumpPill';
 import {Dhikr, SuperCategory} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
 // @ai-start
@@ -103,6 +107,14 @@ const SuperCategoryListScreen: React.FC = () => {
       s.session?.listId === superId &&
       (s.session.status === 'playing' || s.session.status === 'loading'),
   );
+
+  const sessionIndex = useAdhkarSessionStore(s =>
+    s.session?.listId === superId ? s.session.index : null,
+  );
+  const revealToken = useAdhkarSessionStore(s => s.revealToken);
+  const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
+  const sectionListRef = useRef<SectionList<DhikrItem, Section>>(null);
+  const flatListRef = useRef<FlatList<DhikrItem>>(null);
 
   const [superCategory, setSuperCategory] = useState<SuperCategory | null>(
     null,
@@ -196,6 +208,75 @@ const SuperCategoryListScreen: React.FC = () => {
     if (categoryGroups.length === 0) return [];
     return categoryGroups.flatMap(group => group.adhkar);
   }, [categoryGroups]);
+
+  const locationOf = useCallback(
+    (globalIndex: number): {sectionIndex: number; itemIndex: number} | null => {
+      let remaining = globalIndex;
+      for (
+        let sectionIndex = 0;
+        sectionIndex < sections.length;
+        sectionIndex++
+      ) {
+        const size = sections[sectionIndex].data.length;
+        if (remaining < size) return {sectionIndex, itemIndex: remaining};
+        remaining -= size;
+      }
+      return null;
+    },
+    [sections],
+  );
+
+  const scrollToPlaying = useCallback(() => {
+    if (sessionIndex === null) return;
+    if (isSingleCategory) {
+      flatListRef.current?.scrollToIndex({
+        index: sessionIndex,
+        viewPosition: 0.3,
+        animated: true,
+      });
+      return;
+    }
+    const loc = locationOf(sessionIndex);
+    if (!loc) return;
+    sectionListRef.current?.scrollToLocation({
+      ...loc,
+      viewPosition: 0.3,
+      animated: true,
+    });
+  }, [sessionIndex, isSingleCategory, locationOf]);
+
+  // A surface asked to show the playing dhikr.
+  const lastReveal = useRef(revealToken);
+  useEffect(() => {
+    if (revealToken === lastReveal.current) return;
+    // Not this list's session: drop the request.
+    if (sessionIndex === null) {
+      lastReveal.current = revealToken;
+      return;
+    }
+    // Still loading: keep the request pending until the rows exist.
+    if (loading) return;
+    lastReveal.current = revealToken;
+    scrollToPlaying();
+  }, [revealToken, sessionIndex, loading, scrollToPlaying]);
+
+  // Unmeasured rows: jump to the top, then retry once.
+  const retryingScroll = useRef(false);
+  const onScrollToIndexFailed = useCallback(() => {
+    if (retryingScroll.current) return;
+    retryingScroll.current = true;
+    flatListRef.current?.scrollToOffset({offset: 0, animated: false});
+    sectionListRef.current?.scrollToLocation({
+      sectionIndex: 0,
+      itemIndex: 0,
+      viewPosition: 0,
+      animated: false,
+    });
+    setTimeout(() => {
+      retryingScroll.current = false;
+      scrollToPlaying();
+    }, 100);
+  }, [scrollToPlaying]);
 
   const handleShare = useCallback(() => {
     if (!superId) return;
@@ -389,13 +470,21 @@ const SuperCategoryListScreen: React.FC = () => {
 
   // Track current visible section for the subtitle
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken[]}) => {
+    ({viewableItems}: {viewableItems: ViewToken<DhikrItem>[]}) => {
+      setVisibleIndices(viewableItems.map(v => v.item.globalIndex));
       if (viewableItems.length > 0) {
         const firstItem = viewableItems[0];
         if (firstItem.section) {
           setCurrentSectionTitle((firstItem.section as Section).shortTitle);
         }
       }
+    },
+    [],
+  );
+
+  const onFlatViewableItemsChanged = useCallback(
+    ({viewableItems}: {viewableItems: ViewToken<DhikrItem>[]}) => {
+      setVisibleIndices(viewableItems.map(v => v.item.globalIndex));
     },
     [],
   );
@@ -436,6 +525,7 @@ const SuperCategoryListScreen: React.FC = () => {
     <View style={styles.container}>
       {isSingleCategory ? (
         <FlatList
+          ref={flatListRef}
           data={flatAdhkarList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -449,10 +539,14 @@ const SuperCategoryListScreen: React.FC = () => {
           maxToRenderPerBatch={10}
           windowSize={5}
           removeClippedSubviews={true}
+          onViewableItemsChanged={onFlatViewableItemsChanged}
+          viewabilityConfig={viewabilityConfig}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           ListEmptyComponent={ListEmptyComponent}
         />
       ) : (
         <SectionList
+          ref={sectionListRef}
           sections={sections}
           renderItem={renderItem}
           renderSectionHeader={renderSectionHeader}
@@ -469,9 +563,16 @@ const SuperCategoryListScreen: React.FC = () => {
           windowSize={7}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           ListEmptyComponent={ListEmptyComponent}
         />
       )}
+      <AdhkarJumpPill
+        direction={jumpPillDirection(visibleIndices, sessionIndex)}
+        playing={sessionPlaying}
+        top={headerHeight + moderateScale(8)}
+        onPress={scrollToPlaying}
+      />
     </View>
   );
 };

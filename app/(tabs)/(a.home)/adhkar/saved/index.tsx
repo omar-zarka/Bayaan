@@ -4,8 +4,16 @@ import React, {
   useCallback,
   useMemo,
   useLayoutEffect,
+  useRef,
 } from 'react';
-import {View, Text, FlatList, Pressable, StyleSheet} from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  Pressable,
+  StyleSheet,
+  ViewToken,
+} from 'react-native';
 import {useRouter, useNavigation, useFocusEffect, Link} from 'expo-router';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Ionicons} from '@expo/vector-icons';
@@ -17,6 +25,10 @@ import {Theme} from '@/utils/themeUtils';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {DhikrListItem} from '@/components/adhkar/DhikrListItem';
 import {PlayAllButton} from '@/components/adhkar/PlayAllButton';
+import {
+  AdhkarJumpPill,
+  jumpPillDirection,
+} from '@/components/adhkar/AdhkarJumpPill';
 import {Dhikr, SavedDhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {useAdhkar} from '@/hooks/useAdhkar';
@@ -58,6 +70,13 @@ const SavedAdhkarScreen: React.FC = () => {
       (s.session.status === 'playing' || s.session.status === 'loading'),
   );
 
+  const sessionIndex = useAdhkarSessionStore(s =>
+    s.session?.listId === 'saved' ? s.session.index : null,
+  );
+  const revealToken = useAdhkarSessionStore(s => s.revealToken);
+  const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
+  const flatListRef = useRef<FlatList<Dhikr>>(null);
+
   const [adhkarList, setAdhkarList] = useState<Dhikr[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -86,6 +105,56 @@ const SavedAdhkarScreen: React.FC = () => {
 
     loadSavedAdhkar();
   }, [savedIds.size]); // Reload when saved count changes
+
+  const scrollToPlaying = useCallback(() => {
+    if (sessionIndex === null) return;
+    flatListRef.current?.scrollToIndex({
+      index: sessionIndex,
+      viewPosition: 0.3,
+      animated: true,
+    });
+  }, [sessionIndex]);
+
+  // A surface asked to show the playing dhikr.
+  const lastReveal = useRef(revealToken);
+  useEffect(() => {
+    if (revealToken === lastReveal.current) return;
+    // Not this list's session: drop the request.
+    if (sessionIndex === null) {
+      lastReveal.current = revealToken;
+      return;
+    }
+    // Still loading: keep the request pending until the rows exist.
+    if (isLoading) return;
+    lastReveal.current = revealToken;
+    scrollToPlaying();
+  }, [revealToken, sessionIndex, isLoading, scrollToPlaying]);
+
+  // Unmeasured rows: jump to the top, then retry once.
+  const retryingScroll = useRef(false);
+  const onScrollToIndexFailed = useCallback(() => {
+    if (retryingScroll.current) return;
+    retryingScroll.current = true;
+    flatListRef.current?.scrollToOffset({offset: 0, animated: false});
+    setTimeout(() => {
+      retryingScroll.current = false;
+      scrollToPlaying();
+    }, 100);
+  }, [scrollToPlaying]);
+
+  const onViewableItemsChanged = useCallback(
+    ({viewableItems}: {viewableItems: ViewToken<Dhikr>[]}) => {
+      setVisibleIndices(
+        viewableItems
+          .map(v => v.index)
+          .filter((i): i is number => typeof i === 'number'),
+      );
+    },
+    [],
+  );
+  const viewabilityConfig = useRef({
+    itemVisiblePercentThreshold: 50,
+  }).current;
 
   // Play All handler
   const dispatch = useAdhkarSessionStore(s => s.dispatch);
@@ -239,6 +308,7 @@ const SavedAdhkarScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <FlatList
+        ref={flatListRef}
         data={adhkarList}
         renderItem={renderItem}
         keyExtractor={keyExtractor}
@@ -254,6 +324,15 @@ const SavedAdhkarScreen: React.FC = () => {
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={5}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+        onScrollToIndexFailed={onScrollToIndexFailed}
+      />
+      <AdhkarJumpPill
+        direction={jumpPillDirection(visibleIndices, sessionIndex)}
+        playing={sessionPlaying}
+        top={headerHeight + moderateScale(8)}
+        onPress={scrollToPlaying}
       />
     </View>
   );
