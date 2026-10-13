@@ -13,12 +13,15 @@ This comparison renders the real page fonts and bundled word codes through Canva
 - Light and dark reading themes share one downloaded V4 file. The dark variant selects the font's published night palette in memory, preserving glyph data and the cached file.
 - Fonts register separately for each Skia provider and variant. Failed downloads are removed, unreadable cached fonts are evicted, and the reader offers retry or a return to monochrome.
 - Page dimensions follow the reader's current layout, including iPad spreads. Cached font sizes include content width, and the canvas keeps space below the last line for its marks.
+- Colored paragraphs are measured before positioning. When their taller line boxes exceed the content area, vertical spacing contracts enough to keep the final line above the playback controls without shrinking the glyphs.
 
 ## Validation
 
 Automated checks cover palette integrity, concurrent font loading, provider isolation, download recovery, layout-cache isolation, settings migration, and Hafs gating. The related mushaf, store, and rewayah-selection suites passed: 686 tests, with 25 existing skips. TypeScript and changed-file ESLint completed without errors.
 
-Native iPad simulator checks verified light and dark colors, switching back to V2, and pages 1–4 in a facing-page spread. Android rendering and phone portrait rendering still need device verification.
+Native iPad simulator checks verified light and dark colors, switching back to V2, and pages 1–4 in a facing-page spread.
+
+An Android 15 ARM64 phone emulator (1080 × 2400) verified startup, pages 2–3, light/dark tajweed palettes, switching to V2 and back, and the saved tajweed setting after restarting the debug app. The Android pass exposed a taller V4 last line beneath the playback controls; measured vertical fitting corrected it, and the full final line was verified with controls visible. Three focused regression tests cover this fit. These checks cover the reader flow, not the entire app or a standalone release build.
 
 For a manual pass:
 
