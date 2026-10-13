@@ -63,6 +63,24 @@ The MP3 recitations bundled in `assets/audio/adhkar/` come from two reciters:
   Quranic duas. The Morning and Evening recitations are cut from his official
   1434H recordings on his YouTube channel. The Quranic duas are cut from his
   Quran recitation as distributed by mp3quran.net (https://mp3quran.net).
+  A further 29 Hisn al-Muslim rows are voiced by him, cut from clips on his
+  official YouTube channel. Only categories in which every row has an
+  Alafasy clip use him; the rest stay with Hamad al-Duraihim. The categories
+  are: Invocation when getting dressed; Invocation when putting on new
+  clothes; Invocations for someone who has put on new clothes; What to say
+  when undressing; What to say before performing ablution; What to say when
+  leaving the home; Invocation for going to the mosque; Invocation for
+  entering the mosque; How to recite blessings on the Prophet after the
+  Tashahhud; What to say if you are afraid to go to sleep or feel lonely and
+  depressed; Invocations for the setting of a debt; Invocation for when you
+  find something becoming difficult for you; Invocation for when tragedy
+  strikes; Invocation for when it rains; Invocations for breaking the fast;
+  Invocations after eating; Invocation for anger; Invocation for riding in a
+  vehicle or on an animal; Invocation for entering a market; Invocation for
+  when your vehicle or mount begins to fail; Invocation for a layover
+  (stopping along the way) on the journey; What a Muslim should say when he
+  is praised; What to say to foil the devil's plots. The source clip and time
+  range of each row are in `scripts/adhkar-content/alafasy-hisn-cuts.json`.
 - **Hamad al-Duraihim, via IslamHouse.com:** all other Hisn al-Muslim audio,
   including rows 72 and 149. These recitations are from the publicly available
   HisnMuslim archive (https://www.hisnmuslim.com) and IslamHouse.com
