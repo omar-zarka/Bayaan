@@ -136,7 +136,7 @@ private fun CounterRing(context: Context, remaining: Int, total: Int, sizeDp: In
   val progress = if (total > 1) (total - remaining).toFloat() / total else 0f
   val bmp = remember(remaining, total, px) { RingBitmap.render(px, px * 0.09f, progress, android.graphics.Color.WHITE, 0x33FFFFFF) }
   Box(GlanceModifier.size(sizeDp.dp).clickable(actionRunCallback<AdhkarCountAction>()), contentAlignment = Alignment.Center) {
-    Image(ImageProvider(bmp), contentDescription = if (total > 1) "Count, $remaining left" else "Done", modifier = GlanceModifier.fillMaxSize())
+    Image(ImageProvider(bmp), contentDescription = if (total > 1) "Count, $remaining left" else "Said once, next", modifier = GlanceModifier.fillMaxSize())
     Text(if (total > 1) "$remaining" else "✓",
       style = TextStyle(color = WidgetColors.WHITE, fontSize = (sizeDp * 0.38f).sp, fontWeight = FontWeight.Bold))
   }

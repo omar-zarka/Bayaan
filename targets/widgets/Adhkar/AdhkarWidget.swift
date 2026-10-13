@@ -68,8 +68,12 @@ struct AdhkarView: View {
 
   var body: some View {
     Group {
-      if family == .systemSmall, let data = entry.data, let dhikr = entry.featured {
-        small(data, dhikr).widgetURL(AppLinks.url("adhkar/\(data.superId)"))
+      if family == .systemSmall {
+        if let data = entry.data, let dhikr = entry.featured {
+          small(data, dhikr).widgetURL(AppLinks.url("adhkar/\(data.superId)"))
+        } else {
+          ContentMessage(title: "Open \(AppBrand.name)")
+        }
       } else if let data = entry.data, let session = entry.session, !data.items.isEmpty {
         AdhkarSessionView(data: data, session: session)
       } else {

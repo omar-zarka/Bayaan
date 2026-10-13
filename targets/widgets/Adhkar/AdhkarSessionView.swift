@@ -81,7 +81,7 @@ struct AdhkarSessionView: View {
         AdhkarCounterRing(remaining: session.remaining, total: item.repeatCount, size: 34)
       }
       .buttonStyle(.plain)
-      .accessibilityLabel(item.repeatCount > 1 ? "Count, \(session.remaining) left" : "Done")
+      .accessibilityLabel(item.repeatCount > 1 ? "Count, \(session.remaining) left" : "Said once, next")
       RoundIntentButton(intent: AdhkarNextIntent(), systemName: "chevron.right", label: "Next")
     }
   }
