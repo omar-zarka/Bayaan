@@ -137,7 +137,7 @@ const MemoizedFlatList = React.memo(
       contentContainerStyle={styles.sectionContent}
       ListHeaderComponent={
         showAdhkarTile ? (
-          <View style={{alignSelf: 'stretch'}}>
+          <View style={{flex: 1}}>
             <AdhkarNowPlayingCard variant="tile" />
           </View>
         ) : null

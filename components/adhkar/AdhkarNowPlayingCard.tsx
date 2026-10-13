@@ -15,11 +15,12 @@ import {openPlayingDhikr} from '@/services/adhkar/playback/openPlayingDhikr';
 import {dropStaleSession} from '@/services/adhkar/playback/sessionPersistence';
 
 // Same width as RecentReciterCard. Its height is content-driven (square image
-// of the inner width, name, playback zone), so the tile fills the row height
-// (flex: 1 inside a stretched wrapper). The minHeight fallback only applies
-// when the tile is the sole item: it is the card's image block (inner width
-// 106 plus 6 padding and 1 border on each side = 120), a lower bound that
-// leaves the text and playback zone out.
+// of the inner width, name, playback zone). VirtualizedList wraps the list
+// header in a View that is stretched to the row height; the wrapper View in
+// RecitersView has flex: 1 and the tile has flex: 1, so the tile fills that
+// height. The minHeight fallback only applies when the tile is the sole item:
+// it is the card's image block (inner width 106 plus 6 padding and 1 border on
+// each side = 120), a lower bound that leaves the text and playback zone out.
 export const ADHKAR_TILE_WIDTH = moderateScale(120);
 // Equals `sectionContent.gap` in RecitersView, which the list applies around
 // the header too, so the header needs no margin of its own.
