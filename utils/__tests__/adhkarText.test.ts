@@ -47,7 +47,7 @@ describe('parseAdhkarArabic', () => {
       'dhikr',
     ]);
     expect(nfc(segments[0].text)).toBe(
-      nfc('(يَبْدَأُ بِرِجْلِهِ الْيُمْنَى)، وَيَقُولُ:'),
+      nfc('يَبْدَأُ بِرِجْلِهِ الْيُمْنَى، وَيَقُولُ:'),
     );
     expect(nfc(segments[2].text)).toBe(nfc('بِسْمِ اللَّهِ، وَالصَّلَاةُ'));
     expect(nfc(segments[4].text)).toBe(
@@ -115,6 +115,12 @@ describe('parseAdhkarArabic', () => {
           expect(segment.text.trim()).toBe(segment.text);
           expect(segment.text).not.toMatch(/^[،,.:;؛]/);
           expect(segment.text.length).toBeGreaterThan(0);
+          if (segment.kind === 'narration') {
+            expect({id, text: segment.text}).toEqual({
+              id,
+              text: expect.not.stringMatching(/[()]/),
+            });
+          }
         }
         expect({
           id,
@@ -195,6 +201,27 @@ describe('adhkarCopyText', () => {
       true,
     );
     expect(text).not.toMatch(/\(\(|\)\)/);
+  });
+
+  it('drops the ( ) of instructions and counts in narration (rows 21, 114, 236)', () => {
+    const [first] = parseAdhkarArabic(row('21').arabic);
+    expect(nfc(first.text)).toBe(
+      nfc('يَبْدَأُ بِرِجْلِهِ الْيُسْرَى وَيَقُولُ:'),
+    );
+    const counts = parseAdhkarArabic(row('114').arabic).filter(
+      s => s.kind === 'narration',
+    );
+    expect(counts.map(s => nfc(s.text))).toEqual([
+      nfc('ثلاثاً -'),
+      nfc('ثَلاَثَ مَرَّاتٍ -'),
+    ]);
+    const text = nfc(adhkarCopyText(row('236').arabic));
+    expect(text).not.toMatch(/[()]/);
+    expect(
+      text.endsWith(
+        nfc('فَفَعَلَ عَلَى الْمَرْوَةِ كَمَا فَعَلَ عَلَى الصَّفَا.'),
+      ),
+    ).toBe(true);
   });
 
   it('returns a row without marks unchanged apart from whitespace', () => {

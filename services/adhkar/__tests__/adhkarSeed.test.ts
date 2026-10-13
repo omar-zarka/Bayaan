@@ -127,7 +127,7 @@ describe('evening rows', () => {
 
   // Transliterations come from the sourced input (translit.json), which
   // replaces the spec document's values.
-  it('match the reviewed spec document exactly', () => {
+  it('match the reviewed spec document, with transliterations from translit.json', () => {
     expect(reviewed).toHaveLength(6);
     reviewed.forEach((spec, index) => {
       const r = row(spec.id);

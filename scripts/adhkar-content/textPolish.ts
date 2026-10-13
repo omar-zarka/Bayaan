@@ -172,7 +172,8 @@ export const MARKER_FIXES = parseMarkerFixes(markerJson);
 // Rows whose research value is unusable (77 drifts into the evening wording,
 // 125 is another dua's English, 265 is garbled, the evening 80/81 forms have
 // no published transliteration). They take the MIT fitrahive value only when
-// its Arabic is the row's Arabic; otherwise null.
+// its Arabic has the same words as the row's (same letter skeleton, see
+// arabicSkeleton); otherwise null.
 export const FITRAHIVE_RULED_IDS: readonly string[] = [
   '77',
   '125',
@@ -244,6 +245,11 @@ export function tidyNameTransliteration(value: string): string {
   return value.replace(/[‘’]/g, "'").replace(/\s+/g, ' ').trim();
 }
 
+/** Drops scrape escapes (a backslash before a quote, name-6). */
+export function unescapeQuotes(value: string | null): string | null {
+  return value === null ? null : value.replace(/\\(["'])/g, '$1');
+}
+
 export function applyNameFixes(seed: SeedFile): SeedFile {
   const fromSource = new Set(NAME_SOURCE_TRANSLITERATION_IDS);
   const stray = new Set(NAME_STRAY_INSTRUCTION_IDS);
@@ -259,7 +265,7 @@ export function applyNameFixes(seed: SeedFile): SeedFile {
         transliteration: fromSource.has(row.id)
           ? entry.transliteration
           : tidyNameTransliteration(row.transliteration ?? ''),
-        instruction: stray.has(row.id) ? null : row.instruction,
+        instruction: stray.has(row.id) ? null : unescapeQuotes(row.instruction),
       };
     }),
   };

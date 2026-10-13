@@ -58,8 +58,12 @@ function withoutUnpaired(
   return out;
 }
 
-function cleanSegmentText(raw: string): string {
-  const text = withoutUnpaired(withoutUnpaired(raw, '(', ')'), '﴿', '﴾')
+// Narration drops its ( ) pairs too: they wrap an instruction or a count
+// ("(يَبْدَأُ بِرِجْلِهِ الْيُمْنَى)، وَيَقُولُ:"), which the muted style
+// already sets apart.
+function cleanSegmentText(raw: string, kind: AdhkarSegmentKind): string {
+  const paired = withoutUnpaired(withoutUnpaired(raw, '(', ')'), '﴿', '﴾');
+  const text = (kind === 'narration' ? paired.replace(/[()]/g, ' ') : paired)
     .replace(/\s+/g, ' ')
     .replace(/\(\s*\.?\s*/g, '(')
     .replace(/\s+\)/g, ')')
@@ -121,7 +125,7 @@ export function parseAdhkarArabic(
     raw: string,
     quranIndex: number | null,
   ): void {
-    const text = cleanSegmentText(raw);
+    const text = cleanSegmentText(raw, kind);
     if (text) segments.push({kind, text, quranIndex});
   }
 

@@ -72,7 +72,7 @@ describe('transliterations', () => {
     }
   });
 
-  it('use the fitrahive value for row 77 only because its Arabic matches', () => {
+  it('use the fitrahive value for row 77 only because its Arabic has the same words (letter skeleton)', () => {
     const alt = FITRAHIVE_ALTERNATIVES['77'];
     expect(arabicSkeleton(alt.arabic)).toBe(arabicSkeleton(row('77').arabic));
     expect(row('77').transliteration).toBe(alt.transliteration);
@@ -127,7 +127,7 @@ describe('99 Names', () => {
     for (const r of names) {
       expect({id: r.id, value: r.instruction ?? ''}).not.toEqual({
         id: r.id,
-        value: expect.stringMatching(/\\u|[éèàçêù]|\b(Le|est|des|qui)\b/),
+        value: expect.stringMatching(/\\|[éèàçêù]|\b(Le|est|des|qui)\b/),
       });
     }
   });
@@ -224,6 +224,27 @@ describe('marker fixes', () => {
       'addition',
       'addition',
     ]);
+  });
+
+  it('mark only the words to say in the "let him say" rows', () => {
+    const shapes: Record<string, string[]> = {
+      '151': ['narration', 'dhikr'],
+      '179': ['narration', 'dhikr', 'narration', 'dhikr'],
+      '217': ['narration', 'dhikr'],
+      '227': ['narration', 'dhikr'],
+      '258': ['narration', 'dhikr', 'narration'],
+      '260': ['narration', 'dhikr'],
+    };
+    for (const [id, expected] of Object.entries(shapes)) {
+      expect({id, kinds: kinds(parseAdhkarArabic(row(id).arabic))}).toEqual({
+        id,
+        kinds: expected,
+      });
+    }
+    const dhikr260 = parseAdhkarArabic(row('260').arabic)[1].text;
+    expect(dhikr260.normalize('NFC')).toBe(
+      'لاَ حَوْلَ وَلاَ قُوَّةَ إِلاَّ بِاللَّهِ'.normalize('NFC'),
+    );
   });
 
   it('close the Quran bracket of row 50', () => {
