@@ -20,7 +20,9 @@ import {VerseItem} from './VerseItem';
 import BasmalaHeader from './BasmalaHeader';
 import SurahDivider, {computeDividerTotalHeight} from './SurahDivider';
 import {FlashList, type FlashListRef} from '@shopify/flash-list';
-import {useBottomSheetScrollableCreator} from '@gorhom/bottom-sheet';
+// @ai-start
+import {usePlayerScrollable} from '@/hooks/usePlayerScrollable';
+// @ai-end
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {
   getDkFontFamily, // @ai
@@ -223,6 +225,7 @@ interface QuranViewProps {
   parentContentWidth?: number;
 }
 
+// @ai-start
 export const QuranView: React.FC<QuranViewProps> = ({
   currentSurah,
   onVersePress,
@@ -259,7 +262,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
   // satisfy rules-of-hooks; the factory is discarded when behavior is
   // 'native'. See docs/rfcs/014-player-scroll-strategy-seam.md.
   const scrollBehavior = branding.playerMushafScrollBehavior ?? 'gorhom';
-  const gorhomScrollComponent = useBottomSheetScrollableCreator();
+  const gorhomScrollComponent = usePlayerScrollable();
   const renderScrollComponent =
     scrollBehavior === 'gorhom' ? gorhomScrollComponent : undefined;
   if (__DEV__ && scrollBehavior === 'native') {
@@ -720,6 +723,7 @@ export const QuranView: React.FC<QuranViewProps> = ({
     </View>
   );
 };
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

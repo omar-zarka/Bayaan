@@ -66,6 +66,11 @@ import {
   type MushafAllahNameHighlightColor,
   type RewayahId,
 } from '@/store/mushafSettingsStore';
+// @ai-start
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {localizeDigits} from '@/i18n/format';
+// @ai-end
 
 // --- Pre-cache Translation/Transliteration Data --- //
 interface TransliterationData {
@@ -109,58 +114,29 @@ interface TajweedSampleSegment {
 }
 
 // --- Font option data ---
+// @ai-start
 interface FontOption {
   value: MushafRenderer;
-  label: string;
-  description: string;
+  key: 'dkV1' | 'dkV2' | 'indopak' | 'qcfV2';
 }
+// @ai-end
 
+// @ai-start
 const FONT_OPTIONS: FontOption[] = [
-  {
-    value: 'dk_v1',
-    label: 'Madani 1405',
-    description: 'Classic King Fahd Complex',
-  },
-  {
-    value: 'dk_v2',
-    label: 'Madani 1421',
-    description: 'Modern King Fahd Complex',
-  },
-  {
-    value: 'dk_indopak',
-    label: 'IndoPak',
-    description: 'Subcontinent Nastaliq style',
-  },
-  {
-    value: 'qcf_v2',
-    label: 'Mushaf 1440',
-    description: 'Modern Madinah printed pipeline',
-  },
+  {value: 'dk_v1', key: 'dkV1'},
+  {value: 'dk_v2', key: 'dkV2'},
+  {value: 'dk_indopak', key: 'indopak'},
+  {value: 'qcf_v2', key: 'qcfV2'},
 ];
+// @ai-end
 
-interface TextWeightOption {
-  value: MushafArabicTextWeight;
-  label: string;
-  description: string;
-}
-
-const TEXT_WEIGHT_OPTIONS: TextWeightOption[] = [
-  {
-    value: 'normal',
-    label: 'Normal',
-    description: 'Original mushaf weight',
-  },
-  {
-    value: 'medium',
-    label: 'Medium',
-    description: 'Slightly more prominent',
-  },
-  {
-    value: 'bold',
-    label: 'Bold',
-    description: 'Maximum prominence',
-  },
+// @ai-start
+const TEXT_WEIGHT_OPTIONS: readonly MushafArabicTextWeight[] = [
+  'normal',
+  'medium',
+  'bold',
 ];
+// @ai-end
 
 // Internal reusable component for font size control
 interface FontSizeControlProps {
@@ -182,6 +158,7 @@ interface FontSizeControlProps {
   allahNameHighlightColor?: string;
 }
 
+// @ai-start
 const FontSizeControl: React.FC<FontSizeControlProps> = ({
   label,
   currentActualSize,
@@ -200,6 +177,7 @@ const FontSizeControl: React.FC<FontSizeControlProps> = ({
   showAllahNameHighlight = false,
   allahNameHighlightColor,
 }) => {
+  const {t} = useTranslation('settings');
   const themedColors = useMemo(
     () => getThemedTajweedColors(theme.isDarkMode),
     [theme.isDarkMode],
@@ -280,7 +258,9 @@ const FontSizeControl: React.FC<FontSizeControlProps> = ({
         <FormattedTextRenderer text={sampleText} baseStyle={sampleBaseStyle} />
       );
     } else {
-      return <Text style={sampleBaseStyle}>Loading sample...</Text>;
+      return (
+        <Text style={sampleBaseStyle}>{t('mushafSettings.loadingSample')}</Text>
+      );
     }
   }, [
     currentActualSize,
@@ -303,6 +283,7 @@ const FontSizeControl: React.FC<FontSizeControlProps> = ({
     styles.arabicSampleText,
     showTajweed,
     themedColors,
+    t,
   ]);
 
   return (
@@ -330,7 +311,9 @@ const FontSizeControl: React.FC<FontSizeControlProps> = ({
               }
             />
           </Pressable>
-          <Text style={styles.fontSizeValue}>{currentDisplayValue}</Text>
+          <Text style={styles.fontSizeValue}>
+            {localizeDigits(currentDisplayValue)}
+          </Text>
           <Pressable
             onPress={handleIncrement}
             hitSlop={10}
@@ -364,6 +347,7 @@ const FontSizeControl: React.FC<FontSizeControlProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // Custom TajweedToggle component
 interface TajweedToggleProps {
@@ -373,12 +357,14 @@ interface TajweedToggleProps {
   disabled?: boolean;
 }
 
+// @ai-start
 const TajweedToggle: React.FC<TajweedToggleProps> = ({
   value,
   onValueChange,
   theme,
   disabled = false,
 }) => {
+  const {t} = useTranslation('settings');
   const themedColors = useMemo(
     () => getThemedTajweedColors(theme.isDarkMode),
     [theme.isDarkMode],
@@ -429,7 +415,7 @@ const TajweedToggle: React.FC<TajweedToggleProps> = ({
   } as const;
 
   const textContainerStyle = {
-    width: moderateScale(30),
+    minWidth: moderateScale(30),
     alignItems: 'center' as const,
   };
 
@@ -452,11 +438,16 @@ const TajweedToggle: React.FC<TajweedToggleProps> = ({
         style={barStyle}
       />
       <View style={textContainerStyle}>
-        <Text style={textStyle}>{!disabled && value ? 'ON' : 'OFF'}</Text>
+        <Text style={textStyle}>
+          {!disabled && value
+            ? t('mushafSettings.on')
+            : t('mushafSettings.off')}
+        </Text>
       </View>
     </Pressable>
   );
 };
+// @ai-end
 
 interface TextWeightControlProps {
   value: MushafArabicTextWeight;
@@ -465,54 +456,61 @@ interface TextWeightControlProps {
   theme: Theme;
 }
 
+// @ai-start
 const TextWeightControl: React.FC<TextWeightControlProps> = ({
   value,
   onChange,
   styles,
   theme,
-}) => (
-  <View style={styles.card}>
-    {TEXT_WEIGHT_OPTIONS.map((option, idx) => {
-      const isSelected = value === option.value;
-      return (
-        <React.Fragment key={option.value}>
-          {idx > 0 && <View style={styles.divider} />}
-          <Pressable
-            style={({pressed}) => [
-              styles.radioRow,
-              pressed && styles.radioRowPressed,
-            ]}
-            onPress={() => onChange(option.value)}>
-            <View
-              style={[
-                styles.radioCircle,
-                isSelected && styles.radioCircleSelected,
-              ]}>
-              {isSelected && <View style={styles.radioCircleFill} />}
-            </View>
-            <View style={styles.radioTextContainer}>
-              <Text
+}) => {
+  const {t} = useTranslation('settings');
+  return (
+    <View style={styles.card}>
+      {TEXT_WEIGHT_OPTIONS.map((option, idx) => {
+        const isSelected = value === option;
+        return (
+          <React.Fragment key={option}>
+            {idx > 0 && <View style={styles.divider} />}
+            <Pressable
+              style={({pressed}) => [
+                styles.radioRow,
+                pressed && styles.radioRowPressed,
+              ]}
+              onPress={() => onChange(option)}>
+              <View
                 style={[
-                  styles.radioLabel,
-                  isSelected && styles.radioLabelSelected,
+                  styles.radioCircle,
+                  isSelected && styles.radioCircleSelected,
                 ]}>
-                {option.label}
-              </Text>
-              <Text style={styles.radioDescription}>{option.description}</Text>
-            </View>
-            {isSelected && (
-              <Feather
-                name="check"
-                size={moderateScale(18)}
-                color={Color(theme.colors.text).alpha(0.7).toString()}
-              />
-            )}
-          </Pressable>
-        </React.Fragment>
-      );
-    })}
-  </View>
-);
+                {isSelected && <View style={styles.radioCircleFill} />}
+              </View>
+              <View style={styles.radioTextContainer}>
+                <Text
+                  style={[
+                    styles.radioLabel,
+                    isSelected && styles.radioLabelSelected,
+                  ]}>
+                  {t(`mushafSettings.weights.${option}.label`)}
+                </Text>
+                <Text style={styles.radioDescription}>
+                  {t(`mushafSettings.weights.${option}.description`)}
+                </Text>
+              </View>
+              {isSelected && (
+                <Feather
+                  name="check"
+                  size={moderateScale(18)}
+                  color={Color(theme.colors.text).alpha(0.7).toString()}
+                />
+              )}
+            </Pressable>
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+};
+// @ai-end
 
 interface AllahNameColorControlProps {
   value: MushafAllahNameHighlightColor;
@@ -562,6 +560,7 @@ interface MushafSettingsContentProps {
   onOpenThemePicker?: () => void;
 }
 
+// @ai-start
 export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
   containerStyle,
   showTitle = true,
@@ -569,6 +568,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
   onOpenThemePicker,
 }) => {
   const {theme, themeMode} = useTheme();
+  const {t} = useTranslation('settings');
   const styles = useMemo(() => createStyles(theme), [theme]);
   const {indexedTajweedData, isLoading: isTajweedLoading} = useTajweedStore();
 
@@ -617,11 +617,15 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
 
   const verseKey = '1:1';
   const isQCF1440 = mushafRenderer === 'qcf_v2';
-  const hafsOnlyFontDescription = `Hafs only. This font lacks marks used by ${getRewayahShortLabel(rewayah)}.`; // @ai
+  const hafsOnlyFontDescription = t('mushafSettings.hafsOnlyFont', {
+    rewayah: getRewayahShortLabel(rewayah),
+  }); // @ai
   // @ai-start
   // Tajweed colors are Hafs rules and are never drawn on another rewayah's
   // text, so the toggle only applies while reading Hafs.
-  const hafsOnlyTajweedDescription = `Hafs only. Not shown for ${getRewayahShortLabel(rewayah)}.`;
+  const hafsOnlyTajweedDescription = t('mushafSettings.hafsOnlyTajweed', {
+    rewayah: getRewayahShortLabel(rewayah),
+  });
   // @ai-end
   const allahNameHighlightHex = getAllahNameHighlightColorHex(
     allahNameHighlightColor,
@@ -644,22 +648,23 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     try {
       const saheehInternationalData = require('@/data/SaheehInternational.translation-with-footnote-tags.json');
       return (
-        saheehInternationalData[verseKey]?.t || 'Error loading translation'
+        saheehInternationalData[verseKey]?.t ||
+        t('mushafSettings.translationError')
       );
     } catch (error) {
       console.error(
         '[MushafSettingsContent] Error loading translation:',
         error,
       );
-      return 'Error loading translation';
+      return t('mushafSettings.translationError');
     }
-  }, []);
+  }, [t]);
 
   const actualTransliterationText = useMemo(
     () =>
       transliterationDataCache?.[verseKey]?.t ||
-      'Error loading transliteration',
-    [],
+      t('mushafSettings.transliterationError'),
+    [t],
   );
 
   const flatVerseSegments = useMemo(() => {
@@ -688,18 +693,21 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
   // rewayah switch that is still loading, and keeps the font and rewayah
   // (with a toast) when Hafs cannot be loaded. It reads the store when
   // tapped, so a stale render cannot skip that switch.
-  const handleFontSelect = useCallback(async (value: MushafRenderer) => {
-    const switchingToQCF =
-      value === 'qcf_v2' &&
-      useMushafSettingsStore.getState().mushafRenderer !== 'qcf_v2';
-    const outcome = await chooseMushafRenderer(value);
-    if (switchingToQCF && outcome.kind === 'switched') {
-      Alert.alert(
-        'Mushaf 1440 Beta',
-        `Mushaf 1440 is ${branding.appName}’s most modern mushaf pipeline, but it is still in beta. Some features are currently disabled, including tajweed coloring and rewayah switching.`,
-      );
-    }
-  }, []);
+  const handleFontSelect = useCallback(
+    async (value: MushafRenderer) => {
+      const switchingToQCF =
+        value === 'qcf_v2' &&
+        useMushafSettingsStore.getState().mushafRenderer !== 'qcf_v2';
+      const outcome = await chooseMushafRenderer(value);
+      if (switchingToQCF && outcome.kind === 'switched') {
+        Alert.alert(
+          t('mushafSettings.qcfBetaTitle'),
+          t('mushafSettings.qcfBetaMessage', {appName: branding.appName}),
+        );
+      }
+    },
+    [t],
+  );
   // @ai-end
 
   // @ai-start
@@ -715,7 +723,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {showTitle && <Text style={styles.title}>Mushaf Settings</Text>}
+      {showTitle && (
+        <Text style={styles.title}>{t('mushafSettings.title')}</Text>
+      )}
       {/* @ai-start */}
       <RewayahFallbackBanner />
       {/* @ai-end */}
@@ -723,7 +733,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       {/* VIEW TYPE Section (hidden from player context) */}
       {context !== 'player' && (
         <>
-          <Text style={styles.sectionHeader}>VIEW TYPE</Text>
+          <Text style={styles.sectionHeader}>
+            {t('mushafSettings.viewTypeHeader')}
+          </Text>
           <View style={styles.card}>
             <Pressable
               style={({pressed}) => [
@@ -735,7 +747,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 size={moderateScale(20)}
                 color={Color(theme.colors.text).alpha(0.7).toString()}
               />
-              <Text style={styles.settingRowLabel}>Mushaf</Text>
+              <Text style={styles.settingRowLabel}>
+                {t('mushafSettings.viewMushaf')}
+              </Text>
               {viewMode === 'mushaf' && (
                 <Feather
                   name="check"
@@ -755,7 +769,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 size={moderateScale(20)}
                 color={Color(theme.colors.text).alpha(0.7).toString()}
               />
-              <Text style={styles.settingRowLabel}>List</Text>
+              <Text style={styles.settingRowLabel}>
+                {t('mushafSettings.viewList')}
+              </Text>
               {viewMode === 'list' && (
                 <Feather
                   name="check"
@@ -766,7 +782,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             </Pressable>
           </View>
 
-          <Text style={styles.sectionHeader}>SCROLL DIRECTION</Text>
+          <Text style={styles.sectionHeader}>
+            {t('mushafSettings.scrollDirectionHeader')}
+          </Text>
           <View style={styles.card}>
             <Pressable
               style={({pressed}) => [
@@ -778,7 +796,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 size={moderateScale(20)}
                 color={Color(theme.colors.text).alpha(0.7).toString()}
               />
-              <Text style={styles.settingRowLabel}>Horizontal</Text>
+              <Text style={styles.settingRowLabel}>
+                {t('mushafSettings.horizontal')}
+              </Text>
               {scrollDirection === 'horizontal' && (
                 <Feather
                   name="check"
@@ -798,7 +818,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 size={moderateScale(20)}
                 color={Color(theme.colors.text).alpha(0.7).toString()}
               />
-              <Text style={styles.settingRowLabel}>Vertical</Text>
+              <Text style={styles.settingRowLabel}>
+                {t('mushafSettings.vertical')}
+              </Text>
               {scrollDirection === 'vertical' && (
                 <Feather
                   name="check"
@@ -812,7 +834,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           {/* PAGE DESIGN: only in mushaf view + horizontal */}
           {viewMode === 'mushaf' && scrollDirection === 'horizontal' && (
             <>
-              <Text style={styles.sectionHeader}>PAGE DESIGN</Text>
+              <Text style={styles.sectionHeader}>
+                {t('mushafSettings.pageDesignHeader')}
+              </Text>
               <View style={styles.card}>
                 <Pressable
                   style={({pressed}) => [
@@ -824,7 +848,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                     size={moderateScale(20)}
                     color={Color(theme.colors.text).alpha(0.7).toString()}
                   />
-                  <Text style={styles.settingRowLabel}>Fullscreen</Text>
+                  <Text style={styles.settingRowLabel}>
+                    {t('mushafSettings.fullscreen')}
+                  </Text>
                   {pageLayout === 'fullscreen' && (
                     <Feather
                       name="check"
@@ -844,7 +870,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                     size={moderateScale(20)}
                     color={Color(theme.colors.text).alpha(0.7).toString()}
                   />
-                  <Text style={styles.settingRowLabel}>Book</Text>
+                  <Text style={styles.settingRowLabel}>
+                    {t('mushafSettings.book')}
+                  </Text>
                   {pageLayout === 'book' && (
                     <Feather
                       name="check"
@@ -860,7 +888,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       )}
 
       {/* READING THEME Section */}
-      <Text style={styles.sectionHeader}>READING THEME</Text>
+      <Text style={styles.sectionHeader}>
+        {t('mushafSettings.readingThemeHeader')}
+      </Text>
       <View style={styles.card}>
         <Pressable
           style={({pressed}) => [
@@ -870,26 +900,31 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           onPress={onOpenThemePicker}>
           <Text style={styles.settingRowLabel}>
             {themeMode === 'system'
-              ? 'System'
+              ? t('mushafSettings.system')
               : (getReadingThemeById(
                   themeMode === 'light' ? lightThemeId : darkThemeId,
-                )?.name ?? 'System')}
+                )?.name ?? t('mushafSettings.system'))}
           </Text>
           <Feather
             name="chevron-right"
             size={moderateScale(18)}
             color={Color(theme.colors.text).alpha(0.2).toString()}
+            style={flipX}
           />
         </Pressable>
       </View>
 
-      {/* Word by Word Section; only in list view */}
-      {context !== 'player' && viewMode === 'list' && (
-        <>
-          <Text style={styles.sectionHeader}>WORD BY WORD</Text>
-          <View style={styles.card}>
+      {/* Word-by-word preferences also apply to the verse and word sheets. */}
+      <Text style={styles.sectionHeader}>
+        {t('mushafSettings.wordByWordHeader')}
+      </Text>
+      <View style={styles.card}>
+        {context !== 'player' && viewMode === 'list' && (
+          <>
             <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>Word by Word</Text>
+              <Text style={styles.optionLabel}>
+                {t('mushafSettings.wordByWord')}
+              </Text>
               <Switch
                 trackColor={trackColor}
                 thumbColor="#FFFFFF"
@@ -899,52 +934,56 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 style={styles.switchStyle}
               />
             </View>
-            {showWBW && (
-              <>
-                <View style={styles.divider} />
-                <Pressable
-                  style={({pressed}) => [
-                    styles.settingRow,
-                    pressed && styles.settingRowPressed,
-                  ]}
-                  onPress={toggleWBWTranslation}>
-                  <Text style={styles.settingRowLabel}>Translation</Text>
-                  {wbwShowTranslation && (
-                    <Feather
-                      name="check"
-                      size={moderateScale(18)}
-                      color={Color(theme.colors.text).alpha(0.7).toString()}
-                    />
-                  )}
-                </Pressable>
-                <View style={styles.divider} />
-                <Pressable
-                  style={({pressed}) => [
-                    styles.settingRow,
-                    pressed && styles.settingRowPressed,
-                  ]}
-                  onPress={toggleWBWTransliteration}>
-                  <Text style={styles.settingRowLabel}>Transliteration</Text>
-                  {wbwShowTransliteration && (
-                    <Feather
-                      name="check"
-                      size={moderateScale(18)}
-                      color={Color(theme.colors.text).alpha(0.7).toString()}
-                    />
-                  )}
-                </Pressable>
-              </>
-            )}
-          </View>
-        </>
-      )}
+            <View style={styles.divider} />
+          </>
+        )}
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{checked: wbwShowTranslation}}
+          style={({pressed}) => [
+            styles.settingRow,
+            pressed && styles.settingRowPressed,
+          ]}
+          onPress={toggleWBWTranslation}>
+          <Text style={styles.settingRowLabel}>
+            {t('mushafSettings.translation')}
+          </Text>
+          {wbwShowTranslation && (
+            <Feather
+              name="check"
+              size={moderateScale(18)}
+              color={Color(theme.colors.text).alpha(0.7).toString()}
+            />
+          )}
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{checked: wbwShowTransliteration}}
+          style={({pressed}) => [
+            styles.settingRow,
+            pressed && styles.settingRowPressed,
+          ]}
+          onPress={toggleWBWTransliteration}>
+          <Text style={styles.settingRowLabel}>
+            {t('mushafSettings.transliteration')}
+          </Text>
+          {wbwShowTransliteration && (
+            <Feather
+              name="check"
+              size={moderateScale(18)}
+              color={Color(theme.colors.text).alpha(0.7).toString()}
+            />
+          )}
+        </Pressable>
+      </View>
 
       {/* Translation/Transliteration Section (shown in player context OR list view mode) */}
       {(context !== 'mushaf' || viewMode === 'list') && (
         <>
           <View style={styles.card}>
             <FontSizeControl
-              label="Arabic Font Size"
+              label={t('mushafSettings.arabicFontSize')}
               currentActualSize={arabicFontSize}
               onChange={setArabicFontSize}
               theme={theme}
@@ -964,7 +1003,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
 
           <View style={styles.card}>
             <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>Transliteration</Text>
+              <Text style={styles.optionLabel}>
+                {t('mushafSettings.transliteration')}
+              </Text>
               <Switch
                 trackColor={trackColor}
                 thumbColor="#FFFFFF"
@@ -978,7 +1019,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
               <>
                 <View style={styles.divider} />
                 <FontSizeControl
-                  label="Font Size"
+                  label={t('mushafSettings.fontSize')}
                   currentActualSize={transliterationFontSize}
                   onChange={setTransliterationFontSize}
                   theme={theme}
@@ -992,7 +1033,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
 
           <View style={styles.card}>
             <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>Translation</Text>
+              <Text style={styles.optionLabel}>
+                {t('mushafSettings.translation')}
+              </Text>
               <Switch
                 trackColor={trackColor}
                 thumbColor="#FFFFFF"
@@ -1003,13 +1046,13 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
               />
             </View>
             <Text style={styles.helperText}>
-              Using: Saheeh International Translation with footnotes
+              {t('mushafSettings.translationSource')}
             </Text>
             {showTranslation && (
               <>
                 <View style={styles.divider} />
                 <FontSizeControl
-                  label="Font Size"
+                  label={t('mushafSettings.fontSize')}
                   currentActualSize={translationFontSize}
                   onChange={setTranslationFontSize}
                   theme={theme}
@@ -1024,7 +1067,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       )}
 
       {/* TEXT THICKNESS Section */}
-      <Text style={styles.sectionHeader}>TEXT THICKNESS</Text>
+      <Text style={styles.sectionHeader}>
+        {t('mushafSettings.textThicknessHeader')}
+      </Text>
       <TextWeightControl
         value={arabicTextWeight}
         onChange={setArabicTextWeight}
@@ -1032,10 +1077,14 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
         theme={theme}
       />
 
-      <Text style={styles.sectionHeader}>DIVINE NAMES</Text>
+      <Text style={styles.sectionHeader}>
+        {t('mushafSettings.divineNamesHeader')}
+      </Text>
       <View style={styles.card}>
         <View style={styles.optionRow}>
-          <Text style={styles.optionLabel}>Highlight Allah / Rabb</Text>
+          <Text style={styles.optionLabel}>
+            {t('mushafSettings.highlightAllah')}
+          </Text>
           <Switch
             trackColor={trackColor}
             thumbColor="#FFFFFF"
@@ -1046,8 +1095,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           />
         </View>
         <Text style={styles.helperText}>
-          Highlights Allah&apos;s name and divine title forms like Rabb in the
-          mushaf.
+          {t('mushafSettings.highlightAllahHelper')}
         </Text>
         {showAllahNameHighlight && (
           <>
@@ -1065,7 +1113,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       {/* THEMES Section */}
       <View style={styles.card}>
         <View style={styles.optionRow}>
-          <Text style={styles.optionLabel}>Thematic Highlighting</Text>
+          <Text style={styles.optionLabel}>
+            {t('mushafSettings.thematicHighlighting')}
+          </Text>
           <Switch
             trackColor={trackColor}
             thumbColor="#FFFFFF"
@@ -1076,7 +1126,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
           />
         </View>
         <Text style={styles.helperText}>
-          Alternating highlights by thematic passage
+          {t('mushafSettings.thematicHelper')}
         </Text>
       </View>
 
@@ -1107,18 +1157,20 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
         )}
 
       {/* FONT Section */}
-      <Text style={styles.sectionHeader}>FONT</Text>
+      <Text style={styles.sectionHeader}>{t('mushafSettings.fontHeader')}</Text>
       <View style={styles.card}>
         {/* Tajweed Toggle */}
         <View style={styles.tajweedOptionRow}>
           <View style={styles.tajweedLabelContainer}>
-            <Text style={styles.tajweedLabel}>Tajweed Coloring</Text>
+            <Text style={styles.tajweedLabel}>
+              {t('mushafSettings.tajweedColoring')}
+            </Text>
             <Text style={styles.tajweedSubLabel}>
               {isQCF1440
-                ? 'Unavailable in Mushaf 1440 beta'
+                ? t('mushafSettings.tajweedUnavailable')
                 : rewayah !== 'hafs'
                   ? hafsOnlyTajweedDescription // @ai
-                  : 'Highlight rules with colors'}
+                  : t('mushafSettings.tajweedDescription')}
             </Text>
           </View>
           <TajweedToggle
@@ -1167,10 +1219,12 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                       styles.radioLabel,
                       isSelected && styles.radioLabelSelected,
                     ]}>
-                    {option.label}
+                    {t(`mushafSettings.fonts.${option.key}.label`)}
                   </Text>
                   <Text style={styles.radioDescription}>
-                    {isHafsOnly ? hafsOnlyFontDescription : option.description}
+                    {isHafsOnly
+                      ? hafsOnlyFontDescription
+                      : t(`mushafSettings.fonts.${option.key}.description`)}
                   </Text>
                 </View>
               </Pressable>
@@ -1182,11 +1236,13 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       {/* REWAYAH Section; picker collapses by default behind the currently
           selected rewayah; the diff toggle sits above it so it's reachable
           without scrolling past 20 radio options. */}
-      <Text style={styles.sectionHeader}>REWAYAH</Text>
+      <Text style={styles.sectionHeader}>
+        {t('mushafSettings.rewayahHeader')}
+      </Text>
       {isQCF1440 ? (
         <View style={styles.card}>
           <Text style={styles.helperText}>
-            Rewayah switching is disabled in Mushaf 1440 beta.
+            {t('mushafSettings.rewayahDisabled')}
           </Text>
         </View>
       ) : (
@@ -1227,6 +1283,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // @ai-start
 interface RewayahFallbackBannerProps {
@@ -1243,6 +1300,7 @@ export const RewayahFallbackBanner: React.FC<RewayahFallbackBannerProps> = ({
   style,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('settings');
   const styles = useMemo(() => createFallbackBannerStyles(theme), [theme]);
   const failedRewayah = useMushafSettingsStore(s => s.rewayahFallbackFrom);
   const [busy, setBusy] = useState(false);
@@ -1270,18 +1328,21 @@ export const RewayahFallbackBanner: React.FC<RewayahFallbackBannerProps> = ({
           size={moderateScale(16)}
           color={Color(theme.colors.text).alpha(0.75).toString()}
         />
-        <Text style={styles.title}>Couldn&apos;t load {label}</Text>
+        <Text style={styles.title}>
+          {t('mushafSettings.fallback.title', {rewayah: label})}
+        </Text>
       </View>
       <Text style={styles.body}>
-        Hafs is shown instead. {label} stays your rewayah and is tried again the
-        next time the app opens.
+        {t('mushafSettings.fallback.body', {rewayah: label})}
       </Text>
       <View style={styles.actions}>
         <Pressable
           onPress={() => choose(failedRewayah)}
           disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel={`Try loading ${label} again`}
+          accessibilityLabel={t('mushafSettings.fallback.retryLabel', {
+            rewayah: label,
+          })}
           accessibilityState={{disabled: busy, busy}}
           hitSlop={6}
           style={({pressed}) => [
@@ -1295,21 +1356,25 @@ export const RewayahFallbackBanner: React.FC<RewayahFallbackBannerProps> = ({
               color={theme.colors.textSecondary}
             />
           ) : (
-            <Text style={styles.buttonText}>Try again</Text>
+            <Text style={styles.buttonText}>
+              {t('mushafSettings.fallback.retry')}
+            </Text>
           )}
         </Pressable>
         <Pressable
           onPress={() => choose('hafs')}
           disabled={busy}
           accessibilityRole="button"
-          accessibilityLabel="Keep reading Hafs"
+          accessibilityLabel={t('mushafSettings.fallback.keepLabel')}
           accessibilityState={{disabled: busy}}
           hitSlop={6}
           style={({pressed}) => [
             styles.button,
             pressed && styles.buttonPressed,
           ]}>
-          <Text style={styles.buttonText}>Keep Hafs</Text>
+          <Text style={styles.buttonText}>
+            {t('mushafSettings.fallback.keep')}
+          </Text>
         </Pressable>
       </View>
     </View>
@@ -1382,6 +1447,7 @@ interface RewayahAccordionProps {
   disabled?: boolean;
 }
 
+// @ai-start
 const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
   selectedId,
   onSelect,
@@ -1389,6 +1455,7 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
   theme,
   disabled = false,
 }) => {
+  const {t} = useTranslation('settings');
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -1401,11 +1468,21 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
         ]}
         accessibilityRole="button"
         accessibilityState={{expanded, disabled}}
-        accessibilityLabel={`Rewayah: ${getLongLabel(selectedId)}. ${expanded ? 'Collapse' : 'Expand'} to change.`}
+        accessibilityLabel={
+          expanded
+            ? t('mushafSettings.rewayahCollapseLabel', {
+                name: getLongLabel(selectedId),
+              })
+            : t('mushafSettings.rewayahExpandLabel', {
+                name: getLongLabel(selectedId),
+              })
+        }
         disabled={disabled}
         onPress={() => setExpanded(e => !e)}>
         <View style={styles.radioTextContainer}>
-          <Text style={styles.accordionHeaderEyebrow}>Currently reading</Text>
+          <Text style={styles.accordionHeaderEyebrow}>
+            {t('mushafSettings.currentlyReading')}
+          </Text>
           <Text style={styles.accordionHeaderTitle}>
             {getLongLabel(selectedId)}
           </Text>
@@ -1455,7 +1532,7 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
           })}
           <View style={styles.divider} />
           <Text style={styles.accordionSubHeader}>
-            TEXT PREVIEW NOT YET AVAILABLE
+            {t('mushafSettings.previewUnavailableHeader')}
           </Text>
           {UNAVAILABLE_REWAYAH_IDS.map((id, idx) => (
             <React.Fragment key={id}>
@@ -1463,7 +1540,12 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
               <View
                 style={[styles.radioRow, styles.radioRowDisabled]}
                 accessibilityRole="text"
-                accessibilityLabel={`${getLongLabel(id)}, text preview not yet available`}>
+                accessibilityLabel={t(
+                  'mushafSettings.previewUnavailableLabel',
+                  {
+                    name: getLongLabel(id),
+                  },
+                )}>
                 <View style={styles.radioCircle} />
                 <View style={styles.radioTextContainer}>
                   <Text style={[styles.radioLabel, styles.radioLabelDisabled]}>
@@ -1481,6 +1563,7 @@ const RewayahAccordion: React.FC<RewayahAccordionProps> = ({
     </View>
   );
 };
+// @ai-end
 
 interface RewayahDiffCardProps {
   rewayah: RewayahWithDiffs;
@@ -1491,6 +1574,7 @@ interface RewayahDiffCardProps {
   theme: Theme;
 }
 
+// @ai-start
 const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
   rewayah,
   showRewayahDiffs,
@@ -1499,13 +1583,16 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
   styles,
   theme,
 }) => {
+  const {t} = useTranslation('settings');
   const [showLegend, setShowLegend] = useState(false);
   const legend = useMemo(() => getRewayahDiffLegend(rewayah), [rewayah]); // @ai
 
   return (
     <View style={styles.card}>
       <View style={styles.optionRow}>
-        <Text style={styles.optionLabel}>Show Differences</Text>
+        <Text style={styles.optionLabel}>
+          {t('mushafSettings.showDifferences')}
+        </Text>
         <Switch
           trackColor={trackColor}
           thumbColor="#FFFFFF"
@@ -1515,7 +1602,9 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
           style={styles.switchStyle}
         />
       </View>
-      <Text style={styles.helperText}>{legend.summary}</Text>
+      <Text style={styles.helperText}>
+        {t(`mushafSettings.legendV2.summary.${legend.summaryKey}`)}
+      </Text>
       {/* @ai-start */}
       {legend.entries.length > 0 && <View style={styles.divider} />}
       {legend.entries.length > 0 && (
@@ -1530,7 +1619,9 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
             size={moderateScale(16)}
             color={Color(theme.colors.text).alpha(0.7).toString()}
           />
-          <Text style={styles.settingRowLabel}>Color legend</Text>
+          <Text style={styles.settingRowLabel}>
+            {t('mushafSettings.colorLegend')}
+          </Text>
           <Feather
             name={showLegend ? 'chevron-up' : 'chevron-down'}
             size={moderateScale(18)}
@@ -1544,7 +1635,7 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
           <View style={styles.divider} />
           <View style={styles.legendContainer}>
             {legend.entries.map((entry, idx) => (
-              <React.Fragment key={entry.label}>
+              <React.Fragment key={entry.key}>
                 {idx > 0 && <View style={styles.legendDivider} />}
                 <View style={styles.legendRow}>
                   <View
@@ -1557,9 +1648,13 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
                     ]}
                   />
                   <View style={styles.legendTextContainer}>
-                    <Text style={styles.legendLabel}>{entry.label}</Text>
+                    <Text style={styles.legendLabel}>
+                      {t(`mushafSettings.legendV2.labels.${entry.key}`)}
+                    </Text>
                     <Text style={styles.legendDescription}>
-                      {entry.description}
+                      {t(
+                        `mushafSettings.legendV2.descriptions.${entry.descriptionKey}`,
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -1571,6 +1666,7 @@ const RewayahDiffCard: React.FC<RewayahDiffCardProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // The mushaf-settings picker is generated from ALL_REWAYAH_IDS. IDs with
 // bundled DK text data render in the top section and are selectable; the
@@ -1585,6 +1681,7 @@ const UNAVAILABLE_REWAYAH_IDS: readonly RewayahId[] = ALL_REWAYAH_IDS.filter(
   id => !hasTextData(id),
 );
 
+// @ai-start
 const createStyles = (theme: Theme) =>
   StyleSheet.create({
     container: {
@@ -1603,7 +1700,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: verticalScale(4),
       marginLeft: moderateScale(4),
@@ -1821,7 +1918,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       marginBottom: verticalScale(2),
     },
@@ -1834,7 +1931,7 @@ const createStyles = (theme: Theme) =>
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
-      letterSpacing: 1.2,
+      letterSpacing: latinLetterSpacing(1.2),
       textTransform: 'uppercase',
       paddingTop: verticalScale(12),
       paddingBottom: verticalScale(6),
@@ -1884,3 +1981,4 @@ const createStyles = (theme: Theme) =>
       marginTop: verticalScale(1),
     },
   });
+// @ai-end

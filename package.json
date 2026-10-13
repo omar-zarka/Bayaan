@@ -45,7 +45,10 @@
     "build:prod:ios": "eas build --profile production --platform ios"
   },
   "jest": {
-    "preset": "jest-expo"
+    "preset": "jest-expo",
+    "setupFilesAfterEnv": [
+      "<rootDir>/test-utils/setupI18n.ts"
+    ]
   },
   "dependencies": {
     "@babel/runtime": "^7.20.6",
@@ -89,6 +92,7 @@
     "expo-image": "~57.0.5",
     "expo-linear-gradient": "~57.0.2",
     "expo-linking": "~57.0.12",
+    "expo-localization": "~57.0.2",
     "expo-modules-jsi": "~57.1.1",
     "expo-navigation-bar": "~57.0.3",
     "expo-notifications": "~57.0.22",
@@ -105,6 +109,7 @@
     "expo-web-browser": "~57.0.3",
     "fuse.js": "^7.0.0",
     "i18next": "^24.2.3",
+    "intl-pluralrules": "^2.0.1",
     "moti": "^0.29.0",
     "posthog-react-native": "^4.41.1",
     "react": "19.2.3",

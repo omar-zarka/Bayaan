@@ -60,11 +60,18 @@ import {
 } from '@/components/share/useVerseSelection';
 // @ai-end
 import type {RewayahId} from '@/store/mushafSettingsStore';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+import {getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 const surahData = require('@/data/surahData.json') as Array<{
   id: number;
   name: string;
+  name_arabic: string;
 }>;
+// @ai-end
 
 const NO_KEYS: readonly string[] = []; // @ai
 
@@ -87,6 +94,7 @@ interface ShareContentProps {
   onDone: () => void;
 }
 
+// @ai-start
 export const ShareContent: React.FC<ShareContentProps> = ({
   verseKey,
   surahNumber,
@@ -98,6 +106,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
 }) => {
   const {theme, isDarkMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const {t} = useTranslation('sheets');
   const {width: screenWidth} = useWindowDimensions();
   const captureCanvasRef = useCanvasRef();
 
@@ -169,7 +178,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
   const shareRefs = useCallback(
     (ready: ReadyVerseSelection) => {
       const surah = surahData.find(s => s.id === ready.surahNumber);
-      const surahName = surah?.name ?? '';
+      const surahName = surah ? getSurahDisplayName(surah) : '';
       return {
         translation: joinTranslationParts(
           selectionTranslationParts(ready),
@@ -367,7 +376,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       {/* @ai-end */}
 
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Show Basmallah</Text>
+        <Text style={styles.toggleLabel}>{t('share.showBasmallah')}</Text>
         <Switch
           trackColor={{
             false: Color(theme.colors.text).alpha(0.1).toString(),
@@ -382,7 +391,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       </View>
 
       <View style={styles.toggleRow}>
-        <Text style={styles.toggleLabel}>Show Watermark</Text>
+        <Text style={styles.toggleLabel}>{t('share.showWatermark')}</Text>
         <Switch
           trackColor={{
             false: Color(theme.colors.text).alpha(0.1).toString(),
@@ -414,7 +423,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
               color={theme.colors.text}
             />
           )}
-          <Text style={styles.primaryButtonText}>Share as Image</Text>
+          <Text style={styles.primaryButtonText}>{t('share.asImage')}</Text>
         </Pressable>
 
         <Pressable
@@ -436,7 +445,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
             />
           )}
           {/* @ai-end */}
-          <Text style={styles.secondaryButtonText}>Share as Text</Text>
+          <Text style={styles.secondaryButtonText}>{t('share.asText')}</Text>
         </Pressable>
 
         <Pressable
@@ -450,12 +459,13 @@ export const ShareContent: React.FC<ShareContentProps> = ({
             size={moderateScale(16)}
             color={theme.colors.text}
           />
-          <Text style={styles.secondaryButtonText}>Share Link</Text>
+          <Text style={styles.secondaryButtonText}>{t('share.link')}</Text>
         </Pressable>
       </View>
     </ScrollView>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

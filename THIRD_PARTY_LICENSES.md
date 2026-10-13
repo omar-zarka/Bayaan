@@ -40,6 +40,7 @@ Additional licensing:
 
 - **Manrope** — Apache-2.0 (https://github.com/sharanda/manrope)
 - **Scheherazade New** — SIL Open Font License 1.1 (https://software.sil.org/scheherazade/)
+- **IBM Plex Sans Arabic** — SIL Open Font License 1.1, © 2017 IBM Corp. (https://github.com/IBM/plex)
 - **UthmanicHafs** / **Uthmani** — King Fahd Glorious Qur’an Printing Complex (used with permission)
 - **Digital Khatt** (`data/mushaf/digitalkhatt/DigitalKhattFont.otf`) — SIL Open Font License 1.1, © Amine Anane and contributors (https://github.com/DigitalKhatt/DigitalKhatt). The companion Hafs SQLite layout/word databases (`digital-khatt-*.db`) in the same directory are derivative works generated from the Digital Khatt project and are distributed under the same license.
 - **surah_names / surah_names_2** — Custom glyphs bundled with this project

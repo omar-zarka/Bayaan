@@ -22,12 +22,19 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
+import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName} from '@/i18n/format';
+// @ai-end
 
+// @ai-start
 export default function FavoriteRecitersScreen() {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
   const {favoriteReciters, removeFavorite} = useFavoriteReciters();
   const router = useRouter();
+  const {t} = useTranslation(['collection', 'common']);
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
   const [showSearch, setShowSearch] = useState(false);
@@ -52,7 +59,7 @@ export default function FavoriteRecitersScreen() {
   );
 
   useCollectionNativeHeader({
-    title: 'Favorite Reciters',
+    title: t('favoriteRecitersScreen.title'),
     scrollY,
     hasContent: favoriteReciters.length > 0,
     headerRight: favoriteReciters.length > 0 ? renderHeaderRight : undefined,
@@ -60,8 +67,12 @@ export default function FavoriteRecitersScreen() {
 
   const filteredReciters = useMemo(
     () =>
-      favoriteReciters.filter(reciter =>
-        reciter.name.toLowerCase().includes(searchQuery.toLowerCase()),
+      favoriteReciters.filter(
+        reciter =>
+          reciter.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          getReciterDisplayName(reciter)
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase()),
       ),
     [favoriteReciters, searchQuery],
   );
@@ -118,7 +129,7 @@ export default function FavoriteRecitersScreen() {
           color: theme.colors.text,
           textAlign: 'center',
           marginBottom: moderateScale(8),
-          letterSpacing: -0.3,
+          letterSpacing: latinLetterSpacing(-0.3),
         },
         subtitle: {
           fontSize: moderateScale(12),
@@ -244,11 +255,11 @@ export default function FavoriteRecitersScreen() {
     (reciter: Reciter) => {
       SheetManager.show('collection-options', {
         payload: {
-          title: reciter.name,
+          title: getReciterDisplayName(reciter),
           subtitle: getDisplayLabelFromName(reciter.rewayat[0]?.name),
           options: [
             {
-              label: 'Remove from Favorites',
+              label: t('favoriteRecitersScreen.removeFromFavorites'),
               icon: 'user-minus',
               destructive: true,
               onPress: () => removeFavorite(reciter.id),
@@ -257,7 +268,7 @@ export default function FavoriteRecitersScreen() {
         },
       });
     },
-    [removeFavorite],
+    [removeFavorite, t],
   );
 
   const renderItem = useCallback(
@@ -285,9 +296,12 @@ export default function FavoriteRecitersScreen() {
                 name="arrow-left"
                 size={moderateScale(22)}
                 color={theme.colors.text}
+                style={flipX}
               />
             </Pressable>
-            <Text style={styles.emptyHeaderTitle}>Favorite Reciters</Text>
+            <Text style={styles.emptyHeaderTitle}>
+              {t('favoriteRecitersScreen.title')}
+            </Text>
             <View style={styles.emptyHeaderBack} />
           </View>
         )}
@@ -299,9 +313,11 @@ export default function FavoriteRecitersScreen() {
               filled={true}
             />
           </View>
-          <Text style={styles.emptyTitle}>No favorite reciters yet</Text>
+          <Text style={styles.emptyTitle}>
+            {t('favoriteRecitersScreen.emptyTitle')}
+          </Text>
           <Text style={styles.emptySubtitle}>
-            Add reciters to see them here
+            {t('favoriteRecitersScreen.emptySubtitle')}
           </Text>
           <Pressable
             style={styles.emptyActionBar}
@@ -311,7 +327,9 @@ export default function FavoriteRecitersScreen() {
               size={moderateScale(16)}
               color={theme.colors.textSecondary}
             />
-            <Text style={styles.emptyActionText}>Add Reciters</Text>
+            <Text style={styles.emptyActionText}>
+              {t('favoriteRecitersScreen.addReciters')}
+            </Text>
           </Pressable>
         </View>
       </View>
@@ -332,10 +350,11 @@ export default function FavoriteRecitersScreen() {
                 />
               </View>
             </View>
-            <Text style={styles.title}>Favorite Reciters</Text>
+            <Text style={styles.title}>
+              {t('favoriteRecitersScreen.title')}
+            </Text>
             <Text style={styles.subtitle}>
-              {favoriteReciters.length}{' '}
-              {favoriteReciters.length === 1 ? 'reciter' : 'reciters'}
+              {t('common:counts.reciters', {count: favoriteReciters.length})}
             </Text>
           </View>
         </View>
@@ -346,13 +365,15 @@ export default function FavoriteRecitersScreen() {
             size={moderateScale(16)}
             color={theme.colors.textSecondary}
           />
-          <Text style={styles.addBarText}>Add Reciters</Text>
+          <Text style={styles.addBarText}>
+            {t('favoriteRecitersScreen.addReciters')}
+          </Text>
         </Pressable>
 
         {showSearch && (
           <View style={styles.searchBarContainer}>
             <SearchInput
-              placeholder="Search favorite reciters"
+              placeholder={t('favoriteRecitersScreen.searchPlaceholder')}
               value={searchQuery}
               onChangeText={setSearchQuery}
               showCancelButton={false}
@@ -391,6 +412,7 @@ export default function FavoriteRecitersScreen() {
               name="arrow-left"
               size={moderateScale(24)}
               color={theme.colors.text}
+              style={flipX}
             />
           </Pressable>
         </RNAnimated.View>
@@ -438,8 +460,12 @@ export default function FavoriteRecitersScreen() {
         contentInsetAdjustmentBehavior="automatic"
       />
       {!USE_GLASS && (
-        <CollectionStickyHeader title="Favorite Reciters" scrollY={scrollY} />
+        <CollectionStickyHeader
+          title={t('favoriteRecitersScreen.title')}
+          scrollY={scrollY}
+        />
       )}
     </View>
   );
 }
+// @ai-end

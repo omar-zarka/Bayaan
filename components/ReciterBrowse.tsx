@@ -18,15 +18,21 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTracksForReciter} from '@/utils/track';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+import {flipX} from '@/utils/rtl';
+// @ai-end
 
 interface ReciterBrowseProps {
   initialView?: string;
   surahId?: string;
 }
 
+// @ai-start
 const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
   const router = useRouter();
   const {theme} = useTheme();
+  const {t} = useTranslation(['home', 'common']);
   const [activeView, setActiveView] = useState(initialView);
   const [searchQuery, setSearchQuery] = useState('');
   const {isFavoriteReciter} = useFavoriteReciters();
@@ -157,16 +163,17 @@ const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
             name="arrow-left"
             size={moderateScale(24)}
             color={theme.colors.text}
+            style={flipX}
           />
         </Pressable>
         <Text
           style={[createStyles(theme).headerTitle, {color: theme.colors.text}]}>
-          Browse Reciters
+          {t('reciterBrowse.title')}
         </Text>
       </View>
       <View style={createStyles(theme).searchBarContainer}>
         <SearchBar
-          placeholder="Search reciters..."
+          placeholder={t('browse.searchReciters')}
           onChangeText={handleSearch}
           value={searchQuery}
           keyboardAppearance={theme.isDarkMode ? 'dark' : 'light'}
@@ -188,7 +195,7 @@ const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
               activeView === 'all' &&
                 createStyles(theme).activeToggleButtonText,
             ]}>
-            All Reciters
+            {t('browseAllHero.labels.allReciters')}
           </Text>
         </Pressable>
         <Pressable
@@ -204,7 +211,7 @@ const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
               activeView === 'favorites' &&
                 createStyles(theme).activeToggleButtonText,
             ]}>
-            Favorites
+            {t('common:terms.favorites')}
           </Text>
         </Pressable>
       </View>
@@ -222,13 +229,14 @@ const ReciterBrowse = ({surahId, initialView = 'all'}: ReciterBrowseProps) => {
               createStyles(theme).emptyText,
               {color: theme.colors.textSecondary},
             ]}>
-            No reciters found
+            {t('reciterBrowse.noneFound')}
           </Text>
         }
       />
     </View>
   );
 };
+// @ai-end
 
 export default ReciterBrowse;
 

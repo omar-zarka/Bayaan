@@ -5,6 +5,10 @@ import {useTheme} from '@/hooks/useTheme';
 import {Ionicons} from '@expo/vector-icons';
 import Color from 'color';
 import {ChangelogEntry} from '@/types/changelog';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+import {currentLanguage} from '@/i18n/language';
+// @ai-end
 
 interface ChangelogContentProps {
   changelog: ChangelogEntry;
@@ -12,17 +16,19 @@ interface ChangelogContentProps {
   showFullDetails?: boolean;
 }
 
+// @ai-start
 export function ChangelogContent({
   changelog,
   showVersion = true,
   showFullDetails = false,
 }: ChangelogContentProps) {
   const {theme} = useTheme();
+  const {t} = useTranslation('settings');
 
   const sectionConfig = [
-    {key: 'features', title: 'New Features', icon: '✨'},
-    {key: 'improvements', title: 'Improvements', icon: '⚡'},
-    {key: 'fixes', title: 'Bug Fixes', icon: '🔧'},
+    {key: 'features', title: t('changelog.features'), icon: '✨'},
+    {key: 'improvements', title: t('changelog.improvements'), icon: '⚡'},
+    {key: 'fixes', title: t('changelog.fixes'), icon: '🔧'},
   ];
 
   return (
@@ -37,7 +43,10 @@ export function ChangelogContent({
             style={styles.logo}
           />
           <Text style={[styles.version, {color: theme.colors.textSecondary}]}>
-            Version {changelog.version} · {formatDate(changelog.releaseDate)}
+            {t('changelog.versionDate', {
+              version: changelog.version,
+              date: formatDate(changelog.releaseDate),
+            })}
           </Text>
         </View>
       )}
@@ -116,7 +125,9 @@ export function ChangelogContent({
     </ScrollView>
   );
 }
+// @ai-end
 
+// @ai-start
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   const options: Intl.DateTimeFormatOptions = {
@@ -124,8 +135,12 @@ function formatDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
   };
-  return date.toLocaleDateString('en-US', options);
+  return date.toLocaleDateString(
+    currentLanguage === 'ar' ? 'ar' : 'en-US',
+    options,
+  );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   scrollView: {
