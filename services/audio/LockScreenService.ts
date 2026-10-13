@@ -18,6 +18,8 @@ import {expoAudioService} from './ExpoAudioService';
 import {mushafAudioService} from './MushafAudioService';
 import {audioCoordinator} from './AudioCoordinator';
 import type {AdhkarSession} from '@/services/adhkar/playback/types';
+import branding from '@/config/branding';
+import i18n from '@/i18n';
 
 // @ai-start
 function surahNameOf(surah: number): string | null {
@@ -53,6 +55,14 @@ export function mushafLockScreenTitle(
 }
 // @ai-end
 
+/** Lock screen title for adhkar playback: "Morning Adhkar · 4 of 23". */
+export function adhkarLockScreenTitle(
+  session: AdhkarSession,
+  position: (current: number, total: number) => string,
+): string {
+  return `${session.listTitle} · ${position(session.index + 1, session.items.length)}`;
+}
+
 class LockScreenService {
   private static instance: LockScreenService;
   private storeUnsubscribe: (() => void) | null = null;
@@ -62,6 +72,8 @@ class LockScreenService {
   private lastMushafTitle: string | null = null; // @ai
   private carMode = false;
   private carAyahLabel: string | null = null;
+  private adhkarPlayer: AudioPlayer | null = null;
+  private adhkarActive = false;
 
   private constructor() {}
 
@@ -100,6 +112,11 @@ class LockScreenService {
     // Clear lock screen for both players
     this.clearPlayer(expoAudioService.getPlayer());
     this.clearPlayer(mushafAudioService.getPlayer());
+    if (this.adhkarPlayer) {
+      this.clearPlayer(this.adhkarPlayer);
+      this.adhkarPlayer = null;
+      this.adhkarActive = false;
+    }
 
     this.lastTrackId = null;
     this.isMushafActive = false;
@@ -124,7 +141,7 @@ class LockScreenService {
   setCarMode(enabled: boolean): void {
     if (this.carMode === enabled) return;
     this.carMode = enabled;
-    if (this.isMushafActive) return;
+    if (this.isMushafActive || this.adhkarPlayer) return;
     const {queue} = usePlayerStore.getState();
     const track = queue.tracks[queue.currentIndex];
     if (track) this.activateMainPlayer(track);
@@ -141,7 +158,7 @@ class LockScreenService {
     if (Platform.OS !== 'ios') return;
     if (this.carAyahLabel === label) return;
     this.carAyahLabel = label;
-    if (this.isMushafActive) return;
+    if (this.isMushafActive || this.adhkarPlayer) return;
     const player = expoAudioService.getPlayer();
     const {queue} = usePlayerStore.getState();
     const track = queue.tracks[queue.currentIndex];
@@ -218,6 +235,7 @@ class LockScreenService {
 
     // Deactivate main player first
     this.clearPlayer(expoAudioService.getPlayer());
+    this.dropAdhkarEntry();
 
     const metadata: AudioMetadata = {
       title,
@@ -238,9 +256,29 @@ class LockScreenService {
     }
   }
 
+  /**
+   * Adhkar keeps its lock screen entry while paused, so lock screen play can
+   * resume it. Whenever the Quran or mushaf takes the lock screen, that entry
+   * goes, because the engine never hears about a start on an already paused
+   * session.
+   */
+  private dropAdhkarEntry(): void {
+    if (!this.adhkarPlayer) return;
+    this.clearPlayer(this.adhkarPlayer);
+    this.adhkarPlayer = null;
+    this.adhkarActive = false;
+    this.lastTrackId = null;
+  }
+
   private subscribeToStore(): void {
     this.storeUnsubscribe = usePlayerStore.subscribe(state => {
       if (this.isMushafActive) return;
+      // A held adhkar entry blocks main track changes only until the main
+      // player actually plays; then the entry is dropped and main takes over.
+      if (this.adhkarPlayer) {
+        if (state.playback?.state !== 'playing') return;
+        this.dropAdhkarEntry();
+      }
 
       const {queue} = state;
       const currentTrack = queue.tracks[queue.currentIndex];
@@ -261,6 +299,7 @@ class LockScreenService {
       if (playbackState === 'playing' || playbackState === 'loading') {
         if (!this.isMushafActive) {
           this.isMushafActive = true;
+          this.dropAdhkarEntry();
           if (__DEV__)
             console.log('[LockScreenService] Mushaf override activated');
         }
@@ -302,11 +341,48 @@ class LockScreenService {
     });
   }
 
-  /** Filled in with the adhkar lock screen entry. */
-  activateAdhkar(_player: AudioPlayer, _session: AdhkarSession): void {}
+  /**
+   * Show the adhkar session on the lock screen. Called once per track; the
+   * same player already active only gets new metadata.
+   */
+  activateAdhkar(player: AudioPlayer, session: AdhkarSession): void {
+    const metadata: AudioMetadata = {
+      title: adhkarLockScreenTitle(session, (current, total) =>
+        i18n.t('home:adhkar.position', {current, total}),
+      ),
+      artist: branding.appName,
+    };
 
-  /** Filled in with the adhkar lock screen entry. */
-  clearAdhkar(_player: AudioPlayer): void {}
+    try {
+      if (this.adhkarPlayer === player && this.adhkarActive) {
+        player.updateLockScreenMetadata(metadata);
+        return;
+      }
+      this.adhkarPlayer = player;
+      this.clearPlayer(expoAudioService.getPlayer());
+      this.clearPlayer(mushafAudioService.getPlayer());
+      player.setActiveForLockScreen(true, metadata, {
+        showSeekForward: false,
+        showSeekBackward: false,
+      });
+      this.adhkarActive = true;
+    } catch (error) {
+      if (__DEV__)
+        console.warn(
+          '[LockScreenService] Failed to activate adhkar player:',
+          error,
+        );
+    }
+  }
+
+  /** Remove the adhkar entry and restore the main player's. */
+  clearAdhkar(player: AudioPlayer): void {
+    this.clearPlayer(player);
+    this.adhkarPlayer = null;
+    this.adhkarActive = false;
+    this.lastTrackId = null;
+    this.syncCurrentState();
+  }
 }
 
 export const lockScreenService = LockScreenService.getInstance();

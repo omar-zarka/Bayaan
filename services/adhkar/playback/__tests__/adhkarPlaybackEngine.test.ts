@@ -113,6 +113,8 @@ it('advances on finish with the same player, no second player', () => {
   player.emit({playing: false, didJustFinish: true});
   expect(useAdhkarSessionStore.getState().session?.index).toBe(1);
   expect(player.replace).toHaveBeenCalledTimes(2);
+  player.emit({playing: true});
+  expect(lockScreen.activate).toHaveBeenCalledTimes(2);
 });
 
 it('ignores a finish carried over from the previous clip', () => {
