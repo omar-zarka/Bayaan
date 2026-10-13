@@ -91,6 +91,11 @@ function getCredits(
           description: t('credits.items.wikipediaNames'),
           link: 'https://en.wikipedia.org/wiki/Names_of_God_in_Islam',
         },
+        {
+          title: 'fitrahive/dua-dhikr',
+          description: t('credits.items.fitrahive'),
+          link: 'https://github.com/fitrahive/dua-dhikr',
+        },
       ],
     },
     {
