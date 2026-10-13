@@ -154,8 +154,14 @@ describe('99 Names Quran references', () => {
   it('leaves rows without references or with odd ones unchanged', () => {
     expect(tidyQuranReferences('Plain guidance.')).toBe('Plain guidance.');
     expect(tidyQuranReferences(null)).toBeNull();
-    const odd = 'Text | Quran: (3:6)(4:15 8)';
+    const odd = 'Text | Quran: (3:6)(4:15 9)';
     expect(tidyQuranReferences(odd)).toBe(odd);
+  });
+
+  it('corrects the known name-8 digit typos', () => {
+    expect(
+      tidyQuranReferences('Al-Aziz | Quran: (3:6)(4:15 8)(9:40)(4 8:7)'),
+    ).toBe('Al-Aziz\nQuran: 3:6, 4:158, 9:40, 48:7');
   });
 
   it('is idempotent', () => {
@@ -163,9 +169,9 @@ describe('99 Names Quran references', () => {
     expect(tidyQuranReferences(once)).toBe(once);
   });
 
-  it('leaves no raw " | Quran:" in generated data except the malformed name-8', () => {
+  it('leaves no raw " | Quran:" in generated data', () => {
     const raw = names.filter(r => (r.instruction ?? '').includes('| Quran:'));
-    expect(raw.map(r => r.id)).toEqual(['name-8']);
+    expect(raw.map(r => r.id)).toEqual([]);
   });
 });
 

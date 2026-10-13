@@ -258,9 +258,20 @@ const REFERENCE = /\(\s*(\d+\s*:\s*\d+(?:\s*-\s*\d+)?)\s*\)/g;
  * Rows without the " | Quran:" part, or with a reference that is not
  * s:a or s:a-b, are returned unchanged.
  */
+// Digit typos in the source references (name-8, Al-Aziz: 4:158 and 48:7
+// both end "Exalted in Might, Wise").
+const REFERENCE_TYPOS: ReadonlyArray<readonly [string, string]> = [
+  ['(4:15 8)', '(4:158)'],
+  ['(4 8:7)', '(48:7)'],
+];
+
 export function tidyQuranReferences(instruction: string | null): string | null {
   if (instruction === null) return null;
-  const match = QURAN_REFERENCES.exec(instruction);
+  const fixed = REFERENCE_TYPOS.reduce(
+    (text, [typo, ref]) => text.replace(typo, ref),
+    instruction,
+  );
+  const match = QURAN_REFERENCES.exec(fixed);
   if (!match) return instruction;
   const text = match[1].replace(/ {2,}/g, ' ').trim();
   const rest = match[2].trim();
