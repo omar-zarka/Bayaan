@@ -1,3 +1,4 @@
+import {AppState} from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   isSavedSessionStale,
@@ -5,6 +6,8 @@ import {
   saveSession,
   loadSavedSession,
   restoreSavedSession,
+  startSessionSaving,
+  dropStaleSession,
 } from '@/services/adhkar/playback/sessionPersistence';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import type {
@@ -111,4 +114,98 @@ it('drops a stale saved session', async () => {
   await saveSession(live);
   await restoreSavedSession(async () => items);
   expect(useAdhkarSessionStore.getState().session).toBeNull();
+});
+
+describe('startSessionSaving', () => {
+  let stopSaving: () => void;
+  const flush = (): Promise<void> =>
+    new Promise(resolve => setImmediate(resolve));
+
+  beforeEach(() => {
+    stopSaving = startSessionSaving();
+  });
+  afterEach(() => stopSaving());
+
+  it('writes a new position from positionSaved', async () => {
+    useAdhkarSessionStore.setState({session: live});
+    useAdhkarSessionStore
+      .getState()
+      .dispatch({type: 'positionSaved', positionSec: 9});
+    await flush();
+    expect(await loadSavedSession()).toMatchObject({positionSec: 9});
+  });
+
+  it('writes on a status or track change', async () => {
+    useAdhkarSessionStore.setState({session: live});
+    useAdhkarSessionStore.setState({session: {...live, status: 'paused'}});
+    await flush();
+    expect(await loadSavedSession()).toMatchObject({dhikrId: 'b'});
+    await AsyncStorage.clear();
+    useAdhkarSessionStore.setState({
+      session: {...live, status: 'paused', index: 0, trackToken: 8},
+    });
+    await flush();
+    expect(await loadSavedSession()).toMatchObject({dhikrId: 'a'});
+  });
+
+  it('does not write when the session is unchanged', async () => {
+    useAdhkarSessionStore.setState({session: live});
+    await flush();
+    await AsyncStorage.clear();
+    useAdhkarSessionStore
+      .getState()
+      .dispatch({type: 'positionSaved', positionSec: 4.5});
+    useAdhkarSessionStore.setState({session: {...live}});
+    await flush();
+    expect(await loadSavedSession()).toBeNull();
+  });
+
+  it('clears the saved copy on stop', async () => {
+    await saveSession(live);
+    useAdhkarSessionStore.setState({session: live});
+    useAdhkarSessionStore.getState().dispatch({type: 'stop'});
+    await flush();
+    expect(await loadSavedSession()).toBeNull();
+  });
+
+  it('writes the current session when the app goes to the background', async () => {
+    stopSaving();
+    let handler: (
+      state: 'active' | 'background' | 'inactive',
+    ) => void = () => {};
+    const remove = jest.fn();
+    jest.spyOn(AppState, 'addEventListener').mockImplementation((_type, h) => {
+      handler = h;
+      return {remove};
+    });
+    stopSaving = startSessionSaving();
+    useAdhkarSessionStore.setState({session: live});
+    await flush();
+    await AsyncStorage.clear();
+    handler('background');
+    await flush();
+    expect(await loadSavedSession()).toEqual(saved());
+    stopSaving();
+    expect(remove).toHaveBeenCalled();
+  });
+});
+
+describe('dropStaleSession', () => {
+  const paused: AdhkarSession = {...live, status: 'paused'};
+
+  it('stops a paused stale session', () => {
+    useAdhkarSessionStore.setState({session: paused});
+    dropStaleSession(at(16));
+    expect(useAdhkarSessionStore.getState().session).toBeNull();
+  });
+  it('leaves a playing session alone', () => {
+    useAdhkarSessionStore.setState({session: live});
+    dropStaleSession(at(16));
+    expect(useAdhkarSessionStore.getState().session).toBe(live);
+  });
+  it('leaves a fresh paused session alone', () => {
+    useAdhkarSessionStore.setState({session: paused});
+    dropStaleSession(at(11));
+    expect(useAdhkarSessionStore.getState().session).toBe(paused);
+  });
 });

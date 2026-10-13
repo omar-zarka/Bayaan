@@ -147,7 +147,12 @@ export function startSessionSaving(): () => void {
     }
   });
   const appState = AppState.addEventListener('change', next => {
-    if (next === 'active') dropStaleSession(Date.now());
+    if (next === 'active') {
+      dropStaleSession(Date.now());
+      return;
+    }
+    // Saving is best effort; a failed write must not crash the app.
+    saveSession(useAdhkarSessionStore.getState().session).catch(() => {});
   });
   return () => {
     unsubscribe();
