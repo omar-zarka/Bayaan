@@ -58,14 +58,15 @@ private const val TRANSLATION_CHAR_DP = 6f
 /**
  * Medium and large Adhkar: card through the session (spec 2026-10-12). Mirrors AdhkarSessionView.swift.
  * Buttons and the ring run actions; the caller's root click opens the adhkar screen at the current dhikr.
- * The 110 dp medium bucket (dense launchers, Bayaan Now) is shorter than iOS medium, so it tightens
- * padding and gaps and drops the caption to keep the controls on screen.
+ * Medium has no progress bar and puts the "read the rest" hint in the controls row so the dhikr gets two lines.
+ * The 110 dp medium (dense launchers, Bayaan Now) is shorter than iOS medium, so it tightens padding and gaps
+ * and shows one line.
  */
 @Composable
 fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: AdhkarSession, large: Boolean) {
   val size = LocalSize.current
   val compact = !large && size.height < WidgetSizes.MEDIUM_TALL.height
-  val pad = if (large) 16 else if (compact) 10 else 14
+  val pad = if (large) 16 else if (compact) 10 else 12
   val gap = if (large) 10 else if (compact) 4 else 6
   val item: SessionDhikr? = data.items.getOrNull(session.index)
   Column(GlanceModifier.fillMaxSize().padding(pad.dp)) {
@@ -80,43 +81,53 @@ fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: Adhk
       }
       Logo(14)
     }
-    LinearProgressIndicator(
-      progress = if (session.completed) 1f else session.index.toFloat() / maxOf(1, data.items.size),
-      modifier = GlanceModifier.fillMaxWidth().height(PROGRESS_DP.dp),
-      color = WidgetColors.WHITE, backgroundColor = ColorProvider(Color(0x38FFFFFF)),
-    )
+    if (large) {
+      LinearProgressIndicator(
+        progress = if (session.completed) 1f else session.index.toFloat() / maxOf(1, data.items.size),
+        modifier = GlanceModifier.fillMaxWidth().height(PROGRESS_DP.dp),
+        color = WidgetColors.WHITE, backgroundColor = ColorProvider(Color(0x38FFFFFF)),
+      )
+    }
     Spacer(GlanceModifier.height(gap.dp))
     if (session.completed || item == null) {
       Completed(data, large)
       return@Column
     }
     val textWidth = size.width.value - pad * 2
-    val cut = (if (large) item.largeCut else item.mediumCut) && !compact
+    val cut = large && item.largeCut
+    val hint = !large && item.mediumCut
     val translation = if (large) item.translation else null
     val translationLines = translation?.let { minOf(3, ceil(it.length * TRANSLATION_CHAR_DP / textWidth).toInt()) } ?: 0
-    val fixed = HEADER_DP + (if (compact) 4 else 6) + PROGRESS_DP + gap + gap + CONTROLS_DP +
+    val fixed = HEADER_DP + (if (compact) 4 else 6) + (if (large) PROGRESS_DP else 0f) + gap + gap + CONTROLS_DP +
       (if (cut) gap + CAPTION_DP else 0f) + (if (translationLines > 0) gap + translationLines * TRANSLATION_LINE_DP else 0f)
     val textHeight = (size.height.value - pad * 2 - fixed).coerceAtLeast(22f)
     Spacer(GlanceModifier.defaultWeight())
     ArabicText(context, if (large) item.largeText else item.mediumText, ArabicBitmap.DHIKR_FONT, textWidth, textHeight,
-      if (large) 22f else 18f, 11f, if (large) 9 else if (compact) 1 else 3, center = true)
+      if (large) 22f else 18f, 11f, if (large) 9 else if (compact) 1 else 2, center = true, wholeLines = true)
     if (translation != null) {
       Text(translation, maxLines = 3, modifier = GlanceModifier.padding(top = gap.dp), style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
     }
     if (cut) {
-      Text("Read the rest in ${AppBrand.name(context)} →", maxLines = 1, modifier = GlanceModifier.padding(top = gap.dp),
+      Text(readTheRest(context), maxLines = 1, modifier = GlanceModifier.padding(top = gap.dp),
         style = TextStyle(color = CAPTION, fontSize = 11.sp, fontWeight = FontWeight.Medium))
     }
     Spacer(GlanceModifier.defaultWeight())
     Row(GlanceModifier.fillMaxWidth().padding(top = gap.dp), verticalAlignment = Alignment.CenterVertically) {
       if (session.index > 0) RoundButton(R.drawable.widget_prev, "Previous", actionRunCallback<AdhkarPrevAction>())
-      Spacer(GlanceModifier.defaultWeight())
+      if (hint) {
+        Text(readTheRest(context), maxLines = 1, modifier = GlanceModifier.defaultWeight().padding(horizontal = 8.dp),
+          style = TextStyle(color = CAPTION, fontSize = 10.sp, fontWeight = FontWeight.Medium))
+      } else {
+        Spacer(GlanceModifier.defaultWeight())
+      }
       CounterRing(context, session.remaining, item.repeatCount, CONTROLS_DP.toInt())
       Spacer(GlanceModifier.width(12.dp))
       RoundButton(R.drawable.widget_next, "Next", actionRunCallback<AdhkarNextAction>())
     }
   }
 }
+
+private fun readTheRest(context: Context): String = "Read the rest in ${AppBrand.name(context)} →"
 
 /** Small repetition ring: fills as you count, a check for a dhikr said once. Tapping counts. */
 @Composable

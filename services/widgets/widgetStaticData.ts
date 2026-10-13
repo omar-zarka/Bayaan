@@ -200,7 +200,7 @@ export interface AdhkarSeedRow {
 }
 
 export const MAX_FEATURED_DHIKR_CHARS = 180;
-export const SESSION_MEDIUM_CHARS = 110;
+export const SESSION_MEDIUM_CHARS = 120;
 export const SESSION_LARGE_CHARS = 420;
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

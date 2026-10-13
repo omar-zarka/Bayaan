@@ -5,6 +5,7 @@ import WidgetKit
 
 /// Medium and large Adhkar: card through the session (spec 2026-10-12).
 /// Buttons run intents; any other tap opens the adhkar screen at the current dhikr.
+/// Medium has no progress bar and puts the "read the rest" hint in the controls row so the dhikr gets two lines.
 struct AdhkarSessionView: View {
   @Environment(\.widgetFamily) private var family
   let data: AdhkarPeriodData
@@ -18,7 +19,7 @@ struct AdhkarSessionView: View {
       header
       if session.completed { completed } else if let item { card(item) }
     }
-    .padding(large ? 16 : 14)
+    .padding(large ? 16 : 12)
     .widgetURL(AppLinks.url(AdhkarSessionLogic.link(superId: data.superId, session: session, ids: data.items.map(\.id))))
   }
 
@@ -32,32 +33,48 @@ struct AdhkarSessionView: View {
         }
         BayaanLogo(size: 14)
       }
-      ProgressView(value: Double(session.completed ? data.items.count : session.index), total: Double(max(1, data.items.count)))
-        .tint(.white)
+      if large {
+        ProgressView(value: Double(session.completed ? data.items.count : session.index), total: Double(max(1, data.items.count)))
+          .tint(.white)
+      }
     }
   }
 
+  @ViewBuilder
   private func card(_ item: SessionDhikr) -> some View {
-    let text = large ? item.largeText : item.mediumText
-    let cut = large ? item.largeCut : item.mediumCut
-    return VStack(alignment: .leading, spacing: 6) {
+    if large { largeCard(item) } else { mediumCard(item) }
+  }
+
+  private func mediumCard(_ item: SessionDhikr) -> some View {
+    VStack(spacing: 6) {
+      DhikrText(text: item.mediumText, size: 18, lines: 2).frame(maxWidth: .infinity, maxHeight: .infinity)
+      controls(item, hint: item.mediumCut)
+    }
+  }
+
+  private func largeCard(_ item: SessionDhikr) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
       Spacer(minLength: 0)
-      DhikrText(text: text, size: large ? 22 : 18, lines: large ? 9 : 3).frame(maxWidth: .infinity)
-      if large, let t = item.translation {
+      DhikrText(text: item.largeText, size: 22, lines: 9).frame(maxWidth: .infinity)
+      if let t = item.translation {
         Text(t).font(.caption).opacity(0.75).lineLimit(3)
       }
-      if cut {
+      if item.largeCut {
         Text("Read the rest in \(AppBrand.name) \u{2192}").font(.caption2.weight(.semibold)).opacity(0.7)
       }
       Spacer(minLength: 0)
-      controls(item)
+      controls(item, hint: false)
     }
   }
 
-  private func controls(_ item: SessionDhikr) -> some View {
+  private func controls(_ item: SessionDhikr, hint: Bool) -> some View {
     HStack(spacing: 12) {
       if session.index > 0 {
         RoundIntentButton(intent: AdhkarPrevIntent(), systemName: "chevron.left", label: "Previous")
+      }
+      if hint {
+        Text("Read the rest in \(AppBrand.name) \u{2192}").font(.caption2.weight(.semibold)).opacity(0.7)
+          .lineLimit(1).minimumScaleFactor(0.8)
       }
       Spacer(minLength: 0)
       Button(intent: AdhkarCountIntent()) {
