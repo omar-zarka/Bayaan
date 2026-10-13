@@ -61,7 +61,10 @@ interface CategoryGroup {
 }
 
 const SuperCategoryListScreen: React.FC = () => {
-  const {superId} = useLocalSearchParams<{superId: string}>();
+  const {superId, dhikr} = useLocalSearchParams<{
+    superId: string;
+    dhikr?: string;
+  }>();
   const router = useRouter();
   const navigation = useNavigation();
   const {theme} = useTheme();
@@ -163,6 +166,41 @@ const SuperCategoryListScreen: React.FC = () => {
       categoryShortTitle: shortTitle,
     }));
   }, [categoryGroups, isSingleCategory]);
+
+  const listRef = useRef<FlatList<DhikrItem>>(null);
+
+  // A widget link (adhkar/<superId>?dhikr=<id>) opens the list at that dhikr.
+  const scrolledTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (!dhikr || scrolledTo.current === dhikr) return;
+    const index = flatAdhkarList.findIndex(item => item.dhikr.id === dhikr);
+    if (index <= 0) return;
+    scrolledTo.current = dhikr;
+    requestAnimationFrame(() => {
+      listRef.current?.scrollToIndex({
+        index,
+        animated: false,
+        viewOffset: USE_GLASS ? headerHeight : 0,
+      });
+    });
+  }, [dhikr, flatAdhkarList, headerHeight]);
+
+  const onScrollToIndexFailed = useCallback(
+    (info: {index: number; averageItemLength: number}) => {
+      listRef.current?.scrollToOffset({
+        offset: info.averageItemLength * info.index,
+        animated: false,
+      });
+      setTimeout(() => {
+        listRef.current?.scrollToIndex({
+          index: info.index,
+          animated: false,
+          viewOffset: USE_GLASS ? headerHeight : 0,
+        });
+      }, 100);
+    },
+    [headerHeight],
+  );
 
   // Build full adhkar list for Play All (works for both single and multi-category)
   const allAdhkarForPlayAll: Dhikr[] = useMemo(() => {
@@ -392,6 +430,8 @@ const SuperCategoryListScreen: React.FC = () => {
     <View style={styles.container}>
       {isSingleCategory ? (
         <FlatList
+          ref={listRef}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           data={flatAdhkarList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
