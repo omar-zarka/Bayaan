@@ -42,7 +42,7 @@ Non-goals:
 |---|---|---|
 | Session reducer | `services/adhkar/playback/sessionReducer.ts` | Pure. `(state, event) -> state`. Every rule in 3.3 lives here. |
 | Session store | `store/adhkarSessionStore.ts` | Zustand store holding the reducer state. Components read from it. Only the engine dispatches player events. |
-| Engine | `services/adhkar/playback/AdhkarPlaybackService.ts` | Owns the single expo-audio player, follows the store, reports player events back. Singleton, following the `MushafAudioService` pattern. |
+| Engine | `services/adhkar/playback/adhkarPlaybackEngine.ts` | Owns the single expo-audio player, follows the store, reports player events back. Module functions with closure state (no class), started once at audio boot. |
 | Progress hook | `hooks/useAdhkarProgress.ts` | Current time, duration and seek for the playing clip. Polls the engine at 250 ms only while a component is mounted and the session is playing. |
 | Navigation helper | `services/adhkar/playback/openPlayingDhikr.ts` | Opens the reader at the playing dhikr (section 5). |
 
@@ -71,6 +71,7 @@ interface AdhkarSession {
 interface SessionItem {
   dhikrId: string;
   audioFile: string | null;
+  playable: boolean;       // false when the row has no bundled audio
   preview: string;         // first 60 characters of the clean Arabic
 }
 
@@ -105,13 +106,12 @@ The reducer test suite has one or more cases per rule.
 
 ### 3.5 Saved sessions
 
-- **What is saved.** A session is saved with zustand `persist` on MMKV, like `store/adhkarSettingsStore.ts`. Only these fields are saved: `listId`, `listTitle`, `mode`, `loop`, the current `dhikrId`, `positionSec` and `lastActiveAt`. `items` is not saved.
+- **What is saved.** A session is saved to AsyncStorage (the storage `store/adhkarSettingsStore.ts` uses) under the key `adhkar-session-v1`. Only these fields are saved: `listId`, `listTitle`, `mode`, `loop`, the current `dhikrId`, `positionSec` and `lastActiveAt`. `items` is not saved.
 - **When it is saved.** On pause, on track change and when the app goes to the background. It is not saved on every progress tick.
 - **Restore.** At launch the store rebuilds `items` from `adhkarService` for `listId` and finds the index of the saved `dhikrId`. The session comes back as `paused`. If the list or the dhikr no longer exists, the saved session is dropped.
-- **Stale rules.** A saved session that is not playing is dropped when:
-  - it is a Morning session and the evening window starts;
-  - it is an Evening session and the next morning window starts;
-  - it is any other list and 24 hours have passed since `lastActiveAt`.
+- **Stale rules.** A saved session that is not playing is dropped:
+  - for Morning and Evening, at the first window boundary (04:00 or 15:00) after `lastActiveAt`. A session lives until the period it was played in ends: Morning played at 10:00 is gone at 15:00, and Evening played at 20:00 is gone at 04:00. A list played outside its usual period follows the same rule;
+  - for any other list, 24 hours after `lastActiveAt`.
 
   The stale check runs at launch, when the app returns to the foreground, and before any surface renders the tile.
 - **Time windows.** The app has no prayer times, so the windows use the clock, like the CarPlay picks in `services/car/snapshot/situational.ts`. Morning runs 04:00 to 14:59 and Evening runs 15:00 to 03:59. The windows live in one module, `services/adhkar/timeWindows.ts`, so the suggestions row (section 11) and a later move to real prayer times change one file.
