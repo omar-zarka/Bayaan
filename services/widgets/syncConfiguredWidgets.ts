@@ -152,11 +152,17 @@ export async function consumeTasbeehIncrements(
 }
 
 // Sends analytics events raised by widget actions (adhkar session completed).
+// Taking the events clears the native queue, so they stay queued until
+// analytics can capture them; startConfiguredWidgetSync retries on readiness.
 export function consumeWidgetEvents(): void {
+  if (!analyticsService.isReadyToCapture()) return;
   try {
     for (const event of takePendingWidgetEvents()) {
       if (event.name === 'adhkar_session_completed') {
-        analyticsService.trackAdhkarSessionCompleted(event.props);
+        analyticsService.trackAdhkarSessionCompleted(
+          event.props,
+          new Date(event.completedAtMs),
+        );
       }
     }
   } catch (error) {
@@ -183,6 +189,7 @@ export function startConfiguredWidgetSync(): () => void {
   if (!isWidgetsAvailable()) return () => undefined;
   refresh();
   const unsubs = [
+    analyticsService.onReadyToCapture(consumeWidgetEvents),
     // RECITERS is filled in place; the default reciter refresh follows a load.
     useReciterStore.subscribe(() => syncCatalog()),
     useAdhkarStore.subscribe((state, prev) => {

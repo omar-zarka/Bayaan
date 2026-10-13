@@ -3,6 +3,9 @@
 export interface AdhkarSessionCompletedEvent {
   name: 'adhkar_session_completed';
   props: {category: string; duration_ms: number; dhikr_count: number};
+  // When the widget action completed the session (epoch ms). Older queued
+  // events have none; the parser fills in the drain time.
+  completedAtMs: number;
 }
 
 export type PendingWidgetEvent = AdhkarSessionCompletedEvent;
@@ -11,23 +14,38 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function isAdhkarSessionCompleted(
+function toAdhkarSessionCompleted(
   value: unknown,
-): value is AdhkarSessionCompletedEvent {
+  nowMs: number,
+): AdhkarSessionCompletedEvent | null {
   if (!isRecord(value) || value.name !== 'adhkar_session_completed') {
-    return false;
+    return null;
   }
   const props = value.props;
-  return (
-    isRecord(props) &&
-    typeof props.category === 'string' &&
-    typeof props.duration_ms === 'number' &&
-    typeof props.dhikr_count === 'number'
-  );
+  if (
+    !isRecord(props) ||
+    typeof props.category !== 'string' ||
+    typeof props.duration_ms !== 'number' ||
+    typeof props.dhikr_count !== 'number'
+  ) {
+    return null;
+  }
+  const at = value.completedAtMs;
+  return {
+    name: 'adhkar_session_completed',
+    props: {
+      category: props.category,
+      duration_ms: props.duration_ms,
+      dhikr_count: props.dhikr_count,
+    },
+    completedAtMs:
+      typeof at === 'number' && Number.isFinite(at) && at > 0 ? at : nowMs,
+  };
 }
 
 export function parsePendingWidgetEvents(
   json: string | null,
+  nowMs: number = Date.now(),
 ): PendingWidgetEvent[] {
   if (!json) return [];
   let parsed: unknown;
@@ -38,5 +56,10 @@ export function parsePendingWidgetEvents(
   }
   if (!Array.isArray(parsed)) return [];
   const items: unknown[] = parsed;
-  return items.filter(isAdhkarSessionCompleted);
+  const events: PendingWidgetEvent[] = [];
+  for (const item of items) {
+    const event = toAdhkarSessionCompleted(item, nowMs);
+    if (event) events.push(event);
+  }
+  return events;
 }

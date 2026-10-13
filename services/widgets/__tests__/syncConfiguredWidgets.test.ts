@@ -14,6 +14,8 @@ let mockRequests: WidgetArtworkRequests = {surahIds: [], reciterIds: []};
 let mockPending: PendingTasbeeh[] = [];
 const mockTakePendingWidgetEvents = jest.fn<PendingWidgetEvent[], []>();
 const mockTrackAdhkarSessionCompleted = jest.fn();
+let mockReadyToCapture = true;
+const mockReadyListeners: (() => void)[] = [];
 const mockFlush = jest.fn();
 const mockIncrement = jest.fn<Promise<number>, [string]>();
 const mockReset = jest.fn<Promise<void>, [string]>();
@@ -44,8 +46,13 @@ jest.mock('bayaan-widgets', () => ({
 }));
 jest.mock('@/services/analytics/AnalyticsService', () => ({
   analyticsService: {
-    trackAdhkarSessionCompleted: (p: unknown) =>
-      mockTrackAdhkarSessionCompleted(p),
+    trackAdhkarSessionCompleted: (p: unknown, at: unknown) =>
+      mockTrackAdhkarSessionCompleted(p, at),
+    isReadyToCapture: () => mockReadyToCapture,
+    onReadyToCapture: (listener: () => void) => {
+      mockReadyListeners.push(listener);
+      return mockSubscribe();
+    },
   },
 }));
 jest.mock('react-native', () => {
@@ -108,6 +115,8 @@ beforeEach(() => {
   mockTakePendingWidgetEvents.mockReset();
   mockTakePendingWidgetEvents.mockReturnValue([]);
   mockTrackAdhkarSessionCompleted.mockReset();
+  mockReadyToCapture = true;
+  mockReadyListeners.length = 0;
   mockFlush.mockReset();
   mockIncrement.mockReset();
   mockIncrement.mockResolvedValue(1);
@@ -240,27 +249,49 @@ describe('consumeTasbeehIncrements', () => {
 });
 
 describe('consumeWidgetEvents', () => {
-  it('sends queued adhkar completions to analytics once', () => {
-    const sync = loadModule();
-    mockTakePendingWidgetEvents.mockReturnValueOnce([
-      {
-        name: 'adhkar_session_completed',
-        props: {
-          category: 'evening-adhkar',
-          duration_ms: 90000,
-          dhikr_count: 24,
-        },
-      },
-    ]);
-    sync.consumeWidgetEvents();
-    expect(mockTrackAdhkarSessionCompleted).toHaveBeenCalledWith({
+  const completion: PendingWidgetEvent = {
+    name: 'adhkar_session_completed',
+    props: {
       category: 'evening-adhkar',
       duration_ms: 90000,
       dhikr_count: 24,
-    });
+    },
+    completedAtMs: Date.UTC(2026, 9, 11, 18),
+  };
+
+  it('sends queued adhkar completions to analytics once, dated when completed', () => {
+    const sync = loadModule();
+    mockTakePendingWidgetEvents.mockReturnValueOnce([completion]);
+    sync.consumeWidgetEvents();
+    expect(mockTrackAdhkarSessionCompleted).toHaveBeenCalledWith(
+      {category: 'evening-adhkar', duration_ms: 90000, dhikr_count: 24},
+      new Date(Date.UTC(2026, 9, 11, 18)),
+    );
     mockTakePendingWidgetEvents.mockReturnValueOnce([]);
     sync.consumeWidgetEvents();
     expect(mockTrackAdhkarSessionCompleted).toHaveBeenCalledTimes(1);
+  });
+
+  it('leaves the queue alone until analytics can capture', () => {
+    const sync = loadModule();
+    mockReadyToCapture = false;
+    mockTakePendingWidgetEvents.mockReturnValue([completion]);
+    sync.consumeWidgetEvents();
+    expect(mockTakePendingWidgetEvents).not.toHaveBeenCalled();
+    expect(mockTrackAdhkarSessionCompleted).not.toHaveBeenCalled();
+  });
+
+  it('drains when analytics becomes ready after the first sync', () => {
+    const sync = loadModule();
+    mockReadyToCapture = false;
+    const stop = sync.startConfiguredWidgetSync();
+    expect(mockTakePendingWidgetEvents).not.toHaveBeenCalled();
+    expect(mockReadyListeners).toHaveLength(1);
+    mockReadyToCapture = true;
+    mockTakePendingWidgetEvents.mockReturnValueOnce([completion]);
+    mockReadyListeners.forEach(listener => listener());
+    expect(mockTrackAdhkarSessionCompleted).toHaveBeenCalledTimes(1);
+    stop();
   });
 
   it('keeps going when the native queue throws', () => {
@@ -280,7 +311,7 @@ describe('startConfiguredWidgetSync', () => {
     expect(mockWriteCatalog).toHaveBeenCalledTimes(1);
     expect(mockReloadWidgets).toHaveBeenCalledWith(['AyahOfTheDay']);
     stop();
-    expect(mockUnsubs).toHaveLength(2);
+    expect(mockUnsubs).toHaveLength(3);
     mockUnsubs.forEach(u => expect(u).toHaveBeenCalled());
     expect(mockAppStateRemove).toHaveBeenCalled();
   });
