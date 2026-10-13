@@ -29,7 +29,8 @@
     "reset": "Reset",
     "copy": "Copy",
     "select": "Select",
-    "apply": "Apply"
+    "apply": "Apply",
+    "tryAgain": "Try again"
   },
   "tabs": {
     "home": "Home",
@@ -117,9 +118,11 @@
     "description": "Choose the app language",
     "system": "System default",
     "systemDescription": "Follow the device language",
-    "english": "English",
-    "arabic": "العربية",
     "restartNote": "The app will restart to apply the new language.",
     "iosNote": "Your selection applies to the app language and layout."
+  },
+  "languageRestart": {
+    "title": "Restart required",
+    "message": "Close and reopen the app to apply the new language."
   }
 }

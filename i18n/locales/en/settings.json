@@ -396,6 +396,9 @@
       "retry": "Try again",
       "keepLabel": "Keep reading Hafs",
       "keep": "Keep Hafs"
-    }
+    },
+    "communityReflections": "Community Reflections",
+    "communityReflectionsHelper": "Show community reflections under each ayah in list view",
+    "indopakHafsOnly": "IndoPak shows Hafs only. Choosing another rewayah switches the font to {{font}}."
   }
 }

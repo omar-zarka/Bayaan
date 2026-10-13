@@ -3,6 +3,7 @@ import {SURAHS} from '@/data/surahData';
 import arNamesById from '@/data/reciterNamesAr.json';
 import fallbackReciters from '@/data/reciters-fallback.json';
 import {currentLanguage, type AppLanguage} from './language';
+import {getLanguageConfig} from './languages';
 
 function reciterNameKey(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -18,16 +19,31 @@ for (const reciter of fallbackReciters as {id: string; name: string}[]) {
 
 const ARABIC_INDIC_DIGITS = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
 
-/** Converts ASCII digits to Arabic-Indic digits when the language is Arabic. */
+/** Converts ASCII digits to the language's digits (Arabic-Indic for Arabic). */
 export function localizeDigits(
   value: string | number,
   language: AppLanguage = currentLanguage,
 ): string {
   const text = String(value);
-  if (language !== 'ar') {
+  if (getLanguageConfig(language).digits !== 'arab') {
     return text;
   }
   return text.replace(/[0-9]/g, digit => ARABIC_INDIC_DIGITS[Number(digit)]);
+}
+
+function usesArabicContent(language: AppLanguage): boolean {
+  return getLanguageConfig(language).bilingualContent === 'ar';
+}
+
+function groupSeparator(language: AppLanguage): string {
+  return getLanguageConfig(language).digits === 'arab' ? '٬' : ',';
+}
+
+/** Decimal separator that matches the language's digits. */
+export function decimalSeparator(
+  language: AppLanguage = currentLanguage,
+): string {
+  return getLanguageConfig(language).digits === 'arab' ? '٫' : '.';
 }
 
 /** Formats an integer with grouping separators and localized digits. */
@@ -37,7 +53,7 @@ export function formatNumber(
 ): string {
   const grouped = Math.trunc(value)
     .toString()
-    .replace(/\B(?=(\d{3})+(?!\d))/g, language === 'ar' ? '٬' : ',');
+    .replace(/\B(?=(\d{3})+(?!\d))/g, groupSeparator(language));
   return localizeDigits(grouped, language);
 }
 
@@ -46,12 +62,12 @@ interface NamedSurah {
   name_arabic: string;
 }
 
-/** Surah name for display: Arabic name in Arabic mode, transliteration otherwise. */
+/** Surah name for display: the Arabic name or the transliteration. */
 export function getSurahDisplayName(
   surah: NamedSurah,
   language: AppLanguage = currentLanguage,
 ): string {
-  return language === 'ar' ? surah.name_arabic : surah.name;
+  return usesArabicContent(language) ? surah.name_arabic : surah.name;
 }
 
 interface TranslatedSurah {
@@ -59,14 +75,14 @@ interface TranslatedSurah {
 }
 
 /**
- * English meaning of a surah name (e.g. "The Opener"). Returns null in Arabic
- * mode, where the Arabic name already carries the meaning.
+ * English meaning of a surah name (e.g. "The Opener"). Returns null when the
+ * Arabic name is shown, since it already carries the meaning.
  */
 export function getSurahMeaning(
   surah: TranslatedSurah,
   language: AppLanguage = currentLanguage,
 ): string | null {
-  return language === 'ar' ? null : surah.translated_name_english;
+  return usesArabicContent(language) ? null : surah.translated_name_english;
 }
 
 interface TitledTrack {
@@ -77,14 +93,14 @@ interface TitledTrack {
 
 /**
  * Track title for display. Surah tracks are titled with the English surah
- * name when queued, so Arabic mode resolves the Arabic name from `surahId`.
- * User uploads keep their own titles.
+ * name when queued, so the Arabic name is resolved from `surahId` when the
+ * language shows Arabic names. User uploads keep their own titles.
  */
 export function getTrackDisplayTitle(
   track: TitledTrack,
   language: AppLanguage = currentLanguage,
 ): string {
-  if (language !== 'ar' || track.isUserUpload || !track.surahId) {
+  if (!usesArabicContent(language) || track.isUserUpload || !track.surahId) {
     return track.title;
   }
   const surah = SURAHS[Number(track.surahId) - 1];
@@ -98,14 +114,16 @@ interface NamedReciter {
 }
 
 /**
- * Reciter name for display. Arabic mode prefers an explicit `name_arabic`,
- * then the bundled Arabic name (matched by id, then by English name).
+ * Reciter name for display. Languages that show Arabic names prefer the API's
+ * `name_arabic`, then the bundled Arabic name (matched by id, then by English
+ * name). Everything else shows the English name. Reciter names are data, not
+ * UI strings: they never go in the locale files (see docs/i18n/README.md).
  */
 export function getReciterDisplayName(
   reciter: NamedReciter,
   language: AppLanguage = currentLanguage,
 ): string {
-  if (language !== 'ar') {
+  if (!usesArabicContent(language)) {
     return reciter.name;
   }
   if (reciter.name_arabic) {
@@ -125,7 +143,7 @@ export function getTrackArtistDisplay(
   track: {artist: string; reciterId?: string; isUserUpload?: boolean},
   language: AppLanguage = currentLanguage,
 ): string {
-  if (language !== 'ar' || track.isUserUpload || !track.reciterId) {
+  if (!usesArabicContent(language) || track.isUserUpload || !track.reciterId) {
     return track.artist;
   }
   return getReciterDisplayName(

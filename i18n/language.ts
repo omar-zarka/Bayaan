@@ -5,12 +5,17 @@ import {reloadAppAsync} from 'expo';
 import {getLocales} from 'expo-localization';
 import * as Updates from 'expo-updates';
 
-export type AppLanguage = 'en' | 'ar';
+import {
+  SOURCE_LANGUAGE,
+  SUPPORTED_LANGUAGES,
+  getLanguageConfig,
+  isAppLanguage,
+  type AppLanguage,
+} from './languages';
+import {resources} from './resources';
+
+export {SUPPORTED_LANGUAGES, type AppLanguage};
 export type LanguagePreference = 'system' | AppLanguage;
-
-export const SUPPORTED_LANGUAGES: AppLanguage[] = ['en', 'ar'];
-
-const RTL_LANGUAGES: ReadonlySet<AppLanguage> = new Set(['ar']);
 
 const storage = createMMKV({id: 'i18n'});
 const PREFERENCE_KEY = 'language_preference';
@@ -18,7 +23,7 @@ const RTL_RELOAD_GUARD_KEY = 'rtl_reload_attempted_v3';
 
 export function getLanguagePreference(): LanguagePreference {
   const stored = storage.getString(PREFERENCE_KEY);
-  if (stored === 'en' || stored === 'ar' || stored === 'system') {
+  if (stored === 'system' || isAppLanguage(stored)) {
     return stored;
   }
   return 'system';
@@ -27,15 +32,14 @@ export function getLanguagePreference(): LanguagePreference {
 export function getDeviceLanguage(): AppLanguage {
   try {
     for (const locale of getLocales()) {
-      const code = locale.languageCode as AppLanguage | null;
-      if (code && SUPPORTED_LANGUAGES.includes(code)) {
-        return code;
+      if (isAppLanguage(locale.languageCode)) {
+        return locale.languageCode;
       }
     }
   } catch {
     // Native module unavailable (e.g. tests) — fall through to English.
   }
-  return 'en';
+  return SOURCE_LANGUAGE;
 }
 
 export function resolveLanguage(
@@ -45,17 +49,21 @@ export function resolveLanguage(
 }
 
 export function isRTLLanguage(language: AppLanguage): boolean {
-  return RTL_LANGUAGES.has(language);
+  return getLanguageConfig(language).direction === 'rtl';
 }
 
 /** Language for this app session. Fixed until the next JS reload. */
 export const currentLanguage: AppLanguage = resolveLanguage();
 
+/** Registry entry for `currentLanguage` (see i18n/languages.ts). */
+export const currentLanguageConfig = getLanguageConfig(currentLanguage);
+
 /**
  * Initial reading-aid preference only. Persisted user choices take precedence
  * and remain available in every interface language.
  */
-export const defaultShowEnglishReadingAids = currentLanguage !== 'ar';
+export const defaultShowEnglishReadingAids =
+  !currentLanguageConfig.readsQuranArabic;
 
 async function reloadApp(): Promise<void> {
   // Reload the React Native runtime in both development and standalone builds,
@@ -76,12 +84,9 @@ async function reloadApp(): Promise<void> {
     DevSettings.reload();
     return;
   }
-  Alert.alert(
-    currentLanguage === 'ar' ? 'أعد تشغيل التطبيق' : 'Restart required',
-    currentLanguage === 'ar'
-      ? 'أغلق التطبيق وافتحه مجددًا لتطبيق اللغة الجديدة.'
-      : 'Close and reopen the app to apply the new language.',
-  );
+  // i18n/index.ts imports this file, so read the strings from the resources.
+  const {title, message} = resources[currentLanguage].common.languageRestart;
+  Alert.alert(title, message);
 }
 
 /**

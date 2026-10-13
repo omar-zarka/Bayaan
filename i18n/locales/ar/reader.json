@@ -4,7 +4,9 @@
     "headerMeta": "صفحة {{page}} · الجزء {{juz}} · {{rewayah}}",
     "searchSurahs": "البحث في السور",
     "settings": "إعدادات المصحف",
-    "shareMessage": "اطّلع على الصفحة {{page}} من القرآن الكريم على {{appName}}"
+    "shareMessage": "اطّلع على الصفحة {{page}} من القرآن الكريم على {{appName}}",
+    "loadFailedTitle": "تعذّر تحميل المصحف",
+    "loadFailedBody": "تأكّد من توفّر مساحة تخزين كافية على جهازك، ثم حاول مجددًا."
   },
   "toolbar": {
     "options": "خيارات",
@@ -44,5 +46,10 @@
     "timestampsUnavailable": "توقيت الآيات غير متاح لهذا القارئ في هذه السورة. جرّب قارئًا آخر.",
     "verseTimingUnavailable": "التشغيل آيةً بآية غير متاح لهذا القارئ في هذه السورة. جرّب قارئًا آخر.",
     "rangeUnplayable": "لا توجد آيات قابلة للتشغيل في هذا النطاق لهذا القارئ. جرّب قارئًا أو نطاقًا آخر."
+  },
+  "verseUnits": {
+    "loading": "جارٍ تحميل آيات رواية {{rewayah}}",
+    "loadFailed": "تعذّر تحميل آيات رواية {{rewayah}}.",
+    "retryLabel": "أعد محاولة تحميل آيات رواية {{rewayah}}"
   }
 }

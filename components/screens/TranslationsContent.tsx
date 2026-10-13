@@ -46,7 +46,8 @@ import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {localizeDigits} from '@/i18n/format';
-import {currentLanguage} from '@/i18n/language';
+import {currentLanguage, currentLanguageConfig} from '@/i18n/language';
+import {SOURCE_LANGUAGE} from '@/i18n/languages';
 import {
   compareTafaseer,
   getTafseerDisplayName,
@@ -222,7 +223,7 @@ export default function TranslationsContent() {
   const bottomInset = useBottomInset();
 
   const [activeTab, setActiveTab] = useState<ActiveTab>(
-    currentLanguage === 'ar' ? 'Tafaseer' : 'Translations',
+    currentLanguageConfig.readsQuranArabic ? 'Tafaseer' : 'Translations',
   );
 
   // --- Translation state ---
@@ -517,7 +518,7 @@ export default function TranslationsContent() {
     // Put matching-language editions before other downloads for non-English
     // readers. The explicitly selected edition remains in the active card.
     const preferredRows =
-      currentLanguage !== 'en'
+      currentLanguage !== SOURCE_LANGUAGE
         ? allRows
             .filter(
               row =>
@@ -841,7 +842,7 @@ export default function TranslationsContent() {
               numberOfLines={1}>
               {getTafseerDisplayName(item)}
             </Text>
-            {currentLanguage === 'ar' ? (
+            {currentLanguage !== SOURCE_LANGUAGE ? (
               <Text style={styles.rowNativeName} numberOfLines={1}>
                 {getTafseerLanguageDisplayName(item.language)}
               </Text>

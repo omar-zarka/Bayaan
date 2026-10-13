@@ -8,6 +8,7 @@ import {ChangelogEntry} from '@/types/changelog';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 import {currentLanguage} from '@/i18n/language';
+import {getIntlLocale} from '@/i18n/languages';
 // @ai-end
 
 interface ChangelogContentProps {
@@ -135,10 +136,7 @@ function formatDate(dateString: string): string {
     month: 'long',
     day: 'numeric',
   };
-  return date.toLocaleDateString(
-    currentLanguage === 'ar' ? 'ar' : 'en-US',
-    options,
-  );
+  return date.toLocaleDateString(getIntlLocale(currentLanguage), options);
 }
 // @ai-end
 
