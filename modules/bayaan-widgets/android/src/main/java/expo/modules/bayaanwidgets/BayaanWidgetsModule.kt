@@ -12,8 +12,6 @@ import expo.modules.bayaanwidgets.ayahoftheday.MidnightReceiver
 import expo.modules.bayaanwidgets.continuelistening.ContinueListeningWidget
 import expo.modules.bayaanwidgets.continuereading.ContinueReadingWidget
 import expo.modules.bayaanwidgets.bedtime.BedtimeWidget
-import expo.modules.bayaanwidgets.hijri.HijriDateWidget
-import expo.modules.bayaanwidgets.hijri.OccasionWidget
 import expo.modules.bayaanwidgets.libraryshelf.LibraryShelfWidget
 import expo.modules.bayaanwidgets.pinnedreciter.PinnedReciterWidget
 import expo.modules.bayaanwidgets.quicksurah.QuickSurahWidget
@@ -70,14 +68,6 @@ class BayaanWidgetsModule : Module() {
           }
           "Adhkar" -> {
             push(AdhkarWidget())
-            rearmContextClock()
-          }
-          "HijriDate" -> {
-            push(HijriDateWidget())
-            rearmContextClock()
-          }
-          "Occasion" -> {
-            push(OccasionWidget())
             rearmContextClock()
           }
           "BayaanNow" -> {

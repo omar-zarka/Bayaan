@@ -26,15 +26,8 @@ data class AdhkarPeriodData(
 data class AdhkarPeriods(val morning: AdhkarPeriodData, val evening: AdhkarPeriodData) {
   fun of(period: AdhkarPeriod): AdhkarPeriodData = if (period == AdhkarPeriod.MORNING) morning else evening
 }
-data class HijriMonthName(val number: Int, val name: String, val arabic: String)
-data class OccasionInfo(val id: String, val name: String, val arabicName: String, val listenSurahId: Int?, val ayat: List<StaticAyah>)
-data class OccasionData(val months: List<HijriMonthName>, val occasions: List<OccasionInfo>) {
-  fun occasion(id: String?): OccasionInfo? = id?.let { wanted -> occasions.firstOrNull { it.id == wanted } }
-  fun month(number: Int): HijriMonthName? = months.firstOrNull { it.number == number }
-}
-data class HijriDate(val year: Int, val month: Int, val day: Int)
 
-/** Decoders for content.json (content.ts) and the generated adhkar and occasion data. */
+/** Decoders for content.json (content.ts) and the generated adhkar data. */
 object ContentModels {
   const val VERSION = 1
 
@@ -75,32 +68,14 @@ object ContentModels {
     val o = JSONObject(json)
     AdhkarPeriods(period(o.getJSONObject("morning")), period(o.getJSONObject("evening")))
   } catch (e: Exception) { null }
-
-  fun decodeOccasions(json: String): OccasionData? = try {
-    val o = JSONObject(json)
-    OccasionData(
-      o.getJSONArray("months").objects().map { HijriMonthName(it.getInt("number"), it.getString("name"), it.getString("arabic")) },
-      o.getJSONArray("occasions").objects().map { x ->
-        OccasionInfo(
-          x.getString("id"), x.getString("name"), x.getString("arabicName"),
-          if (x.isNull("listenSurahId")) null else x.getInt("listenSurahId"),
-          StaticData.parseAyat(x.getJSONArray("ayat").toString()),
-        )
-      },
-    )
-  } catch (e: Exception) { null }
 }
 
-/** adhkar-periods.json and occasions.json from assets/widgets (scripts/generate-widget-data.ts). */
+/** adhkar-periods.json from assets/widgets (scripts/generate-widget-data.ts). */
 object ContentStaticData {
   @Volatile private var adhkar: AdhkarPeriods? = null
-  @Volatile private var occasions: OccasionData? = null
 
   fun adhkar(context: Context): AdhkarPeriods? =
     adhkar ?: readAsset(context, "widgets/adhkar-periods.json")?.let { ContentModels.decodeAdhkarPeriods(it) }?.also { adhkar = it }
-
-  fun occasions(context: Context): OccasionData? =
-    occasions ?: readAsset(context, "widgets/occasions.json")?.let { ContentModels.decodeOccasions(it) }?.also { occasions = it }
 
   private fun readAsset(context: Context, path: String): String? = try {
     context.assets.open(path).bufferedReader().use { it.readText() }

@@ -144,7 +144,7 @@ export function buildSurahCatalogSwift(surahs: StaticSurah[]): string {
   ].join('\n');
 }
 
-// ---- Phase 3: adhkar periods and occasions -------------------------------
+// ---- Phase 3: adhkar periods --------------------------------------------
 
 export type AdhkarPeriodName = 'morning' | 'evening';
 
@@ -185,51 +185,7 @@ export interface AdhkarSeedRow {
   repeat_count: number;
 }
 
-export interface HijriMonthName {
-  number: number;
-  name: string;
-  arabic: string;
-}
-
-export interface OccasionSource {
-  id: string;
-  name: string;
-  arabicName: string;
-  listenSurahId: number | null;
-  keys: string[];
-}
-
-export interface OccasionsSource {
-  months: HijriMonthName[];
-  occasions: OccasionSource[];
-}
-
-export interface OccasionInfo {
-  id: string;
-  name: string;
-  arabicName: string;
-  listenSurahId: number | null;
-  ayat: StaticAyah[];
-}
-
-export interface OccasionData {
-  months: HijriMonthName[];
-  occasions: OccasionInfo[];
-}
-
 export const MAX_FEATURED_DHIKR_CHARS = 180;
-// Same ids and order as OCCASION_WINDOWS + jumuah in contextRules.ts.
-export const OCCASION_IDS = [
-  'eidFitr',
-  'arafah',
-  'eidAdha',
-  'lastTen',
-  'ramadan',
-  'dhulHijjah',
-  'ashura',
-  'jumuah',
-] as const;
-
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -276,36 +232,6 @@ export function parseAdhkarSeed(seed: unknown): AdhkarSeedRow[] {
   return rows.filter(isSeedRow);
 }
 
-function isMonth(value: unknown): value is HijriMonthName {
-  return (
-    isObject(value) &&
-    typeof value.number === 'number' &&
-    typeof value.name === 'string' &&
-    typeof value.arabic === 'string'
-  );
-}
-
-function isOccasionSource(value: unknown): value is OccasionSource {
-  return (
-    isObject(value) &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    typeof value.arabicName === 'string' &&
-    (value.listenSurahId === null || typeof value.listenSurahId === 'number') &&
-    isStringList(value.keys)
-  );
-}
-
-export function isOccasionsSource(value: unknown): value is OccasionsSource {
-  return (
-    isObject(value) &&
-    Array.isArray(value.months) &&
-    value.months.every(isMonth) &&
-    Array.isArray(value.occasions) &&
-    value.occasions.every(isOccasionSource)
-  );
-}
-
 export function buildAdhkarPeriods(
   source: Record<AdhkarPeriodName, AdhkarPeriodSource>,
   seed: AdhkarSeedRow[],
@@ -345,30 +271,4 @@ export function buildAdhkarPeriods(
     };
   }
   return {morning: period('morning'), evening: period('evening')};
-}
-
-export function buildOccasionData(
-  source: OccasionsSource,
-  src: AyahSources,
-): OccasionData {
-  if (
-    source.months.length !== 12 ||
-    source.months.some((m, i) => m.number !== i + 1)
-  ) {
-    throw new Error('months must list 1 to 12 in order');
-  }
-  const ids = source.occasions.map(o => o.id);
-  if (JSON.stringify(ids) !== JSON.stringify(OCCASION_IDS)) {
-    throw new Error(`occasions must be exactly ${OCCASION_IDS.join(', ')}`);
-  }
-  return {
-    months: source.months,
-    occasions: source.occasions.map(o => ({
-      id: o.id,
-      name: o.name,
-      arabicName: o.arabicName,
-      listenSurahId: o.listenSurahId,
-      ayat: buildStaticAyat(o.keys, src),
-    })),
-  };
 }

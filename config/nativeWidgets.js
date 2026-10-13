@@ -24,8 +24,6 @@ const NATIVE_WIDGET_IDS = [
   'Bedtime',
   'ReciterSpotlight',
   'Adhkar',
-  'HijriDate',
-  'Occasion',
   'BayaanNow',
   'ListeningAccessory',
   'LiveActivity',
@@ -34,7 +32,7 @@ const NATIVE_WIDGET_IDS = [
 ];
 
 /** Surfaces that exist on Android (the rest are iOS-only). */
-const ANDROID_WIDGET_IDS = NATIVE_WIDGET_IDS.slice(0, 14);
+const ANDROID_WIDGET_IDS = NATIVE_WIDGET_IDS.slice(0, 12);
 
 /** Feature flags (config/featureFlags.ts) a whole surface depends on. */
 const NATIVE_WIDGET_FLAGS = {

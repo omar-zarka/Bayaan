@@ -3,7 +3,6 @@
 //   surahs.json  names, surah glyph code points, card file names
 //   ayat.json    Ayah of the Day list with Digital Khatt text and Saheeh translation
 //   adhkar-periods.json  morning and evening adhkar with a curated featured list
-//   occasions.json       Hijri month names and occasion ayat (Digital Khatt + Saheeh)
 // Run after editing data/widgets/ayah-of-the-day.json: npm run generate:widget-data
 import fs from 'fs';
 import path from 'path';
@@ -12,12 +11,10 @@ import {SURAHS} from '../data/surahData';
 import {surahGlyphMap} from '../utils/surahGlyphMap';
 import {
   buildAdhkarPeriods,
-  buildOccasionData,
   buildStaticAyat,
   buildStaticSurahs,
   buildSurahCatalogSwift,
   isAdhkarPeriodSources,
-  isOccasionsSource,
   parseAdhkarSeed,
 } from '../services/widgets/widgetStaticData';
 
@@ -89,11 +86,6 @@ function main(): void {
     periodSource,
     parseAdhkarSeed(readJson('data/adhkar.json')),
   );
-  const occasionSource = readJson('data/widgets/occasions.json');
-  if (!isOccasionsSource(occasionSource)) {
-    throw new Error('data/widgets/occasions.json is malformed');
-  }
-  const occasions = buildOccasionData(occasionSource, ayahSources);
   db.close();
 
   for (const dir of OUTPUT_DIRS) {
@@ -108,17 +100,13 @@ function main(): void {
       path.join(abs, 'adhkar-periods.json'),
       `${JSON.stringify(adhkarPeriods)}\n`,
     );
-    fs.writeFileSync(
-      path.join(abs, 'occasions.json'),
-      `${JSON.stringify(occasions)}\n`,
-    );
   }
   fs.writeFileSync(
     path.join(root, 'targets/widgets/_shared/SurahCatalog.swift'),
     buildSurahCatalogSwift(surahs),
   );
   console.log(
-    `[generate-widget-data] ${ayat.length} ayat, ${surahs.length} surahs, ${occasions.occasions.length} occasions, 2 adhkar periods`,
+    `[generate-widget-data] ${ayat.length} ayat, ${surahs.length} surahs, 2 adhkar periods`,
   );
 }
 
