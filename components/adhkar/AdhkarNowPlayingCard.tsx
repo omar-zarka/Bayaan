@@ -14,7 +14,11 @@ import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {openPlayingDhikr} from '@/services/adhkar/playback/openPlayingDhikr';
 import {dropStaleSession} from '@/services/adhkar/playback/sessionPersistence';
 
-export const ADHKAR_TILE_WIDTH = 200;
+// Same width as RecentReciterCard, whose height is content-driven (square
+// image + name + playback zone). The tile stretches to the row's tallest
+// item; minHeight only matters when it is the sole item.
+export const ADHKAR_TILE_WIDTH = moderateScale(120);
+export const ADHKAR_TILE_MARGIN = moderateScale(8);
 
 export function useHasAdhkarSession(): boolean {
   return useAdhkarSessionStore(s => s.session !== null);
@@ -106,7 +110,6 @@ export function AdhkarNowPlayingCard({
         style={[
           styles.tile,
           {
-            borderColor: Color(theme.colors.text).alpha(0.06).toString(),
             backgroundColor: Color(theme.colors.text).alpha(0.06).toString(),
           },
         ]}>
@@ -152,18 +155,18 @@ export function AdhkarNowPlayingCard({
 
 const styles = StyleSheet.create({
   tile: {
-    width: moderateScale(ADHKAR_TILE_WIDTH),
-    height: moderateScale(150),
+    width: ADHKAR_TILE_WIDTH,
+    alignSelf: 'stretch',
+    minHeight: ADHKAR_TILE_WIDTH,
     borderRadius: moderateScale(14),
-    borderWidth: 1,
-    padding: moderateScale(12),
+    padding: moderateScale(8),
     justifyContent: 'space-between',
   },
   tileBody: {gap: moderateScale(4)},
   tileTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: moderateScale(8),
+    gap: moderateScale(6),
   },
   row: {
     height: moderateScale(56),

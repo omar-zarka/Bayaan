@@ -1,9 +1,5 @@
 import React, {useMemo, useEffect, useRef, useCallback} from 'react';
 import {
-  AdhkarNowPlayingCard,
-  useHasAdhkarSession,
-} from '@/components/adhkar/AdhkarNowPlayingCard';
-import {
   View,
   Text,
   ScrollView,
@@ -49,6 +45,12 @@ import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAdhkarStore} from '@/store/adhkarStore';
 import {AdhkarBentoCard} from '@/components/adhkar/AdhkarBentoCard';
+import {
+  ADHKAR_TILE_MARGIN,
+  ADHKAR_TILE_WIDTH,
+  AdhkarNowPlayingCard,
+  useHasAdhkarSession,
+} from '@/components/adhkar/AdhkarNowPlayingCard';
 import {SuperCategory} from '@/types/adhkar';
 import branding, {type HomeRow, type HomeRowId} from '@/config/branding';
 // @ai-start
@@ -135,7 +137,7 @@ const MemoizedFlatList = React.memo(
       contentContainerStyle={styles.sectionContent}
       ListHeaderComponent={
         showAdhkarTile ? (
-          <View style={{marginRight: moderateScale(8)}}>
+          <View style={{marginRight: ADHKAR_TILE_MARGIN}}>
             <AdhkarNowPlayingCard variant="tile" />
           </View>
         ) : null
@@ -170,7 +172,9 @@ const MemoizedFlatList = React.memo(
                     ? 120
                     : 140) *
             index +
-          (showAdhkarTile && variant === 'recent' ? 200 : 0),
+          (showAdhkarTile && variant === 'recent'
+            ? ADHKAR_TILE_WIDTH + ADHKAR_TILE_MARGIN
+            : 0),
         index,
       })}
     />
