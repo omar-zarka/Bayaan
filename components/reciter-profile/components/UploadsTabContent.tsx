@@ -27,6 +27,7 @@ import i18n from '@/i18n';
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 import {currentLanguage} from '@/i18n/language';
+import {SOURCE_LANGUAGE} from '@/i18n/languages';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 // @ai-end
 
@@ -70,9 +71,9 @@ function getDisplaySubtitle(item: UploadedRecitation): string {
     }
     if (item.style) {
       parts.push(
-        currentLanguage === 'ar'
-          ? getRecitationStyleLabel(item.style)
-          : item.style.charAt(0).toUpperCase() + item.style.slice(1),
+        currentLanguage === SOURCE_LANGUAGE
+          ? item.style.charAt(0).toUpperCase() + item.style.slice(1)
+          : getRecitationStyleLabel(item.style),
       );
     }
   }

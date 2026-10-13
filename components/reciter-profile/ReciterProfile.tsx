@@ -79,6 +79,7 @@ import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 import {currentLanguage} from '@/i18n/language';
+import {SOURCE_LANGUAGE} from '@/i18n/languages';
 import {forceLTR, isRTL} from '@/utils/rtl';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 // @ai-end
@@ -867,9 +868,9 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     if (reciter?.rewayat) {
       reciter.rewayat.forEach(r => {
         const style =
-          currentLanguage === 'ar'
-            ? getRecitationStyleLabel(r.style)
-            : r.style.charAt(0).toUpperCase() + r.style.slice(1).toLowerCase();
+          currentLanguage === SOURCE_LANGUAGE
+            ? r.style.charAt(0).toUpperCase() + r.style.slice(1).toLowerCase()
+            : getRecitationStyleLabel(r.style);
         result.push({
           id: r.id,
           label: `${getDisplayLabelFromName(r.name)} · ${style}`,

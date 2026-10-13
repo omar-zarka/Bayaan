@@ -1,6 +1,7 @@
 // @ai-generated
 import {type ViewStyle} from 'react-native';
 import {currentLanguage, isRTLLanguage} from '@/i18n/language';
+import {getLanguageConfig} from '@/i18n/languages';
 
 // The selected language is the source of truth, including the first frame
 // before a native direction reload completes.
@@ -9,11 +10,11 @@ export const appDirection = isRTL ? 'rtl' : 'ltr';
 export const appLayoutDirection: ViewStyle = {direction: appDirection};
 
 /**
- * Letter spacing breaks Arabic cursive joining, so it is dropped when the UI
- * language is Arabic.
+ * Letter spacing breaks cursive joining (Arabic and similar scripts), so it is
+ * dropped for languages whose script does not allow it.
  */
 export function latinLetterSpacing(value: number): number {
-  return currentLanguage === 'ar' ? 0 : value;
+  return getLanguageConfig(currentLanguage).allowsLetterSpacing ? value : 0;
 }
 
 /**
