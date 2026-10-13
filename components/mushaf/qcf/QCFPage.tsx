@@ -174,8 +174,8 @@ const QCFPage: React.FC<QCFPageProps> = ({
       nameFontSize: scaledSize * 0.4,
     };
   }, []);
-  const [fontReady, setFontReady] = useState<boolean>(() =>
-    qcfFontLoader.isReady(pageNumber),
+  const [fontReady, setFontReady] = useState<boolean>(
+    () => fontMgr != null && qcfFontLoader.isReady(pageNumber, fontMgr), // @ai
   );
   const [error, setError] = useState<string | null>(null);
 
@@ -347,7 +347,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
     if (!fontMgr) return;
     let cancelled = false;
     setError(null);
-    setFontReady(qcfFontLoader.isReady(pageNumber));
+    setFontReady(fontMgr != null && qcfFontLoader.isReady(pageNumber, fontMgr)); // @ai
 
     (async () => {
       try {
