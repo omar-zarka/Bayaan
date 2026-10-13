@@ -225,6 +225,31 @@ describe('adhkarCopyText', () => {
     ).toBe(true);
   });
 
+  it('keeps the takbir and the travel verse in the copy (row 207)', () => {
+    const text = nfc(adhkarCopyText(row('207').arabic));
+    expect(text.startsWith(nfc('اللَّهُ أَكْبَرُ'))).toBe(true);
+    expect(text).toContain(nfc('سُبْحَانَ الَّذِي سَخَّرَ لَنَا'));
+    expect(text).toContain(nfc('آيِبُونَ'));
+  });
+
+  it('does not copy the after-prayer note of Ayat al-Kursi (row 71)', () => {
+    const text = nfc(adhkarCopyText(row('71').arabic));
+    expect(text).toContain(nfc('الْعَلِيُّ الْعَظِيمُ'));
+    expect(text).not.toContain(nfc('عَقِبَ'));
+  });
+
+  it('treats the Safa verse as recited, inside the marks (row 236)', () => {
+    const text = nfc(adhkarCopyText(row('236').arabic));
+    expect(text).toContain(
+      nfc('إِنَّ الصَّفَا وَالْمَرْوَةَ مِنْ شَعَآئِرِ اللَّهِ'),
+    );
+    const segments = parseAdhkarArabic(row('236').arabic);
+    const verse = segments.find(s =>
+      nfc(s.text).includes(nfc('إِنَّ الصَّفَا')),
+    );
+    expect(verse?.kind).not.toBe('narration');
+  });
+
   it('returns a row without marks unchanged apart from whitespace', () => {
     expect(adhkarCopyText('  سُبْحَانَ   اللَّهِ ')).toBe('سُبْحَانَ اللَّهِ');
   });
