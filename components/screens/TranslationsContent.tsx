@@ -998,6 +998,8 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
 
+    // Fabric mirrors logical left alignment in RTL. Explicitly use the
+    // leading edge for catalogue text rather than native 'natural' alignment.
     // Section headers — meta (ACTIVE TRANSLATION)
     metaHeaderContainer: {
       paddingHorizontal: moderateScale(18),
@@ -1005,6 +1007,7 @@ const createStyles = (theme: Theme) =>
       paddingBottom: moderateScale(6),
     },
     metaHeader: {
+      textAlign: 'left',
       fontSize: moderateScale(10.5),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
@@ -1049,11 +1052,13 @@ const createStyles = (theme: Theme) =>
       flex: 1,
     },
     activeCardName: {
+      textAlign: 'left',
       fontSize: moderateScale(15),
       fontFamily: 'Manrope-SemiBold',
       color: Color(theme.colors.text).alpha(0.85).toString(),
     },
     activeCardLanguage: {
+      textAlign: 'left',
       fontSize: moderateScale(11.5),
       fontFamily: 'Manrope-Regular',
       color: Color(theme.colors.textSecondary).alpha(0.45).toString(),
@@ -1128,6 +1133,7 @@ const createStyles = (theme: Theme) =>
       marginRight: moderateScale(10),
     },
     rowName: {
+      textAlign: 'left',
       fontSize: moderateScale(13.5),
       fontFamily: 'Manrope-Medium',
       color: Color(theme.colors.text).alpha(0.85).toString(),
@@ -1137,6 +1143,7 @@ const createStyles = (theme: Theme) =>
       color: theme.colors.text,
     },
     rowNativeName: {
+      textAlign: 'left',
       fontSize: moderateScale(11.5),
       fontFamily: 'Manrope-Regular',
       color: Color(theme.colors.textSecondary).alpha(0.45).toString(),
