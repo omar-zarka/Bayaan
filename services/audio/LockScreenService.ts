@@ -17,6 +17,7 @@ import {
 import {expoAudioService} from './ExpoAudioService';
 import {mushafAudioService} from './MushafAudioService';
 import {audioCoordinator} from './AudioCoordinator';
+import type {AdhkarSession} from '@/services/adhkar/playback/types';
 
 // @ai-start
 function surahNameOf(surah: number): string | null {
@@ -300,6 +301,12 @@ class LockScreenService {
       }
     });
   }
+
+  /** Filled in with the adhkar lock screen entry. */
+  activateAdhkar(player: AudioPlayer, session: AdhkarSession): void {}
+
+  /** Filled in with the adhkar lock screen entry. */
+  clearAdhkar(player: AudioPlayer): void {}
 }
 
 export const lockScreenService = LockScreenService.getInstance();
