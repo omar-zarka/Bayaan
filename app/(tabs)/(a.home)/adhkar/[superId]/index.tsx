@@ -215,21 +215,29 @@ const SuperCategoryListScreen: React.FC = () => {
       sourceType = 'evening';
     }
 
-    startPlayAll(allAdhkarForPlayAll, 0, sourceType, superId);
+    const startIndex = startPlayAll(
+      allAdhkarForPlayAll,
+      0,
+      sourceType,
+      superId,
+    );
+    if (startIndex < 0) return;
 
-    // Navigate to reader with first dhikr
-    const firstDhikr = allAdhkarForPlayAll[0];
-    const firstCategoryTitle =
-      categoryGroups.length > 0
-        ? shortenCategoryTitle(categoryGroups[0].categoryTitle)
-        : '';
+    // Navigate to reader at the first dhikr that has audio
+    const firstDhikr = allAdhkarForPlayAll[startIndex];
+    const firstGroup = categoryGroups.find(group =>
+      group.adhkar.some(d => d.id === firstDhikr.id),
+    );
+    const firstCategoryTitle = firstGroup
+      ? shortenCategoryTitle(firstGroup.categoryTitle)
+      : '';
 
     router.push({
       pathname: '/(tabs)/(a.home)/adhkar/[superId]/[dhikrId]',
       params: {
         superId,
         dhikrId: firstDhikr.id,
-        globalIndex: '0',
+        globalIndex: String(startIndex),
         categoryShortTitle: firstCategoryTitle,
         superCategoryTitle: superCategory?.title,
         playAll: 'true',

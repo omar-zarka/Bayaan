@@ -26,6 +26,7 @@ import Color from 'color';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 import {forceLTR} from '@/utils/rtl';
+import {hasAudio} from '@/utils/adhkarAudio';
 // @ai-end
 
 // Pre-compute scaled values outside component to avoid worklet issues
@@ -129,7 +130,7 @@ export const AdhkarAudioControls: React.FC<AdhkarAudioControlsProps> =
       );
 
       // No audio available - show placeholder and action buttons
-      if (!audioFile) {
+      if (!hasAudio(audioFile)) {
         return (
           <View style={styles.container}>
             <View style={styles.buttonsRow}>
