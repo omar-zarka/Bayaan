@@ -15,6 +15,7 @@ import {
   TRANSLITERATIONS,
   UNCHANGED,
   arabicSkeleton,
+  tidyQuranReferences,
   withoutMarkers,
 } from '../adhkar-content/textPolish';
 
@@ -130,6 +131,41 @@ describe('99 Names', () => {
         value: expect.stringMatching(/\\|[éèàçêù]|\b(Le|est|des|qui)\b/),
       });
     }
+  });
+});
+
+describe('99 Names Quran references', () => {
+  it('rewrites spaced references to a clean second line', () => {
+    expect(
+      tidyQuranReferences(
+        'He who acts with extreme kindness  | Quran: (2:163) (3: 31) (4:100) (5:3)',
+      ),
+    ).toBe('He who acts with extreme kindness\nQuran: 2:163, 3:31, 4:100, 5:3');
+  });
+
+  it('rewrites run-together references and drops duplicates', () => {
+    expect(
+      tidyQuranReferences(
+        'The Sovereign | Quran: (20:114)(23:116)(20:114)(62:1)',
+      ),
+    ).toBe('The Sovereign\nQuran: 20:114, 23:116, 62:1');
+  });
+
+  it('leaves rows without references or with odd ones unchanged', () => {
+    expect(tidyQuranReferences('Plain guidance.')).toBe('Plain guidance.');
+    expect(tidyQuranReferences(null)).toBeNull();
+    const odd = 'Text | Quran: (3:6)(4:15 8)';
+    expect(tidyQuranReferences(odd)).toBe(odd);
+  });
+
+  it('is idempotent', () => {
+    const once = tidyQuranReferences('A  | Quran: (1:3) (2: 4)');
+    expect(tidyQuranReferences(once)).toBe(once);
+  });
+
+  it('leaves no raw " | Quran:" in generated data except the malformed name-8', () => {
+    const raw = names.filter(r => (r.instruction ?? '').includes('| Quran:'));
+    expect(raw.map(r => r.id)).toEqual(['name-8']);
   });
 });
 

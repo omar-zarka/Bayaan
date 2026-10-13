@@ -250,6 +250,30 @@ export function unescapeQuotes(value: string | null): string | null {
   return value === null ? null : value.replace(/\\(["'])/g, '$1');
 }
 
+const QURAN_REFERENCES = /^(.*?)\s*\|\s*Quran:\s*(.*)$/s;
+const REFERENCE = /\(\s*(\d+\s*:\s*\d+(?:\s*-\s*\d+)?)\s*\)/g;
+
+/**
+ * "text | Quran: (2:163) (3: 31)" becomes "text\nQuran: 2:163, 3:31".
+ * Rows without the " | Quran:" part, or with a reference that is not
+ * s:a or s:a-b, are returned unchanged.
+ */
+export function tidyQuranReferences(instruction: string | null): string | null {
+  if (instruction === null) return null;
+  const match = QURAN_REFERENCES.exec(instruction);
+  if (!match) return instruction;
+  const text = match[1].replace(/ {2,}/g, ' ').trim();
+  const rest = match[2].trim();
+  if (rest.replace(REFERENCE, '').trim() !== '') return instruction;
+  const refs: string[] = [];
+  for (const ref of rest.matchAll(REFERENCE)) {
+    const clean = ref[1].replace(/\s+/g, '');
+    if (!refs.includes(clean)) refs.push(clean);
+  }
+  if (refs.length === 0) return instruction;
+  return `${text}\nQuran: ${refs.join(', ')}`;
+}
+
 export function applyNameFixes(seed: SeedFile): SeedFile {
   const fromSource = new Set(NAME_SOURCE_TRANSLITERATION_IDS);
   const stray = new Set(NAME_STRAY_INSTRUCTION_IDS);
@@ -265,7 +289,9 @@ export function applyNameFixes(seed: SeedFile): SeedFile {
         transliteration: fromSource.has(row.id)
           ? entry.transliteration
           : tidyNameTransliteration(row.transliteration ?? ''),
-        instruction: stray.has(row.id) ? null : unescapeQuotes(row.instruction),
+        instruction: stray.has(row.id)
+          ? null
+          : tidyQuranReferences(unescapeQuotes(row.instruction)),
       };
     }),
   };
