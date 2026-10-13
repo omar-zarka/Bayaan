@@ -7,4 +7,6 @@
 // Version 3: Fixed audio file naming (dua_X.mp3 -> adhkar_X.mp3)
 // Version 4: Added 99 Names of Allah (99 items, total 406)
 // Version 5: Balanced "Other" section bento grid (left=14, right=14)
-export const ADHKAR_DATA_VERSION = 5;
+// Version 6: Morning/evening split (6 evening rows, per-period dhikr lists,
+//            super_categories.dhikr_ids), text, count and audio fixes
+export const ADHKAR_DATA_VERSION = 6;
