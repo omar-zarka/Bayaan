@@ -63,7 +63,10 @@ describe('parseAdhkarArabic', () => {
   });
 
   it('keeps a parenthesis that sits next to the closing mark', () => {
-    const segments = parseAdhkarArabic(row('138').arabic);
+    // Row 138 before v9 moved its count note outside the marks.
+    const segments = parseAdhkarArabic(
+      '((أَعُوذُ بِاللَّهِ، وَاتْفُلْ عَلَى يَسَارِكَ (ثلاثاً))).',
+    );
     expect(segments).toHaveLength(1);
     expect(segments[0].text.endsWith('(ثلاثاً)')).toBe(true);
   });
@@ -142,10 +145,17 @@ describe('outer parentheses and unpaired brackets', () => {
     }
   });
 
-  it('keeps inner parentheses of a wrapped row (row 5)', () => {
-    const [segment] = parseAdhkarArabic(row('5').arabic);
-    expect(segment.text.startsWith('(')).toBe(false);
-    expect(segment.text).toMatch(/\([^()]+\)/);
+  it('keeps inner parentheses of a wrapped row', () => {
+    expect(parseAdhkarArabic('(أَ (بَ) جَ).')).toEqual([
+      {kind: 'dhikr', text: 'أَ (بَ) جَ.', quranIndex: null},
+    ]);
+  });
+
+  it('shows the garment word of row 5 as an addition', () => {
+    const segments = parseAdhkarArabic(row('5').arabic);
+    expect(kinds(segments)).toEqual(['dhikr', 'addition', 'dhikr']);
+    expect(nfc(segments[1].text)).toBe(nfc('الثَّوْبَ'));
+    expect(segments.some(s => /[()]/.test(s.text))).toBe(false);
   });
 
   it('keeps parentheses that do not wrap the whole row', () => {
