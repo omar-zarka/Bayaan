@@ -4,6 +4,8 @@ import TestRenderer, {act, type ReactTestRenderer} from 'react-test-renderer';
 import {AdhkarQuranPassage} from '../AdhkarQuranPassage';
 
 const mockStatus = {current: 'ready'};
+const mockRequests: Array<{keys: readonly string[]; rewayah: string}> = [];
+const mockWordsRewayahs: Array<string | undefined> = [];
 
 jest.mock('@/hooks/useTheme', () => ({
   useTheme: () => ({theme: {isDarkMode: false, colors: {text: '#111111'}}}),
@@ -31,15 +33,21 @@ jest.mock('@/constants/mushafAllahHighlight', () => ({
 }));
 
 jest.mock('@/components/share/useRewayahVerseTexts', () => ({
-  useRewayahVerseTexts: () => ({status: mockStatus.current}),
+  useRewayahVerseTexts: (keys: readonly string[], rewayah: string) => {
+    mockRequests.push({keys, rewayah});
+    return {status: mockStatus.current};
+  },
 }));
 
 jest.mock('@/services/mushaf/DigitalKhattDataService', () => ({
   digitalKhattDataService: {
-    getVerseWords: (verseKey: string) => [
-      {text: 'قُلْ', verseKey, wordPositionInVerse: 1},
-      {text: '۝١', verseKey, wordPositionInVerse: 2},
-    ],
+    getVerseWords: (verseKey: string, rewayah?: string) => {
+      mockWordsRewayahs.push(rewayah);
+      return [
+        {text: 'قُلْ', verseKey, wordPositionInVerse: 1},
+        {text: '۝١', verseKey, wordPositionInVerse: 2},
+      ];
+    },
   },
 }));
 
@@ -90,6 +98,8 @@ function render(): ReactTestRenderer {
 describe('AdhkarQuranPassage', () => {
   beforeEach(() => {
     mockStatus.current = 'ready';
+    mockRequests.length = 0;
+    mockWordsRewayahs.length = 0;
   });
 
   it('gives the canvas the passage text for screen readers', () => {
@@ -114,12 +124,33 @@ describe('AdhkarQuranPassage', () => {
     expect(skia[0].props.nativeID).toBe('center');
   });
 
-  it('shows the row text while the words load', () => {
+  it('keeps the place with an invisible copy while the words load', () => {
     mockStatus.current = 'loading';
     const renderer = render();
-    const texts = renderer.root
-      .findAll(node => node.type === TEXT)
-      .map(node => node.props.children);
-    expect(texts).toEqual(['قُلْ هُوَ اللَّهُ أَحَدٌ']);
+    const texts = renderer.root.findAll(node => node.type === TEXT);
+    expect(texts).toHaveLength(1);
+    expect(texts[0].props.children).toBe('قُلْ هُوَ اللَّهُ أَحَدٌ');
+    expect(texts[0].props.style).toEqual([{fontSize: 20}, {opacity: 0}]);
+    expect(
+      renderer.root.findAll(
+        node => node.type === VIEW && node.props.accessible === true,
+      ),
+    ).toHaveLength(1);
+  });
+
+  it('shows the row text visibly when the words cannot load', () => {
+    mockStatus.current = 'unavailable';
+    const renderer = render();
+    const texts = renderer.root.findAll(node => node.type === TEXT);
+    expect(texts).toHaveLength(1);
+    expect(texts[0].props.style).toEqual({fontSize: 20});
+  });
+
+  it('reads Hafs words whatever rewayah the mushaf is on', () => {
+    render();
+    expect(mockRequests.length).toBeGreaterThan(0);
+    expect(mockRequests.every(r => r.rewayah === 'hafs')).toBe(true);
+    expect(mockWordsRewayahs.length).toBeGreaterThan(0);
+    expect(mockWordsRewayahs.every(r => r === 'hafs')).toBe(true);
   });
 });

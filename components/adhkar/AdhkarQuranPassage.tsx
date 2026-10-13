@@ -1,7 +1,10 @@
 /**
  * A Quran passage inside an adhkar row, drawn with Digital Khatt from the
- * Hafs words its span names (utils/adhkarQuran.ts). Until those words are in
- * memory, or if they cannot load, the row's own text is shown instead.
+ * Hafs words its span names (utils/adhkarQuran.ts). The words are always the
+ * Hafs ones, whatever rewayah the mushaf is on: for Warsh and the others they
+ * come from the data service's async side cache. While they load, the row's
+ * own text keeps the place invisible (same height, no adhkar-font flash);
+ * if they cannot load, or the fonts are missing, that text is shown instead.
  */
 import React, {useMemo, useState} from 'react';
 import {Text, View, type StyleProp, type TextStyle} from 'react-native';
@@ -79,9 +82,18 @@ export function AdhkarQuranPassage({
     [verseTexts, span],
   );
 
-  if (!fontMgr || !text) {
+  // Nothing to draw with: show the row's own text.
+  if (!fontMgr || verseTexts.status === 'unavailable') {
     return <Text style={fallbackStyle}>{fallbackText}</Text>;
   }
+  if (verseTexts.status === 'ready' && !text) {
+    return <Text style={fallbackStyle}>{fallbackText}</Text>;
+  }
+
+  // Words still loading, or the width not measured yet: an invisible copy of
+  // the row text holds the place, so the passage never paints in the adhkar
+  // font first and then swaps to Digital Khatt.
+  const drawable = text.length > 0 && width > 0;
 
   return (
     <View
@@ -97,7 +109,7 @@ export function AdhkarQuranPassage({
       onLayout={e =>
         setWidth(e.nativeEvent.layout.width - horizontalPadding * 2)
       }>
-      {width > 0 ? (
+      {drawable ? (
         <SkiaVerseText
           text={text}
           fontMgr={fontMgr}
@@ -112,7 +124,14 @@ export function AdhkarQuranPassage({
           allahNameHighlightColor={allahNameHighlightColor}
           textAlign={textAlign}
         />
-      ) : null}
+      ) : (
+        <Text
+          style={[fallbackStyle, {opacity: 0}]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants">
+          {fallbackText}
+        </Text>
+      )}
     </View>
   );
 }
