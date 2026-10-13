@@ -290,11 +290,6 @@ class AdhkarDatabaseService {
     return currentVersion < DATA_VERSION;
   }
 
-  // Update data version to current after successful seeding
-  async updateDataVersion(): Promise<void> {
-    await this.setDataVersion(DATA_VERSION);
-  }
-
   // Get all categories with their tags
   async getAllCategories(): Promise<AdhkarCategory[]> {
     if (!this.db) throw new Error('Database not initialized');
@@ -703,6 +698,8 @@ class AdhkarDatabaseService {
   // app dies midway, SQLite rolls it all back: the previous content and
   // version stay, so the reseed runs again on the next launch. User tables
   // (dhikr_favorites, dhikr_counts) are never touched.
+  // Non-exclusive transaction: nothing else may use this connection until it
+  // resolves; AdhkarService.initialize guarantees this (every call awaits it).
   async reseed(
     data: AdhkarSeedData,
     dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>>,

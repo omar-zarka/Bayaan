@@ -6,7 +6,7 @@ jest.mock('@/services/database/AdhkarDatabaseService', () => ({
     areSuperCategoriesSeeded: jest.fn().mockResolvedValue(true),
     seedDatabase: jest.fn().mockResolvedValue(undefined),
     seedSuperCategories: jest.fn().mockResolvedValue(undefined),
-    updateDataVersion: jest.fn().mockResolvedValue(undefined),
+    reseed: jest.fn().mockResolvedValue(undefined),
     getSuperCategory: jest.fn(),
     getAllCategories: jest.fn(),
     getAdhkarByIds: jest.fn(),

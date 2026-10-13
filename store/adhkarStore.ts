@@ -276,17 +276,17 @@ export const useAdhkarStore = create<AdhkarState>((set, get) => ({
   },
 
   // Increment tasbeeh count for a dhikr
-  incrementCount: async (dhikrId: string) => {
+  incrementCount: async (countKey: string) => {
     try {
       set({error: null});
 
-      const newCount = await adhkarService.incrementDhikrCount(dhikrId);
+      const newCount = await adhkarService.incrementDhikrCount(countKey);
 
       // Update counts immutably
       set(state => ({
         dhikrCounts: {
           ...state.dhikrCounts,
-          [dhikrId]: newCount,
+          [countKey]: newCount,
         },
       }));
 
@@ -295,21 +295,21 @@ export const useAdhkarStore = create<AdhkarState>((set, get) => ({
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to increment count';
       set({error: errorMessage});
-      return get().dhikrCounts[dhikrId] ?? 0;
+      return get().dhikrCounts[countKey] ?? 0;
     }
   },
 
   // Reset tasbeeh count for a dhikr
-  resetCount: async (dhikrId: string) => {
+  resetCount: async (countKey: string) => {
     try {
       set({error: null});
 
-      await adhkarService.resetDhikrCount(dhikrId);
+      await adhkarService.resetDhikrCount(countKey);
 
       // Update counts immutably
       set(state => {
         const newCounts = {...state.dhikrCounts};
-        delete newCounts[dhikrId];
+        delete newCounts[countKey];
         return {dhikrCounts: newCounts};
       });
     } catch (err) {
@@ -320,8 +320,8 @@ export const useAdhkarStore = create<AdhkarState>((set, get) => ({
   },
 
   // Get the current count for a dhikr (synchronous, from cached state)
-  getCount: (dhikrId: string) => {
-    return get().dhikrCounts[dhikrId] ?? 0;
+  getCount: (countKey: string) => {
+    return get().dhikrCounts[countKey] ?? 0;
   },
 
   // Set adhkar list directly (used for super category navigation)

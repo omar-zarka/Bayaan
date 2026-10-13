@@ -20,6 +20,27 @@ async function superCategory(id: string): Promise<SuperCategory> {
   return found;
 }
 
+// Each case starts from an empty dhikr_counts table and seeds its own counts.
+async function clearCounts(): Promise<void> {
+  await adhkarService.initialize();
+  const db = await openDatabaseAsync('adhkar.db');
+  await db.runAsync('DELETE FROM dhikr_counts');
+}
+
+async function insertCount(
+  key: string,
+  count: number,
+  lastUpdated: number = Date.now(),
+): Promise<void> {
+  const db = await openDatabaseAsync('adhkar.db');
+  await db.runAsync(
+    'INSERT INTO dhikr_counts (dhikr_id, count, last_updated) VALUES (?, ?, ?)',
+    [key, count, lastUpdated],
+  );
+}
+
+beforeEach(clearCounts);
+
 afterAll(async () => {
   await adhkarDatabaseService.close();
   await resetDatabases();
@@ -86,15 +107,17 @@ describe('per-list tasbeeh counts', () => {
   });
 
   it('loads every count key for the store', async () => {
+    await insertCount('morning-adhkar:75', 3);
+    await insertCount('75', 2);
     const counts = await adhkarService.getAllCounts();
     expect(counts).toEqual({'morning-adhkar:75': 3, '75': 2});
   });
 
   it('skips counts from an earlier day', async () => {
-    const db = await openDatabaseAsync('adhkar.db');
-    await db.runAsync(
-      'INSERT INTO dhikr_counts (dhikr_id, count, last_updated) VALUES (?, ?, ?)',
-      ['evening-adhkar:76', 5, Date.now() - 3 * 24 * 60 * 60 * 1000],
+    await insertCount(
+      'evening-adhkar:76',
+      5,
+      Date.now() - 3 * 24 * 60 * 60 * 1000,
     );
     const counts = await adhkarService.getAllCounts();
     expect(counts['evening-adhkar:76']).toBeUndefined();
@@ -102,6 +125,8 @@ describe('per-list tasbeeh counts', () => {
   });
 
   it('keeps per-list counts through a data version reseed', async () => {
+    await insertCount('morning-adhkar:75', 3);
+    await insertCount('75', 2);
     const db = await openDatabaseAsync('adhkar.db');
     await db.runAsync(
       "UPDATE adhkar_meta SET value = ? WHERE key = 'data_version'",
