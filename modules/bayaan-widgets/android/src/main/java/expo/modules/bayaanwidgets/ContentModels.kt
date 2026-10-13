@@ -19,9 +19,13 @@ data class WidgetContent(
 }
 
 data class FeaturedDhikr(val id: String, val arabic: String, val translation: String?, val repeatCount: Int)
+data class SessionDhikr(
+  val id: String, val translation: String?, val repeatCount: Int, val audioFile: String?,
+  val mediumText: String, val mediumCut: Boolean, val largeText: String, val largeCut: Boolean,
+)
 data class AdhkarPeriodData(
   val period: String, val superId: String, val title: String, val arabicTitle: String, val count: Int,
-  val featured: List<FeaturedDhikr>,
+  val featured: List<FeaturedDhikr>, val items: List<SessionDhikr>,
 )
 data class AdhkarPeriods(val morning: AdhkarPeriodData, val evening: AdhkarPeriodData) {
   fun of(period: AdhkarPeriod): AdhkarPeriodData = if (period == AdhkarPeriod.MORNING) morning else evening
@@ -61,6 +65,12 @@ object ContentModels {
     o.getString("period"), o.getString("superId"), o.getString("title"), o.getString("arabicTitle"), o.getInt("count"),
     o.getJSONArray("featured").objects().map {
       FeaturedDhikr(it.getString("id"), it.getString("arabic"), it.stringOrNull("translation"), it.getInt("repeatCount"))
+    },
+    o.getJSONArray("items").objects().map {
+      SessionDhikr(
+        it.getString("id"), it.stringOrNull("translation"), it.getInt("repeatCount"), it.stringOrNull("audioFile"),
+        it.getString("mediumText"), it.getBoolean("mediumCut"), it.getString("largeText"), it.getBoolean("largeCut"),
+      )
     },
   )
 
