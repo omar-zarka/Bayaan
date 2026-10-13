@@ -227,13 +227,17 @@ export function cleanAdhkarTranslation(translation: string): string {
 
 /**
  * Screen reader label for a list card: the clean Arabic dhikr (same narration
- * rules as copy), then the translation when there is one.
+ * rules as copy, without the ornate brackets and * separators that a screen
+ * reader would speak), then the translation when there is one.
  */
 export function adhkarCardLabel(
   arabic: string,
   translation: string | null | undefined,
 ): string {
-  const spoken = adhkarCopyText(arabic);
+  const spoken = adhkarCopyText(arabic)
+    .replace(/[\uFD3E\uFD3F*]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!translation) return spoken;
   return `${spoken}. ${cleanAdhkarTranslation(translation)}`;
 }

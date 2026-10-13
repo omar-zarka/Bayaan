@@ -299,6 +299,14 @@ describe('adhkarCardLabel', () => {
     expect(label.endsWith('Glory be to Allah (and praise)')).toBe(true);
   });
 
+  it('drops the ornate brackets and * separators from the spoken label', () => {
+    const label = adhkarCardLabel(row('4').arabic, null);
+    expect(label).not.toMatch(/[\uFD3E\uFD3F*]/);
+    expect(label).not.toMatch(/\s{2,}/);
+    const withVerse = adhkarCardLabel(row('70').arabic, 'Say');
+    expect(withVerse).not.toMatch(/[\uFD3E\uFD3F*]/);
+  });
+
   it('is only the Arabic without a translation', () => {
     expect(adhkarCardLabel('(( سُبْحَانَ اللَّهِ ))', null)).toBe(
       adhkarCopyText('(( سُبْحَانَ اللَّهِ ))'),
