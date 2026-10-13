@@ -516,6 +516,10 @@ function RootLayout() {
                         options={{headerShown: false}}
                       />
                       <Stack.Screen
+                        name="adhkar-playing"
+                        options={{headerShown: false, animation: 'none'}}
+                      />
+                      <Stack.Screen
                         name="mushaf"
                         options={{
                           headerShown: USE_GLASS,
