@@ -84,12 +84,12 @@ function getCredits(
         {
           title: 'Tanzil',
           description: t('credits.items.tanzil'),
-          link: 'https://tanzil.net',
+          link: 'https://tanzil.net/trans/',
         },
         {
-          title: 'Wikipedia',
+          title: 'Wikipedia contributors',
           description: t('credits.items.wikipediaNames'),
-          link: 'https://en.wikipedia.org/wiki/Names_of_God_in_Islam',
+          link: 'https://creativecommons.org/licenses/by-sa/4.0/',
         },
         {
           title: 'fitrahive/dua-dhikr',
