@@ -1,5 +1,6 @@
 import adhkarData from '@/data/adhkar.json';
 import {
+  adhkarCardLabel,
   adhkarCopyText,
   cleanAdhkarTranslation,
   parseAdhkarArabic,
@@ -259,5 +260,23 @@ describe('cleanAdhkarTranslation', () => {
         balance(translation),
       );
     }
+  });
+});
+
+describe('adhkarCardLabel', () => {
+  it('speaks the clean Arabic dhikr then the translation', () => {
+    const arabic =
+      'قَالَ النَّبِيُّ (( سُبْحَانَ اللَّهِ وَبِحَمْدِهِ )) كَثِيرًا جِدًّا فِي الْيَوْمِ';
+    const label = adhkarCardLabel(arabic, 'Glory be to Allah ((and praise))');
+    expect(label).toContain(adhkarCopyText(arabic));
+    expect(label).not.toMatch(/\(\(|\)\)/);
+    expect(label).toContain('سُبْحَانَ اللَّهِ وَبِحَمْدِهِ');
+    expect(label.endsWith('Glory be to Allah (and praise)')).toBe(true);
+  });
+
+  it('is only the Arabic without a translation', () => {
+    expect(adhkarCardLabel('(( سُبْحَانَ اللَّهِ ))', null)).toBe(
+      adhkarCopyText('(( سُبْحَانَ اللَّهِ ))'),
+    );
   });
 });

@@ -224,3 +224,16 @@ export function adhkarCopyText(arabic: string): string {
 export function cleanAdhkarTranslation(translation: string): string {
   return translation.replace(/\(\(([^()]*)\)\)/g, '($1)');
 }
+
+/**
+ * Screen reader label for a list card: the clean Arabic dhikr (same narration
+ * rules as copy), then the translation when there is one.
+ */
+export function adhkarCardLabel(
+  arabic: string,
+  translation: string | null | undefined,
+): string {
+  const spoken = adhkarCopyText(arabic);
+  if (!translation) return spoken;
+  return `${spoken}. ${cleanAdhkarTranslation(translation)}`;
+}

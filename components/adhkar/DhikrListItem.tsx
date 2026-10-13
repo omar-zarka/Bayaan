@@ -12,7 +12,7 @@ import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {Dhikr} from '@/types/adhkar';
-import {adhkarCopyText, cleanAdhkarTranslation} from '@/utils/adhkarText';
+import {adhkarCardLabel, cleanAdhkarTranslation} from '@/utils/adhkarText';
 import {AdhkarArabicText} from './AdhkarArabicText';
 import Color from 'color';
 // @ai-start
@@ -44,7 +44,7 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
       <View
         style={[styles.container, style]}
         accessibilityRole="button"
-        accessibilityLabel={dhikr.translation || adhkarCopyText(dhikr.arabic)}>
+        accessibilityLabel={adhkarCardLabel(dhikr.arabic, dhikr.translation)}>
         {/* Ornate top border pattern */}
         <View style={styles.ornamentBar}>
           <View style={styles.ornamentLeft} />
