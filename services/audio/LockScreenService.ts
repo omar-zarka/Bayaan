@@ -303,10 +303,10 @@ class LockScreenService {
   }
 
   /** Filled in with the adhkar lock screen entry. */
-  activateAdhkar(player: AudioPlayer, session: AdhkarSession): void {}
+  activateAdhkar(_player: AudioPlayer, _session: AdhkarSession): void {}
 
   /** Filled in with the adhkar lock screen entry. */
-  clearAdhkar(player: AudioPlayer): void {}
+  clearAdhkar(_player: AudioPlayer): void {}
 }
 
 export const lockScreenService = LockScreenService.getInstance();

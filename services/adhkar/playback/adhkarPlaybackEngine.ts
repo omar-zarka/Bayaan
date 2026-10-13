@@ -4,11 +4,7 @@
 // It follows useAdhkarSessionStore and reports player events back to it.
 import {AppState} from 'react-native';
 import {createAudioPlayer} from 'expo-audio';
-import type {
-  AudioPlayer,
-  AudioMetadata,
-  AudioLockScreenOptions,
-} from 'expo-audio';
+import type {AudioPlayer} from 'expo-audio';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {getAudioSource} from '@/utils/adhkarAudio';
 import {currentItem} from './sessionReducer';
@@ -33,18 +29,18 @@ export interface EnginePlayer {
     event: 'playbackStatusUpdate',
     listener: (status: PlayerStatus) => void,
   ): {remove(): void};
-  setActiveForLockScreen(
-    active: boolean,
-    metadata?: AudioMetadata,
-    options?: AudioLockScreenOptions,
-  ): void;
-  updateLockScreenMetadata(metadata: AudioMetadata): void;
 }
 
 export interface EngineDeps {
   createPlayer: () => EnginePlayer;
   getSource: (audioFile: string | null) => number | null;
-  coordinator: {adhkarWillPlay(): void; sourceDidStop(source: 'adhkar'): void};
+  coordinator: {
+    adhkarWillPlay(): void;
+    sourceDidStop(source: 'adhkar'): void;
+    getActiveSource(): string;
+  };
+  // The default wiring ignores the player argument and uses the runtime's real
+  // expo-audio AudioPlayer (EnginePlayer is a narrower type than AudioPlayer).
   lockScreen: {
     activate(player: EnginePlayer, session: AdhkarSession): void;
     clear(player: EnginePlayer): void;
@@ -60,35 +56,48 @@ function defaultDeps(): EngineDeps {
   const lockScreen =
     (): typeof import('@/services/audio/LockScreenService').lockScreenService =>
       require('@/services/audio/LockScreenService').lockScreenService;
-  // The engine only sees the narrow EnginePlayer. The lock screen needs the
-  // full expo-audio player, so keep the one this factory made.
-  let created: AudioPlayer | null = null;
   return {
     createPlayer: () => {
       const made = createAudioPlayer(null, {
         keepAudioSessionActive: true,
         updateInterval: 250,
       });
-      created = made;
+      realPlayer = made;
       return made;
     },
     getSource: getAudioSource,
     coordinator: {
       adhkarWillPlay: () => coordinator().adhkarWillPlay(),
       sourceDidStop: source => coordinator().sourceDidStop(source),
+      getActiveSource: () => coordinator().getActiveSource(),
     },
     lockScreen: {
       activate: (_player, session) => {
-        if (created) lockScreen().activateAdhkar(created, session);
+        if (realPlayer) lockScreen().activateAdhkar(realPlayer, session);
       },
       clear: () => {
-        if (created) lockScreen().clearAdhkar(created);
+        if (realPlayer) lockScreen().clearAdhkar(realPlayer);
       },
     },
   };
 }
 
+// One player per JS runtime, created lazily and never released: a car-root
+// provider handover restarts the engine mid-playback, and the clip that is
+// playing must keep advancing.
 let activePlayer: EnginePlayer | null = null;
+let realPlayer: AudioPlayer | null = null;
+let loadedToken: number | null = null;
+// The token that has reported playing: true. A didJustFinish before that is
+// left over from the previous clip.
+let confirmedToken: number | null = null;
+
+export function resetAdhkarEngineForTests(): void {
+  activePlayer = null;
+  realPlayer = null;
+  loadedToken = null;
+  confirmedToken = null;
+}
 
 export function getAdhkarPlaybackPosition(): {
   currentTime: number;
@@ -114,21 +123,20 @@ export function startAdhkarPlaybackEngine(
 ): () => void {
   const deps: EngineDeps = {...defaultDeps(), ...overrides};
   const store = useAdhkarSessionStore;
-  let player: EnginePlayer | null = null;
-  let loadedToken: number | null = null;
-  // The token that has reported playing: true. A didJustFinish before that is
-  // left over from the previous clip.
-  let confirmedToken: number | null = null;
+  let subscription: {remove(): void} | null = null;
   let confirmTimer: ReturnType<typeof setTimeout> | null = null;
   let retried = false;
   let lockScreenToken: number | null = null;
 
   function ensurePlayer(): EnginePlayer {
-    if (player) return player;
-    player = deps.createPlayer();
-    activePlayer = player;
-    player.addListener('playbackStatusUpdate', onStatus);
-    return player;
+    if (!activePlayer) activePlayer = deps.createPlayer();
+    attach();
+    return activePlayer;
+  }
+
+  function attach(): void {
+    if (!activePlayer || subscription) return;
+    subscription = activePlayer.addListener('playbackStatusUpdate', onStatus);
   }
 
   function clearConfirm(): void {
@@ -179,10 +187,13 @@ export function startAdhkarPlaybackEngine(
   }
 
   function savePosition(): void {
-    if (!player || loadedToken === null) return;
+    // The loaded clip must be the session's current one, or a stale time
+    // would land on a dhikr that was swiped to while paused.
+    if (!activePlayer || loadedToken !== store.getState().session?.trackToken)
+      return;
     store
       .getState()
-      .dispatch({type: 'positionSaved', positionSec: player.currentTime});
+      .dispatch({type: 'positionSaved', positionSec: activePlayer.currentTime});
   }
 
   function onStatus(status: PlayerStatus): void {
@@ -201,7 +212,7 @@ export function startAdhkarPlaybackEngine(
       return;
     }
     if (status.didJustFinish) {
-      if (confirmedToken !== loadedToken || player?.loop) return;
+      if (confirmedToken !== loadedToken || activePlayer?.loop) return;
       store.getState().dispatch({type: 'trackEnded', token: s.trackToken});
       return;
     }
@@ -217,9 +228,9 @@ export function startAdhkarPlaybackEngine(
   ): void {
     if (!session) {
       clearConfirm();
-      if (prev && player) {
-        player.pause();
-        deps.lockScreen.clear(player);
+      if (prev && activePlayer) {
+        activePlayer.pause();
+        deps.lockScreen.clear(activePlayer);
         deps.coordinator.sourceDidStop('adhkar');
       }
       loadedToken = null;
@@ -227,7 +238,8 @@ export function startAdhkarPlaybackEngine(
       lockScreenToken = null;
       return;
     }
-    if (player) player.loop = session.mode === 'single' && session.loop;
+    if (activePlayer)
+      activePlayer.loop = session.mode === 'single' && session.loop;
     if (session.status === 'loading') {
       const isNewRequest =
         !prev ||
@@ -236,27 +248,33 @@ export function startAdhkarPlaybackEngine(
       if (!isNewRequest) return;
       retried = false;
       if (loadedToken !== session.trackToken && !load(session)) return;
-      if (player) player.loop = session.mode === 'single' && session.loop;
+      if (activePlayer)
+        activePlayer.loop = session.mode === 'single' && session.loop;
       tryPlay(session.trackToken);
       return;
     }
     if (session.status === 'playing') {
-      if (player && lockScreenToken !== session.trackToken) {
+      if (activePlayer && lockScreenToken !== session.trackToken) {
         lockScreenToken = session.trackToken;
-        deps.lockScreen.activate(player, session);
+        deps.lockScreen.activate(activePlayer, session);
       }
       return;
     }
     // paused
     clearConfirm();
-    if (prev && prev.status !== 'paused' && player) {
+    if (prev && prev.status !== 'paused' && activePlayer) {
       savePosition();
-      player.pause();
-      // Another source took over: hand the lock screen back to it.
-      deps.lockScreen.clear(player);
-      lockScreenToken = null;
+      activePlayer.pause();
+      // Keep the lock screen entry for a plain pause. Clear it only when
+      // another source took over.
+      if (deps.coordinator.getActiveSource() !== 'adhkar') {
+        deps.lockScreen.clear(activePlayer);
+        lockScreenToken = null;
+      }
     }
   }
+
+  attach();
 
   const unsubscribe = store.subscribe((state, prevState) => {
     if (state.session !== prevState.session)
@@ -275,6 +293,8 @@ export function startAdhkarPlaybackEngine(
   return () => {
     unsubscribe();
     appStateSubscription.remove();
+    subscription?.remove();
+    subscription = null;
     clearConfirm();
   };
 }

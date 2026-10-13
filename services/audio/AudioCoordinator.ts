@@ -93,6 +93,9 @@ class AudioCoordinator {
 
   private pauseAdhkarIfActive(): void {
     if (this.activeSource !== 'adhkar') return;
+    // The caller sets the new source right after; the engine reads this to
+    // know another source took over.
+    this.activeSource = 'none';
     const {useAdhkarSessionStore} = require('@/store/adhkarSessionStore');
     useAdhkarSessionStore.getState().dispatch({type: 'otherAudioStarted'});
   }

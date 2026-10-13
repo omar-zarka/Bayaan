@@ -1,5 +1,8 @@
 import {AppState} from 'react-native';
-import {startAdhkarPlaybackEngine} from '@/services/adhkar/playback/adhkarPlaybackEngine';
+import {
+  startAdhkarPlaybackEngine,
+  resetAdhkarEngineForTests,
+} from '@/services/adhkar/playback/adhkarPlaybackEngine';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import type {SessionSource} from '@/services/adhkar/playback/types';
 
@@ -22,11 +25,13 @@ function fakePlayer() {
     play: jest.fn(),
     pause: jest.fn(),
     seekTo: jest.fn(),
-    setActiveForLockScreen: jest.fn(),
-    updateLockScreenMetadata: jest.fn(),
     addListener: jest.fn((_e: string, l: Listener) => {
       listener = l;
-      return {remove: jest.fn()};
+      return {
+        remove: jest.fn(() => {
+          if (listener === l) listener = null;
+        }),
+      };
     }),
     emit(s: Partial<Parameters<Listener>[0]>) {
       listener?.({
@@ -53,11 +58,28 @@ const src: SessionSource = {
 
 let player: ReturnType<typeof fakePlayer>;
 let stop: () => void;
-const coordinator = {adhkarWillPlay: jest.fn(), sourceDidStop: jest.fn()};
+const coordinator = {
+  adhkarWillPlay: jest.fn(),
+  sourceDidStop: jest.fn(),
+  getActiveSource: jest.fn(() => 'adhkar'),
+};
 const lockScreen = {activate: jest.fn(), clear: jest.fn()};
+
+const appRemove = jest.fn();
+let appStateSpy: jest.SpyInstance;
+
+function lastAppStateHandler(): (state: string) => void {
+  const calls = appStateSpy.mock.calls;
+  return calls[calls.length - 1][1];
+}
 
 beforeEach(() => {
   jest.useFakeTimers();
+  appStateSpy = jest
+    .spyOn(AppState, 'addEventListener')
+    .mockReturnValue({remove: appRemove});
+  resetAdhkarEngineForTests();
+  coordinator.getActiveSource.mockReturnValue('adhkar');
   useAdhkarSessionStore.setState({session: null, revealToken: 0});
   player = fakePlayer();
   stop = startAdhkarPlaybackEngine({
@@ -69,6 +91,7 @@ beforeEach(() => {
 });
 afterEach(() => {
   stop();
+  appStateSpy.mockRestore();
   jest.useRealTimers();
   jest.clearAllMocks();
 });
@@ -128,7 +151,7 @@ it('follows a remote pause and resume without re-playing', () => {
   expect(useAdhkarSessionStore.getState().session?.status).toBe('playing');
 });
 
-it('saves the position on pause and seeks to it on resume after restore', () => {
+it('saves the player position into the session on pause', () => {
   dispatch({type: 'pressPlayAll', source: src});
   player.emit({playing: true});
   player.currentTime = 4;
@@ -173,26 +196,66 @@ it('sets loop in single mode only', () => {
   expect(player.loop).toBe(true);
 });
 
-it('saves the position when the app goes to the background', () => {
+it('keeps loop off in all mode', () => {
+  dispatch({type: 'pressPlayAll', source: src});
+  dispatch({type: 'toggleLoop'});
+  expect(player.loop).toBe(false);
+});
+
+it('does not clear the lock screen on a remote pause', () => {
+  dispatch({type: 'pressPlayAll', source: src});
+  player.emit({playing: true});
+  player.emit({playing: false});
+  expect(lockScreen.clear).not.toHaveBeenCalled();
+});
+
+it('clears the lock screen when another source took over', () => {
+  dispatch({type: 'pressPlayAll', source: src});
+  player.emit({playing: true});
+  coordinator.getActiveSource.mockReturnValue('main');
+  dispatch({type: 'otherAudioStarted'});
+  expect(lockScreen.clear).toHaveBeenCalled();
+});
+
+it('does not write the previous clip time onto a dhikr swiped to while paused', () => {
+  dispatch({type: 'pressPlayAll', source: src});
+  player.emit({playing: true});
+  player.currentTime = 4;
+  dispatch({type: 'toggle'});
+  expect(useAdhkarSessionStore.getState().session?.positionSec).toBe(4);
+  dispatch({type: 'swipedTo', listId: src.listId, index: 1});
+  expect(useAdhkarSessionStore.getState().session?.positionSec).toBe(0);
+  const handler = lastAppStateHandler();
+  handler('background');
+  expect(useAdhkarSessionStore.getState().session?.positionSec).toBe(0);
+});
+
+it('reuses one player across an engine restart and re-attaches the listener', () => {
+  const create = jest.fn(() => player);
   stop();
-  const remove = jest.fn();
-  const addSpy = jest
-    .spyOn(AppState, 'addEventListener')
-    .mockReturnValue({remove});
-  addSpy.mockClear();
-  stop = startAdhkarPlaybackEngine({
-    createPlayer: () => player,
-    getSource: file => (file ? 1 : null),
+  const deps = {
+    getSource: (f: string | null) => (f ? 1 : null),
     coordinator,
     lockScreen,
-  });
-  const handler = addSpy.mock.calls[addSpy.mock.calls.length - 1][1];
+  };
+  stop = startAdhkarPlaybackEngine({...deps, createPlayer: create});
+  dispatch({type: 'pressPlayAll', source: src});
+  player.emit({playing: true});
+  const oldSubscription = player.addListener.mock.results[0].value;
+  stop();
+  stop = startAdhkarPlaybackEngine({...deps, createPlayer: create});
+  expect(create).toHaveBeenCalledTimes(1);
+  expect(oldSubscription.remove).toHaveBeenCalled();
+  player.emit({playing: false, didJustFinish: true});
+  expect(useAdhkarSessionStore.getState().session?.index).toBe(1);
+});
+
+it('saves the position when the app goes to the background', () => {
   dispatch({type: 'pressPlayAll', source: src});
   player.emit({playing: true});
   player.currentTime = 6;
-  handler('background');
+  lastAppStateHandler()('background');
   expect(useAdhkarSessionStore.getState().session?.positionSec).toBe(6);
   stop();
-  expect(remove).toHaveBeenCalled();
-  addSpy.mockRestore();
+  expect(appRemove).toHaveBeenCalled();
 });
