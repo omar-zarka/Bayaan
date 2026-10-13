@@ -24,7 +24,6 @@ import {forceLTR} from '@/utils/rtl';
 import {hasAudio} from '@/utils/adhkarAudio';
 // @ai-end
 
-// Pre-compute scaled values outside component to avoid worklet issues
 const PROGRESS_BAR_HEIGHT = moderateScale(40);
 const PROGRESS_BAR_MARGIN = moderateScale(8);
 

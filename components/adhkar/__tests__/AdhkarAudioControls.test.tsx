@@ -1,4 +1,5 @@
 import React from 'react';
+import {StyleSheet} from 'react-native';
 import TestRenderer, {act, type ReactTestRenderer} from 'react-test-renderer';
 import {AdhkarAudioControls} from '@/components/adhkar/AdhkarAudioControls';
 import {AdhkarSessionSourceProvider} from '@/components/adhkar/AdhkarSessionSourceContext';
@@ -102,10 +103,25 @@ it('plays this card even while another list plays all', () => {
   });
 });
 
-it('reserves the progress row height on a card that is not current', () => {
-  const renderer = renderCard('a');
-  const rows = renderer.root.findAll(
-    node => node.props.testID === 'adhkar-progress-row',
+function rowHeight(renderer: ReactTestRenderer): unknown {
+  const row = renderer.root.find(
+    node =>
+      node.props.testID === 'adhkar-progress-row' &&
+      typeof node.type === 'string',
   );
-  expect(rows.length).toBeGreaterThan(0);
+  return StyleSheet.flatten(row.props.style).height;
+}
+
+it('reserves the same progress row height on current and other cards', () => {
+  useAdhkarSessionStore.getState().dispatch({
+    type: 'pressCard',
+    source: src,
+    index: 0,
+  });
+  const currentHeight = rowHeight(renderCard('a'));
+  act(() => mounted?.unmount());
+  const otherHeight = rowHeight(renderCard('b'));
+  expect(typeof currentHeight).toBe('number');
+  expect(currentHeight).toBeGreaterThan(0);
+  expect(otherHeight).toBe(currentHeight);
 });

@@ -34,7 +34,11 @@ import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {shortenCategoryTitle} from '@/utils/adhkarUtils';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
-import {setAdhkarFocus} from '@/services/adhkar/playback/openPlayingDhikr';
+import {
+  setAdhkarFocus,
+  clearAdhkarFocus,
+  type AdhkarFocus,
+} from '@/services/adhkar/playback/openPlayingDhikr';
 import {AdhkarSessionSourceProvider} from '@/components/adhkar/AdhkarSessionSourceContext';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {dhikrShareUrl, shareUrl} from '@/utils/shareUtils';
@@ -189,8 +193,14 @@ const DhikrReaderScreen: React.FC = () => {
   const lastReveal = useRef(revealToken);
   useEffect(() => {
     if (revealToken === lastReveal.current) return;
+    // Not this list's session: drop the request.
+    if (sessionIndex === null) {
+      lastReveal.current = revealToken;
+      return;
+    }
+    // Still loading: keep the request pending until the rows exist.
+    if (!isDataLoaded) return;
     lastReveal.current = revealToken;
-    if (sessionIndex === null || !isDataLoaded) return;
     playAllScrollTarget.current = sessionIndex;
     flatListRef.current?.scrollToIndex({index: sessionIndex, animated: true});
     setCurrentIndex(sessionIndex);
@@ -198,8 +208,10 @@ const DhikrReaderScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (superId) setAdhkarFocus({kind: 'reader', listId: superId});
-      return () => setAdhkarFocus(null);
+      if (!superId) return;
+      const mine: AdhkarFocus = {kind: 'reader', listId: superId};
+      setAdhkarFocus(mine);
+      return () => clearAdhkarFocus(mine);
     }, [superId]),
   );
 

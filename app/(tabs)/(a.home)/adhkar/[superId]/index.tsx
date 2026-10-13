@@ -42,7 +42,11 @@ import {
 // @ai-end
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
-import {setAdhkarFocus} from '@/services/adhkar/playback/openPlayingDhikr';
+import {
+  setAdhkarFocus,
+  clearAdhkarFocus,
+  type AdhkarFocus,
+} from '@/services/adhkar/playback/openPlayingDhikr';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {adhkarShareUrl, shareUrl} from '@/utils/shareUtils';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
@@ -200,7 +204,7 @@ const SuperCategoryListScreen: React.FC = () => {
     if (!superId || allAdhkarForPlayAll.length === 0) return;
     const source = {
       listId: superId,
-      listTitle: superCategory?.title ?? '',
+      listTitle: superCategory?.title || t('adhkar.dhikr'),
       items: toSessionItems(allAdhkarForPlayAll),
     };
     const wasPlaying = isThisCategoryPlaying;
@@ -229,6 +233,7 @@ const SuperCategoryListScreen: React.FC = () => {
     superId,
     allAdhkarForPlayAll,
     superCategory?.title,
+    t,
     isThisCategoryPlaying,
     dispatch,
     categoryGroups,
@@ -237,8 +242,10 @@ const SuperCategoryListScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      if (superId) setAdhkarFocus({kind: 'list', listId: superId});
-      return () => setAdhkarFocus(null);
+      if (!superId) return;
+      const mine: AdhkarFocus = {kind: 'list', listId: superId};
+      setAdhkarFocus(mine);
+      return () => clearAdhkarFocus(mine);
     }, [superId]),
   );
 

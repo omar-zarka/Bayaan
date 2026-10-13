@@ -22,7 +22,11 @@ import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {useAdhkar} from '@/hooks/useAdhkar';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
-import {setAdhkarFocus} from '@/services/adhkar/playback/openPlayingDhikr';
+import {
+  setAdhkarFocus,
+  clearAdhkarFocus,
+  type AdhkarFocus,
+} from '@/services/adhkar/playback/openPlayingDhikr';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {USE_GLASS} from '@/hooks/useGlassProps';
@@ -99,8 +103,9 @@ const SavedAdhkarScreen: React.FC = () => {
 
   useFocusEffect(
     useCallback(() => {
-      setAdhkarFocus({kind: 'list', listId: 'saved'});
-      return () => setAdhkarFocus(null);
+      const mine: AdhkarFocus = {kind: 'list', listId: 'saved'};
+      setAdhkarFocus(mine);
+      return () => clearAdhkarFocus(mine);
     }, []),
   );
 
