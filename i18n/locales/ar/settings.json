@@ -161,8 +161,7 @@
       "audioSources": "مصادر الصوت",
       "designResources": "موارد التصميم",
       "openSource": "مكتبات مفتوحة المصدر",
-      "specialThanks": "شكر خاص",
-      "designArt": "التصميم والفن"
+      "specialThanks": "شكر خاص"
     },
     "items": {
       "qul": "بيانات قرآنية متقدمة ومعلومات على مستوى الكلمة من Tarteel",
@@ -183,9 +182,7 @@
       "betaTestersTitle": "مختبرو النسخة التجريبية",
       "betaTesters": "على ملاحظاتهم واقتراحاتهم القيّمة",
       "communityTitle": "المجتمع المسلم",
-      "community": "على دعمهم وتوجيههم المستمر",
-      "yamamotoTitle": "د. ناوكي ياماموتو",
-      "yamamoto": "خط شاشة البداية المصمم خصيصًا"
+      "community": "على دعمهم وتوجيههم المستمر"
     }
   },
   "defaultReciter": {
