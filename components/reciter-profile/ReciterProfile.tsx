@@ -16,6 +16,7 @@ import {
   NativeSyntheticEvent,
   useWindowDimensions,
   InteractionManager,
+  PixelRatio, // @ai
   Platform,
   StyleSheet,
   Alert,
@@ -81,6 +82,7 @@ import {currentLanguage} from '@/i18n/language';
 import {forceLTR, isRTL} from '@/utils/rtl';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 // @ai-end
+import {hasPagerReachedInitialPage} from './utils/pagerLayout'; // @ai
 
 interface ReciterProfileProps {
   id: string;
@@ -970,7 +972,14 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     (contentWidth: number) => {
       if (pagerScrolledRef.current) return;
       const targetX = initialTabIndex * screenWidth;
-      if (contentWidth >= targetX + screenWidth) {
+      // @ai-start
+      const initialPageReady = hasPagerReachedInitialPage(
+        contentWidth,
+        screenWidth,
+        initialTabIndex,
+        PixelRatio.get(),
+      );
+      if (initialPageReady) {
         pagerScrolledRef.current = true;
         // Set scrollX so the tab bar indicator lands on the correct tab immediately
         scrollX.setValue(targetX);
@@ -984,6 +993,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
           setNeighborsReady(true);
         });
       }
+      // @ai-end
     },
     [screenWidth, pagerOpacity, initialTabIndex, scrollX],
   );
