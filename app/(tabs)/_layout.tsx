@@ -9,14 +9,14 @@ import {NativeTabs} from 'expo-router/unstable-native-tabs';
 import {MiniPlayer} from '@/components/player/v2/MiniPlayer';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import BottomTabBar from '@/components/BottomTabBar';
-import {BottomTabBarProps} from '@react-navigation/bottom-tabs';
+import {BottomTabBarProps} from 'expo-router/build/react-navigation/bottom-tabs';
 import {FloatingPlayer} from '@/components/player/v2/FloatingPlayer';
 import {TabletSidebar} from '@/components/tablet/TabletSidebar';
 import {useResponsive} from '@/hooks/useResponsive';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 // @ai-start
 import {useTranslation} from 'react-i18next';
-import {appLayoutDirection, forceLTR, isRTL} from '@/utils/rtl';
+import {appDirection, appLayoutDirection, forceLTR, isRTL} from '@/utils/rtl';
 // @ai-end
 
 // PNG tab icons for NativeTabs (iOS) — template-rendered by the native tab bar
@@ -57,12 +57,12 @@ function IOSTabs() {
     return tracks.length > 0 && tracks[index] != null;
   });
 
-  // Keep Yoga accessory coordinates stable. The react-native-screens patch
-  // mirrors UIKit tabs using the language's native layout-direction trait;
-  // screens and mini-player content apply the selected direction themselves.
+  // UIKit mirrors the tabs via its layout-direction trait. Keep the accessory's
+  // Yoga coordinates stable and apply app direction to its content separately.
   return (
     <View style={[{flex: 1}, forceLTR]}>
       <NativeTabs
+        unstable_nativeProps={{direction: appDirection}}
         tintColor={theme.colors.text}
         minimizeBehavior="onScrollDown"
         blurEffect="none"
@@ -234,11 +234,7 @@ export default function TabsLayout() {
 
   return (
     <>
-      <StatusBar
-        style={isDarkMode ? 'light' : 'dark'}
-        translucent
-        backgroundColor="transparent"
-      />
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       {isTablet ? <TabletTabs /> : USE_GLASS ? <IOSTabs /> : <AndroidTabs />}
     </>
   );

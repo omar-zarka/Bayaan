@@ -31,7 +31,9 @@
     "placeholder": "Write your note here...",
     "save": "Save Note",
     "update": "Update Note",
-    "delete": "Delete Note"
+    "delete": "Delete Note",
+    "titleWithoutRef": "Note",
+    "editTitleWithoutRef": "Edit Note"
   },
   "highlight": {
     "title": "Highlight Color",
@@ -179,7 +181,10 @@
     "playFromHere": "Play from Here",
     "repeat": "Repeat",
     "bookmark": "Bookmark",
-    "removeBookmark": "Remove Bookmark"
+    "removeBookmark": "Remove Bookmark",
+    "communityReflections": "Community Reflections",
+    "unnumbered": "Not a numbered verse in {{rewayah}}.",
+    "loadFailed": "Couldn't load the {{rewayah}} text."
   },
   "mushafPlayer": {
     "title": "Playback Settings",

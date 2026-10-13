@@ -322,7 +322,7 @@ const createStyles = (theme: Theme) =>
       overflow: 'hidden',
     },
     tilesContainer: {
-      ...StyleSheet.absoluteFillObject,
+      ...StyleSheet.absoluteFill,
       flexDirection: 'row',
       gap: TILE_GAP,
       justifyContent: 'center',

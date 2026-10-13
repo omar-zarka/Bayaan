@@ -43,7 +43,9 @@
     "placeholder": "اكتب ملاحظتك هنا…",
     "save": "حفظ الملاحظة",
     "update": "تحديث الملاحظة",
-    "delete": "حذف الملاحظة"
+    "delete": "حذف الملاحظة",
+    "titleWithoutRef": "ملاحظة",
+    "editTitleWithoutRef": "تعديل الملاحظة"
   },
   "highlight": {
     "title": "لون التظليل",
@@ -203,7 +205,10 @@
     "playFromHere": "التشغيل من هنا",
     "repeat": "تكرار",
     "bookmark": "إضافة علامة مرجعية",
-    "removeBookmark": "إزالة العلامة المرجعية"
+    "removeBookmark": "إزالة العلامة المرجعية",
+    "communityReflections": "تدبّرات المجتمع",
+    "unnumbered": "ليست آية مرقّمة في رواية {{rewayah}}.",
+    "loadFailed": "تعذّر تحميل نص رواية {{rewayah}}."
   },
   "mushafPlayer": {
     "title": "إعدادات التشغيل",

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
 import {moderateScale, verticalScale} from 'react-native-size-matters';
-import {getMultipleRandomTracks} from '@/utils/randomRecitation';
+import {pickRandomRecitations} from '@/utils/randomRecitation';
 import * as Haptics from 'expo-haptics';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTracksForReciter} from '@/utils/track';
@@ -80,13 +80,13 @@ export function RandomRecitationHero({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       showToast(t('randomHero.finding'));
 
-      const randomTracks = await getMultipleRandomTracks(15, false);
-      if (randomTracks.length === 0) {
+      const picks = pickRandomRecitations(15);
+      if (picks.length === 0) {
         showToast(t('randomHero.findFailed'));
         return;
       }
 
-      const {reciter, surah} = randomTracks[0];
+      const {reciter, surah, rewayatId} = picks[0];
       showToast(
         t('randomHero.playing', {
           surah: getSurahDisplayName(surah),
@@ -94,37 +94,16 @@ export function RandomRecitationHero({
         }),
       );
 
-      const trackPromises = randomTracks.map(item => {
-        const availableRewayat = item.reciter.rewayat.filter(r =>
-          r.surah_list.includes(item.surah.id),
-        );
-        const rewayahToUse =
-          availableRewayat.length > 0
-            ? availableRewayat[
-                Math.floor(Math.random() * availableRewayat.length)
-              ]
-            : item.reciter.rewayat.reduce(
-                (prev, current) =>
-                  current.surah_total > prev.surah_total ? current : prev,
-                item.reciter.rewayat[0],
-              );
-        return createTracksForReciter(
-          item.reciter,
-          [item.surah],
-          rewayahToUse.id,
-        );
-      });
-
-      const trackBatches = await Promise.all(trackPromises);
+      const trackBatches = await Promise.all(
+        picks.map(item =>
+          createTracksForReciter(item.reciter, [item.surah], item.rewayatId),
+        ),
+      );
       const tracks = trackBatches.flat();
       await updateQueue(tracks, 0);
       await play();
 
-      const firstRewayah =
-        randomTracks[0].reciter.rewayat.filter(r =>
-          r.surah_list.includes(randomTracks[0].surah.id),
-        )[0] || randomTracks[0].reciter.rewayat[0];
-      await startNewChain(reciter, surah, 0, 0, firstRewayah.id);
+      await startNewChain(reciter, surah, 0, 0, rewayatId);
     } catch (error) {
       console.error('Error playing random recitation:', error);
       showToast(t('randomHero.playFailed'));

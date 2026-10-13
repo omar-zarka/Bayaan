@@ -77,6 +77,11 @@
         "title": "Privacy Policy",
         "description": "View our privacy policy"
       }
+    },
+    "analytics": {
+      "section": "PRIVACY",
+      "title": "Share anonymous usage data",
+      "description": "Help improve {{appName}} with anonymous, non-personal analytics. Your name and account are never shared."
     }
   },
   "themePicker": {
@@ -366,6 +371,31 @@
         "label": "Taghliz al-Lam",
         "description": "Heavy lam in Allah after emphatic letters"
       }
+    },
+    "legendV2": {
+      "labels": {
+        "wordVariant": "Word variant",
+        "silah": "Silah"
+      },
+      "descriptions": {
+        "wordVariant": "Word that reads differently from Hafs",
+        "silah": "Pronoun-lengthening mark (ۥ / ۦ)",
+        "silahDifference": "Pronoun-lengthening mark (ۥ / ۦ) that differs from Hafs"
+      },
+      "summary": {
+        "words": "Tints words that read differently from Hafs. Pronunciation rules such as tashil, imalah and taqlil are not highlighted.",
+        "wordsAndSilah": "Tints words that read differently from Hafs and colors silah marks. Pronunciation rules such as tashil, imalah and taqlil are not highlighted."
+      }
+    },
+    "hafsOnlyFont": "Hafs only. This font lacks marks used by {{rewayah}}.",
+    "hafsOnlyTajweed": "Hafs only. Not shown for {{rewayah}}.",
+    "fallback": {
+      "title": "Couldn't load {{rewayah}}",
+      "body": "Hafs is shown instead. {{rewayah}} stays your rewayah and is tried again the next time the app opens.",
+      "retryLabel": "Try loading {{rewayah}} again",
+      "retry": "Try again",
+      "keepLabel": "Keep reading Hafs",
+      "keep": "Keep Hafs"
     }
   }
 }

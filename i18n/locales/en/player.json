@@ -71,5 +71,8 @@
       "playAll": "Play all",
       "pauseAll": "Pause all"
     }
+  },
+  "a11y": {
+    "openPlayer": "Opens the full player"
   }
 }

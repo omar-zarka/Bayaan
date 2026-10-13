@@ -12,7 +12,9 @@
     "activeTafseer": "ACTIVE TAFSEER",
     "active": "Active",
     "noTranslations": "No translations found",
-    "noTafaseer": "No tafaseer found"
+    "noTafaseer": "No tafaseer found",
+    "downloadInProgress": "Download In Progress",
+    "waitForDownload": "Please wait until the current download completes before starting another."
   },
   "browse": {
     "browseAll": "Browse All",

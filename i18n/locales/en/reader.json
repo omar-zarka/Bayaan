@@ -34,5 +34,15 @@
   },
   "shareCard": {
     "madeWith": "made with {{appName}}"
+  },
+  "playback": {
+    "trackingUnavailable": "Verse tracking unavailable",
+    "unavailable": "Playback unavailable",
+    "surah": "This surah",
+    "fromBeginning": "{{surah}} plays from the beginning without verse tracking for this reciter.",
+    "untracked": "{{surah}} plays without verse highlighting for this reciter.",
+    "timestampsUnavailable": "Timestamps unavailable for this reciter on this surah. Try a different reciter.",
+    "verseTimingUnavailable": "Verse-by-verse playback isn't available for this reciter on this surah. Try a different reciter.",
+    "rangeUnplayable": "This selection has no verses to play for this reciter. Try a different reciter or range."
   }
 }

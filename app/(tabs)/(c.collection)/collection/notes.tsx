@@ -11,7 +11,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useRouter} from 'expo-router';
-import {useFocusEffect} from '@react-navigation/native';
+import {useFocusEffect} from 'expo-router';
 import {moderateScale} from 'react-native-size-matters';
 import {Feather} from '@expo/vector-icons';
 import {ListRenderItem} from 'react-native';
@@ -29,6 +29,8 @@ import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
+import {describeSavedVerseNow} from '@/hooks/useSavedVerseDescription';
+import {savedVerseSubtitle} from '@/services/verse-annotations/unitAnnotations';
 // @ai-end
 
 interface NoteData {
@@ -98,6 +100,11 @@ const NotesScreen = () => {
         surahNumber: item.note.surahNumber,
         ayahNumber: item.note.ayahNumber,
         noteId: item.note.id,
+        // The note's own rewayah names its verses (decision 3): the sheet
+        // labels them at once instead of after loading the note. A legacy
+        // note without one is a Hafs note (verse-units contract section 3),
+        // labelled from the first render as before Release 1. @ai
+        rewayah: item.note.rewayahId ?? 'hafs',
       },
     });
   }, []);
@@ -107,9 +114,12 @@ const NotesScreen = () => {
       SheetManager.show('collection-options', {
         payload: {
           title: item.surahName,
-          subtitle: t('common:labels.ayahNumber', {
-            number: item.note.ayahNumber,
-          }),
+          // @ai: the ayah in the numbering of the rewayah it was saved in
+          subtitle: savedVerseSubtitle(
+            describeSavedVerseNow(item.note),
+            item.note.ayahNumber,
+            number => t('common:labels.ayahNumber', {number}),
+          ),
           options: [
             {
               label: t('notesScreen.editNote'),

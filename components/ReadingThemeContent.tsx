@@ -38,14 +38,10 @@ import {
 } from '@/constants/surahNameGlyphs';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
-import {
-  digitalKhattDataService,
-  BASMALLAH_TEXT,
-} from '@/services/mushaf/DigitalKhattDataService';
-// @ai-start
+import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService'; // @ai
+import {rewayahBasmalaService} from '@/services/mushaf/RewayahBasmalaService'; // @ai
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
-// @ai-end
 
 const PREVIEW_BA = '\u0628';
 
@@ -59,6 +55,7 @@ const MODE_TO_INDEX: Record<ThemeMode, number> = {
 };
 
 // Surah An-Nas verse keys for preview
+const PREVIEW_SURAH = 114; // @ai
 const PREVIEW_VERSE_KEYS = [
   '114:1',
   '114:2',
@@ -475,7 +472,14 @@ const MushafPreviewCanvas: React.FC<MushafPreviewCanvasProps> = React.memo(
         fontSize: basmallahFontSize,
         fontFeatures: [{name: 'basm', value: 1}],
       });
-      basmBuilder.addText(BASMALLAH_TEXT);
+      // The basmala of the rewayah the preview verses below are read from
+      // (the active DK words cache), as it opens An-Nas. @ai
+      basmBuilder.addText(
+        rewayahBasmalaService.getText(
+          digitalKhattDataService.rewayah,
+          PREVIEW_SURAH,
+        ), // @ai
+      );
       basmBuilder.pop();
       const basmallahParagraph = basmBuilder.build();
       basmallahParagraph.layout(width);

@@ -13,6 +13,7 @@ import {themeDataService} from '@/services/mushaf/ThemeDataService';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+import {rewayahThemePassage, type UnitStart} from './verseUnitScreens';
 // @ai-end
 
 const surahData = require('@/data/surahData.json');
@@ -22,6 +23,12 @@ const surahData = require('@/data/surahData.json');
 interface ThemeContentProps {
   surahNumber: number;
   ayahNumber: number;
+  // @ai-start
+  /** Another rewayah's verse: its theme is the theme of the first Hafs
+   *  verse holding its words, and the passage is told in the rewayah's
+   *  numbering. Absent for Hafs (unchanged). */
+  unitStart?: UnitStart;
+  // @ai-end
   onBack: () => void;
 }
 
@@ -29,13 +36,17 @@ interface ThemeContentProps {
 export const ThemeContent: React.FC<ThemeContentProps> = ({
   surahNumber,
   ayahNumber,
+  unitStart, // @ai
   onBack,
 }) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const {t} = useTranslation(['sheets', 'common']);
 
-  const verseKey = `${surahNumber}:${ayahNumber}`;
+  // Themes are keyed by Hafs verses. @ai
+  const verseKey = unitStart
+    ? unitStart.unit.hafsKeys[0]
+    : `${surahNumber}:${ayahNumber}`;
   const themeInfo = themeDataService.getThemeForVerse(verseKey);
 
   if (!themeInfo) {
@@ -59,10 +70,26 @@ export const ThemeContent: React.FC<ThemeContentProps> = ({
   const surahName = surah
     ? getSurahDisplayName(surah)
     : t('common:labels.surahNumber', {number: themeInfo.surah});
+  // @ai-start
+  // Another rewayah: the rewayah verses holding the passage's words (never
+  // Hafs numbers under the rewayah's name).
+  const rewayahPassage = unitStart
+    ? rewayahThemePassage(
+        unitStart.model,
+        themeInfo.surah,
+        themeInfo.ayahFrom,
+        themeInfo.ayahTo,
+      )
+    : null;
   const passageRange = localizeDigits(
-    `${themeInfo.surah}:${themeInfo.ayahFrom} \u2013 ${themeInfo.surah}:${themeInfo.ayahTo}`,
+    unitStart
+      ? (rewayahPassage?.range ?? '')
+      : `${themeInfo.surah}:${themeInfo.ayahFrom} \u2013 ${themeInfo.surah}:${themeInfo.ayahTo}`,
   );
-  const verseCount = themeInfo.ayahTo - themeInfo.ayahFrom + 1;
+  const verseCount = unitStart
+    ? (rewayahPassage?.count ?? 0)
+    : themeInfo.ayahTo - themeInfo.ayahFrom + 1;
+  // @ai-end
 
   return (
     <View style={styles.container}>

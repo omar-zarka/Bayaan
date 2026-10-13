@@ -33,6 +33,15 @@ function loadLanguage() {
   return require('../language') as typeof import('../language');
 }
 
+// SDK 57 installs a lazy native fetch getter. These isolated language
+// tests stub React Native and never fetch; avoid loading native networking
+// while Jest resets the module registry.
+Object.defineProperty(globalThis, 'fetch', {
+  configurable: true,
+  writable: true,
+  value: jest.fn(),
+});
+
 beforeEach(() => {
   jest.resetModules();
   jest.clearAllMocks();

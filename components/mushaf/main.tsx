@@ -49,6 +49,13 @@ import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {useMushafNavigationStore} from '@/store/mushafNavigationStore';
 import {useMushafVerseSelectionStore} from '@/store/mushafVerseSelectionStore';
 import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
+import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
+import {
+  followShownRewayah, // @ai
+  mushafVerseMapService,
+  verseNavigationTarget, // @ai
+} from '@/services/mushaf/MushafVerseMapService';
+import type {RewayahId} from '@/services/rewayah/RewayahIdentity'; // @ai
 import {useMushafAutoPageTurn} from '@/hooks/useMushafAutoPageTurn';
 import {MushafPlayerBar} from './MushafPlayerBar';
 import SkiaPage from './skia/SkiaPage';
@@ -71,6 +78,8 @@ import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 // @ai-end
+import {useHeaderHeight} from 'expo-router/react-navigation'; // @ai
+import {RewayahFallbackBanner} from '@/components/MushafSettingsContent'; // @ai
 
 const TOTAL_PAGES = 604;
 const ANIMATION_DURATION = 300;
@@ -508,16 +517,34 @@ const DKSpreadView: React.FC<{
 // ============================================================================
 interface MushafViewerProps {
   pageNumber: number;
+  /** Surah the viewer was opened for, when `pageNumber` was derived from it. */
+  initialSurahId?: number; // @ai
   initialVerseKey?: string;
 }
 
-// @ai-start
+/** A surah the reader was explicitly sent to, pinned to the page it starts on. */
+type AskedSurah = {surahId: number; page: number}; // @ai
+
 export default function MushafViewer({
   pageNumber: initialPage,
+  initialSurahId,
 }: MushafViewerProps) {
   useKeepAwake();
   const {t} = useTranslation(['reader', 'common']);
   const [currentPage, setCurrentPage] = useState(initialPage);
+  // @ai-start
+  // Twelve pages open one surah and start another (591 has At-Tariq and
+  // Al-A'la; 601-604 start three apiece). `pageToSurah` can only name one
+  // surah per page, so it names the last one to start there. When the
+  // reader was sent to a specific surah, remember it for as long as they
+  // stay on that page; turning the page makes the question moot.
+  const [askedSurah, setAskedSurah] = useState<AskedSurah | null>(() =>
+    initialSurahId ? {surahId: initialSurahId, page: initialPage} : null,
+  );
+  useEffect(() => {
+    setAskedSurah(prev => (prev && prev.page !== currentPage ? null : prev));
+  }, [currentPage]);
+  // @ai-end
   const [isImmersive, setIsImmersive] = useState(false);
   const [isSearchMode, setIsSearchModeRaw] = useState(false);
   const [autoFocusSearch, setAutoFocusSearch] = useState(false);
@@ -553,6 +580,9 @@ export default function MushafViewer({
   const scrollDirection = useMushafSettingsStore(s => s.scrollDirection);
   const rewayah = useMushafSettingsStore(s => s.rewayah);
   const mushafRenderer = useMushafSettingsStore(s => s.mushafRenderer);
+  const rewayahFallbackFrom = useMushafSettingsStore(
+    s => s.rewayahFallbackFrom,
+  ); // @ai
   const isVertical = scrollDirection === 'vertical';
   const isBookLayout = pageLayout === 'book';
   const edgeBg = isDarkMode ? '#000' : readingColors.card;
@@ -565,8 +595,18 @@ export default function MushafViewer({
   const flatListRef = useRef<FlatList>(null);
   const continuousListRef = useRef<ContinuousListViewHandle>(null);
   const insets = useSafeAreaInsets();
+  // @ai — the iOS 26 Stack header is transparent and drawn over the content
+  const rawHeaderHeight = useHeaderHeight(); // @ai
   const {isTablet} = useResponsive();
   const {width: windowWidth, height: windowHeight} = useWindowDimensions();
+  // A paged, `inverted` FlatList preserves its pixel scroll offset when its
+  // items resize on rotation, so the visible page drifts to a different index
+  // (old offset ÷ new item width); `initialScrollIndex` is mount-only and never
+  // re-fires. Remount the list on an orientation flip via this key so it starts
+  // fresh at `initialScrollIndex = currentPage` and never inherits the stale
+  // offset. Keyed on orientation (not raw dimensions) so the on-screen keyboard
+  // shrinking the height never remounts the reader.
+  const orientationKey = windowWidth > windowHeight ? 'landscape' : 'portrait';
 
   // Measured size of the FlatList container. Using `useWindowDimensions()`
   // alone overestimates the available space on iPad because the stack
@@ -653,7 +693,32 @@ export default function MushafViewer({
     ? digitalKhattDataService.getSurahStartPages()
     : {};
 
-  const currentSurahId = pageToSurah[currentPage] || 1;
+  const currentSurahId =
+    askedSurah && askedSurah.page === currentPage
+      ? askedSurah.surahId // @ai
+      : pageToSurah[currentPage] || 1;
+
+  // @ai — load verse annotations for every surah on the current page.
+  // Nothing in the horizontal paged pipeline loaded the store before, so
+  // bookmark tints never painted and the long-press sheet showed stale
+  // bookmark state on cold entry (tapping it then INSERTed a duplicate row).
+  // Multi-surah aware because Juz-'Amma pages hold several surahs; the
+  // continuous views' own per-surah loads become subset no-ops against this.
+  const loadAnnotationsForSurahs = useVerseAnnotationsStore(
+    s => s.loadAnnotationsForSurahs,
+  );
+  useEffect(() => {
+    const verseKeys =
+      mushafVerseMapService.getOrderedVerseKeysForPage(currentPage);
+    let surahs = [
+      ...new Set(verseKeys.map(vk => Number(vk.split(':')[0]))),
+    ].filter(n => Number.isFinite(n) && n > 0);
+    if (surahs.length === 0 && digitalKhattDataService.initialized) {
+      const fallback = digitalKhattDataService.getPageToSurah()[currentPage];
+      if (fallback) surahs = [fallback];
+    }
+    if (surahs.length > 0) void loadAnnotationsForSurahs(surahs);
+  }, [currentPage, loadAnnotationsForSurahs]);
 
   // --- Analytics: mushaf page tracking ---
   const pageReadTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -938,17 +1003,18 @@ export default function MushafViewer({
   const navigateToSurah = useCallback(
     (surahId: number) => {
       setIsSearchMode(false);
+      const targetPage = surahStartPages[surahId];
+      if (targetPage) setAskedSurah({surahId, page: targetPage}); // @ai
       if (isVertical) {
         continuousListRef.current?.scrollToSurah(surahId);
-      } else {
-        const targetPage = surahStartPages[surahId];
-        if (targetPage) navigateToPage(targetPage);
+      } else if (targetPage) {
+        navigateToPage(targetPage);
       }
     },
     [isVertical, surahStartPages, navigateToPage],
   );
 
-  // Subscribe to external navigation requests (e.g. from SimilarVersesSheet)
+  // Subscribe to external navigation requests (e.g. from Similar Verses)
   const navRequestId = useMushafNavigationStore(s => s.requestId);
   useEffect(() => {
     if (navRequestId === 0) return;
@@ -972,15 +1038,52 @@ export default function MushafViewer({
     return () => clearTimeout(timer);
   }, [navRequestId, navigateToPage]);
 
+  // @ai-start
+  // A selection of rewayah verse units is numbered in that rewayah: drop it
+  // when the shown text switches to another rewayah (verse-units contract
+  // 4.7), so no page (QCF included, which reads the keys as Hafs) paints it
+  // there. A Hafs-keyed selection (route flash, QCF) means the same verses
+  // in every rewayah and is left alone, as before. The new text's verse
+  // units are requested at once and built by the units service after the
+  // switch's interactions, in chunks: never on a page render or long-press.
+  useEffect(() => {
+    const unsubscribe = followShownRewayah();
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+  // @ai-end
+
   const navigateToVerse = useCallback(
-    (verseKey: string, page: number) => {
+    // @ai-start
+    // `verseKey` is in the numbering of `rewayah`. Hafs by default: today's
+    // callers (search, bookmark chips) pass Hafs keys, and the page paints
+    // the shown rewayah's units holding that Hafs verse. A key in the shown
+    // rewayah's own numbering selects exactly that verse unit (and scrolls
+    // to its anchor's Hafs verse); a key of any other numbering selects
+    // nothing rather than the wrong verse.
+    (verseKey: string, page: number, rewayah: RewayahId = 'hafs') => {
+      const target = verseNavigationTarget(verseKey, rewayah);
       if (isVertical) {
         setIsSearchMode(false);
-        continuousListRef.current?.scrollToVerse(verseKey);
+        // The vertical views scroll to the verse's first slot: a unit's
+        // storage anchor ('S:A:W' for each part of a split Hafs verse, which
+        // the list view finds as its own row), else the Hafs verse. @ai
+        const scrollKey = target.unit?.anchor ?? target.scrollHafsKey;
+        if (scrollKey) {
+          continuousListRef.current?.scrollToVerse(scrollKey);
+        } else {
+          continuousListRef.current?.scrollToPage(page);
+        }
       } else {
         navigateToPage(page);
       }
-      useMushafVerseSelectionStore.getState().selectVerse(verseKey, page);
+      const selection = useMushafVerseSelectionStore.getState();
+      if (target.hafsKey) selection.selectVerse(target.hafsKey, page);
+      else if (target.unit) {
+        selection.selectUnits(target.rewayah, [target.unit], page);
+      }
+      // @ai-end
       const timer = setTimeout(() => {
         useMushafVerseSelectionStore.getState().clearSelection();
       }, 3000);
@@ -1069,6 +1172,7 @@ export default function MushafViewer({
       {/* Content area: horizontal FlatList or vertical continuous view */}
       {isVertical && viewMode === 'mushaf' ? (
         <ContinuousMushafView
+          key={orientationKey}
           ref={continuousListRef}
           textColor={readingColors.text}
           dividerColor={readingColors.textSecondary}
@@ -1079,6 +1183,7 @@ export default function MushafViewer({
         />
       ) : isVertical && viewMode === 'list' ? (
         <ContinuousListView
+          key={orientationKey}
           ref={continuousListRef}
           textColor={readingColors.text}
           labelColor={readingColors.textSecondary}
@@ -1089,6 +1194,7 @@ export default function MushafViewer({
         />
       ) : metrics.facingPages && viewMode === 'mushaf' ? (
         <FlatList
+          key={orientationKey}
           ref={flatListRef}
           data={spreads}
           renderItem={({item}) => (
@@ -1130,6 +1236,7 @@ export default function MushafViewer({
         />
       ) : (
         <FlatList
+          key={orientationKey}
           ref={flatListRef}
           data={pages}
           renderItem={({item}) => {
@@ -1278,8 +1385,34 @@ export default function MushafViewer({
                   </Pressable>
                 </View>
               </View>
+              {/* @ai — Hafs is standing in for a rewayah that failed to load */}
+              <RewayahFallbackBanner style={styles.headerFallbackBanner} />
             </Animated.View>
           )}
+
+          {/* @ai-start */}
+          {/* iOS 26: the same notice, under the transparent Stack header */}
+          {USE_GLASS && rewayahFallbackFrom && (
+            <Animated.View
+              style={[
+                styles.glassFallbackBanner,
+                overlayAnimatedStyle,
+                {
+                  top: rawHeaderHeight + moderateScale(8),
+                  left: Math.max(insets.left, moderateScale(12)),
+                  right: Math.max(insets.right, moderateScale(12)),
+                },
+              ]}
+              pointerEvents={isImmersive ? 'none' : 'box-none'}>
+              <RewayahFallbackBanner
+                style={[
+                  styles.glassFallbackBannerCard,
+                  {backgroundColor: theme.colors.background},
+                ]}
+              />
+            </Animated.View>
+          )}
+          {/* @ai-end */}
 
           {/* ================================================================ */}
           {/* Normal mode bottom bar — non-glass (iOS 26 uses Stack.Toolbar)  */}
@@ -1397,4 +1530,17 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 10,
   },
+  // @ai-start
+  headerFallbackBanner: {
+    marginTop: moderateScale(8),
+    marginBottom: 0,
+  },
+  glassFallbackBanner: {
+    position: 'absolute',
+    zIndex: 10,
+  },
+  glassFallbackBannerCard: {
+    marginBottom: 0,
+  },
+  // @ai-end
 });

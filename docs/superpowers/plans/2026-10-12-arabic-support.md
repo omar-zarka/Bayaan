@@ -86,9 +86,9 @@ no changes. Plex Sans Arabic includes Latin glyphs, so English names still rende
 ## Known limitations
 
 - Tabs retain their existing platform design and mirror in Arabic. The iOS
-  native tab controller uses an RTL trait override through the versioned
-  `patches/react-native-screens+4.23.0.patch`, placing Home on the right and the
-  separate Search tab on the left. This requires a native rebuild. The custom
+  native tab controller uses SDK 57's supported
+  `unstable_nativeProps={{direction: appDirection}}`, placing Home on the right
+  and the separate Search tab on the left. No Screens patch is needed. The custom
   tab row follows app direction, and the tablet rail moves to the leading side.
   The native tab shell keeps LTR Yoga coordinates to prevent clipping its
   mini-player accessory; screens and player content use app direction.
@@ -148,3 +148,25 @@ no changes. Plex Sans Arabic includes Latin glyphs, so English names still rende
   TypeScript and touched-file ESLint checks passed (existing warnings only).
 - Remaining device QA: Android and iPad, physical swipe/paging gestures, and
   Arabic text clipping with accessibility font sizes.
+
+## SDK 57 integration verification
+
+The Arabic branch includes the Expo SDK 57 upgrade (PR #345): Expo 57.0.28,
+React Native 0.86.3, Router 57.0.25 and Screens 4.26.0. Conflicts preserve the
+new rewayah verse units, bookmark/note anchors, download guards, sharing and
+individually accessible player controls. Display formatting translates their
+labels without changing stored verse numbers or playback state.
+
+- TypeScript passes with Node 24 and an 8 GB heap.
+- Full Jest run with `BAYAAN_OVERLAY_DB_DIR=bundled`: 195 suites and 2,430 tests
+  pass; one suite / two tests remain skipped by the existing configuration.
+- Both iOS and Android production bundles export successfully.
+- The signed Debug iOS simulator build passes with Xcode 26.5. CarPlay artwork
+  sizing uses the supported card-element API so the iOS 27 SDK is not required.
+- iOS 26.5 simulator checks confirm Arabic and English native tab placement,
+  language reloads, the plain selection tick, the mini-player accessory, and
+  the expanded Arabic player. The running native version is React Native 0.86.3.
+- Android and tablet visual checks remain outstanding.
+
+Jest initializes the real English translation resources and mocks native MMKV
+storage. Language-specific tests keep their own storage and direction mocks.

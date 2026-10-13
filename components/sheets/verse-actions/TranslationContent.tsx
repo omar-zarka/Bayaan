@@ -28,6 +28,12 @@ import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
+import {
+  hafsPagerPage,
+  joinPartTexts,
+  unitPagerPage,
+  type UnitStart,
+} from './verseUnitScreens';
 // @ai-end
 
 // ─── Data loading (module scope, runs once) ───────────────────────────────
@@ -72,6 +78,11 @@ interface TranslationContentProps {
   surahNumber: number;
   ayahNumber: number;
   rewayah?: import('@/store/mushafSettingsStore').RewayahId;
+  // @ai-start
+  /** Another rewayah: page through ITS verses (its numbering), starting at
+   *  `unit`. Absent for Hafs, which pages the Hafs verses as before. */
+  unitStart?: UnitStart;
+  // @ai-end
   onBack: () => void;
 }
 
@@ -80,6 +91,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
   surahNumber,
   ayahNumber,
   rewayah,
+  unitStart, // @ai
   onBack,
 }) => {
   const {theme} = useTheme();
@@ -94,13 +106,31 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
   const downloadedMeta = useTranslationStore(s => s.downloadedMeta);
 
   const initialVerseKey = `${surahNumber}:${ayahNumber}`;
-  const initialIndex = verseKeyToIndex[initialVerseKey] ?? 0;
+  // @ai-start
+  const unitModel = unitStart?.model ?? null;
+  const initialIndex = unitStart
+    ? unitStart.unit.index
+    : (verseKeyToIndex[initialVerseKey] ?? 0);
+  const total = unitModel ? unitModel.units.length : TOTAL_VERSES;
+  // @ai-end
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [downloadedTexts, setDownloadedTexts] = useState<
     Record<string, string>
   >({});
 
-  const verse = allVerses[currentIndex];
+  // @ai-start
+  const page = useMemo(
+    () =>
+      unitModel
+        ? unitPagerPage(
+            unitModel,
+            unitModel.units[Math.min(currentIndex, total - 1)],
+            'translation',
+          )
+        : hafsPagerPage(allVerses[currentIndex].verseKey),
+    [unitModel, currentIndex, total],
+  );
+  // @ai-end
 
   // Identifiers for downloaded (non-bundled) translations
   const downloadedIdentifiers = useMemo(
@@ -121,11 +151,14 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
     let cancelled = false;
     Promise.all(
       downloadedIdentifiers.map(async id => {
-        const text = await translationDbService.getTranslation(
-          verse.verseKey,
-          id,
+        // @ai-start
+        const texts = await Promise.all(
+          page.hafsKeys.map(hafsKey =>
+            translationDbService.getTranslation(hafsKey, id),
+          ),
         );
-        return [id, text ?? ''] as [string, string];
+        return [id, joinPartTexts(texts)] as [string, string];
+        // @ai-end
       }),
     ).then(results => {
       if (!cancelled) {
@@ -136,11 +169,25 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [verse.verseKey, downloadedIdentifiers]);
+    // page.key changes exactly when page.hafsKeys can. @ai
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page.key, downloadedIdentifiers]);
+
+  // @ai-start
+  const bundledText = useCallback(
+    (id: string) =>
+      joinPartTexts(
+        page.hafsKeys.map(hafsKey =>
+          stripHtml(getTranslationText(hafsKey, id)),
+        ),
+      ),
+    [page],
+  );
+  // @ai-end
 
   const activeTranslationName = getTranslationName(selectedTranslationId);
   const activeTranslationText = isBundledTranslation(selectedTranslationId)
-    ? stripHtml(getTranslationText(verse.verseKey, selectedTranslationId))
+    ? bundledText(selectedTranslationId) // @ai
     : stripHtml(downloadedTexts[selectedTranslationId] ?? '');
 
   // Track translation viewed when the selected translation changes
@@ -167,15 +214,15 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
   }, [selectedTranslationId, downloadedIdentifiers]);
 
   const isFirst = currentIndex === 0;
-  const isLast = currentIndex === TOTAL_VERSES - 1;
+  const isLast = currentIndex === total - 1; // @ai
 
   const goToPrevious = useCallback(() => {
     setCurrentIndex(i => Math.max(0, i - 1));
   }, []);
 
   const goToNext = useCallback(() => {
-    setCurrentIndex(i => Math.min(TOTAL_VERSES - 1, i + 1));
-  }, []);
+    setCurrentIndex(i => Math.min(total - 1, i + 1)); // @ai
+  }, [total]);
 
   const handleSelectTranslation = useCallback(
     (id: string) => {
@@ -188,7 +235,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
     <View style={styles.container}>
       {/* Scrollable verse content */}
       <ScrollView
-        key={verse.verseKey}
+        key={page.key} // @ai
         style={styles.scrollContent}
         contentContainerStyle={styles.scrollInner}
         showsVerticalScrollIndicator={false}
@@ -196,12 +243,18 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
         {/* Verse badge */}
         <View style={styles.verseBadge}>
           <Text style={styles.verseBadgeText}>
-            {localizeDigits(verse.verseKey)}
+            {localizeDigits(page.label)}
           </Text>
         </View>
 
         {/* Arabic text */}
-        <SkiaVersePreview verseKey={verse.verseKey} rewayah={rewayah} />
+        {/* @ai-start */}
+        <SkiaVersePreview
+          verseKey={page.previewVerseKey}
+          text={page.previewText}
+          rewayah={rewayah}
+        />
+        {/* @ai-end */}
 
         {/* Divider */}
         <View style={styles.divider} />
@@ -217,12 +270,20 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
             {t('translationContent.notAvailable')}
           </Text>
         )}
+        {/* @ai-start */}
+        {/* A Hafs verse the rewayah divides: its whole translation, noted. */}
+        {page.notes.map(note => (
+          <Text key={note} style={styles.sharedNote}>
+            {note}
+          </Text>
+        ))}
+        {/* @ai-end */}
 
         {/* Other translations (bundled + downloaded) */}
         {otherTranslationIds.map(id => {
           const name = getTranslationName(id);
           const text = isBundledTranslation(id)
-            ? stripHtml(getTranslationText(verse.verseKey, id))
+            ? bundledText(id) // @ai
             : stripHtml(downloadedTexts[id] ?? '');
           return (
             <React.Fragment key={id}>
@@ -282,9 +343,7 @@ export const TranslationContent: React.FC<TranslationContentProps> = ({
           </Text>
         </Pressable>
 
-        <Text style={styles.footerCounter}>
-          {localizeDigits(verse.verseKey)}
-        </Text>
+        <Text style={styles.footerCounter}>{localizeDigits(page.label)}</Text>
 
         <Pressable
           onPress={goToNext}
@@ -378,6 +437,15 @@ const createStyles = (theme: Theme) =>
       fontFamily: 'Manrope-Regular',
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
     },
+    // @ai-start
+    sharedNote: {
+      fontSize: moderateScale(12),
+      fontFamily: 'Manrope-Medium',
+      color: Color(theme.colors.textSecondary).alpha(0.6).toString(),
+      lineHeight: moderateScale(18),
+      marginTop: verticalScale(8),
+    },
+    // @ai-end
     otherTranslationHeader: {
       flexDirection: 'row',
       alignItems: 'center',

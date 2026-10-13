@@ -40,7 +40,7 @@ import {
 } from '@/utils/adhkarUtils';
 // @ai-end
 import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
-import {useHeaderHeight} from '@react-navigation/elements';
+import {useHeaderHeight} from 'expo-router/react-navigation';
 import {adhkarShareUrl, shareUrl} from '@/utils/shareUtils';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import branding from '@/config/branding';

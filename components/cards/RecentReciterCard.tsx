@@ -9,17 +9,9 @@ import {LinearGradient} from 'expo-linear-gradient';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {Slider} from '@miblanchard/react-native-slider';
-import {
-  getReciterById,
-  getSurahById,
-  getAvailableSurahsForRewayat,
-} from '@/services/dataService';
-import {createTracksForReciter} from '@/utils/track';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
-import {generateSmartAudioUrl} from '@/utils/audioUtils';
-import {getReciterArtwork} from '@/utils/artworkUtils';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
-import {Surah} from '@/data/surahData';
+import {resumeRecent} from '@/services/player/utils/resumeRecent';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {shallow} from 'zustand/shallow';
 import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
@@ -190,36 +182,6 @@ export const RecentReciterCard = ({
         return;
       }
 
-      const [reciter, surah] = await Promise.all([
-        getReciterById(reciterId),
-        getSurahById(surahId),
-      ]);
-
-      if (!reciter || !surah) {
-        console.error('Could not find reciter or surah');
-        return;
-      }
-
-      const rewayatToUseId = rewayatId || reciter.rewayat[0]?.id;
-      if (!rewayatToUseId) {
-        console.error('Could not determine rewayat ID');
-        return;
-      }
-
-      const availableSurahIds =
-        await getAvailableSurahsForRewayat(rewayatToUseId);
-
-      const allSurahsForRewayat = availableSurahIds
-        .map(id => getSurahById(id))
-        .filter((s): s is Surah => s !== undefined);
-
-      if (allSurahsForRewayat.length === 0) {
-        console.error('No available surahs found for this rewayat');
-        return;
-      }
-
-      const startIndex = allSurahsForRewayat.findIndex(s => s.id === surahId);
-
       const startPosition =
         isCurrentlyPlaying && storePosition >= 0
           ? storePosition
@@ -234,43 +196,14 @@ export const RecentReciterCard = ({
           startPosition,
         });
 
-      if (startIndex === -1) {
-        const track = await createTracksForReciter(
-          reciter,
-          [surah],
-          rewayatToUseId,
-        );
-        if (!track || track.length === 0) {
-          console.error('Failed to create fallback track');
-          return;
-        }
-        await updateQueue(track, 0, startPosition);
-        useRecentlyPlayedStore.getState().resumeChain(index);
-        return;
-      }
-
-      const artwork = getReciterArtwork(reciter);
-
-      const reorderedSurahs = [
-        allSurahsForRewayat[startIndex],
-        ...allSurahsForRewayat.slice(startIndex + 1),
-        ...allSurahsForRewayat.slice(0, startIndex),
-      ];
-
-      const allTracks = reorderedSurahs.map(s => ({
-        id: `${reciter.id}:${s.id}`,
-        url: generateSmartAudioUrl(reciter, s.id.toString(), rewayatToUseId),
-        title: s.name,
-        artist: reciter.name,
-        reciterId: reciter.id,
-        artwork,
-        surahId: s.id.toString(),
-        reciterName: reciter.name,
-        rewayatId: rewayatToUseId,
-      }));
-
-      await updateQueue(allTracks, 0, startPosition);
-      useRecentlyPlayedStore.getState().resumeChain(index);
+      await resumeRecent({
+        reciterId,
+        surahId,
+        rewayatId,
+        startPosition,
+        recentIndex: index,
+        updateQueue,
+      });
     } catch (error) {
       console.error('Error playing surah:', error);
     }
@@ -344,7 +277,7 @@ export const RecentReciterCard = ({
             ]}
             start={{x: 0, y: 0}}
             end={{x: 1, y: 1}}
-            style={StyleSheet.absoluteFillObject}
+            style={StyleSheet.absoluteFill}
           />
         </>
       )}

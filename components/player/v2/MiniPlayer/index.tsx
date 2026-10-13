@@ -9,6 +9,7 @@ import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
 import Color from 'color';
 // @ai-start
+import {useTranslation} from 'react-i18next';
 import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 import {appLayoutDirection} from '@/utils/rtl';
 // @ai-end
@@ -16,6 +17,7 @@ import {appLayoutDirection} from '@/utils/rtl';
 // @ai-start
 function MiniPlayerInner() {
   const {theme} = useTheme();
+  const {t} = useTranslation(['player', 'common']);
   const {play, pause} = usePlayerActions();
   const playbackState = usePlayerStore(state => state.playback.state);
   const queueTracks = usePlayerStore(state => state.queue.tracks);
@@ -54,30 +56,46 @@ function MiniPlayerInner() {
   const textColor = theme.colors.text;
 
   return (
-    <Pressable onPress={handlePress} style={[styles.row, appLayoutDirection]}>
-      <ReciterImage
-        reciterName={currentTrack.reciterName}
-        style={styles.artwork}
-      />
+    // a11y — plain View row (not a grouping Pressable) so the play/pause
+    // control is INDIVIDUALLY focusable by VoiceOver; the expand action lives
+    // on the inner body only.
+    <View style={[styles.row, appLayoutDirection]}>
+      <Pressable
+        onPress={handlePress}
+        style={styles.body}
+        accessibilityRole="button"
+        accessibilityLabel={`${getTrackDisplayTitle(currentTrack)}, ${getTrackArtistDisplay(currentTrack)}`}
+        accessibilityHint={t('a11y.openPlayer')}>
+        <ReciterImage
+          reciterName={currentTrack.reciterName}
+          style={styles.artwork}
+        />
 
-      <View style={styles.trackInfo}>
-        <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-          {getTrackDisplayTitle(currentTrack)}
-        </Text>
-        <Text
-          style={[
-            styles.subtitle,
-            {color: Color(textColor).alpha(0.5).toString()},
-          ]}
-          numberOfLines={1}>
-          {getTrackArtistDisplay(currentTrack)}
-        </Text>
-      </View>
+        <View style={styles.trackInfo}>
+          <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
+            {getTrackDisplayTitle(currentTrack)}
+          </Text>
+          <Text
+            style={[
+              styles.subtitle,
+              {color: Color(textColor).alpha(0.5).toString()},
+            ]}
+            numberOfLines={1}>
+            {getTrackArtistDisplay(currentTrack)}
+          </Text>
+        </View>
+      </Pressable>
 
       <Pressable
         onPress={handlePlayPause}
         style={styles.playButton}
-        hitSlop={10}>
+        hitSlop={10}
+        accessibilityRole="button"
+        accessibilityLabel={t(
+          playbackState === 'playing'
+            ? 'common:actions.pause'
+            : 'common:actions.play',
+        )}>
         {isLoadingNewTrack ? (
           <LoadingIndicator color={textColor} />
         ) : playbackState === 'playing' ? (
@@ -86,7 +104,7 @@ function MiniPlayerInner() {
           <PlayIcon color={textColor} size={22} />
         )}
       </Pressable>
-    </Pressable>
+    </View>
   );
 }
 // @ai-end
@@ -101,6 +119,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingTop: 8,
     paddingBottom: 20,
+    gap: 10,
+  },
+  body: {
+    // a11y — expand-to-full-player hit target (artwork + track info). Same
+    // `gap` as the row it was split out of, so the artwork|trackInfo rhythm is
+    // unchanged: this refactor is a11y-only, with no visual delta.
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
   artwork: {

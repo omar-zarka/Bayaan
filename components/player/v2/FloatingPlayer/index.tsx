@@ -20,12 +20,14 @@ import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
 import {useResponsive} from '@/hooks/useResponsive';
 // @ai-start
+import {useTranslation} from 'react-i18next';
 import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 // @ai-end
 
 // @ai-start
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
   const {theme} = useTheme();
+  const {t} = useTranslation(['player', 'common']);
   const glassColorScheme = useGlassColorScheme();
   const {play, pause} = usePlayerActions();
   const playbackState = usePlayerStore(state => state.playback.state);
@@ -104,28 +106,43 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
       {...(USE_GLASS
         ? {glassEffectStyle: 'regular' as const, colorScheme: glassColorScheme}
         : {})}>
-      <Pressable
-        onPress={handlePress}
-        style={styles.content}
-        android_ripple={{color: 'rgba(0, 0, 0, 0.1)', borderless: false}}>
-        <ReciterImage
-          reciterName={currentTrack.reciterName}
-          style={styles.artwork}
-        />
-        <View style={styles.trackInfo}>
-          <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-            {getTrackDisplayTitle(currentTrack)}
-          </Text>
-          <Text
-            style={[styles.subtitle, {color: subtitleColor}]}
-            numberOfLines={1}>
-            {getTrackArtistDisplay(currentTrack)}
-          </Text>
-        </View>
+      {/* a11y — the row is a plain View, not a grouping Pressable, so the
+          play/pause control is INDIVIDUALLY focusable by TalkBack / VoiceOver
+          (a wrapping `accessible` Pressable would collapse the whole row into
+          one node). The expand action lives on the inner body only. */}
+      <View style={styles.content}>
+        <Pressable
+          onPress={handlePress}
+          style={styles.body}
+          android_ripple={{color: 'rgba(0, 0, 0, 0.1)', borderless: false}}
+          accessibilityRole="button"
+          accessibilityLabel={`${getTrackDisplayTitle(currentTrack)}, ${getTrackArtistDisplay(currentTrack)}`}
+          accessibilityHint={t('a11y.openPlayer')}>
+          <ReciterImage
+            reciterName={currentTrack.reciterName}
+            style={styles.artwork}
+          />
+          <View style={styles.trackInfo}>
+            <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
+              {getTrackDisplayTitle(currentTrack)}
+            </Text>
+            <Text
+              style={[styles.subtitle, {color: subtitleColor}]}
+              numberOfLines={1}>
+              {getTrackArtistDisplay(currentTrack)}
+            </Text>
+          </View>
+        </Pressable>
         <Pressable
           onPress={handlePlayPause}
           style={styles.playButton}
-          hitSlop={10}>
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t(
+            playbackState === 'playing'
+              ? 'common:actions.pause'
+              : 'common:actions.play',
+          )}>
           {isLoadingNewTrack ? (
             <LoadingIndicator color={theme.colors.text} />
           ) : playbackState === 'playing' ? (
@@ -137,7 +154,7 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
             <PlayIcon color={theme.colors.text} size={moderateScale(20, 0.2)} />
           )}
         </Pressable>
-      </Pressable>
+      </View>
     </Container>
   );
 });
@@ -150,6 +167,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: moderateScale(14, 0.2),
     paddingVertical: moderateScale(7, 0.2),
+    gap: moderateScale(10, 0.2),
+  },
+  body: {
+    // a11y — the expand-to-full-player hit target (artwork + track info). A row
+    // inside `content` carrying the SAME `gap` it was split out of, so the
+    // artwork|trackInfo rhythm is unchanged: this refactor is a11y-only, with
+    // no visual delta.
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: moderateScale(10, 0.2),
   },
   artwork: {

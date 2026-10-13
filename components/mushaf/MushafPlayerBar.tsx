@@ -4,9 +4,15 @@
  * Idle state:   [Search] ---- [Play] ---- [...]
  * Active state: [Stop]  ---- [Prev] [Play/Pause] [Next] ---- [...]
  *                           Surah Name S:A (centered below)
+ *
+ * The verse reference comes from the store's currentVerseLabel, which is in
+ * the numbering of the mushaf on screen (a Warsh reciter in a Warsh mushaf
+ * shows Warsh numbers). Surahs whose timing numbering is unknown show no
+ * verse and disable previous / next ayah; when such a surah was asked to
+ * start at a later verse, a notice says it plays from the beginning. @ai
  */
 
-import React, {useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react'; // @ai
 import {
   View,
   Text,
@@ -19,14 +25,24 @@ import {moderateScale} from 'react-native-size-matters';
 import {SheetManager} from 'react-native-actions-sheet';
 import Color from 'color';
 import {useTheme} from '@/hooks/useTheme';
-import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
+import {
+  formatPlaybackInfo, // @ai
+  getPlayerBarNotice, // @ai
+  useMushafPlayerStore,
+} from '@/store/mushafPlayerStore';
 import {mushafAudioService} from '@/services/audio/MushafAudioService';
 import {SURAHS} from '@/data/surahData';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
 // @ai-start
+import {playbackNoticeText, playbackErrorText} from '@/i18n/playback';
 import {useTranslation} from 'react-i18next';
-import {getSurahDisplayName} from '@/i18n/format';
+import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
+import {showToast} from '@/utils/toastUtils'; // @ai
+
+// @ai-start
+const surahNameOf = (surah: number): string =>
+  surah >= 1 && surah <= 114 ? getSurahDisplayName(SURAHS[surah - 1]) : '';
 // @ai-end
 
 interface MushafPlayerBarProps {
@@ -44,7 +60,9 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
 
   const playbackState = useMushafPlayerStore(s => s.playbackState);
   const currentSurah = useMushafPlayerStore(s => s.currentSurah);
-  const currentAyah = useMushafPlayerStore(s => s.currentAyah);
+  const currentVerseLabel = useMushafPlayerStore(s => s.currentVerseLabel);
+  const numberingMode = useMushafPlayerStore(s => s.numberingMode); // @ai
+  const verseTrackingUnavailable = numberingMode === 'disabled'; // @ai
   const timestampError = useMushafPlayerStore(s => s.timestampError);
   const isIdle = playbackState === 'idle';
   const isLoading = playbackState === 'loading';
@@ -54,6 +72,25 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
     currentSurah >= 1 && currentSurah <= 114
       ? getSurahDisplayName(SURAHS[currentSurah - 1])
       : '';
+
+  // @ai-start
+  // Refusals and "Verse tracking unavailable" are shown inline below; a
+  // requested start verse that was skipped (the surah plays from its
+  // beginning without verse tracking) needs a notice.
+  useEffect(
+    () =>
+      useMushafPlayerStore.subscribe((state, prev) => {
+        const notice = getPlayerBarNotice(
+          prev,
+          state,
+          surahNameOf,
+          playbackNoticeText(),
+        );
+        if (notice) showToast(notice.title, notice.message, notice.preset);
+      }),
+    [],
+  );
+  // @ai-end
 
   const handlePlayPress = useCallback(() => {
     const store = useMushafPlayerStore.getState();
@@ -117,7 +154,7 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
             {color: Color(theme.colors.text).alpha(0.7).toString()},
           ]}
           numberOfLines={1}>
-          {timestampError}
+          {playbackErrorText(timestampError)}
         </Text>
         <Pressable
           style={[
@@ -180,11 +217,21 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
   }
 
   // ── Active state (playing / paused / loading) ───────────────────────
-  const infoText = t('verseLabel', {
-    surah: surahName,
-    surahNumber: currentSurah,
-    ayah: currentAyah,
-  });
+  // Same text as the iOS 26 toolbar (formatPlaybackInfo).
+  const infoText = localizeDigits(
+    formatPlaybackInfo(
+      surahName,
+      {
+        currentVerseLabel,
+        numberingMode,
+      },
+      t('playback.trackingUnavailable'),
+    ),
+  ); // @ai
+  const verseNavDisabled = verseTrackingUnavailable;
+  const chevronColor = verseNavDisabled
+    ? Color(theme.colors.text).alpha(0.3).toString()
+    : theme.colors.text;
 
   return (
     <View style={styles.activeContainer}>
@@ -206,12 +253,14 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
           <Pressable
             style={styles.chevronButton}
             onPress={handlePrevAyah}
+            disabled={verseNavDisabled}
             accessibilityRole="button"
-            accessibilityLabel={t('playerBar.previousAyah')}>
+            accessibilityLabel={t('playerBar.previousAyah')}
+            accessibilityState={{disabled: verseNavDisabled}}>
             <Feather
               name="chevrons-left"
               size={moderateScale(22)}
-              color={theme.colors.text}
+              color={chevronColor}
             />
           </Pressable>
 
@@ -237,12 +286,14 @@ export const MushafPlayerBar: React.FC<MushafPlayerBarProps> = ({
           <Pressable
             style={styles.chevronButton}
             onPress={handleNextAyah}
+            disabled={verseNavDisabled}
             accessibilityRole="button"
-            accessibilityLabel={t('playerBar.nextAyah')}>
+            accessibilityLabel={t('playerBar.nextAyah')}
+            accessibilityState={{disabled: verseNavDisabled}}>
             <Feather
               name="chevrons-right"
               size={moderateScale(22)}
-              color={theme.colors.text}
+              color={chevronColor}
             />
           </Pressable>
         </View>

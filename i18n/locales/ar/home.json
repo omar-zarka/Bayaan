@@ -12,7 +12,9 @@
     "activeTafseer": "التفسير الحالي",
     "active": "مفعّل",
     "noTranslations": "لم يتم العثور على ترجمات",
-    "noTafaseer": "لم يتم العثور على تفاسير"
+    "noTafaseer": "لم يتم العثور على تفاسير",
+    "downloadInProgress": "جارٍ التنزيل",
+    "waitForDownload": "يرجى الانتظار حتى يكتمل التنزيل الحالي قبل بدء تنزيل آخر."
   },
   "browse": {
     "browseAll": "تصفّح الكل",

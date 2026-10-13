@@ -24,10 +24,8 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {GRADIENT_COLORS} from '@/utils/gradientColors';
 import {useReciterSelection} from '@/hooks/useReciterSelection';
 import {Theme} from '@/utils/themeUtils';
-// @ai-start
-import {getJuzForSurah} from '@/data/juzData';
-// @ai-end
-import {useHeaderHeight} from '@react-navigation/elements';
+import {getJuzForSurah, getJuzName} from '@/data/juzData';
+import {useHeaderHeight} from 'expo-router/react-navigation';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 // @ai-start

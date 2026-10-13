@@ -28,6 +28,7 @@ import {
   ShieldLockIcon,
 } from '@/components/Icons';
 import {useDevSettingsStore} from '@/store/devSettingsStore';
+import {useAnalyticsConsentStore} from '@/store/analyticsConsentStore';
 import {ThemePicker} from '@/components/settings/ThemePicker';
 import branding from '@/config/branding';
 // @ai-start
@@ -240,6 +241,13 @@ export default function SettingsScreen() {
   const {showFloatingDevMenu, toggleFloatingDevMenu} = useDevSettingsStore();
   const {t} = useTranslation(['settings', 'common']);
   const settingsSections = useMemo(() => getSettingsSections(t), [t]);
+  const {analyticsEnabled, setAnalyticsEnabled} = useAnalyticsConsentStore();
+
+  const handleAnalyticsToggle = (value: boolean): void => {
+    // The analytics service subscribes to this store and pushes the choice
+    // straight to the PostHog SDK, so flipping the flag is all we do here.
+    setAnalyticsEnabled(value);
+  };
 
   const iconColor = theme.colors.text;
   const chevronColor = theme.colors.textSecondary;
@@ -383,6 +391,42 @@ export default function SettingsScreen() {
             )}
           </View>
         ))}
+
+        {/* Privacy Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionHeader}>
+            {t('index.analytics.section')}
+          </Text>
+          {renderCard(
+            <View style={styles.settingsRow}>
+              <View style={styles.settingsItemIcon}>
+                <Feather
+                  name="bar-chart-2"
+                  size={moderateScale(20)}
+                  color={iconColor}
+                />
+              </View>
+              <View style={styles.settingsTextContainer}>
+                <Text style={styles.settingsTitle}>
+                  {t('index.analytics.title')}
+                </Text>
+                <Text style={styles.settingsDescription}>
+                  {t('index.analytics.description', {
+                    appName: branding.appName,
+                  })}
+                </Text>
+              </View>
+              <Switch
+                value={analyticsEnabled}
+                onValueChange={handleAnalyticsToggle}
+                trackColor={trackColor}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor={trackColor.false}
+                style={styles.switchStyle}
+              />
+            </View>,
+          )}
+        </View>
 
         {/* Developer Section */}
         {__DEV__ && (
