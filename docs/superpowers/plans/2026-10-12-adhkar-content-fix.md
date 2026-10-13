@@ -23,7 +23,7 @@
 - Swift script checks, Kotlin unit tests (widgets)
 
 **Spec:** the inputs below are the spec. There is no separate design doc; the user approved the scope in conversation on 2026-10-12.
-- `docs/superpowers/specs/2026-10-12-evening-adhkar-texts.md`: the six evening texts, under review by Osman. It is the machine-read single source for those rows.
+- `docs/superpowers/specs/2026-10-12-evening-adhkar-texts.md`: the six evening texts, approved by Osman on 2026-10-12. It is the machine-read single source for those rows.
 - The audit reports (read-only, outside the repo): `/private/tmp/claude-501/-Users-osmansaeday-orca-workspaces-Bayaan-widgets/c0503663-a396-4272-91ae-d9723ef577f3/scratchpad/adhkar-audit/`, files `00-summary.md`, `01-morning-evening.md`, `02-text-integrity.md` (+ `text/issues.csv`), `03-audio-files.md`, `04-audio-content.md` and `05-data-flow.md`. The audit ran on the `widgets` worktree; every path and line in this plan was re-checked against `origin/develop` at `cf27ed02`.
 
 ## Global Constraints
