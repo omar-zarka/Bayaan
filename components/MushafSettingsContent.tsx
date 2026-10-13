@@ -1167,7 +1167,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             </Text>
             <Text style={styles.tajweedSubLabel}>
               {isQCF1440
-                ? t('mushafSettings.tajweedUnavailable')
+                ? t('mushafSettings.tajweedPreview') // @ai
                 : rewayah !== 'hafs'
                   ? hafsOnlyTajweedDescription // @ai
                   : t('mushafSettings.tajweedDescription')}
@@ -1177,7 +1177,6 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             value={showTajweed}
             onValueChange={toggleTajweed}
             theme={theme}
-            disabled={isQCF1440}
           />
         </View>
         <View style={styles.divider} />
