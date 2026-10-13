@@ -9,6 +9,7 @@ import type {
   SuperCategory,
   SuperCategorySection,
 } from '../../types/adhkar';
+import {ADHKAR_DATA_VERSION} from './adhkarDataVersion';
 
 // Database row types (snake_case)
 interface CategoryRow {
@@ -72,13 +73,8 @@ function esc(value: string | null | undefined): string {
   return `'${value.replace(/'/g, "''")}'`;
 }
 
-// Data version - increment when seed data changes to trigger re-seed
-// Version 1: Initial adhkar data (267 items)
-// Version 2: Added Quranic Duas (40 items, total 307)
-// Version 3: Fixed audio file naming (dua_X.mp3 -> adhkar_X.mp3)
-// Version 4: Added 99 Names of Allah (99 items, total 406)
-// Version 5: Balanced "Other" section bento grid (left=14, right=14)
-const DATA_VERSION = 5;
+// History and bump rules: services/database/adhkarDataVersion.ts
+const DATA_VERSION = ADHKAR_DATA_VERSION;
 
 class AdhkarDatabaseService {
   private db: SQLite.SQLiteDatabase | null = null;
