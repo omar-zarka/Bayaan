@@ -173,6 +173,12 @@ module.exports = {
       '@bacons/apple-targets',
       ['expo-audio', {enableBackgroundPlayback: true}],
       'expo-sqlite',
+      'expo-asset',
+      'expo-font',
+      'expo-image',
+      'expo-sharing',
+      'expo-status-bar',
+      'expo-web-browser',
       [
         'expo-splash-screen',
         {
