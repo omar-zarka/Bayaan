@@ -696,7 +696,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
     if (switchingToQCF && outcome.kind === 'switched') {
       Alert.alert(
         'Mushaf 1440 Beta',
-        `Mushaf 1440 is ${branding.appName}’s most modern mushaf pipeline, but it is still in beta. Some features are currently disabled, including tajweed coloring and rewayah switching.`,
+        `Mushaf 1440 is ${branding.appName}’s most modern mushaf pipeline, but it is still in beta. Tajweed coloring is available as a preview. Rewayah switching is still disabled.`,
       );
     }
   }, []);
@@ -1115,7 +1115,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             <Text style={styles.tajweedLabel}>Tajweed Coloring</Text>
             <Text style={styles.tajweedSubLabel}>
               {isQCF1440
-                ? 'Unavailable in Mushaf 1440 beta'
+                ? 'Preview colored tajweed' // @ai
                 : rewayah !== 'hafs'
                   ? hafsOnlyTajweedDescription // @ai
                   : 'Highlight rules with colors'}
@@ -1125,7 +1125,6 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             value={showTajweed}
             onValueChange={toggleTajweed}
             theme={theme}
-            disabled={isQCF1440}
           />
         </View>
         <View style={styles.divider} />

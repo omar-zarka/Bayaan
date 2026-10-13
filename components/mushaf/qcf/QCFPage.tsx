@@ -1,4 +1,4 @@
-// QCF V2 mushaf renderer.
+// QCF V2 / V4 tajweed mushaf renderer.
 //
 // Per-line Skia paragraphs, each at its own y position from
 // calculateLineYPositions(). TextAlign.Center, layout to CONTENT_WIDTH.
@@ -51,6 +51,7 @@ import {PAGE_WIDTH, FONTSIZE} from '@/services/mushaf/QuranTextService';
 import {
   qcfFontFamilyForPage,
   qcfFontLoader,
+  getQCFFontVariant, // @ai
 } from '@/services/mushaf/QCFFontLoader';
 import {qcfLayoutCacheService} from '@/services/mushaf/QCFLayoutCacheService';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
@@ -136,6 +137,15 @@ const QCFPage: React.FC<QCFPageProps> = ({
 }) => {
   const {theme} = useTheme();
   const fontMgr = useMushafFontMgr();
+  // @ai-start
+  const showTajweed = useMushafSettingsStore(s => s.showTajweed);
+  // Use the actual page text color: reading themes can differ from the app theme.
+  const fontVariant = getQCFFontVariant(
+    showTajweed,
+    Color(textColor).isLight(),
+  );
+  const fontFamily = qcfFontFamilyForPage(pageNumber, fontVariant);
+  // @ai-end
   const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
   const showThemes = useMushafSettingsStore(s => s.showThemes);
   const showAllahNameHighlight = useMushafSettingsStore(
@@ -174,9 +184,19 @@ const QCFPage: React.FC<QCFPageProps> = ({
       nameFontSize: scaledSize * 0.4,
     };
   }, []);
-  const [fontReady, setFontReady] = useState<boolean>(
-    () => fontMgr != null && qcfFontLoader.isReady(pageNumber, fontMgr), // @ai
+  // @ai-start
+  const [loadedFont, setLoadedFont] = useState<{
+    family: string;
+    manager: NonNullable<typeof fontMgr>;
+  } | null>(() =>
+    fontMgr && qcfFontLoader.isReady(pageNumber, fontMgr, fontVariant)
+      ? {family: fontFamily, manager: fontMgr}
+      : null,
   );
+  // A previous page/variant becoming ready must never expose an unloaded font.
+  const fontReady =
+    loadedFont?.family === fontFamily && loadedFont?.manager === fontMgr;
+  // @ai-end
   const [error, setError] = useState<string | null>(null);
 
   const pageLines = useMemo<DKLine[]>(
@@ -222,10 +242,10 @@ const QCFPage: React.FC<QCFPageProps> = ({
     [textColor],
   );
 
+  // @ai-start
   const layoutMetrics = useMemo(() => {
     if (!fontMgr || !fontReady) return null;
 
-    const fontFamily = qcfFontFamilyForPage(pageNumber);
     const cached = qcfLayoutCacheService.getPageLayout(pageNumber, fontFamily);
     if (cached) return cached;
 
@@ -272,7 +292,8 @@ const QCFPage: React.FC<QCFPageProps> = ({
     };
     qcfLayoutCacheService.setPageLayout(pageNumber, fontFamily, measured);
     return measured;
-  }, [fontMgr, fontReady, pageLines, pageNumber, textColor]);
+  }, [fontMgr, fontReady, fontFamily, pageLines, pageNumber, textColor]);
+  // @ai-end
 
   const lineBackgroundHighlights = useMemo(() => {
     const byLine = new Map<
@@ -343,16 +364,21 @@ const QCFPage: React.FC<QCFPageProps> = ({
 
   // Load this page's QCF page-font, prefetch neighbors. Basmallah no
   // longer needs the page-1 font — DK font handles it.
+  // @ai-start
   useEffect(() => {
     if (!fontMgr) return;
     let cancelled = false;
     setError(null);
-    setFontReady(fontMgr != null && qcfFontLoader.isReady(pageNumber, fontMgr)); // @ai
+    setLoadedFont(
+      qcfFontLoader.isReady(pageNumber, fontMgr, fontVariant)
+        ? {family: fontFamily, manager: fontMgr}
+        : null,
+    );
 
     (async () => {
       try {
-        await qcfFontLoader.ensure(pageNumber, fontMgr);
-        if (!cancelled) setFontReady(true);
+        await qcfFontLoader.ensure(pageNumber, fontMgr, fontVariant);
+        if (!cancelled) setLoadedFont({family: fontFamily, manager: fontMgr});
       } catch (e: unknown) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : 'QCF font load failed');
@@ -360,6 +386,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
         return;
       }
 
+      if (cancelled) return;
       qcfFontLoader.prefetch(
         [
           pageNumber - 1,
@@ -370,18 +397,20 @@ const QCFPage: React.FC<QCFPageProps> = ({
           pageNumber + 3,
         ],
         fontMgr,
+        fontVariant,
       );
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [fontMgr, pageNumber]);
+  }, [fontMgr, pageNumber, fontFamily, fontVariant]);
+  // @ai-end
 
+  // @ai-start
   const renderEntries = useMemo<RenderEntry[]>(() => {
     if (!fontMgr || !fontReady || !layoutMetrics) return [];
 
-    const fontFamily = qcfFontFamilyForPage(pageNumber);
     const fontSize = layoutMetrics.fontSize;
     const lineWidthAtRefByLine = new Map(
       layoutMetrics.lineWidthsAtRef.map(entry => [
@@ -529,7 +558,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
       const model = buildQCFLineRenderModel(words);
       const text = model.renderedText;
       const charToColor =
-        showAllahNameHighlight && allahNameHighlightColor
+        !showTajweed && showAllahNameHighlight && allahNameHighlightColor
           ? buildQCFLineAllahNameMap(words, allahNameHighlightColor)
           : null;
       const built = buildOne(text, fontFamily, charToColor, {
@@ -549,14 +578,17 @@ const QCFPage: React.FC<QCFPageProps> = ({
     arabicTextWeight,
     fontMgr,
     fontReady,
+    fontFamily,
     layoutMetrics,
     pageLines,
     lineYPositions,
     pageNumber,
     showAllahNameHighlight,
+    showTajweed,
     textColor,
   ]);
 
+  // @ai-end
   // Surah-header lines (line_type === 'surah_name'). DK's SkiaSurahHeader
   // takes the same dividerFont + nameFontSize we computed above, plus the
   // surah number from DK's pageLines metadata.
