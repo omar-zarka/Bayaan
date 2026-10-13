@@ -390,14 +390,22 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
           : await resolveSelectionTexts(ready);
       if (result.status !== 'ready') {
         showToast(
-          `Couldn't load the ${getRewayahShortLabel(resolvedRewayah)} text`,
-          'Nothing was copied. Please try again.',
+          // @ai-start
+          t('selectionFailure.loadFailed', {
+            rewayah: getRewayahShortLabel(resolvedRewayah),
+          }),
+          t('selectionFailure.nothingDoneRetry.copied'),
+          // @ai-end
           'error',
         );
         return;
       }
       if (hasNoOwnText(result.texts)) {
-        showToast('Nothing to copy', noOwnTextMessage(result.rewayah), 'error');
+        showToast(
+          t('selectionFailure.nothingToCopy'), // @ai
+          noOwnTextMessage(result.rewayah),
+          'error',
+        );
         return;
       }
       // Each verse exactly as the mushaf shows it, with its own marker; the
@@ -1097,7 +1105,9 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                       size={moderateScale(19)}
                       color={theme.colors.text}
                     />
-                    <Text style={styles.optionText}>Community Reflections</Text>
+                    <Text style={styles.optionText}>
+                      {t('verseActions.communityReflections')}
+                    </Text>
                   </Pressable>
                 </>
               ) : null}

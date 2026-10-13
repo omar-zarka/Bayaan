@@ -2,7 +2,7 @@ import DeviceInfo from 'react-native-device-info';
 import * as FileSystem from 'expo-file-system/legacy';
 // @ai-start
 import i18n from '@/i18n';
-import {currentLanguage} from '@/i18n/language';
+import {decimalSeparator} from '@/i18n/format';
 // @ai-end
 import {useDownloadStore} from './player/store/downloadStore';
 
@@ -109,7 +109,7 @@ export function formatBytes(bytes: number): string {
   const units = ['bytes', 'kb', 'mb', 'gb'] as const;
   const i = Math.floor(Math.log(bytes) / Math.log(k));
   const amount = String(Math.round((bytes / Math.pow(k, i)) * 100) / 100);
-  const value = currentLanguage === 'ar' ? amount.replace('.', '٫') : amount;
+  const value = amount.replace('.', decimalSeparator());
 
   return i18n.t(`content:units.${units[i]}`, {value});
 }

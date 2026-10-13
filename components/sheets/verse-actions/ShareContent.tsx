@@ -106,7 +106,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
 }) => {
   const {theme, isDarkMode} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
-  const {t} = useTranslation('sheets');
+  const {t} = useTranslation(['sheets', 'common']); // @ai
   const {width: screenWidth} = useWindowDimensions();
   const captureCanvasRef = useCanvasRef();
 
@@ -229,15 +229,15 @@ export const ShareContent: React.FC<ShareContentProps> = ({
       // @ai-end
       if (result.status !== 'ready') {
         showToast(
-          `Couldn't load the ${rewayahLabel} text`,
-          'Nothing was shared. Please try again.',
+          t('selectionFailure.loadFailed', {rewayah: rewayahLabel}), // @ai
+          t('selectionFailure.nothingDoneRetry.shared'), // @ai
           'error',
         );
         return;
       }
       if (hasNoOwnText(result.texts)) {
         showToast(
-          'Nothing to share',
+          t('selectionFailure.nothingToShare'), // @ai
           noOwnTextMessage(result.rewayah),
           'error',
         );
@@ -325,7 +325,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
                   color={theme.colors.textSecondary}
                 />
                 <Text style={styles.previewPlaceholderText}>
-                  Loading the {rewayahLabel} text
+                  {t('verseActions.loadingText', {rewayah: rewayahLabel})}
                 </Text>
               </>
             ) : verseTexts.status === 'ready' ? (
@@ -335,7 +335,7 @@ export const ShareContent: React.FC<ShareContentProps> = ({
             ) : (
               <>
                 <Text style={styles.previewPlaceholderText}>
-                  Couldn&apos;t load the {rewayahLabel} text.
+                  {t('verseActions.loadFailed', {rewayah: rewayahLabel})}
                 </Text>
                 <Pressable
                   onPress={verseTexts.retry}
@@ -345,7 +345,9 @@ export const ShareContent: React.FC<ShareContentProps> = ({
                     styles.retryButton,
                     pressed && {opacity: 0.7},
                   ]}>
-                  <Text style={styles.retryButtonText}>Try Again</Text>
+                  <Text style={styles.retryButtonText}>
+                    {t('common:actions.tryAgain')}
+                  </Text>
                 </Pressable>
               </>
             )}

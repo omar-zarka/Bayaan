@@ -75,6 +75,7 @@ import {
 } from '@/utils/skiaTextWeight';
 import {getAllahNameHighlightColorHex} from '@/constants/mushafAllahHighlight';
 import {useTheme} from '@/hooks/useTheme';
+import {useTranslation} from 'react-i18next'; // @ai
 import SkiaSurahHeader from '../skia/SkiaSurahHeader';
 import {
   type MushafLayoutMetrics, // @ai
@@ -152,6 +153,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
   const basmallahFontSize = (CONTENT_WIDTH / PAGE_WIDTH) * FONTSIZE * 0.9;
   // @ai-end
   const {theme} = useTheme();
+  const {t} = useTranslation(['reader', 'common']); // @ai
   const fontMgr = useMushafFontMgr();
   // @ai-start
   const showTajweed = useMushafSettingsStore(s => s.showTajweed);
@@ -895,12 +897,14 @@ const QCFPage: React.FC<QCFPageProps> = ({
   if (error) {
     return (
       <View style={[pageStyle, styles.loadStatus]}>
-        <Text style={{color: textColor}}>Unable to load this page.</Text>
+        <Text style={{color: textColor}}>
+          {t('reader:mushaf.pageLoadFailed')}
+        </Text>
         <Pressable
           accessibilityRole="button"
           onPress={() => setLoadAttempt(attempt => attempt + 1)}>
           <Text style={{color: textColor, textDecorationLine: 'underline'}}>
-            Try again
+            {t('common:actions.tryAgain')}
           </Text>
         </Pressable>
         {showTajweed && (
@@ -912,7 +916,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
               }
             }}>
             <Text style={{color: textColor, textDecorationLine: 'underline'}}>
-              Turn off tajweed
+              {t('reader:mushaf.turnOffTajweed')}
             </Text>
           </Pressable>
         )}

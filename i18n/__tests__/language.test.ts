@@ -61,7 +61,22 @@ it('keeps startup imports free of reloads until the root mounts', () => {
 
 it.each(['ar', 'en'])('sets reading-aid defaults for %s', language => {
   mockStorage.set('language_preference', language);
-  expect(loadLanguage().defaultShowEnglishReadingAids).toBe(language === 'en');
+  const loaded = loadLanguage();
+  expect(loaded.defaultShowEnglishReadingAids).toBe(language === 'en');
+  expect(loaded.defaultShowTransliteration).toBe(language === 'en');
+});
+
+it('falls back to English for a device language the app does not ship', () => {
+  mockDeviceLocales.mockReturnValue([
+    {languageCode: 'fr'},
+    {languageCode: null},
+  ]);
+  expect(loadLanguage().currentLanguage).toBe('en');
+});
+
+it('treats an unknown stored preference as System', () => {
+  mockStorage.set('language_preference', 'xx');
+  expect(loadLanguage().getLanguagePreference()).toBe('system');
 });
 
 it('persists Arabic and enables native mirroring before reloading', async () => {

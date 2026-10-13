@@ -224,13 +224,13 @@ export const SimilarVersesContent: React.FC<SimilarVersesContentProps> = ({
                 color={theme.colors.textSecondary}
               />
               <Text style={styles.textNoticeText}>
-                Loading the {rewayahLabel} text
+                {t('verseActions.loadingText', {rewayah: rewayahLabel})}
               </Text>
             </>
           ) : (
             <>
               <Text style={styles.textNoticeText}>
-                Couldn&apos;t load the {rewayahLabel} text.
+                {t('verseActions.loadFailed', {rewayah: rewayahLabel})}
               </Text>
               <Pressable
                 onPress={rewayahText.retry}
@@ -240,7 +240,9 @@ export const SimilarVersesContent: React.FC<SimilarVersesContentProps> = ({
                   styles.retryButton,
                   pressed && styles.retryButtonPressed,
                 ]}>
-                <Text style={styles.retryButtonText}>Try Again</Text>
+                <Text style={styles.retryButtonText}>
+                  {t('common:actions.tryAgain')}
+                </Text>
               </Pressable>
             </>
           )}
