@@ -17,9 +17,6 @@ import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {AdhkarAudioControls} from './AdhkarAudioControls';
 import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
-// @ai-start
-import {showLatinReadingAids} from '@/i18n/language';
-// @ai-end
 import {Dhikr} from '@/types/adhkar';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -63,14 +60,12 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
 
   // Settings from store
   const {
-    showTranslation: translationOn,
-    showTransliteration: transliterationOn,
+    showTranslation,
+    showTransliteration,
     arabicFontSize,
     translationFontSize,
     transliterationFontSize,
   } = useAdhkarSettingsStore();
-  const showTranslation = translationOn && showLatinReadingAids;
-  const showTransliteration = transliterationOn && showLatinReadingAids;
 
   const styles = createStyles(theme, {
     arabicFontSize,
@@ -94,10 +89,8 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
   const handleShare = useCallback(async () => {
     const content = [
       dhikr.arabic,
-      showLatinReadingAids && dhikr.translation
-        ? `\n\n${dhikr.translation}`
-        : '',
-      showLatinReadingAids && dhikr.transliteration
+      showTranslation && dhikr.translation ? `\n\n${dhikr.translation}` : '',
+      showTransliteration && dhikr.transliteration
         ? `\n\n${dhikr.transliteration}`
         : '',
       dhikr.instruction ? `\n\n${dhikr.instruction}` : '',
@@ -106,7 +99,7 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
     await Share.share({
       message: content,
     });
-  }, [dhikr]);
+  }, [dhikr, showTranslation, showTransliteration]);
 
   return (
     <View style={styles.container}>

@@ -23,9 +23,6 @@ import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {useTajweedStore} from '@/store/tajweedStore';
-// @ai-start
-import {showLatinReadingAids} from '@/i18n/language';
-// @ai-end
 import {wbwParts, type UnitStart} from './verseUnitScreens'; // @ai
 
 interface WBWContentProps {
@@ -57,6 +54,10 @@ export const WBWContent: React.FC<WBWContentProps> = ({
   // Inherit mushaf font settings
   const mushafRenderer = useMushafSettingsStore(s => s.mushafRenderer);
   const arabicFontSize = useMushafSettingsStore(s => s.arabicFontSize);
+  const showTranslation = useMushafSettingsStore(s => s.wbwShowTranslation);
+  const showTransliteration = useMushafSettingsStore(
+    s => s.wbwShowTransliteration,
+  );
   const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
   const showAllahNameHighlight = useMushafSettingsStore(
     s => s.showAllahNameHighlight,
@@ -146,8 +147,8 @@ export const WBWContent: React.FC<WBWContentProps> = ({
               arabicFontSize={arabicFontSize}
               dkFontFamily={dkFontFamily}
               fontMgr={fontMgr}
-              showTranslation={showLatinReadingAids}
-              showTransliteration={showLatinReadingAids}
+              showTranslation={showTranslation}
+              showTransliteration={showTransliteration}
               onWordPress={wordPressHandlers.get(part.verseKey) ?? noop}
               selectedWordPosition={
                 selectedWord?.verseKey === part.verseKey

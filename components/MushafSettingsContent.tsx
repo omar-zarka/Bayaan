@@ -70,7 +70,6 @@ import {
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
-import {showLatinReadingAids} from '@/i18n/language';
 // @ai-end
 
 // --- Pre-cache Translation/Transliteration Data --- //
@@ -915,13 +914,13 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
         </Pressable>
       </View>
 
-      {/* Word by Word Section; only in list view */}
-      {context !== 'player' && viewMode === 'list' && (
-        <>
-          <Text style={styles.sectionHeader}>
-            {t('mushafSettings.wordByWordHeader')}
-          </Text>
-          <View style={styles.card}>
+      {/* Word-by-word preferences also apply to the verse and word sheets. */}
+      <Text style={styles.sectionHeader}>
+        {t('mushafSettings.wordByWordHeader')}
+      </Text>
+      <View style={styles.card}>
+        {context !== 'player' && viewMode === 'list' && (
+          <>
             <View style={styles.optionRow}>
               <Text style={styles.optionLabel}>
                 {t('mushafSettings.wordByWord')}
@@ -935,49 +934,49 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
                 style={styles.switchStyle}
               />
             </View>
-            {showWBW && showLatinReadingAids && (
-              <>
-                <View style={styles.divider} />
-                <Pressable
-                  style={({pressed}) => [
-                    styles.settingRow,
-                    pressed && styles.settingRowPressed,
-                  ]}
-                  onPress={toggleWBWTranslation}>
-                  <Text style={styles.settingRowLabel}>
-                    {t('mushafSettings.translation')}
-                  </Text>
-                  {wbwShowTranslation && (
-                    <Feather
-                      name="check"
-                      size={moderateScale(18)}
-                      color={Color(theme.colors.text).alpha(0.7).toString()}
-                    />
-                  )}
-                </Pressable>
-                <View style={styles.divider} />
-                <Pressable
-                  style={({pressed}) => [
-                    styles.settingRow,
-                    pressed && styles.settingRowPressed,
-                  ]}
-                  onPress={toggleWBWTransliteration}>
-                  <Text style={styles.settingRowLabel}>
-                    {t('mushafSettings.transliteration')}
-                  </Text>
-                  {wbwShowTransliteration && (
-                    <Feather
-                      name="check"
-                      size={moderateScale(18)}
-                      color={Color(theme.colors.text).alpha(0.7).toString()}
-                    />
-                  )}
-                </Pressable>
-              </>
-            )}
-          </View>
-        </>
-      )}
+            <View style={styles.divider} />
+          </>
+        )}
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{checked: wbwShowTranslation}}
+          style={({pressed}) => [
+            styles.settingRow,
+            pressed && styles.settingRowPressed,
+          ]}
+          onPress={toggleWBWTranslation}>
+          <Text style={styles.settingRowLabel}>
+            {t('mushafSettings.translation')}
+          </Text>
+          {wbwShowTranslation && (
+            <Feather
+              name="check"
+              size={moderateScale(18)}
+              color={Color(theme.colors.text).alpha(0.7).toString()}
+            />
+          )}
+        </Pressable>
+        <View style={styles.divider} />
+        <Pressable
+          accessibilityRole="checkbox"
+          accessibilityState={{checked: wbwShowTransliteration}}
+          style={({pressed}) => [
+            styles.settingRow,
+            pressed && styles.settingRowPressed,
+          ]}
+          onPress={toggleWBWTransliteration}>
+          <Text style={styles.settingRowLabel}>
+            {t('mushafSettings.transliteration')}
+          </Text>
+          {wbwShowTransliteration && (
+            <Feather
+              name="check"
+              size={moderateScale(18)}
+              color={Color(theme.colors.text).alpha(0.7).toString()}
+            />
+          )}
+        </Pressable>
+      </View>
 
       {/* Translation/Transliteration Section (shown in player context OR list view mode) */}
       {(context !== 'mushaf' || viewMode === 'list') && (
@@ -1002,72 +1001,68 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             />
           </View>
 
-          {showLatinReadingAids && (
-            <View style={styles.card}>
-              <View style={styles.optionRow}>
-                <Text style={styles.optionLabel}>
-                  {t('mushafSettings.transliteration')}
-                </Text>
-                <Switch
-                  trackColor={trackColor}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor={trackColor.false}
-                  onValueChange={toggleTransliteration}
-                  value={showTransliteration}
-                  style={styles.switchStyle}
-                />
-              </View>
-              {showTransliteration && (
-                <>
-                  <View style={styles.divider} />
-                  <FontSizeControl
-                    label={t('mushafSettings.fontSize')}
-                    currentActualSize={transliterationFontSize}
-                    onChange={setTransliterationFontSize}
-                    theme={theme}
-                    styles={styles}
-                    sampleText={actualTransliterationText}
-                    sampleFontFamily="Manrope-Regular"
-                  />
-                </>
-              )}
-            </View>
-          )}
-
-          {showLatinReadingAids && (
-            <View style={styles.card}>
-              <View style={styles.optionRow}>
-                <Text style={styles.optionLabel}>
-                  {t('mushafSettings.translation')}
-                </Text>
-                <Switch
-                  trackColor={trackColor}
-                  thumbColor="#FFFFFF"
-                  ios_backgroundColor={trackColor.false}
-                  onValueChange={toggleTranslation}
-                  value={showTranslation}
-                  style={styles.switchStyle}
-                />
-              </View>
-              <Text style={styles.helperText}>
-                {t('mushafSettings.translationSource')}
+          <View style={styles.card}>
+            <View style={styles.optionRow}>
+              <Text style={styles.optionLabel}>
+                {t('mushafSettings.transliteration')}
               </Text>
-              {showTranslation && (
-                <>
-                  <View style={styles.divider} />
-                  <FontSizeControl
-                    label={t('mushafSettings.fontSize')}
-                    currentActualSize={translationFontSize}
-                    onChange={setTranslationFontSize}
-                    theme={theme}
-                    styles={styles}
-                    sampleText={actualTranslationText}
-                    sampleFontFamily="Manrope-Regular"
-                  />
-                </>
-              )}
+              <Switch
+                trackColor={trackColor}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor={trackColor.false}
+                onValueChange={toggleTransliteration}
+                value={showTransliteration}
+                style={styles.switchStyle}
+              />
             </View>
-          )}
+            {showTransliteration && (
+              <>
+                <View style={styles.divider} />
+                <FontSizeControl
+                  label={t('mushafSettings.fontSize')}
+                  currentActualSize={transliterationFontSize}
+                  onChange={setTransliterationFontSize}
+                  theme={theme}
+                  styles={styles}
+                  sampleText={actualTransliterationText}
+                  sampleFontFamily="Manrope-Regular"
+                />
+              </>
+            )}
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.optionRow}>
+              <Text style={styles.optionLabel}>
+                {t('mushafSettings.translation')}
+              </Text>
+              <Switch
+                trackColor={trackColor}
+                thumbColor="#FFFFFF"
+                ios_backgroundColor={trackColor.false}
+                onValueChange={toggleTranslation}
+                value={showTranslation}
+                style={styles.switchStyle}
+              />
+            </View>
+            <Text style={styles.helperText}>
+              {t('mushafSettings.translationSource')}
+            </Text>
+            {showTranslation && (
+              <>
+                <View style={styles.divider} />
+                <FontSizeControl
+                  label={t('mushafSettings.fontSize')}
+                  currentActualSize={translationFontSize}
+                  onChange={setTranslationFontSize}
+                  theme={theme}
+                  styles={styles}
+                  sampleText={actualTranslationText}
+                  sampleFontFamily="Manrope-Regular"
+                />
+              </>
+            )}
+          </View>
         </>
       )}
 

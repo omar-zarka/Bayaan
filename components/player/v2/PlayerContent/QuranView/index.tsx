@@ -32,7 +32,6 @@ import type {
   MushafArabicTextWeight,
   RewayahId,
 } from '@/store/mushafSettingsStore';
-import {showLatinReadingAids} from '@/i18n/language';
 import {useTajweedStore} from '@/store/tajweedStore';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
@@ -343,11 +342,10 @@ export const QuranView: React.FC<QuranViewProps> = ({
     s => s.selectedTranslationId,
   );
   const showWBW = useMushafSettingsStore(s => s.showWBW);
-  const wbwShowTranslation =
-    useMushafSettingsStore(s => s.wbwShowTranslation) && showLatinReadingAids;
-  const wbwShowTransliteration =
-    useMushafSettingsStore(s => s.wbwShowTransliteration) &&
-    showLatinReadingAids;
+  const wbwShowTranslation = useMushafSettingsStore(s => s.wbwShowTranslation);
+  const wbwShowTransliteration = useMushafSettingsStore(
+    s => s.wbwShowTransliteration,
+  );
   const translationName = getTranslationName(selectedTranslationId);
   const allahNameHighlightColor = useMemo(
     () =>

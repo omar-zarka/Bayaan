@@ -16,7 +16,7 @@ import Color from 'color';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
-import {showLatinReadingAids} from '@/i18n/language';
+import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
 // @ai-end
 
 interface DhikrListItemProps {
@@ -30,6 +30,7 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
   ({dhikr, index, style}) => {
     const {theme} = useTheme();
     const {t} = useTranslation('player');
+    const showTranslation = useAdhkarSettingsStore(s => s.showTranslation);
     const styles = createStyles(theme);
 
     const displayNumber = index + 1;
@@ -57,7 +58,7 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
         </View>
 
         {/* Translation */}
-        {showLatinReadingAids && dhikr.translation ? (
+        {showTranslation && dhikr.translation ? (
           <View style={styles.annotationContainer}>
             <View style={styles.annotationLine} />
             <Text style={styles.translationText}>{dhikr.translation}</Text>

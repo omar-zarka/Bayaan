@@ -1,6 +1,7 @@
 import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {defaultShowEnglishReadingAids} from '@/i18n/language'; // @ai
 
 // Constants for font sizing (same as mushafSettingsStore for consistency)
 export const DISPLAY_MIN = 1;
@@ -42,8 +43,8 @@ export const useAdhkarSettingsStore = create<AdhkarSettingsState>()(
   persist(
     set => ({
       // Default values
-      showTranslation: true,
-      showTransliteration: true,
+      showTranslation: defaultShowEnglishReadingAids, // @ai
+      showTransliteration: defaultShowEnglishReadingAids, // @ai
       arabicFontSize: getActualFontSize(5), // Default: larger Arabic text
       translationFontSize: getActualFontSize(3),
       transliterationFontSize: getActualFontSize(2),

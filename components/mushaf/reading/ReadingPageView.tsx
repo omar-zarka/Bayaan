@@ -16,7 +16,6 @@ import {
   useMushafPlayerStore,
   usePlaybackVerseKeys, // @ai
 } from '@/store/mushafPlayerStore';
-import {showLatinReadingAids} from '@/i18n/language';
 import {useTajweedStore} from '@/store/tajweedStore';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
@@ -95,17 +94,16 @@ const ReadingPageView: React.FC<ReadingPageViewProps> = ({
   const verseOffsetsRef = useRef<Map<string, number>>(new Map());
 
   // Settings subscriptions
-  const showTranslation =
-    useMushafSettingsStore(s => s.showTranslation) && showLatinReadingAids;
-  const showTransliteration =
-    useMushafSettingsStore(s => s.showTransliteration) && showLatinReadingAids;
+  const showTranslation = useMushafSettingsStore(s => s.showTranslation);
+  const showTransliteration = useMushafSettingsStore(
+    s => s.showTransliteration,
+  );
   const showTajweed = useMushafSettingsStore(s => s.showTajweed);
   const showWBW = useMushafSettingsStore(s => s.showWBW);
-  const wbwShowTranslation =
-    useMushafSettingsStore(s => s.wbwShowTranslation) && showLatinReadingAids;
-  const wbwShowTransliteration =
-    useMushafSettingsStore(s => s.wbwShowTransliteration) &&
-    showLatinReadingAids;
+  const wbwShowTranslation = useMushafSettingsStore(s => s.wbwShowTranslation);
+  const wbwShowTransliteration = useMushafSettingsStore(
+    s => s.wbwShowTransliteration,
+  );
   const arabicFontSize = useMushafSettingsStore(s => s.arabicFontSize);
   const arabicTextWeight = useMushafSettingsStore(s => s.arabicTextWeight);
   const showAllahNameHighlight = useMushafSettingsStore(

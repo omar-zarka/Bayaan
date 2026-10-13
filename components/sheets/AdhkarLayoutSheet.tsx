@@ -28,7 +28,6 @@ import {
 import {isRTL, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {localizeDigits} from '@/i18n/format';
-import {showLatinReadingAids} from '@/i18n/language';
 // @ai-end
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -187,75 +186,73 @@ export const AdhkarLayoutSheet = (props: SheetProps<'adhkar-layout'>) => {
             />
           </View>
 
-          {showLatinReadingAids ? (
-            <>
-              {/* Translation Section */}
-              <Text style={styles.sectionHeader}>
-                {t('common:terms.translation')}
-              </Text>
-              <View style={styles.card}>
-                <View style={styles.optionRow}>
-                  <Text style={styles.optionLabel}>
-                    {t('adhkarLayout.showTranslation')}
-                  </Text>
-                  <Switch
-                    trackColor={trackColor}
-                    thumbColor="#FFFFFF"
-                    ios_backgroundColor={trackColor.false}
-                    onValueChange={toggleTranslation}
-                    value={showTranslation}
-                    style={styles.switchStyle}
-                  />
-                </View>
-                {showTranslation ? (
-                  <>
-                    <View style={styles.divider} />
-                    <FontSizeControl
-                      label={t('adhkarLayout.fontSize')}
-                      currentActualSize={translationFontSize}
-                      onChange={setTranslationFontSize}
-                      theme={theme}
-                      styles={styles}
-                      sampleText="In the name of Allah, the Most Gracious, the Most Merciful"
-                    />
-                  </>
-                ) : null}
+          <>
+            {/* Translation Section */}
+            <Text style={styles.sectionHeader}>
+              {t('common:terms.translation')}
+            </Text>
+            <View style={styles.card}>
+              <View style={styles.optionRow}>
+                <Text style={styles.optionLabel}>
+                  {t('adhkarLayout.showTranslation')}
+                </Text>
+                <Switch
+                  trackColor={trackColor}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={trackColor.false}
+                  onValueChange={toggleTranslation}
+                  value={showTranslation}
+                  style={styles.switchStyle}
+                />
               </View>
+              {showTranslation ? (
+                <>
+                  <View style={styles.divider} />
+                  <FontSizeControl
+                    label={t('adhkarLayout.fontSize')}
+                    currentActualSize={translationFontSize}
+                    onChange={setTranslationFontSize}
+                    theme={theme}
+                    styles={styles}
+                    sampleText="In the name of Allah, the Most Gracious, the Most Merciful"
+                  />
+                </>
+              ) : null}
+            </View>
 
-              {/* Transliteration Section */}
-              <Text style={styles.sectionHeader}>
-                {t('copy.transliteration')}
-              </Text>
-              <View style={styles.card}>
-                <View style={styles.optionRow}>
-                  <Text style={styles.optionLabel}>
-                    {t('adhkarLayout.showTransliteration')}
-                  </Text>
-                  <Switch
-                    trackColor={trackColor}
-                    thumbColor="#FFFFFF"
-                    ios_backgroundColor={trackColor.false}
-                    onValueChange={toggleTransliteration}
-                    value={showTransliteration}
-                    style={styles.switchStyle}
-                  />
-                </View>
-                {showTransliteration ? (
-                  <>
-                    <View style={styles.divider} />
-                    <FontSizeControl
-                      label={t('adhkarLayout.fontSize')}
-                      currentActualSize={transliterationFontSize}
-                      onChange={setTransliterationFontSize}
-                      theme={theme}
-                      styles={styles}
-                      sampleText="Bismillahir Rahmanir Raheem"
-                    />
-                  </>
-                ) : null}
+            {/* Transliteration Section */}
+            <Text style={styles.sectionHeader}>
+              {t('copy.transliteration')}
+            </Text>
+            <View style={styles.card}>
+              <View style={styles.optionRow}>
+                <Text style={styles.optionLabel}>
+                  {t('adhkarLayout.showTransliteration')}
+                </Text>
+                <Switch
+                  trackColor={trackColor}
+                  thumbColor="#FFFFFF"
+                  ios_backgroundColor={trackColor.false}
+                  onValueChange={toggleTransliteration}
+                  value={showTransliteration}
+                  style={styles.switchStyle}
+                />
               </View>
-            </>
-          ) : null}
+              {showTransliteration ? (
+                <>
+                  <View style={styles.divider} />
+                  <FontSizeControl
+                    label={t('adhkarLayout.fontSize')}
+                    currentActualSize={transliterationFontSize}
+                    onChange={setTransliterationFontSize}
+                    theme={theme}
+                    styles={styles}
+                    sampleText="Bismillahir Rahmanir Raheem"
+                  />
+                </>
+              ) : null}
+            </View>
+          </>
         </View>
       </ScrollView>
     </ActionSheet>

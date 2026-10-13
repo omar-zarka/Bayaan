@@ -52,10 +52,10 @@ export function isRTLLanguage(language: AppLanguage): boolean {
 export const currentLanguage: AppLanguage = resolveLanguage();
 
 /**
- * English translation and transliteration are for non-Arabic readers.
- * Arabic mode shows the Arabic text on its own.
+ * Initial reading-aid preference only. Persisted user choices take precedence
+ * and remain available in every interface language.
  */
-export const showLatinReadingAids = currentLanguage !== 'ar';
+export const defaultShowEnglishReadingAids = currentLanguage !== 'ar';
 
 async function reloadApp(): Promise<void> {
   // Reload the React Native runtime in both development and standalone builds,

@@ -59,6 +59,11 @@ it('keeps startup imports free of reloads until the root mounts', () => {
   expect(mockReload).not.toHaveBeenCalled();
 });
 
+it.each(['ar', 'en'])('sets reading-aid defaults for %s', language => {
+  mockStorage.set('language_preference', language);
+  expect(loadLanguage().defaultShowEnglishReadingAids).toBe(language === 'en');
+});
+
 it('persists Arabic and enables native mirroring before reloading', async () => {
   await loadLanguage().setLanguagePreference('ar');
   expect(mockStorage.get('language_preference')).toBe('ar');

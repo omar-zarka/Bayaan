@@ -20,7 +20,7 @@ import {createAudioPlayer, AudioPlayer} from 'expo-audio';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
 // @ai-start
 import {useTranslation} from 'react-i18next';
-import {showLatinReadingAids} from '@/i18n/language';
+import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 // @ai-end
 
 // @ai-start
@@ -28,6 +28,10 @@ export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
   const {theme} = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const {t} = useTranslation(['sheets', 'common']);
+  const showTranslation = useMushafSettingsStore(s => s.wbwShowTranslation);
+  const showTransliteration = useMushafSettingsStore(
+    s => s.wbwShowTransliteration,
+  );
 
   const verseKey = props.payload?.verseKey ?? '';
   const position = props.payload?.position ?? 0;
@@ -175,14 +179,14 @@ export const WordDetailSheet = (props: SheetProps<'word-detail'>) => {
             ) : null}
 
             {/* Transliteration */}
-            {showLatinReadingAids && wbwWord?.transliteration ? (
+            {showTransliteration && wbwWord?.transliteration ? (
               <Text style={styles.transliteration}>
                 {wbwWord.transliteration}
               </Text>
             ) : null}
 
             {/* Translation */}
-            {showLatinReadingAids && wbwWord?.translation ? (
+            {showTranslation && wbwWord?.translation ? (
               <Text style={styles.translation}>
                 &ldquo;{wbwWord.translation}&rdquo;
               </Text>

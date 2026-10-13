@@ -43,9 +43,6 @@ import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useProgress} from '@/services/player/store/progressStore';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
-// @ai-start
-import {showLatinReadingAids} from '@/i18n/language';
-// @ai-end
 import {useVerseSelectionStore} from '@/store/verseSelectionStore';
 import {useTimestampLoader} from '@/hooks/useTimestampLoader';
 import {useAyahTracker} from '@/hooks/useAyahTracker';
@@ -162,10 +159,10 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
 
   const progress = useProgress();
 
-  const showTranslation =
-    useMushafSettingsStore(s => s.showTranslation) && showLatinReadingAids;
-  const showTransliteration =
-    useMushafSettingsStore(s => s.showTransliteration) && showLatinReadingAids;
+  const showTranslation = useMushafSettingsStore(s => s.showTranslation);
+  const showTransliteration = useMushafSettingsStore(
+    s => s.showTransliteration,
+  );
   const arabicFontSize = useMushafSettingsStore(s => s.arabicFontSize);
   const translationFontSize = useMushafSettingsStore(
     s => s.translationFontSize,
@@ -450,7 +447,10 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     return (
       <View
         style={[styles.rootCol, {backgroundColor: readingColors.background}]}>
-        <View style={styles.contentPane}>{body}</View>
+        {/* @ai: This pane has no top bar to consume the status-bar inset. */}
+        <View style={[styles.contentPane, {paddingTop: insets.top}]}>
+          {body}
+        </View>
       </View>
     );
   }
@@ -767,7 +767,10 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
         </GestureDetector>
 
         {/* Right: Mushaf / Queue / Upload */}
-        <View style={styles.contentPane}>{body}</View>
+        {/* @ai: Match the control sidebar's top safe area. */}
+        <View style={[styles.contentPane, {paddingTop: insets.top}]}>
+          {body}
+        </View>
       </View>
     );
   }
