@@ -71,7 +71,8 @@ fun AdhkarContent(context: Context, nowMs: Long) {
   if (size.width < WidgetSizes.MEDIUM.width) {
     Column(root.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        ArabicText(context, data.arabicTitle, ArabicBitmap.DHIKR_FONT, width - 24 - 22, 22f, 15f, 10f, 1, center = true)
+        Text(data.title, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 13.sp, fontWeight = FontWeight.Bold))
         Logo(12)
       }
       Spacer(GlanceModifier.defaultWeight())
