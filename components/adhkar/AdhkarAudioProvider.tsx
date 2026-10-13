@@ -14,6 +14,7 @@ import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 
 import {getAudioSource} from '@/utils/adhkarAudio';
+import {isTrackFinished} from '@/utils/adhkarTrackEnd';
 
 /**
  * Context value for direct player access
@@ -139,20 +140,19 @@ const AudioPlayerManager: React.FC<{
       return;
     }
 
-    const currentTime = status.currentTime ?? 0;
-    const duration = status.duration ?? 0;
+    // The time guard skips stale status from the previous track; it scales
+    // down for clips shorter than 4 s (see utils/adhkarTrackEnd.ts).
+    const finished = isTrackFinished(
+      {
+        currentTime: status.currentTime ?? 0,
+        duration: status.duration ?? 0,
+        playing: status.playing,
+        didJustFinish: status.didJustFinish,
+      },
+      Date.now() - trackStartTime.current,
+    );
 
-    // Ensure the track has been playing for at least 2 seconds
-    // This prevents false triggers during track transitions when status may have stale values
-    const timeSinceStart = Date.now() - trackStartTime.current;
-    const minimumPlayTime = 2000; // 2 seconds
-
-    if (
-      duration > 0 &&
-      currentTime >= duration - 0.1 &&
-      !status.playing &&
-      timeSinceStart > minimumPlayTime
-    ) {
+    if (finished) {
       hasHandledEnd.current = true;
 
       if (isPlayAllMode) {
