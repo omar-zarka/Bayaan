@@ -35,6 +35,7 @@ import {PlayAllButton} from '@/components/adhkar/PlayAllButton';
 import {
   AdhkarJumpPill,
   jumpPillDirection,
+  visibleRowIndices,
 } from '@/components/adhkar/AdhkarJumpPill';
 import {Dhikr, SuperCategory} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
@@ -257,26 +258,46 @@ const SuperCategoryListScreen: React.FC = () => {
     // Still loading: keep the request pending until the rows exist.
     if (loading) return;
     lastReveal.current = revealToken;
+    retriedScroll.current = false;
     scrollToPlaying();
   }, [revealToken, sessionIndex, loading, scrollToPlaying]);
 
-  // Unmeasured rows: jump to the top, then retry once.
-  const retryingScroll = useRef(false);
-  const onScrollToIndexFailed = useCallback(() => {
-    if (retryingScroll.current) return;
-    retryingScroll.current = true;
-    flatListRef.current?.scrollToOffset({offset: 0, animated: false});
-    sectionListRef.current?.scrollToLocation({
-      sectionIndex: 0,
-      itemIndex: 0,
-      viewPosition: 0,
-      animated: false,
-    });
-    setTimeout(() => {
-      retryingScroll.current = false;
-      scrollToPlaying();
-    }, 100);
+  // Unmeasured rows: scroll toward the playing row, then retry once per press.
+  const retriedScroll = useRef(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+    },
+    [],
+  );
+  const onScrollToIndexFailed = useCallback(
+    (info: {highestMeasuredFrameIndex: number}) => {
+      if (retriedScroll.current) return;
+      retriedScroll.current = true;
+      flatListRef.current?.scrollToIndex({
+        index: Math.max(0, info.highestMeasuredFrameIndex),
+        animated: false,
+      });
+      sectionListRef.current?.scrollToLocation({
+        sectionIndex: 0,
+        itemIndex: 0,
+        viewPosition: 0,
+        animated: false,
+      });
+      retryTimer.current = setTimeout(scrollToPlaying, 100);
+    },
+    [scrollToPlaying],
+  );
+  const handleJumpPress = useCallback(() => {
+    retriedScroll.current = false;
+    scrollToPlaying();
   }, [scrollToPlaying]);
+
+  // Rows changed: drop stale viewability until the list reports again.
+  useEffect(() => {
+    setVisibleIndices([]);
+  }, [sections, flatAdhkarList]);
 
   const handleShare = useCallback(() => {
     if (!superId) return;
@@ -470,8 +491,10 @@ const SuperCategoryListScreen: React.FC = () => {
 
   // Track current visible section for the subtitle
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken<DhikrItem>[]}) => {
-      setVisibleIndices(viewableItems.map(v => v.item.globalIndex));
+    ({viewableItems}: {viewableItems: ViewToken<DhikrItem | undefined>[]}) => {
+      setVisibleIndices(
+        visibleRowIndices(viewableItems, v => v.item?.globalIndex),
+      );
       if (viewableItems.length > 0) {
         const firstItem = viewableItems[0];
         if (firstItem.section) {
@@ -484,7 +507,9 @@ const SuperCategoryListScreen: React.FC = () => {
 
   const onFlatViewableItemsChanged = useCallback(
     ({viewableItems}: {viewableItems: ViewToken<DhikrItem>[]}) => {
-      setVisibleIndices(viewableItems.map(v => v.item.globalIndex));
+      setVisibleIndices(
+        visibleRowIndices(viewableItems, v => v.item.globalIndex),
+      );
     },
     [],
   );
@@ -571,7 +596,7 @@ const SuperCategoryListScreen: React.FC = () => {
         direction={jumpPillDirection(visibleIndices, sessionIndex)}
         playing={sessionPlaying}
         top={headerHeight + moderateScale(8)}
-        onPress={scrollToPlaying}
+        onPress={handleJumpPress}
       />
     </View>
   );

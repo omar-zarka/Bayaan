@@ -27,6 +27,18 @@ export function jumpPillDirection(
   return target < Math.min(...visible) ? 'up' : 'down';
 }
 
+// Row indices of the viewable tokens. Section headers and footers report
+// index null and are not rows, so they are dropped.
+export function visibleRowIndices<T extends {index: number | null}>(
+  tokens: readonly T[],
+  toRowIndex: (token: T) => number | undefined,
+): number[] {
+  return tokens
+    .filter(v => v.index !== null)
+    .map(toRowIndex)
+    .filter((i): i is number => typeof i === 'number');
+}
+
 export function AdhkarJumpPill({
   direction,
   playing,

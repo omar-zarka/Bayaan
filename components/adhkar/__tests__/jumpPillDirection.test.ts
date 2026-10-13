@@ -1,4 +1,7 @@
-import {jumpPillDirection} from '@/components/adhkar/AdhkarJumpPill';
+import {
+  jumpPillDirection,
+  visibleRowIndices,
+} from '@/components/adhkar/AdhkarJumpPill';
 
 jest.mock('react-native-reanimated', () => {
   const {View: MockView} = jest.requireActual('react-native');
@@ -25,4 +28,15 @@ it('points up when the target is above the visible rows', () => {
 });
 it('points down when the target is below', () => {
   expect(jumpPillDirection([0, 1, 2], 9)).toBe('down');
+});
+
+it('ignores section header tokens when collecting visible rows', () => {
+  const tokens = [
+    {index: null, item: undefined as {globalIndex: number} | undefined},
+    {index: 0, item: {globalIndex: 4}},
+    {index: 1, item: {globalIndex: 5}},
+  ];
+  const rows = visibleRowIndices(tokens, v => v.item?.globalIndex);
+  expect(rows).toEqual([4, 5]);
+  expect(jumpPillDirection(rows, 2)).toBe('up');
 });

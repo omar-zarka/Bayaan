@@ -28,6 +28,7 @@ import {PlayAllButton} from '@/components/adhkar/PlayAllButton';
 import {
   AdhkarJumpPill,
   jumpPillDirection,
+  visibleRowIndices,
 } from '@/components/adhkar/AdhkarJumpPill';
 import {Dhikr, SavedDhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
@@ -127,27 +128,45 @@ const SavedAdhkarScreen: React.FC = () => {
     // Still loading: keep the request pending until the rows exist.
     if (isLoading) return;
     lastReveal.current = revealToken;
+    retriedScroll.current = false;
     scrollToPlaying();
   }, [revealToken, sessionIndex, isLoading, scrollToPlaying]);
 
-  // Unmeasured rows: jump to the top, then retry once.
-  const retryingScroll = useRef(false);
-  const onScrollToIndexFailed = useCallback(() => {
-    if (retryingScroll.current) return;
-    retryingScroll.current = true;
-    flatListRef.current?.scrollToOffset({offset: 0, animated: false});
-    setTimeout(() => {
-      retryingScroll.current = false;
-      scrollToPlaying();
-    }, 100);
+  // Unmeasured rows: scroll toward the playing row, then retry once per press.
+  const retriedScroll = useRef(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (retryTimer.current) clearTimeout(retryTimer.current);
+    },
+    [],
+  );
+  const onScrollToIndexFailed = useCallback(
+    (info: {highestMeasuredFrameIndex: number}) => {
+      if (retriedScroll.current) return;
+      retriedScroll.current = true;
+      flatListRef.current?.scrollToIndex({
+        index: Math.max(0, info.highestMeasuredFrameIndex),
+        animated: false,
+      });
+      retryTimer.current = setTimeout(scrollToPlaying, 100);
+    },
+    [scrollToPlaying],
+  );
+  const handleJumpPress = useCallback(() => {
+    retriedScroll.current = false;
+    scrollToPlaying();
   }, [scrollToPlaying]);
+
+  // Rows changed (e.g. unsave): drop stale viewability until the list reports.
+  useEffect(() => {
+    setVisibleIndices([]);
+  }, [adhkarList]);
 
   const onViewableItemsChanged = useCallback(
     ({viewableItems}: {viewableItems: ViewToken<Dhikr>[]}) => {
       setVisibleIndices(
-        viewableItems
-          .map(v => v.index)
-          .filter((i): i is number => typeof i === 'number'),
+        visibleRowIndices(viewableItems, v => v.index ?? undefined),
       );
     },
     [],
@@ -332,7 +351,7 @@ const SavedAdhkarScreen: React.FC = () => {
         direction={jumpPillDirection(visibleIndices, sessionIndex)}
         playing={sessionPlaying}
         top={headerHeight + moderateScale(8)}
-        onPress={scrollToPlaying}
+        onPress={handleJumpPress}
       />
     </View>
   );
