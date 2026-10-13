@@ -15,6 +15,7 @@ import {Dhikr} from '@/types/adhkar';
 import {adhkarCardLabel} from '@/utils/adhkarText';
 import {AdhkarArabicText} from './AdhkarArabicText';
 import {AdhkarLatinText} from './AdhkarLatinText';
+import {PlayingBars} from './PlayingBars';
 import Color from 'color';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -29,11 +30,13 @@ interface DhikrListItemProps {
   dhikr: Dhikr;
   index: number;
   style?: StyleProp<ViewStyle>;
+  isCurrent?: boolean;
+  isPlaying?: boolean;
 }
 
 // @ai-start
 export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
-  ({dhikr, index, style}) => {
+  ({dhikr, index, style, isCurrent = false, isPlaying = false}) => {
     const {theme} = useTheme();
     const {t} = useTranslation('player');
     const showTranslation = useAdhkarSettingsStore(s => s.showTranslation);
@@ -44,16 +47,24 @@ export const DhikrListItem: React.FC<DhikrListItemProps> = React.memo(
 
     return (
       <View
-        style={[styles.container, style]}
+        style={[styles.container, isCurrent && styles.containerCurrent, style]}
         accessibilityRole="button"
         accessibilityLabel={adhkarCardLabel(dhikr.arabic, dhikr.translation)}>
         {/* Ornate top border pattern */}
         <View style={styles.ornamentBar}>
           <View style={styles.ornamentLeft} />
           <View style={styles.ornamentCenter}>
-            <Text style={styles.ornamentNumber}>
-              {localizeDigits(displayNumber)}
-            </Text>
+            <View style={styles.numberRow}>
+              <Text style={styles.ornamentNumber}>
+                {localizeDigits(displayNumber)}
+              </Text>
+              {isCurrent ? (
+                <PlayingBars
+                  animating={isPlaying}
+                  color={theme.colors.textSecondary}
+                />
+              ) : null}
+            </View>
           </View>
           <View style={styles.ornamentRight} />
         </View>
@@ -113,6 +124,14 @@ const createStyles = (theme: Theme) => {
       overflow: 'hidden',
       borderWidth: 1,
       borderColor: Color(accentColor).alpha(0.15).toString(),
+    },
+    containerCurrent: {
+      backgroundColor: Color(theme.colors.text).alpha(0.06).toString(),
+    },
+    numberRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: moderateScale(8),
     },
     ornamentBar: {
       flexDirection: 'row',

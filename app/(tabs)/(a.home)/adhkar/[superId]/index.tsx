@@ -93,6 +93,17 @@ const SuperCategoryListScreen: React.FC = () => {
     s => s.session?.listId === superId && s.session.mode === 'all',
   );
 
+  const currentDhikrId = useAdhkarSessionStore(s =>
+    s.session?.listId === superId
+      ? (s.session.items[s.session.index]?.dhikrId ?? null)
+      : null,
+  );
+  const sessionPlaying = useAdhkarSessionStore(
+    s =>
+      s.session?.listId === superId &&
+      (s.session.status === 'playing' || s.session.status === 'loading'),
+  );
+
   const [superCategory, setSuperCategory] = useState<SuperCategory | null>(
     null,
   );
@@ -351,15 +362,25 @@ const SuperCategoryListScreen: React.FC = () => {
         <Pressable style={StyleSheet.flatten([{flex: 1}])}>
           {USE_GLASS ? (
             <Link.AppleZoom>
-              <DhikrListItem dhikr={item.dhikr} index={item.index} />
+              <DhikrListItem
+                dhikr={item.dhikr}
+                index={item.index}
+                isCurrent={item.dhikr.id === currentDhikrId}
+                isPlaying={item.dhikr.id === currentDhikrId && sessionPlaying}
+              />
             </Link.AppleZoom>
           ) : (
-            <DhikrListItem dhikr={item.dhikr} index={item.index} />
+            <DhikrListItem
+              dhikr={item.dhikr}
+              index={item.index}
+              isCurrent={item.dhikr.id === currentDhikrId}
+              isPlaying={item.dhikr.id === currentDhikrId && sessionPlaying}
+            />
           )}
         </Pressable>
       </Link>
     ),
-    [superId, superCategory?.title],
+    [superId, superCategory?.title, currentDhikrId, sessionPlaying],
   );
 
   const renderSectionHeader = useCallback(({section}: {section: Section}) => {

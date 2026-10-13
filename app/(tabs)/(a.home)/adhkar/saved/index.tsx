@@ -47,6 +47,17 @@ const SavedAdhkarScreen: React.FC = () => {
     s => s.session?.listId === 'saved' && s.session.mode === 'all',
   );
 
+  const currentDhikrId = useAdhkarSessionStore(s =>
+    s.session?.listId === 'saved'
+      ? (s.session.items[s.session.index]?.dhikrId ?? null)
+      : null,
+  );
+  const sessionPlaying = useAdhkarSessionStore(
+    s =>
+      s.session?.listId === 'saved' &&
+      (s.session.status === 'playing' || s.session.status === 'loading'),
+  );
+
   const [adhkarList, setAdhkarList] = useState<Dhikr[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -176,15 +187,25 @@ const SavedAdhkarScreen: React.FC = () => {
         <Pressable style={StyleSheet.flatten([{flex: 1}])}>
           {USE_GLASS ? (
             <Link.AppleZoom>
-              <DhikrListItem dhikr={item} index={index} />
+              <DhikrListItem
+                dhikr={item}
+                index={index}
+                isCurrent={item.id === currentDhikrId}
+                isPlaying={item.id === currentDhikrId && sessionPlaying}
+              />
             </Link.AppleZoom>
           ) : (
-            <DhikrListItem dhikr={item} index={index} />
+            <DhikrListItem
+              dhikr={item}
+              index={index}
+              isCurrent={item.id === currentDhikrId}
+              isPlaying={item.id === currentDhikrId && sessionPlaying}
+            />
           )}
         </Pressable>
       </Link>
     ),
-    [],
+    [currentDhikrId, sessionPlaying],
   );
 
   const keyExtractor = useCallback((item: Dhikr) => item.id, []);
