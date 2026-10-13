@@ -76,16 +76,13 @@ import {getAllahNameHighlightColorHex} from '@/constants/mushafAllahHighlight';
 import {useTheme} from '@/hooks/useTheme';
 import SkiaSurahHeader from '../skia/SkiaSurahHeader';
 import {
-  SCREEN_WIDTH,
-  SCREEN_HEIGHT,
-  PAGE_PADDING_HORIZONTAL,
-  PAGE_PADDING_TOP,
-  CONTENT_WIDTH,
-  CONTENT_HEIGHT,
+  type MushafLayoutMetrics, // @ai
   calculateLineYPositions,
+  canvasBottomOverflow, // @ai
 } from '../constants';
 
 interface QCFPageProps {
+  metrics: MushafLayoutMetrics; // @ai
   pageNumber: number;
   textColor: string;
   dividerColor: string;
@@ -106,7 +103,6 @@ const FILL_RATIO = 0.97;
 // DK's font + size for basmallah rendering. Matches SkiaPage's calc
 // (FONTSIZE * scale * 0.9 where scale = CONTENT_WIDTH / PAGE_WIDTH).
 const DK_FONT_FAMILY = 'DigitalKhattV2';
-const DK_FONT_SIZE = (CONTENT_WIDTH / PAGE_WIDTH) * FONTSIZE * 0.9;
 
 // Skia treats U+0020 (regular space) as a wrap-point and merges adjacent
 // PUA word-glyphs at line start when no separator precedes them — the two
@@ -135,6 +131,7 @@ interface SurahHeaderEntry {
 }
 
 const QCFPage: React.FC<QCFPageProps> = ({
+  metrics, // @ai
   pageNumber,
   textColor,
   dividerColor,
@@ -142,6 +139,17 @@ const QCFPage: React.FC<QCFPageProps> = ({
   onReady,
   onTap,
 }) => {
+  // @ai-start
+  const {
+    contentWidth: CONTENT_WIDTH,
+    contentHeight: CONTENT_HEIGHT,
+    paddingHorizontal: PAGE_PADDING_HORIZONTAL,
+    paddingTop: PAGE_PADDING_TOP,
+    baseLineHeight,
+  } = metrics;
+  const pageStyle = {width: metrics.pageWidth, height: metrics.screenHeight};
+  const basmallahFontSize = (CONTENT_WIDTH / PAGE_WIDTH) * FONTSIZE * 0.9;
+  // @ai-end
   const {theme} = useTheme();
   const fontMgr = useMushafFontMgr();
   // @ai-start
@@ -190,7 +198,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
       dividerFont: Skia.Font(qcTypeface, scaledSize),
       nameFontSize: scaledSize * 0.4,
     };
-  }, []);
+  }, [CONTENT_WIDTH]); // @ai
   // @ai-start
   const [loadedFont, setLoadedFont] = useState<{
     family: string;
@@ -203,8 +211,8 @@ const QCFPage: React.FC<QCFPageProps> = ({
   // A previous page/variant becoming ready must never expose an unloaded font.
   const fontReady =
     loadedFont?.family === fontFamily && loadedFont?.manager === fontMgr;
+  const [loadAttempt, setLoadAttempt] = useState(0);
   // @ai-end
-  const [loadAttempt, setLoadAttempt] = useState(0); // @ai
   const [error, setError] = useState<string | null>(null);
 
   const pageLines = useMemo<DKLine[]>(
@@ -213,8 +221,16 @@ const QCFPage: React.FC<QCFPageProps> = ({
   );
 
   const lineYPositions = useMemo(
-    () => calculateLineYPositions(pageLines, pageNumber),
-    [pageLines, pageNumber],
+    // @ai-start
+    () =>
+      calculateLineYPositions(
+        pageLines,
+        pageNumber,
+        CONTENT_HEIGHT,
+        baseLineHeight,
+      ),
+    [pageLines, pageNumber, CONTENT_HEIGHT, baseLineHeight],
+    // @ai-end
   );
 
   const orderedVerseKeys = useMemo(
@@ -254,7 +270,11 @@ const QCFPage: React.FC<QCFPageProps> = ({
   const layoutMetrics = useMemo(() => {
     if (!fontMgr || !fontReady) return null;
 
-    const cached = qcfLayoutCacheService.getPageLayout(pageNumber, fontFamily);
+    const cached = qcfLayoutCacheService.getPageLayout(
+      pageNumber,
+      fontFamily,
+      CONTENT_WIDTH,
+    );
     if (cached) return cached;
 
     const tmpBuilder = Skia.ParagraphBuilder.Make(lineParStyle, fontMgr);
@@ -298,9 +318,22 @@ const QCFPage: React.FC<QCFPageProps> = ({
       fontSize: ((CONTENT_WIDTH * FILL_RATIO) / widestRef) * REF_FONT_SIZE,
       lineWidthsAtRef,
     };
-    qcfLayoutCacheService.setPageLayout(pageNumber, fontFamily, measured);
+    qcfLayoutCacheService.setPageLayout(
+      pageNumber,
+      fontFamily,
+      CONTENT_WIDTH,
+      measured,
+    );
     return measured;
-  }, [fontMgr, fontReady, fontFamily, pageLines, pageNumber, textColor]);
+  }, [
+    fontMgr,
+    fontReady,
+    fontFamily,
+    pageLines,
+    pageNumber,
+    textColor,
+    CONTENT_WIDTH,
+  ]);
   // @ai-end
 
   const lineBackgroundHighlights = useMemo(() => {
@@ -540,7 +573,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
           DK_FONT_FAMILY,
           basmallahAllahMap,
           {
-            fontSize: DK_FONT_SIZE,
+            fontSize: basmallahFontSize,
             fontFeatures: [{name: 'basm', value: 1}],
           },
         );
@@ -582,6 +615,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
     }
     return entries;
   }, [
+    basmallahFontSize,
     allahNameHighlightColor,
     arabicTextWeight,
     fontMgr,
@@ -618,7 +652,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
       });
     }
     return entries;
-  }, [pageLines, lineYPositions]);
+  }, [pageLines, lineYPositions, CONTENT_HEIGHT]); // @ai
 
   useEffect(() => {
     if (error) {
@@ -663,7 +697,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
       }
       return -1;
     },
-    [lineYPositions],
+    [lineYPositions, CONTENT_HEIGHT], // @ai
   );
 
   const hitTestVerse = useCallback(
@@ -695,7 +729,17 @@ const QCFPage: React.FC<QCFPageProps> = ({
 
       return findQCFVerseAtCharIndex(entry.model, charIndex);
     },
-    [contentMarginLeft, findLineAtY, renderEntryByLine],
+    // @ai-start
+    [
+      contentMarginLeft,
+      findLineAtY,
+      renderEntryByLine,
+      CONTENT_WIDTH,
+      CONTENT_HEIGHT,
+      PAGE_PADDING_HORIZONTAL,
+      PAGE_PADDING_TOP,
+    ],
+    // @ai-end
   );
 
   const handleDragStart = useCallback(
@@ -814,13 +858,13 @@ const QCFPage: React.FC<QCFPageProps> = ({
   );
 
   if (!fontMgr || pageLines.length === 0) {
-    return <View style={styles.page} />;
+    return <View style={pageStyle} />;
   }
 
   // @ai-start
   if (error) {
     return (
-      <View style={[styles.page, styles.loadStatus]}>
+      <View style={[pageStyle, styles.loadStatus]}>
         <Text style={{color: textColor}}>Unable to load this page.</Text>
         <Pressable
           accessibilityRole="button"
@@ -849,7 +893,7 @@ const QCFPage: React.FC<QCFPageProps> = ({
   if (!fontReady || renderEntries.length === 0) {
     return (
       <GestureDetector gesture={composedGesture}>
-        <View style={[styles.page, styles.loadStatus]}>
+        <View style={[pageStyle, styles.loadStatus]}>
           <ActivityIndicator color={textColor} />
         </View>
       </GestureDetector>
@@ -859,11 +903,13 @@ const QCFPage: React.FC<QCFPageProps> = ({
 
   return (
     <GestureDetector gesture={composedGesture}>
-      <View style={styles.page}>
+      <View style={pageStyle}>
         <Canvas
           style={{
             width: CONTENT_WIDTH,
-            height: CONTENT_HEIGHT,
+            height:
+              CONTENT_HEIGHT +
+              canvasBottomOverflow(layoutMetrics?.fontSize ?? 0), // @ai
             marginLeft: contentMarginLeft ?? PAGE_PADDING_HORIZONTAL,
             marginTop: PAGE_PADDING_TOP,
           }}>
@@ -943,10 +989,6 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   // @ai-end
-  page: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_HEIGHT,
-  },
 });
 
 export default QCFPage;

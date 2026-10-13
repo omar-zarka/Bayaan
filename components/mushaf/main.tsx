@@ -249,6 +249,7 @@ const DKPageView: React.FC<{
       )}
       {isQCF ? (
         <QCFPage
+          metrics={metrics} // @ai
           pageNumber={pageNumber}
           textColor={textColor}
           dividerColor={labelColor}
