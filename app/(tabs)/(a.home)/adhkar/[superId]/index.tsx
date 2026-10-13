@@ -169,13 +169,21 @@ const SuperCategoryListScreen: React.FC = () => {
 
   const listRef = useRef<FlatList<DhikrItem>>(null);
 
-  // A widget link (adhkar/<superId>?dhikr=<id>) opens the list at that dhikr.
-  const scrolledTo = useRef<string | null>(null);
+  // A widget link (adhkar/<superId>?dhikr=<id>) opens the list at that dhikr. On an open screen a
+  // new link changes the param: a different dhikr scrolls to it, a link without one scrolls to the top.
+  // Holds the param last acted on ('' for none), null until the list has loaded.
+  const handledDhikr = useRef<string | null>(null);
   useEffect(() => {
-    if (!dhikr || scrolledTo.current === dhikr) return;
-    const index = flatAdhkarList.findIndex(item => item.dhikr.id === dhikr);
-    if (index <= 0) return;
-    scrolledTo.current = dhikr;
+    if (flatAdhkarList.length === 0) return;
+    const target = dhikr ?? '';
+    if (handledDhikr.current === target) return;
+    const opening = handledDhikr.current === null;
+    handledDhikr.current = target;
+    const index = Math.max(
+      0,
+      flatAdhkarList.findIndex(item => item.dhikr.id === target),
+    );
+    if (index === 0 && opening) return;
     requestAnimationFrame(() => {
       listRef.current?.scrollToIndex({
         index,
