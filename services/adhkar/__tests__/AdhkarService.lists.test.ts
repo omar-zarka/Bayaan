@@ -81,9 +81,8 @@ describe('getAdhkarForSuperCategory', () => {
         dhikr('106', '28'),
         dhikr('97', '27'),
       ]);
-    const result = await adhkarService.getAdhkarForSuperCategory(
-      'evening-adhkar',
-    );
+    const result =
+      await adhkarService.getAdhkarForSuperCategory('evening-adhkar');
     expect(adhkarDatabaseService.getAdhkarByIds).toHaveBeenCalledWith([
       '75',
       'evening-77',
@@ -107,9 +106,8 @@ describe('getAdhkarForSuperCategory', () => {
     jest
       .mocked(adhkarDatabaseService.getAdhkarByCategoryIds)
       .mockResolvedValue([dhikr('75', '27'), dhikr('76', '27')]);
-    const result = await adhkarService.getAdhkarForSuperCategory(
-      'evening-adhkar',
-    );
+    const result =
+      await adhkarService.getAdhkarForSuperCategory('evening-adhkar');
     expect(result?.categoryGroups).toEqual([
       {
         categoryId: '27',
@@ -142,9 +140,8 @@ describe('per-list audio overrides', () => {
       .mockResolvedValue(
         superCategory(['75', '96'], {'75': 'adhkar_evening_75.mp3'}),
       );
-    const result = await adhkarService.getAdhkarForSuperCategory(
-      'evening-adhkar',
-    );
+    const result =
+      await adhkarService.getAdhkarForSuperCategory('evening-adhkar');
     expect(result?.categoryGroups[0].adhkar.map(d => d.audioFile)).toEqual([
       'adhkar_evening_75.mp3',
       'adhkar_96.mp3',
@@ -155,9 +152,8 @@ describe('per-list audio overrides', () => {
     jest
       .mocked(adhkarDatabaseService.getSuperCategory)
       .mockResolvedValue(superCategory(['75', '96'], null, 'morning-adhkar'));
-    const result = await adhkarService.getAdhkarForSuperCategory(
-      'morning-adhkar',
-    );
+    const result =
+      await adhkarService.getAdhkarForSuperCategory('morning-adhkar');
     expect(result?.categoryGroups[0].adhkar.map(d => d.audioFile)).toEqual([
       'adhkar_75.mp3',
       'adhkar_96.mp3',
