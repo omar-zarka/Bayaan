@@ -27,7 +27,8 @@ interface AdhkarState {
   // Saved adhkar (Set of dhikr IDs)
   savedIds: Set<string>;
 
-  // Tasbeeh counts
+  // Tasbeeh counts by count key (plain dhikr id, or `<superId>:<dhikrId>`
+  // for the morning and evening lists; see dhikrCountKey)
   dhikrCounts: Record<string, number>;
 
   // Loading states
@@ -49,9 +50,9 @@ interface AdhkarState {
   loadSaved: () => Promise<void>;
 
   // Tasbeeh
-  incrementCount: (dhikrId: string) => Promise<number>;
-  resetCount: (dhikrId: string) => Promise<void>;
-  getCount: (dhikrId: string) => number;
+  incrementCount: (countKey: string) => Promise<number>;
+  resetCount: (countKey: string) => Promise<void>;
+  getCount: (countKey: string) => number;
 
   // Direct adhkar list setter (for super category navigation)
   setAdhkarList: (
