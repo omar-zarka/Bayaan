@@ -45,7 +45,8 @@ import expo.modules.bayaanwidgets.ui.appLink
 import java.util.TimeZone
 
 class AdhkarWidget : GlanceAppWidget() {
-  override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.SMALL_TALL, WidgetSizes.MEDIUM, WidgetSizes.MEDIUM_TALL, WidgetSizes.LARGE))
+  /** Exact: Responsive reports the bucket (250x250 on a ~266x344 dp large), so the session sized its Arabic too small. */
+  override val sizeMode = SizeMode.Exact
   override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
 
   override suspend fun provideGlance(context: Context, id: GlanceId) {
@@ -69,9 +70,10 @@ fun AdhkarContent(context: Context, nowMs: Long) {
     return
   }
   val size = LocalSize.current
-  val width = size.width.value
   val root = contentRoot().clickable(appLink(context, "adhkar/${data.superId}"))
   if (size.width < WidgetSizes.MEDIUM.width) {
+    // The small layout keeps the Responsive bucket it was designed for.
+    val bucket = if (size.height >= WidgetSizes.SMALL_TALL.height) WidgetSizes.SMALL_TALL else WidgetSizes.SMALL
     Column(root.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(data.title, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
@@ -79,7 +81,7 @@ fun AdhkarContent(context: Context, nowMs: Long) {
         Logo(12)
       }
       Spacer(GlanceModifier.defaultWeight())
-      ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, width - 24, size.height.value - 24 - 34, 22f, 11f, 3, center = true)
+      ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, bucket.width.value - 24, bucket.height.value - 24 - 34, 22f, 11f, 3, center = true)
       Spacer(GlanceModifier.defaultWeight())
     }
     return
