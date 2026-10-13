@@ -6,8 +6,6 @@ import {useReciterStore} from '../store/reciterStore';
 import {useApiHealthStore} from '../store/apiHealthStore';
 import fallbackReciters from '../data/reciters-fallback.json';
 // @ai-start
-import {getReciterDisplayName} from '@/i18n/format';
-import {normalizeSearchText, matchesSearchText} from '@/utils/catalogSearch';
 import {rankSurahs} from '@/utils/search/catalog';
 // @ai-end
 
@@ -296,52 +294,6 @@ export async function getAvailableSurahsForRewayat(
   return [];
 }
 
-// @ai-start
-export async function filterReciters(options: {
-  style?: string;
-  hasSurah?: number;
-  query?: string;
-}): Promise<Reciter[]> {
-  const reciters = await getAllReciters();
-  const normalizedQuery = normalizeSearchText(options.query ?? '');
-
-  return reciters.filter(reciter => {
-    if (options.style) {
-      const hasStyle = reciter.rewayat.some(r => r.style === options.style);
-      if (!hasStyle) return false;
-    }
-
-    if (options.hasSurah !== undefined) {
-      const hasSurah = reciter.rewayat.some(
-        r =>
-          !r.surah_list ||
-          r.surah_list
-            .filter((id): id is number => id !== null)
-            .includes(options.hasSurah ?? 0),
-      );
-      if (!hasSurah) return false;
-    }
-
-    if (normalizedQuery) {
-      const matchesQuery =
-        matchesSearchText(reciter.name, normalizedQuery) ||
-        matchesSearchText(
-          getReciterDisplayName(reciter, 'ar'),
-          normalizedQuery,
-        ) ||
-        reciter.rewayat.some(
-          r =>
-            matchesSearchText(r.name, normalizedQuery) ||
-            matchesSearchText(r.style, normalizedQuery),
-        );
-      if (!matchesQuery) return false;
-    }
-
-    return true;
-  });
-}
-// @ai-end
-
 // ── Audio URL ─────────────────────────────────────────────────────────────────
 
 export async function fetchAudioUrl(
@@ -377,20 +329,6 @@ export async function fetchAudioUrl(
   const surahStr = surahId.toString().padStart(3, '0');
   return `${rewayat.server}/${surahStr}.mp3`;
 }
-
-// ── Search ────────────────────────────────────────────────────────────────────
-
-// @ai-start
-export async function searchReciters(query: string): Promise<Reciter[]> {
-  const reciters = await getAllReciters();
-  const normalizedQuery = normalizeSearchText(query);
-  return reciters.filter(
-    reciter =>
-      matchesSearchText(reciter.name, normalizedQuery) ||
-      matchesSearchText(getReciterDisplayName(reciter, 'ar'), normalizedQuery),
-  );
-}
-// @ai-end
 
 // ── Utility ───────────────────────────────────────────────────────────────────
 
