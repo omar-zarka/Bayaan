@@ -145,8 +145,10 @@ describe('outer parentheses and unpaired brackets', () => {
     expect(parseAdhkarArabic('(أ) ب')[0].text).toBe('(أ) ب');
   });
 
-  it('drops a ﴿ the data never closes from copy text (row 50)', () => {
-    const text = adhkarCopyText(row('50').arabic);
+  it('drops a ﴿ the data never closes from copy text (row 50 before v7)', () => {
+    const text = adhkarCopyText(
+      '((سَجَدَ وَجْهِيَ لِلَّذِي خَلَقَهُ، ﴿فَتَبارَكَ اللَّهُ أَحْسَنُ الْخَالِقِينَ)).',
+    );
     expect(text).not.toMatch(/[﴿﴾]/);
   });
 

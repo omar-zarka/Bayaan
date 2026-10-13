@@ -960,7 +960,7 @@ class AdhkarDatabaseService {
         column: 'right',
         sort_order: 2,
         section: 'other',
-        category_ids: ['10', '11', '97', '98'],
+        category_ids: ['10', '11', '97', '98', '132'],
       },
       {
         id: 'istikharah',

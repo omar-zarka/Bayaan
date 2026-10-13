@@ -9,4 +9,6 @@
 // Version 5: Balanced "Other" section bento grid (left=14, right=14)
 // Version 6: Morning/evening split (6 evening rows, per-period dhikr lists,
 //            super_categories.dhikr_ids), text, count and audio fixes
-export const ADHKAR_DATA_VERSION = 6;
+// Version 7: Sourced transliterations and instructions, 99 Names meanings,
+//            restored row 114, marker fixes, category 132 under Home
+export const ADHKAR_DATA_VERSION = 7;

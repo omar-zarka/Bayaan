@@ -5,6 +5,7 @@ jest.mock(
 import {openDatabaseAsync, resetDatabases} from '@/test-utils/mockExpoSqlite';
 import {adhkarDatabaseService} from '../AdhkarDatabaseService';
 import type {AdhkarSeedData} from '@/types/adhkar';
+import adhkarData from '@/data/adhkar.json';
 
 function row(id: string, orderIndex: number): AdhkarSeedData['adhkar'][number] {
   return {
@@ -82,6 +83,18 @@ describe('super category dhikr lists', () => {
     expect(main.find(s => s.id === 'evening-adhkar')?.audioOverrides).toEqual({
       '1': 'adhkar_evening_1.mp3',
     });
+  });
+
+  it('reaches every category in data/adhkar.json from a super category', async () => {
+    await adhkarDatabaseService.initialize();
+    await adhkarDatabaseService.seedSuperCategories();
+    const all = await adhkarDatabaseService.getAllSuperCategories();
+    const reachable = new Set(all.flatMap(s => s.categoryIds));
+    const missing = adhkarData.categories
+      .map(c => c.id)
+      .filter(id => !reachable.has(id));
+    expect(missing).toEqual([]);
+    expect(all.find(s => s.id === 'home')?.categoryIds).toContain('132');
   });
 
   it('returns adhkar in the requested order and skips unknown ids', async () => {
