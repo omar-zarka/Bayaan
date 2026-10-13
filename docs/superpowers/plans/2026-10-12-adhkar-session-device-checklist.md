@@ -71,3 +71,16 @@ No change. `SESSION_MEDIUM_CHARS` stays 110 and `SESSION_LARGE_CHARS` stays 420.
 | `npm run test:widget-fixtures` | PASS (exit 0) |
 | `cd android && ./gradlew :bayaan-widgets:testDebugUnitTest` | PASS (run with `-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"`) |
 | iOS Release iphonesimulator xcodebuild at `f2e39707` | PASS (BUILD SUCCEEDED, derived data `trimdd`) |
+
+## Fix wave (bugs 1 to 3)
+
+Run 2026-10-12, 21:20 to 21:41 local (Evening session), same devices. iOS: Release iphonesimulator build (`SENTRY_DISABLE_AUTO_UPLOAD=true`, the sentry-cli upload failed on the network), installed in place so the placed widgets stayed. Android: release APK as above; the emulator held a newer version code, so the app was reinstalled and the Adhkar widget re-added (3x2 medium, then 3x3 large). Screenshots: `/private/tmp/claude-501/-Users-osmansaeday-orca-workspaces-Bayaan-widgets/c0503663-a396-4272-91ae-d9723ef577f3/scratchpad/adhkar-qa/fix/` (`interim-*` files are from the 110 and 140 budget runs).
+
+| Bug | Check | Result | Notes |
+|-----|-------|--------|-------|
+| 1 | iOS medium: 2 readable lines on short, ~100 char and cut cards | PASS | Medium has no progress bar and the hint sits in the controls row. Every card renders at the full 18pt: cut 75 and 77 on two lines with the hint (`ios-b1-card3-cut77-b120-crop.png`), uncut 86 (117 chars) on two lines (`ios-b1-card12-uncut86-117-b120-crop.png`), uncut 78 (102 chars) on two lines (`ios-b1-interim-card4-uncut78-budget110.png`), short 97 on one line (`ios-b1-card23-short97-b120-crop.png`). At a 140 budget iOS still held two lines at 18pt (`ios-b1-interim-card7-uncut81-139chars-crop.png`). Large unchanged. |
+| 1 | Android medium (3x2) same cards | PASS | Same arrangement, two lines max. Cut 75 and 77 (114 and 116 chars), uncut 78 (102), short 97: all at the 18sp start size (bitmap 194 px tall); uncut 86 (117 chars) one 2 px step smaller (187 px), still above 16sp (`and-b1-*-crop.png`). At a 140 budget the 134 char card shrank to about 15.8sp (`and-b1-interim-card1-budget140-crop.png`), so Android 3x2 sets the budget. The hint truncates with an ellipsis when Prev is shown. Compact (110 dp) still NOT RUN: the Pixel launcher will not size the widget below 2 rows. |
+| 2 | Android large (3x3) on 75 and 77 ends on whole lines | PASS | With `SizeMode.Exact` the session gets the real 266x344 dp, so both cards show their full large text on 5 lines with the translation and caption, nothing clipped (`and-b2-large-id75-crop.png`, `and-b2-large-id77-crop.png`). When text still cannot fit at the minimum size the bitmap now drops lines and ends on an ellipsis. Small Android widget keeps its Responsive bucket sizing. |
+| 3 | Warm links on an open list: different dhikr, and card 1 (no `?dhikr`) | PASS | iOS: open at card 4, link to card 5 scrolled to 5 (`ios-b3-warm-different-dhikr-79.png`), then the card 1 link scrolled to the top (`ios-b3-warm-card1-link-top.png`). Android: cold link to card 3 (`and-b3-cold-dhikr77-card3.png`), warm card 4 (`and-b3-warm-different-dhikr78-card4.png`), warm card 1 to the top (`and-b3-warm-card1-link-top.png`). An identical repeated link was not retested. |
+
+Budget: `SESSION_MEDIUM_CHARS` 110 to 120 (the most Android 3x2 holds on two lines at 16sp or more; iOS medium holds more). `SESSION_LARGE_CHARS` stays 420.
