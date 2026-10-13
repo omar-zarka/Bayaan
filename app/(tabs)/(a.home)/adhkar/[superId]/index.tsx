@@ -19,6 +19,7 @@ import {
   useLocalSearchParams,
   useRouter,
   useNavigation,
+  useFocusEffect,
   Link,
 } from 'expo-router';
 import {Ionicons, Feather} from '@expo/vector-icons';
@@ -39,7 +40,9 @@ import {
   shortenCategoryTitle,
 } from '@/utils/adhkarUtils';
 // @ai-end
-import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
+import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
+import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
+import {setAdhkarFocus} from '@/services/adhkar/playback/openPlayingDhikr';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {adhkarShareUrl, shareUrl} from '@/utils/shareUtils';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
@@ -81,14 +84,10 @@ const SuperCategoryListScreen: React.FC = () => {
 
   const {getSuperCategoryById} = useAdhkar();
 
-  // Play All store
-  const isPlayAllMode = useAdhkarPlayAllStore(state => state.isPlayAllMode);
-  const playAllSourceId = useAdhkarPlayAllStore(state => state.sourceId);
-  const startPlayAll = useAdhkarPlayAllStore(state => state.startPlayAll);
-  const stopPlayAll = useAdhkarPlayAllStore(state => state.stopPlayAll);
-
   // Check if currently playing this category
-  const isThisCategoryPlaying = isPlayAllMode && playAllSourceId === superId;
+  const isThisCategoryPlaying = useAdhkarSessionStore(
+    s => s.session?.listId === superId && s.session.mode === 'all',
+  );
 
   const [superCategory, setSuperCategory] = useState<SuperCategory | null>(
     null,
@@ -196,63 +195,52 @@ const SuperCategoryListScreen: React.FC = () => {
   }, [superId, displayTitle, t]);
 
   // Play All handler
+  const dispatch = useAdhkarSessionStore(s => s.dispatch);
   const handlePlayAll = useCallback(() => {
-    if (!superId) return;
-
-    if (isThisCategoryPlaying) {
-      // Stop if already playing this category
-      stopPlayAll();
-      return;
-    }
-
-    if (allAdhkarForPlayAll.length === 0) return;
-
-    // Determine source type based on superId
-    let sourceType: 'morning' | 'evening' | 'saved' | 'other' = 'other';
-    if (superId === 'morning-adhkar') {
-      sourceType = 'morning';
-    } else if (superId === 'evening-adhkar') {
-      sourceType = 'evening';
-    }
-
-    const startIndex = startPlayAll(
-      allAdhkarForPlayAll,
-      0,
-      sourceType,
-      superId,
-    );
-    if (startIndex < 0) return;
-
-    // Navigate to reader at the first dhikr that has audio
-    const firstDhikr = allAdhkarForPlayAll[startIndex];
+    if (!superId || allAdhkarForPlayAll.length === 0) return;
+    const source = {
+      listId: superId,
+      listTitle: superCategory?.title ?? '',
+      items: toSessionItems(allAdhkarForPlayAll),
+    };
+    const wasPlaying = isThisCategoryPlaying;
+    dispatch({type: 'pressPlayAll', source});
+    if (wasPlaying) return;
+    const session = useAdhkarSessionStore.getState().session;
+    if (!session || session.listId !== superId) return;
+    const first = allAdhkarForPlayAll[session.index];
     const firstGroup = categoryGroups.find(group =>
-      group.adhkar.some(d => d.id === firstDhikr.id),
+      group.adhkar.some(d => d.id === first.id),
     );
-    const firstCategoryTitle = firstGroup
-      ? shortenCategoryTitle(firstGroup.categoryTitle)
-      : '';
-
     router.push({
       pathname: '/(tabs)/(a.home)/adhkar/[superId]/[dhikrId]',
       params: {
         superId,
-        dhikrId: firstDhikr.id,
-        globalIndex: String(startIndex),
-        categoryShortTitle: firstCategoryTitle,
+        dhikrId: first.id,
+        globalIndex: String(session.index),
+        categoryShortTitle: firstGroup
+          ? shortenCategoryTitle(firstGroup.categoryTitle)
+          : '',
         superCategoryTitle: superCategory?.title,
         playAll: 'true',
       },
     });
   }, [
     superId,
-    isThisCategoryPlaying,
     allAdhkarForPlayAll,
-    categoryGroups,
     superCategory?.title,
-    startPlayAll,
-    stopPlayAll,
+    isThisCategoryPlaying,
+    dispatch,
+    categoryGroups,
     router,
   ]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (superId) setAdhkarFocus({kind: 'list', listId: superId});
+      return () => setAdhkarFocus(null);
+    }, [superId]),
+  );
 
   // Set native header options dynamically
   useLayoutEffect(() => {

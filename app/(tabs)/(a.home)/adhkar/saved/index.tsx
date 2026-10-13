@@ -6,7 +6,7 @@ import React, {
   useLayoutEffect,
 } from 'react';
 import {View, Text, FlatList, Pressable, StyleSheet} from 'react-native';
-import {useRouter, useNavigation, Link} from 'expo-router';
+import {useRouter, useNavigation, useFocusEffect, Link} from 'expo-router';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {Ionicons} from '@expo/vector-icons';
 // @ai-start
@@ -20,7 +20,9 @@ import {PlayAllButton} from '@/components/adhkar/PlayAllButton';
 import {Dhikr, SavedDhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {useAdhkar} from '@/hooks/useAdhkar';
-import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
+import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
+import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
+import {setAdhkarFocus} from '@/services/adhkar/playback/openPlayingDhikr';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {USE_GLASS} from '@/hooks/useGlassProps';
@@ -36,14 +38,10 @@ const SavedAdhkarScreen: React.FC = () => {
   const bottomInset = useBottomInset();
   const {savedIds} = useAdhkar();
 
-  // Play All store
-  const isPlayAllMode = useAdhkarPlayAllStore(state => state.isPlayAllMode);
-  const playAllSourceId = useAdhkarPlayAllStore(state => state.sourceId);
-  const startPlayAll = useAdhkarPlayAllStore(state => state.startPlayAll);
-  const stopPlayAll = useAdhkarPlayAllStore(state => state.stopPlayAll);
-
   // Check if currently playing saved adhkar
-  const isSavedPlaying = isPlayAllMode && playAllSourceId === 'saved';
+  const isSavedPlaying = useAdhkarSessionStore(
+    s => s.session?.listId === 'saved' && s.session.mode === 'all',
+  );
 
   const [adhkarList, setAdhkarList] = useState<Dhikr[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,29 +73,36 @@ const SavedAdhkarScreen: React.FC = () => {
   }, [savedIds.size]); // Reload when saved count changes
 
   // Play All handler
+  const dispatch = useAdhkarSessionStore(s => s.dispatch);
   const handlePlayAll = useCallback(() => {
-    if (isSavedPlaying) {
-      // Stop if already playing saved
-      stopPlayAll();
-      return;
-    }
-
     if (adhkarList.length === 0) return;
-
-    const startIndex = startPlayAll(adhkarList, 0, 'saved', 'saved');
-    if (startIndex < 0) return;
-
-    // Navigate to reader at the first dhikr that has audio
-    const firstDhikr = adhkarList[startIndex];
+    const source = {
+      listId: 'saved',
+      listTitle: t('adhkar.saved'),
+      items: toSessionItems(adhkarList),
+    };
+    const wasPlaying = isSavedPlaying;
+    dispatch({type: 'pressPlayAll', source});
+    if (wasPlaying) return;
+    const session = useAdhkarSessionStore.getState().session;
+    if (!session || session.listId !== 'saved') return;
+    const first = adhkarList[session.index];
     router.push({
       pathname: '/(tabs)/(a.home)/adhkar/saved/[dhikrId]',
       params: {
-        dhikrId: firstDhikr.id,
-        globalIndex: String(startIndex),
+        dhikrId: first.id,
+        globalIndex: String(session.index),
         playAll: 'true',
       },
     });
-  }, [isSavedPlaying, adhkarList, startPlayAll, stopPlayAll, router]);
+  }, [adhkarList, t, isSavedPlaying, dispatch, router]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setAdhkarFocus({kind: 'list', listId: 'saved'});
+      return () => setAdhkarFocus(null);
+    }, []),
+  );
 
   // Set native header options dynamically
   useLayoutEffect(() => {

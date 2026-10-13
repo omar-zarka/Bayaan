@@ -7,7 +7,12 @@ import React, {
   useLayoutEffect,
 } from 'react';
 import {View, Text, FlatList, Dimensions, ViewToken} from 'react-native';
-import {useLocalSearchParams, useRouter, useNavigation} from 'expo-router';
+import {
+  useLocalSearchParams,
+  useRouter,
+  useNavigation,
+  useFocusEffect,
+} from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {ScaledSheet, moderateScale} from 'react-native-size-matters';
 import {useAdhkar} from '@/hooks/useAdhkar';
@@ -18,8 +23,10 @@ import {resolveViewableChange} from '@/components/adhkar/playAllScrollGuard';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {Dhikr, SavedDhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
-import {useAdhkarAudioStore} from '@/store/adhkarAudioStore';
-import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
+import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
+import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
+import {setAdhkarFocus} from '@/services/adhkar/playback/openPlayingDhikr';
+import {AdhkarSessionSourceProvider} from '@/components/adhkar/AdhkarSessionSourceContext';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -72,17 +79,12 @@ const SavedDhikrReaderScreen: React.FC = () => {
 
   const {isSaved, toggleSaved, savedIds} = useAdhkar();
 
-  const setAudio = useAdhkarAudioStore(state => state.setAudio);
-  const stopAudio = useAdhkarAudioStore(state => state.stop);
-
-  // Play All store
-  const isPlayAllMode = useAdhkarPlayAllStore(state => state.isPlayAllMode);
-  const playAllIndex = useAdhkarPlayAllStore(state => state.currentIndex);
-  const playAllSourceId = useAdhkarPlayAllStore(state => state.sourceId);
-  const goToIndex = useAdhkarPlayAllStore(state => state.goToIndex);
-
-  // Check if this reader is the active Play All source
-  const isThisPlayAllSource = isPlayAllMode && playAllSourceId === 'saved';
+  const session = useAdhkarSessionStore(s => s.session);
+  const revealToken = useAdhkarSessionStore(s => s.revealToken);
+  const dispatch = useAdhkarSessionStore(s => s.dispatch);
+  const isThisAllSession =
+    session?.listId === 'saved' && session.mode === 'all';
+  const sessionIndex = session?.listId === 'saved' ? session.index : null;
 
   // Load saved adhkar
   useEffect(() => {
@@ -117,47 +119,62 @@ const SavedDhikrReaderScreen: React.FC = () => {
     }
   }, [savedIds, isDataLoaded]);
 
-  const currentDhikr = useMemo(() => {
-    return adhkarList[currentIndex] || null;
-  }, [adhkarList, currentIndex]);
+  const sessionSource = useMemo(
+    () =>
+      adhkarList.length > 0
+        ? {
+            listId: 'saved',
+            listTitle: t('adhkar.saved'),
+            items: toSessionItems(adhkarList),
+          }
+        : null,
+    [adhkarList, t],
+  );
 
-  useEffect(() => {
-    if (currentDhikr) {
-      setAudio(currentDhikr.audioFile);
-    }
-  }, [currentDhikr, setAudio]);
-
-  useEffect(() => {
-    return () => {
-      stopAudio();
-    };
-  }, [stopAudio]);
-
-  // Sync FlatList scroll when Play All index changes
+  // Follow the session when it advances through this list in Play All.
   // Row a Play All auto-scroll is heading to; null when no such scroll is in
   // flight. Viewable changes until it lands are not user swipes.
   const playAllScrollTarget = useRef<number | null>(null);
   useEffect(() => {
     if (
-      isThisPlayAllSource &&
-      playAllIndex !== currentIndex &&
+      isThisAllSession &&
+      sessionIndex !== null &&
+      sessionIndex !== currentIndex &&
       isDataLoaded &&
       adhkarList.length > 0
     ) {
-      playAllScrollTarget.current = playAllIndex;
+      playAllScrollTarget.current = sessionIndex;
       flatListRef.current?.scrollToIndex({
-        index: playAllIndex,
+        index: sessionIndex,
         animated: true,
       });
-      setCurrentIndex(playAllIndex);
+      setCurrentIndex(sessionIndex);
     }
   }, [
-    isThisPlayAllSource,
-    playAllIndex,
+    isThisAllSession,
+    sessionIndex,
     currentIndex,
     isDataLoaded,
     adhkarList.length,
   ]);
+
+  // A surface asked to show the playing dhikr.
+  const lastReveal = useRef(revealToken);
+  useEffect(() => {
+    if (revealToken === lastReveal.current) return;
+    lastReveal.current = revealToken;
+    if (sessionIndex === null || !isDataLoaded) return;
+    playAllScrollTarget.current = sessionIndex;
+    flatListRef.current?.scrollToIndex({index: sessionIndex, animated: true});
+    setCurrentIndex(sessionIndex);
+  }, [revealToken, sessionIndex, isDataLoaded]);
+
+  useFocusEffect(
+    useCallback(() => {
+      setAdhkarFocus({kind: 'reader', listId: 'saved'});
+      return () => setAdhkarFocus(null);
+    }, []),
+  );
 
   // Set native header with title + position subtitle
   useLayoutEffect(() => {
@@ -205,7 +222,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
 
-        // Sync Play All store when user manually swipes (not from Play All
+        // Move the session when the user manually swipes (not from Play All
         // auto-scroll, which may pass several rows before it lands)
         const change = resolveViewableChange(
           playAllScrollTarget.current,
@@ -213,15 +230,15 @@ const SavedDhikrReaderScreen: React.FC = () => {
         );
         playAllScrollTarget.current = change.target;
         if (
-          isThisPlayAllSource &&
-          newIndex !== playAllIndex &&
+          isThisAllSession &&
+          newIndex !== sessionIndex &&
           change.isUserSwipe
         ) {
-          goToIndex(newIndex);
+          dispatch({type: 'swipedTo', listId: 'saved', index: newIndex});
         }
       }
     },
-    [isThisPlayAllSource, playAllIndex, goToIndex],
+    [isThisAllSession, sessionIndex, dispatch],
   );
 
   // A drag is the user taking over, even mid auto-scroll.
@@ -288,37 +305,39 @@ const SavedDhikrReaderScreen: React.FC = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <View
-        style={[
-          styles.listContainer,
-          {paddingTop: headerHeight, paddingBottom: insets.bottom},
-        ]}>
-        <FlatList
-          ref={flatListRef}
-          style={appLayoutDirection}
-          data={adhkarList}
-          renderItem={renderItem}
-          keyExtractor={keyExtractor}
-          horizontal
-          pagingEnabled
-          showsHorizontalScrollIndicator={false}
-          initialScrollIndex={initialIndex}
-          getItemLayout={getItemLayout}
-          onViewableItemsChanged={onViewableItemsChanged}
-          onScrollBeginDrag={handleScrollBeginDrag}
-          onMomentumScrollEnd={handleMomentumScrollEnd}
-          viewabilityConfig={viewabilityConfig}
-          windowSize={3}
-          maxToRenderPerBatch={2}
-          removeClippedSubviews={true}
-          initialNumToRender={1}
-          decelerationRate="fast"
-          snapToInterval={SCREEN_WIDTH}
-          snapToAlignment="start"
-        />
+    <AdhkarSessionSourceProvider source={sessionSource}>
+      <View style={styles.container}>
+        <View
+          style={[
+            styles.listContainer,
+            {paddingTop: headerHeight, paddingBottom: insets.bottom},
+          ]}>
+          <FlatList
+            ref={flatListRef}
+            style={appLayoutDirection}
+            data={adhkarList}
+            renderItem={renderItem}
+            keyExtractor={keyExtractor}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            initialScrollIndex={initialIndex}
+            getItemLayout={getItemLayout}
+            onViewableItemsChanged={onViewableItemsChanged}
+            onScrollBeginDrag={handleScrollBeginDrag}
+            onMomentumScrollEnd={handleMomentumScrollEnd}
+            viewabilityConfig={viewabilityConfig}
+            windowSize={3}
+            maxToRenderPerBatch={2}
+            removeClippedSubviews={true}
+            initialNumToRender={1}
+            decelerationRate="fast"
+            snapToInterval={SCREEN_WIDTH}
+            snapToAlignment="start"
+          />
+        </View>
       </View>
-    </View>
+    </AdhkarSessionSourceProvider>
   );
 };
 // @ai-end
