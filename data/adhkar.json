@@ -1540,7 +1540,7 @@
       "repeat_count": 1,
       "audio_url": null,
       "order_index": 24,
-      "audio_file": null
+      "audio_file": "adhkar_evening_77.mp3"
     },
     {
       "id": "evening-78",
@@ -1553,7 +1553,7 @@
       "repeat_count": 1,
       "audio_url": null,
       "order_index": 25,
-      "audio_file": null
+      "audio_file": "adhkar_evening_78.mp3"
     },
     {
       "id": "evening-80",
@@ -1566,7 +1566,7 @@
       "repeat_count": 4,
       "audio_url": null,
       "order_index": 26,
-      "audio_file": null
+      "audio_file": "adhkar_evening_80.mp3"
     },
     {
       "id": "evening-81",
@@ -1579,7 +1579,7 @@
       "repeat_count": 1,
       "audio_url": null,
       "order_index": 27,
-      "audio_file": null
+      "audio_file": "adhkar_evening_81.mp3"
     },
     {
       "id": "evening-89",
@@ -1592,7 +1592,7 @@
       "repeat_count": 1,
       "audio_url": null,
       "order_index": 28,
-      "audio_file": null
+      "audio_file": "adhkar_evening_89.mp3"
     },
     {
       "id": "evening-90",
@@ -1605,7 +1605,7 @@
       "repeat_count": 1,
       "audio_url": null,
       "order_index": 29,
-      "audio_file": null
+      "audio_file": "adhkar_evening_90.mp3"
     },
     {
       "id": "99",
@@ -2708,7 +2708,7 @@
       "transliteration": "la ilaha illa allah wahdahu la sharika lah, lahul-mulku wa lahul-hamdu wa huwa 'ala kulli shay'in qadir",
       "instruction": "(La ilaha illal-lahu wahdahu la shareeka lah, lahul-mulku walahul-hamd, yuhyee wayumeet, wahuwa AAala kulli shayin qadeer.(ten times after the maghrib & fajr prayers))",
       "repeat_count": 10,
-      "audio_url": "http://www.hisnmuslim.com/audio/ar/73.mp3",
+      "audio_url": "http://www.hisnmuslim.com/audio/ar/72.mp3",
       "order_index": 6,
       "audio_file": "adhkar_72.mp3"
     },
@@ -3228,7 +3228,7 @@
       "transliteration": "qaala alnabiyu sla allh 'lyh wslm: iidhaa 'aada alrajulu aakhaahu almuslima mashaa fiy khiraafahi aljanahi hataa yajlisa faiidhaa jalasa ghamarathu alrahmahu faiin kaana ghudwahan salaa 'alayhi sab'uwna aalfa malakin hataa yumsiya waiin kaana masaa'an salaa 'alayhi sab'uwna aalfa",
       "instruction": "",
       "repeat_count": 1,
-      "audio_url": "http://www.hisnmuslim.com/audio/ar/49.mp3",
+      "audio_url": "http://www.hisnmuslim.com/audio/ar/149.mp3",
       "order_index": 0,
       "audio_file": "adhkar_149.mp3"
     },
@@ -6631,5 +6631,22 @@
       "97",
       "98"
     ]
+  },
+  "super_category_audio_overrides": {
+    "evening-adhkar": {
+      "75": "adhkar_evening_75.mp3",
+      "76": "adhkar_evening_76.mp3",
+      "79": "adhkar_evening_79.mp3",
+      "82": "adhkar_evening_82.mp3",
+      "83": "adhkar_evening_83.mp3",
+      "84": "adhkar_evening_84.mp3",
+      "85": "adhkar_evening_85.mp3",
+      "86": "adhkar_evening_86.mp3",
+      "87": "adhkar_evening_87.mp3",
+      "88": "adhkar_evening_88.mp3",
+      "91": "adhkar_evening_91.mp3",
+      "92": "adhkar_evening_92.mp3",
+      "98": "adhkar_evening_98.mp3"
+    }
   }
 }

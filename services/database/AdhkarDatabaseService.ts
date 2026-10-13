@@ -66,6 +66,7 @@ interface SuperCategoryRow {
   section: string;
   category_ids: string; // JSON array stored as string
   dhikr_ids: string | null; // JSON array of dhikr ids, or NULL (version 6)
+  audio_overrides: string | null; // JSON {dhikrId: audioFile}, or NULL (version 6)
 }
 
 /** Escape a value for direct SQL interpolation (single-quoted string or NULL). */
@@ -86,6 +87,23 @@ function parseDhikrIds(value: string | null): string[] | null {
     ids.push(item);
   }
   return ids;
+}
+
+/** Parse super_categories.audio_overrides (JSON object of file names) or return null. */
+function parseAudioOverrides(
+  value: string | null,
+): Record<string, string> | null {
+  if (value === null) return null;
+  const parsed: unknown = JSON.parse(value);
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  const overrides: Record<string, string> = {};
+  for (const [dhikrId, file] of Object.entries(parsed)) {
+    if (typeof file !== 'string') return null;
+    overrides[dhikrId] = file;
+  }
+  return overrides;
 }
 
 // History and bump rules: services/database/adhkarDataVersion.ts
@@ -197,7 +215,8 @@ class AdhkarDatabaseService {
         sort_order INTEGER DEFAULT 0,
         section TEXT DEFAULT 'main',
         category_ids TEXT NOT NULL,
-        dhikr_ids TEXT
+        dhikr_ids TEXT,
+        audio_overrides TEXT
       );
     `);
 
@@ -209,6 +228,12 @@ class AdhkarDatabaseService {
     if (!superColumns.some(column => column.name === 'dhikr_ids')) {
       await this.db.execAsync(
         'ALTER TABLE super_categories ADD COLUMN dhikr_ids TEXT;',
+      );
+    }
+    // Data version 6 also added audio_overrides (per-list audio files).
+    if (!superColumns.some(column => column.name === 'audio_overrides')) {
+      await this.db.execAsync(
+        'ALTER TABLE super_categories ADD COLUMN audio_overrides TEXT;',
       );
     }
 
@@ -550,6 +575,7 @@ class AdhkarDatabaseService {
       section: row.section as SuperCategorySection,
       categoryIds: JSON.parse(row.category_ids),
       dhikrIds: parseDhikrIds(row.dhikr_ids),
+      audioOverrides: parseAudioOverrides(row.audio_overrides),
     }));
   }
 
@@ -575,6 +601,7 @@ class AdhkarDatabaseService {
       section: row.section as SuperCategorySection,
       categoryIds: JSON.parse(row.category_ids),
       dhikrIds: parseDhikrIds(row.dhikr_ids),
+      audioOverrides: parseAudioOverrides(row.audio_overrides),
     }));
   }
 
@@ -600,6 +627,7 @@ class AdhkarDatabaseService {
       section: row.section as SuperCategorySection,
       categoryIds: JSON.parse(row.category_ids),
       dhikrIds: parseDhikrIds(row.dhikr_ids),
+      audioOverrides: parseAudioOverrides(row.audio_overrides),
     };
   }
 
@@ -710,6 +738,9 @@ class AdhkarDatabaseService {
   // Seed super categories
   async seedSuperCategories(
     dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>> = {},
+    audioOverridesBySuperId: Readonly<
+      Record<string, Readonly<Record<string, string>>>
+    > = {},
   ): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
@@ -1100,19 +1131,20 @@ class AdhkarDatabaseService {
     const superValues = allSuperCategories
       .map(cat => {
         const dhikrIds = dhikrIdsBySuperId[cat.id];
+        const audioOverrides = audioOverridesBySuperId[cat.id];
         return `(${esc(cat.id)}, ${esc(cat.title)}, ${esc(
           cat.arabic_title,
         )}, ${esc(cat.color)}, ${cat.height_multiplier}, ${esc(cat.column)}, ${
           cat.sort_order
         }, ${esc(cat.section)}, ${esc(JSON.stringify(cat.category_ids))}, ${
           dhikrIds ? esc(JSON.stringify(dhikrIds)) : 'NULL'
-        })`;
+        }, ${audioOverrides ? esc(JSON.stringify(audioOverrides)) : 'NULL'})`;
       })
       .join(',\n');
 
     await db.execAsync(`
       DELETE FROM super_categories;
-      INSERT INTO super_categories (id, title, arabic_title, color, height_multiplier, column, sort_order, section, category_ids, dhikr_ids)
+      INSERT INTO super_categories (id, title, arabic_title, color, height_multiplier, column, sort_order, section, category_ids, dhikr_ids, audio_overrides)
       VALUES ${superValues};
     `);
   }

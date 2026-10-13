@@ -32,7 +32,26 @@ describe('morning and evening on a fresh install', () => {
     );
     const evening77 = await adhkarService.getDhikr('evening-77');
     expect(evening77?.arabic.startsWith('((أَمْسَيْنَا')).toBe(true);
-    expect(evening77?.audioFile).toBeNull();
+    expect(evening77?.audioFile).toBe('adhkar_evening_77.mp3');
+  });
+
+  it('plays each list its own recording of a shared dhikr', async () => {
+    async function audioOf(
+      superId: string,
+      id: string,
+    ): Promise<string | null> {
+      const data = await adhkarService.getAdhkarForSuperCategory(superId);
+      const found = data?.categoryGroups
+        .flatMap(g => g.adhkar)
+        .find(d => d.id === id);
+      return found?.audioFile ?? null;
+    }
+    expect(await audioOf('evening-adhkar', '75')).toBe('adhkar_evening_75.mp3');
+    expect(await audioOf('morning-adhkar', '75')).toBe('adhkar_75.mp3');
+    expect(await audioOf('evening-adhkar', '96')).toBe('adhkar_96.mp3');
+    expect((await adhkarService.getDhikr('75'))?.audioFile).toBe(
+      'adhkar_75.mp3',
+    );
   });
 
   it('leaves other super categories on category membership', async () => {

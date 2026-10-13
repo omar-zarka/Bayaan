@@ -30,6 +30,7 @@ export interface SeedFile {
   adhkar: SeedRow[];
   meta: unknown;
   super_category_dhikr_ids?: Record<string, string[]>;
+  super_category_audio_overrides?: Record<string, Record<string, string>>;
 }
 
 export type FixStep = (seed: SeedFile, eveningMarkdown: string) => SeedFile;
@@ -194,6 +195,28 @@ function toLists(value: unknown): Record<string, string[]> | undefined {
   return lists;
 }
 
+function toAudioOverrides(
+  value: unknown,
+): Record<string, Record<string, string>> | undefined {
+  if (value === undefined) return undefined;
+  if (!isRecord(value)) {
+    throw new Error('super_category_audio_overrides is malformed');
+  }
+  const overrides: Record<string, Record<string, string>> = {};
+  for (const [superId, files] of Object.entries(value)) {
+    if (!isRecord(files)) throw new Error(`${superId} overrides are malformed`);
+    const byDhikr: Record<string, string> = {};
+    for (const [dhikrId, file] of Object.entries(files)) {
+      if (typeof file !== 'string') {
+        throw new Error(`${superId} override ${dhikrId} is not a file name`);
+      }
+      byDhikr[dhikrId] = file;
+    }
+    overrides[superId] = byDhikr;
+  }
+  return overrides;
+}
+
 export function parseSeedFile(value: unknown): SeedFile {
   if (
     !isRecord(value) ||
@@ -211,6 +234,8 @@ export function parseSeedFile(value: unknown): SeedFile {
   };
   const lists = toLists(value.super_category_dhikr_ids);
   if (lists) seed.super_category_dhikr_ids = lists;
+  const overrides = toAudioOverrides(value.super_category_audio_overrides);
+  if (overrides) seed.super_category_audio_overrides = overrides;
   return seed;
 }
 
@@ -405,6 +430,61 @@ export function applyTextFixes(seed: SeedFile): SeedFile {
   };
 }
 
+// ---- Audio (user decision 2026-10-13: Alafasy for morning, evening and the
+// Quranic duas; Duraihim stays for the rest of Hisn al-Muslim) ---------------
+
+// Rows 72 and 149 pointed at the recordings of 73 and 49. The bundled files
+// adhkar_72.mp3 and adhkar_149.mp3 are now the hisnmuslim.com originals.
+export const AUDIO_URL_FIXES: Readonly<Record<string, string>> = {
+  '72': 'http://www.hisnmuslim.com/audio/ar/72.mp3',
+  '149': 'http://www.hisnmuslim.com/audio/ar/149.mp3',
+};
+
+// Rows in both lists. Each list plays a cut from its own Alafasy session, so
+// the evening list overrides these rows' (morning) audio_file. Row 96 has one
+// cut for both lists.
+export const EVENING_SHARED_AUDIO_IDS: readonly string[] = [
+  '75',
+  '76',
+  '79',
+  '82',
+  '83',
+  '84',
+  '85',
+  '86',
+  '87',
+  '88',
+  '91',
+  '92',
+  '98',
+];
+
+export function eveningAudioFile(id: string): string {
+  return `adhkar_evening_${id}.mp3`;
+}
+
+export function applyAudioFixes(seed: SeedFile): SeedFile {
+  const eveningRowFiles = new Map(
+    EVENING_VARIANT_IDS.map(id => [`evening-${id}`, eveningAudioFile(id)]),
+  );
+  return {
+    ...seed,
+    adhkar: seed.adhkar.map(row => {
+      const eveningFile = eveningRowFiles.get(row.id);
+      if (eveningFile) return {...row, audio_file: eveningFile};
+      if (Object.hasOwn(AUDIO_URL_FIXES, row.id)) {
+        return {...row, audio_url: AUDIO_URL_FIXES[row.id]};
+      }
+      return row;
+    }),
+    super_category_audio_overrides: {
+      'evening-adhkar': Object.fromEntries(
+        EVENING_SHARED_AUDIO_IDS.map(id => [id, eveningAudioFile(id)]),
+      ),
+    },
+  };
+}
+
 // Tasks append their steps before recountCategories, which must stay last.
 export const FIX_STEPS: FixStep[] = [
   seed => stripEveningNotes(seed),
@@ -412,6 +492,7 @@ export const FIX_STEPS: FixStep[] = [
     applyEveningRows(seed, parseEveningRows(eveningMarkdown)),
   seed => setPeriodLists(seed),
   seed => applyTextFixes(seed),
+  seed => applyAudioFixes(seed),
   seed => recountCategories(seed),
 ];
 

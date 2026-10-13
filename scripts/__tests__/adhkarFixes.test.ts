@@ -3,9 +3,11 @@ import fs from 'fs';
 import path from 'path';
 import {
   applyAllFixes,
+  applyAudioFixes,
   parseSeedFile,
   serializeSeedFile,
 } from '../adhkar-content/adhkarFixes';
+import type {SeedRow} from '../adhkar-content/adhkarFixes';
 import {
   EVENING_TEXTS_DOC,
   parseEveningRows,
@@ -92,5 +94,56 @@ describe('adhkar content fixes', () => {
     expect(
       serializeSeedFile(applyAllFixes(seed, read(EVENING_TEXTS_DOC))),
     ).toBe(raw);
+  });
+});
+
+describe('applyAudioFixes', () => {
+  function seedRow(id: string, audioUrl: string | null): SeedRow {
+    return {
+      id,
+      category_id: '27',
+      category_name: 'c',
+      arabic: id,
+      translation: null,
+      transliteration: null,
+      instruction: null,
+      repeat_count: 1,
+      audio_url: audioUrl,
+      order_index: 0,
+      audio_file: null,
+    };
+  }
+
+  it('sets evening files, fixes the 72 and 149 urls and writes the evening overrides', () => {
+    const fixed = applyAudioFixes({
+      categories: [],
+      adhkar: [
+        seedRow('evening-78', null),
+        seedRow('72', 'http://www.hisnmuslim.com/audio/ar/73.mp3'),
+        seedRow('149', 'http://www.hisnmuslim.com/audio/ar/49.mp3'),
+        seedRow('96', null),
+      ],
+      meta: null,
+    });
+    expect(fixed.adhkar.map(r => [r.id, r.audio_file, r.audio_url])).toEqual([
+      ['evening-78', 'adhkar_evening_78.mp3', null],
+      ['72', null, 'http://www.hisnmuslim.com/audio/ar/72.mp3'],
+      ['149', null, 'http://www.hisnmuslim.com/audio/ar/149.mp3'],
+      ['96', null, null],
+    ]);
+    const evening = fixed.super_category_audio_overrides?.['evening-adhkar'];
+    expect(evening?.['75']).toBe('adhkar_evening_75.mp3');
+    expect(evening && Object.hasOwn(evening, '96')).toBe(false);
+    expect(Object.keys(evening ?? {})).toHaveLength(13);
+  });
+
+  it('rejects malformed overrides', () => {
+    expect(() =>
+      parseSeedFile({
+        categories: [],
+        adhkar: [],
+        super_category_audio_overrides: {'evening-adhkar': {'75': 1}},
+      }),
+    ).toThrow('not a file name');
   });
 });

@@ -585,6 +585,15 @@ describe.each(TAGS)('develop code on %s databases', tag => {
       JSON.stringify(adhkarSeed.super_category_dhikr_ids['evening-adhkar']),
     );
     expect(lists.get('salah')).toBeNull();
+    const overrides = new Map(
+      supers.map(r => [String(r.id), r.audio_overrides]),
+    );
+    expect(overrides.get('evening-adhkar')).toBe(
+      JSON.stringify(
+        adhkarSeed.super_category_audio_overrides['evening-adhkar'],
+      ),
+    );
+    expect(overrides.get('morning-adhkar')).toBeNull();
   });
 
   it('keeps uploaded recitations and custom reciters', async () => {

@@ -54,6 +54,23 @@ function getCredits(
           description: t('credits.items.mp3quran'),
           link: 'https://mp3quran.net',
         },
+        {
+          title: 'Mishary Rashid Alafasy',
+          description: t('credits.items.alafasy'),
+          link: 'http://www.alafasy.tv',
+        },
+        {
+          title: 'Hamad al-Duraihim, IslamHouse.com',
+          description: t('credits.items.duraihim'),
+          link: 'https://islamhouse.com',
+        },
+        {
+          title: t('credits.items.removalTitle'),
+          description: t('credits.items.removal', {
+            supportUrl: branding.supportUrl,
+          }),
+          link: branding.supportUrl,
+        },
       ],
     },
     {

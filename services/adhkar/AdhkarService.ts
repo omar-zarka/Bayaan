@@ -50,6 +50,19 @@ function groupConsecutiveByCategory(
   return groups;
 }
 
+// A list can play its own recording of a shared dhikr (evening session).
+function applyAudioOverrides(
+  adhkar: Dhikr[],
+  overrides: Readonly<Record<string, string>> | null,
+): Dhikr[] {
+  if (!overrides) return adhkar;
+  return adhkar.map(dhikr =>
+    Object.hasOwn(overrides, dhikr.id)
+      ? {...dhikr, audioFile: overrides[dhikr.id]}
+      : dhikr,
+  );
+}
+
 class AdhkarService {
   private initPromise: Promise<void> | null = null;
 
@@ -80,6 +93,7 @@ class AdhkarService {
         if (!areSuperCategoriesSeeded || needsReseed) {
           await adhkarDatabaseService.seedSuperCategories(
             seedData.super_category_dhikr_ids ?? {},
+            seedData.super_category_audio_overrides ?? {},
           );
         }
 
@@ -225,7 +239,10 @@ class AdhkarService {
       );
       return {
         superCategory,
-        categoryGroups: groupConsecutiveByCategory(listed, allCategories),
+        categoryGroups: groupConsecutiveByCategory(
+          applyAudioOverrides(listed, superCategory.audioOverrides),
+          allCategories,
+        ),
       };
     }
 

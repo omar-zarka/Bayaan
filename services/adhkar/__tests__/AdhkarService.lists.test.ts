@@ -11,13 +11,18 @@ jest.mock('@/services/database/AdhkarDatabaseService', () => ({
     getAllCategories: jest.fn(),
     getAdhkarByIds: jest.fn(),
     getAdhkarByCategoryIds: jest.fn(),
+    getDhikr: jest.fn(),
   },
 }));
 import {adhkarDatabaseService} from '@/services/database/AdhkarDatabaseService';
 import {adhkarService} from '../AdhkarService';
 import type {AdhkarCategory, Dhikr, SuperCategory} from '@/types/adhkar';
 
-function dhikr(id: string, categoryId: string): Dhikr {
+function dhikr(
+  id: string,
+  categoryId: string,
+  audioFile: string | null = null,
+): Dhikr {
   return {
     id,
     categoryId,
@@ -26,14 +31,18 @@ function dhikr(id: string, categoryId: string): Dhikr {
     transliteration: null,
     instruction: null,
     repeatCount: 1,
-    audioFile: null,
+    audioFile,
     sortOrder: 0,
   };
 }
 
-function superCategory(dhikrIds: string[] | null): SuperCategory {
+function superCategory(
+  dhikrIds: string[] | null,
+  audioOverrides: Record<string, string> | null = null,
+  id = 'evening-adhkar',
+): SuperCategory {
   return {
-    id: 'evening-adhkar',
+    id,
     title: 'Evening',
     arabicTitle: null,
     color: '#4F46E5',
@@ -43,6 +52,7 @@ function superCategory(dhikrIds: string[] | null): SuperCategory {
     section: 'main',
     categoryIds: ['27'],
     dhikrIds,
+    audioOverrides,
   };
 }
 
@@ -107,5 +117,58 @@ describe('getAdhkarForSuperCategory', () => {
         adhkar: [dhikr('75', '27'), dhikr('76', '27')],
       },
     ]);
+  });
+});
+
+describe('per-list audio overrides', () => {
+  const shared = (): Dhikr[] => [
+    dhikr('75', '27', 'adhkar_75.mp3'),
+    dhikr('96', '27', 'adhkar_96.mp3'),
+  ];
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    jest
+      .mocked(adhkarDatabaseService.getAllCategories)
+      .mockResolvedValue(categories);
+    jest
+      .mocked(adhkarDatabaseService.getAdhkarByIds)
+      .mockResolvedValue(shared());
+  });
+
+  it('plays the evening recording of a shared dhikr in the evening list', async () => {
+    jest
+      .mocked(adhkarDatabaseService.getSuperCategory)
+      .mockResolvedValue(
+        superCategory(['75', '96'], {'75': 'adhkar_evening_75.mp3'}),
+      );
+    const result = await adhkarService.getAdhkarForSuperCategory(
+      'evening-adhkar',
+    );
+    expect(result?.categoryGroups[0].adhkar.map(d => d.audioFile)).toEqual([
+      'adhkar_evening_75.mp3',
+      'adhkar_96.mp3',
+    ]);
+  });
+
+  it('keeps the morning recording in a list without overrides', async () => {
+    jest
+      .mocked(adhkarDatabaseService.getSuperCategory)
+      .mockResolvedValue(superCategory(['75', '96'], null, 'morning-adhkar'));
+    const result = await adhkarService.getAdhkarForSuperCategory(
+      'morning-adhkar',
+    );
+    expect(result?.categoryGroups[0].adhkar.map(d => d.audioFile)).toEqual([
+      'adhkar_75.mp3',
+      'adhkar_96.mp3',
+    ]);
+  });
+
+  it('keeps the morning recording for a plain lookup (saved adhkar)', async () => {
+    jest
+      .mocked(adhkarDatabaseService.getDhikr)
+      .mockResolvedValue(dhikr('75', '27', 'adhkar_75.mp3'));
+    const found = await adhkarService.getDhikr('75');
+    expect(found?.audioFile).toBe('adhkar_75.mp3');
   });
 });

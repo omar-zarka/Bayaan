@@ -26,7 +26,7 @@ Block fields:
 - `transliteration`: verbatim from the cited source, or `null` when no source gives a full evening transliteration (the transliteration overhaul is a separate, later PR).
 - `repeat_count`: integer.
 
-The script also sets `category_id` `27`, the category name, `audio_url` `null`, `audio_file` `null` (no evening recording exists anywhere, so the play button is hidden for these rows) and `order_index` 24 to 29 in the order of the blocks.
+The script also sets `category_id` `27`, the category name, `audio_url` `null` and `order_index` 24 to 29 in the order of the blocks. Its audio step sets `audio_file` to `adhkar_evening_77.mp3` and so on: evening audio is Mishary Alafasy (his 1434H evening session), added on 2026-10-13 per the user.
 
 ## Source policy (from the user)
 
@@ -122,7 +122,7 @@ Other published English, for comparison:
   - Its evening text: "اللَّهُمَّ بِكَ أَمْسَيْنَا وَبِكَ أَصْبَحْنَا وَبِكَ نَحْيَا وَبِكَ نَمُوتُ وَإِلَيْكَ النُّشُورُ".
   - Its English: "O Allah, by You we enter the evening, and by You we enter the morning, and by You we live, and by You we die, and to You is the Resurrection".
 - **Abu Dawud 5068** (https://sunnah.com/abudawud:5068) ends both with النُّشُورُ and has no وَبِكَ أَصْبَحْنَا in the evening.
-- The block follows Hisn. The bundled audio for row 78 also recites the Hisn evening form after "وإذا أمسى قال".
+- The block follows Hisn. The original Duraihim audio for row 78 also recites the Hisn evening form after "وإذا أمسى قال".
 
 Alternative English (Osoul PDF, p.74): "O Allāh, by You we enter the evening and by You we enter the morning, by You we live and by You we die, and to You is the Final Return."
 

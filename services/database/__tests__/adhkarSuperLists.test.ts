@@ -63,6 +63,33 @@ describe('super category dhikr lists', () => {
     expect(main.find(s => s.id === 'salah')?.dhikrIds).toBeNull();
   });
 
+  it('stores per-list audio overrides and null elsewhere', async () => {
+    await adhkarDatabaseService.initialize();
+    await adhkarDatabaseService.seedDatabase(seed);
+    await adhkarDatabaseService.seedSuperCategories(
+      {'evening-adhkar': ['evening-1', '1']},
+      {'evening-adhkar': {'1': 'adhkar_evening_1.mp3'}},
+    );
+    const evening = await adhkarDatabaseService.getSuperCategory(
+      'evening-adhkar',
+    );
+    expect(evening?.audioOverrides).toEqual({'1': 'adhkar_evening_1.mp3'});
+    const morning = await adhkarDatabaseService.getSuperCategory(
+      'morning-adhkar',
+    );
+    expect(morning?.audioOverrides).toBeNull();
+    const all = await adhkarDatabaseService.getAllSuperCategories();
+    expect(all.find(s => s.id === 'evening-adhkar')?.audioOverrides).toEqual({
+      '1': 'adhkar_evening_1.mp3',
+    });
+    const main = await adhkarDatabaseService.getSuperCategoriesBySection(
+      'main',
+    );
+    expect(main.find(s => s.id === 'evening-adhkar')?.audioOverrides).toEqual({
+      '1': 'adhkar_evening_1.mp3',
+    });
+  });
+
   it('returns adhkar in the requested order and skips unknown ids', async () => {
     await adhkarDatabaseService.initialize();
     await adhkarDatabaseService.seedDatabase(seed);
@@ -75,7 +102,7 @@ describe('super category dhikr lists', () => {
     expect(await adhkarDatabaseService.getAdhkarByIds([])).toEqual([]);
   });
 
-  it('adds dhikr_ids to a super_categories table created before version 6', async () => {
+  it('adds dhikr_ids and audio_overrides to a super_categories table created before version 6', async () => {
     const db = await openDatabaseAsync('adhkar.db');
     await db.execAsync(`
       CREATE TABLE super_categories (
@@ -97,10 +124,12 @@ describe('super category dhikr lists', () => {
       'PRAGMA table_info(super_categories)',
     );
     expect(columns.map(c => c.name)).toContain('dhikr_ids');
+    expect(columns.map(c => c.name)).toContain('audio_overrides');
     const morning = await adhkarDatabaseService.getSuperCategory(
       'morning-adhkar',
     );
     expect(morning?.categoryIds).toEqual(['27']);
     expect(morning?.dhikrIds).toBeNull();
+    expect(morning?.audioOverrides).toBeNull();
   });
 });

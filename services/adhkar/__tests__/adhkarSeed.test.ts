@@ -139,7 +139,7 @@ describe('evening rows', () => {
         repeat_count: spec.repeatCount,
         audio_url: null,
         order_index: 24 + index,
-        audio_file: null,
+        audio_file: `adhkar_evening_${spec.morningId}.mp3`,
       });
     });
   });
@@ -232,5 +232,39 @@ describe('text, count and translation fixes', () => {
     expect(text).not.toBeNull();
     expect(text).not.toContain(')');
     expect(text?.split(' ')).toHaveLength(3);
+  });
+});
+
+describe('audio mapping', () => {
+  it('keeps one clip per Quranic dua, named after its row', () => {
+    for (let n = 1; n <= 40; n++) {
+      const id = `quranic-${n}`;
+      expect({id, file: row(id).audio_file}).toEqual({
+        id,
+        file: `adhkar_${267 + n}.mp3`,
+      });
+    }
+  });
+
+  it('points rows 72 and 149 at their own hisnmuslim recordings', () => {
+    expect(row('72').audio_url).toBe(
+      'http://www.hisnmuslim.com/audio/ar/72.mp3',
+    );
+    expect(row('149').audio_url).toBe(
+      'http://www.hisnmuslim.com/audio/ar/149.mp3',
+    );
+    expect(row('72').audio_file).toBe('adhkar_72.mp3');
+    expect(row('149').audio_file).toBe('adhkar_149.mp3');
+  });
+
+  it('gives the evening list its own recording of every shared row but 96', () => {
+    const shared = EVENING.filter(id => MORNING.includes(id) && id !== '96');
+    expect(adhkarSeed.super_category_audio_overrides).toEqual({
+      'evening-adhkar': Object.fromEntries(
+        shared.map(id => [id, `adhkar_evening_${id}.mp3`]),
+      ),
+    });
+    expect(row('96').audio_file).toBe('adhkar_96.mp3');
+    expect(row('97').audio_file).toBe('adhkar_97.mp3');
   });
 });
