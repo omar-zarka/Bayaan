@@ -82,12 +82,13 @@ enum AdhkarSessionStore {
 enum PendingWidgetEventStore {
   static let key = "widgets.pendingEvents"
 
-  static func add(name: String, props: [String: Any]) {
+  /// `completedAtMs` (epoch ms) dates the event, so the app credits the day it happened.
+  static func add(name: String, props: [String: Any], completedAtMs: Double) {
     WidgetQueueLock.withLock {
       let defaults = BayaanAppGroup.defaults
       var list = (defaults?.string(forKey: key)?.data(using: .utf8))
         .flatMap { try? JSONSerialization.jsonObject(with: $0) as? [[String: Any]] } ?? []
-      list.append(["name": name, "props": props])
+      list.append(["name": name, "props": props, "completedAtMs": completedAtMs])
       if let d = try? JSONSerialization.data(withJSONObject: list), let s = String(data: d, encoding: .utf8) {
         defaults?.set(s, forKey: key)
       }

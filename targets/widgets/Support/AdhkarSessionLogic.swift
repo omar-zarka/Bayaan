@@ -14,6 +14,14 @@ struct AdhkarSession: Codable, Equatable {
 
 enum AdhkarSessionAction: String, Codable { case next, prev, count, restart }
 
+/// The adhkar_session_completed event an action raised; the app sends it later.
+struct AdhkarSessionCompletion: Equatable {
+  var category: String
+  var durationMs: Int
+  var dhikrCount: Int
+  var completedAtMs: Double
+}
+
 enum AdhkarSessionLogic {
   /// The day a session belongs to: shifted 4 hours so the evening period
   /// (12:00 to 03:59) stays one session across midnight.
@@ -47,6 +55,14 @@ enum AdhkarSessionLogic {
     case .restart: break
     }
     return out
+  }
+
+  /// The completion event when this action finished the session, else nil (once per session).
+  static func completionEvent(before: AdhkarSession, after: AdhkarSession, repeatCounts: [Int],
+                              superId: String, nowMs: Double) -> AdhkarSessionCompletion? {
+    guard !before.completed, after.completed else { return nil }
+    return AdhkarSessionCompletion(category: superId, durationMs: Int(nowMs - (after.startedAtMs ?? nowMs)),
+                                   dhikrCount: repeatCounts.count, completedAtMs: nowMs)
   }
 
   /// Body-tap path: the top of the list on the first card or when done, else the current dhikr.

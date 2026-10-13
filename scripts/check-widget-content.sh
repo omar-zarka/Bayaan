@@ -124,6 +124,17 @@ for case let c as [String: Any] in sv["apply"] as! [Any] {
                                      repeatCounts: rc, nowMs: (c["nowMs"] as! NSNumber).doubleValue)
   precondition(got == session(c["expect"]!)!, "apply \(c["name"]!)")
 }
+for case let c as [String: Any] in sv["completion"] as! [Any] {
+  let start = session(c["start"]!)!
+  let nowMs = (c["nowMs"] as! NSNumber).doubleValue
+  let after = AdhkarSessionLogic.apply(AdhkarSessionAction(rawValue: c["action"] as! String)!, to: start, repeatCounts: rc, nowMs: nowMs)
+  let got = AdhkarSessionLogic.completionEvent(before: start, after: after, repeatCounts: rc, superId: "morning-adhkar", nowMs: nowMs)
+  let want = (c["expect"] as? [String: Any]).map {
+    AdhkarSessionCompletion(category: $0["category"] as! String, durationMs: $0["duration_ms"] as! Int,
+                            dhikrCount: $0["dhikr_count"] as! Int, completedAtMs: ($0["completedAtMs"] as! NSNumber).doubleValue)
+  }
+  precondition(got == want, "completion \(c["name"]!)")
+}
 for case let c as [String: Any] in sv["link"] as! [Any] {
   precondition(AdhkarSessionLogic.link(superId: "morning-adhkar", session: session(c["session"]!)!, ids: ids) == c["expect"] as! String, "link")
 }

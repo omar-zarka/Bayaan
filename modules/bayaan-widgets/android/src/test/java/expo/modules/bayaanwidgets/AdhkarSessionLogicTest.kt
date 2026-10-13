@@ -41,6 +41,16 @@ class AdhkarSessionLogicTest {
       AdhkarSessionLogic.apply(action, session(c.getJSONObject("start"))!!, rc, c.getLong("nowMs")))
   }
 
+  @Test fun completionEvent() = each("completion") { c ->
+    val start = session(c.getJSONObject("start"))!!
+    val nowMs = c.getLong("nowMs")
+    val after = AdhkarSessionLogic.apply(AdhkarSessionAction.valueOf(c.getString("action").uppercase()), start, rc, nowMs)
+    val want = c.optJSONObject("expect")?.let {
+      AdhkarSessionCompletion(it.getString("category"), it.getLong("duration_ms"), it.getInt("dhikr_count"), it.getLong("completedAtMs"))
+    }
+    assertEquals(c.getString("name"), want, AdhkarSessionLogic.completionEvent(start, after, rc, "morning-adhkar", nowMs))
+  }
+
   @Test fun link() = each("link") { c ->
     assertEquals(c.getString("expect"), AdhkarSessionLogic.link("morning-adhkar", session(c.getJSONObject("session"))!!, ids))
   }

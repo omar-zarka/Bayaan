@@ -41,6 +41,26 @@
     {"name": "restart", "action": "restart", "nowMs": 400, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 0, "completed": true, "startedAtMs": 100},
      "expect": {"period": "morning", "day": "d", "index": 0, "remaining": 1, "completed": false, "startedAtMs": null}}
   ],
+  "completion": [
+    {"name": "next on last completes", "action": "next", "nowMs": 300, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 1, "completed": false, "startedAtMs": 100},
+     "expect": {"category": "morning-adhkar", "duration_ms": 200, "dhikr_count": 3, "completedAtMs": 300}},
+    {"name": "count on last completes", "action": "count", "nowMs": 1300, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 1, "completed": false, "startedAtMs": 100},
+     "expect": {"category": "morning-adhkar", "duration_ms": 1200, "dhikr_count": 3, "completedAtMs": 1300}},
+    {"name": "completing first action has zero duration", "action": "next", "nowMs": 500, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 1, "completed": false, "startedAtMs": null},
+     "expect": {"category": "morning-adhkar", "duration_ms": 0, "dhikr_count": 3, "completedAtMs": 500}},
+    {"name": "count with repeats left on last", "action": "count", "nowMs": 300, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 2, "completed": false, "startedAtMs": 100},
+     "expect": null},
+    {"name": "next before last", "action": "next", "nowMs": 300, "start": {"period": "morning", "day": "d", "index": 1, "remaining": 3, "completed": false, "startedAtMs": 100},
+     "expect": null},
+    {"name": "prev on last", "action": "prev", "nowMs": 300, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 1, "completed": false, "startedAtMs": 100},
+     "expect": null},
+    {"name": "already completed next", "action": "next", "nowMs": 400, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 0, "completed": true, "startedAtMs": 100},
+     "expect": null},
+    {"name": "already completed count", "action": "count", "nowMs": 400, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 0, "completed": true, "startedAtMs": 100},
+     "expect": null},
+    {"name": "restart from completed", "action": "restart", "nowMs": 400, "start": {"period": "morning", "day": "d", "index": 2, "remaining": 0, "completed": true, "startedAtMs": 100},
+     "expect": null}
+  ],
   "link": [
     {"session": {"period": "morning", "day": "d", "index": 0, "remaining": 1, "completed": false, "startedAtMs": null}, "expect": "adhkar/morning-adhkar"},
     {"session": {"period": "morning", "day": "d", "index": 1, "remaining": 3, "completed": false, "startedAtMs": 1}, "expect": "adhkar/morning-adhkar?dhikr=76"},

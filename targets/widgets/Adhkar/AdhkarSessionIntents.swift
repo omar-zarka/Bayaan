@@ -10,17 +10,18 @@ enum AdhkarSessionActions {
     let counts = data.items.map(\.repeatCount)
     let nowMs = now.timeIntervalSince1970 * 1000
     // Built inside the lock and sent after it, because PendingWidgetEventStore takes the same lock.
-    let completedProps: [String: Any]? = WidgetQueueLock.withLock {
+    let completion: AdhkarSessionCompletion? = WidgetQueueLock.withLock {
       let before = AdhkarSessionLogic.resolve(AdhkarSessionStore.read(), period: data.period,
                                               day: AdhkarSessionLogic.sessionDay(now), repeatCounts: counts)
       let after = AdhkarSessionLogic.apply(action, to: before, repeatCounts: counts, nowMs: nowMs)
       AdhkarSessionStore.write(after)
-      guard !before.completed, after.completed else { return nil }
-      return ["category": data.superId, "duration_ms": Int(nowMs - (after.startedAtMs ?? nowMs)),
-              "dhikr_count": counts.count]
+      return AdhkarSessionLogic.completionEvent(before: before, after: after, repeatCounts: counts,
+                                                superId: data.superId, nowMs: nowMs)
     }
-    if let props = completedProps {
-      PendingWidgetEventStore.add(name: "adhkar_session_completed", props: props)
+    if let c = completion {
+      PendingWidgetEventStore.add(name: "adhkar_session_completed",
+                                  props: ["category": c.category, "duration_ms": c.durationMs, "dhikr_count": c.dhikrCount],
+                                  completedAtMs: c.completedAtMs)
     }
     WidgetCenter.shared.reloadTimelines(ofKind: "Adhkar")
     WidgetCenter.shared.reloadTimelines(ofKind: "BayaanNow")

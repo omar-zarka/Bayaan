@@ -28,10 +28,12 @@ internal object AdhkarSessionActions {
     )
     val after = AdhkarSessionLogic.apply(action, before, counts, nowMs)
     WidgetStorage.writeAdhkarSession(context, AdhkarSessionLogic.encode(after))
-    if (!before.completed && after.completed) {
-      val props = JSONObject().put("category", data.superId)
-        .put("duration_ms", nowMs - (after.startedAtMs ?: nowMs)).put("dhikr_count", counts.size)
-      WidgetStorage.addPendingEvent(context, JSONObject().put("name", "adhkar_session_completed").put("props", props))
+    AdhkarSessionLogic.completionEvent(before, after, counts, data.superId, nowMs)?.let { c ->
+      val props = JSONObject().put("category", c.category).put("duration_ms", c.durationMs).put("dhikr_count", c.dhikrCount)
+      WidgetStorage.addPendingEvent(
+        context,
+        JSONObject().put("name", "adhkar_session_completed").put("props", props).put("completedAtMs", c.completedAtMs),
+      )
     }
     return true
   }

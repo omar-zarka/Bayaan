@@ -11,6 +11,9 @@ data class AdhkarSession(
 
 enum class AdhkarSessionAction { NEXT, PREV, COUNT, RESTART }
 
+/** The adhkar_session_completed event an action raised; the app sends it later. */
+data class AdhkarSessionCompletion(val category: String, val durationMs: Long, val dhikrCount: Int, val completedAtMs: Long)
+
 object AdhkarSessionLogic {
   private const val SHIFT_MS = 4L * 3600 * 1000
 
@@ -36,6 +39,13 @@ object AdhkarSessionLogic {
       AdhkarSessionAction.RESTART -> started
     }
   }
+
+  /** The completion event when this action finished the session, else null (once per session). */
+  fun completionEvent(
+    before: AdhkarSession, after: AdhkarSession, repeatCounts: List<Int>, superId: String, nowMs: Long,
+  ): AdhkarSessionCompletion? =
+    if (before.completed || !after.completed) null
+    else AdhkarSessionCompletion(superId, nowMs - (after.startedAtMs ?: nowMs), repeatCounts.size, nowMs)
 
   /** Body-tap path: the top of the list on the first card or when done, else the current dhikr. */
   fun link(superId: String, s: AdhkarSession, ids: List<String>): String =
