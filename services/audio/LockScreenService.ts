@@ -235,7 +235,6 @@ class LockScreenService {
 
     // Deactivate main player first
     this.clearPlayer(expoAudioService.getPlayer());
-    this.dropAdhkarEntry();
 
     const metadata: AudioMetadata = {
       title,
@@ -275,8 +274,14 @@ class LockScreenService {
       if (this.isMushafActive) return;
       // A held adhkar entry blocks main track changes only until the main
       // player actually plays; then the entry is dropped and main takes over.
+      // The coordinator decides who plays: right after adhkarWillPlay paused
+      // the main player, its store can still read 'playing' for a moment.
       if (this.adhkarPlayer) {
-        if (state.playback?.state !== 'playing') return;
+        if (
+          state.playback?.state !== 'playing' ||
+          audioCoordinator.getActiveSource() === 'adhkar'
+        )
+          return;
         this.dropAdhkarEntry();
       }
 
@@ -299,10 +304,15 @@ class LockScreenService {
       if (playbackState === 'playing' || playbackState === 'loading') {
         if (!this.isMushafActive) {
           this.isMushafActive = true;
-          this.dropAdhkarEntry();
           if (__DEV__)
             console.log('[LockScreenService] Mushaf override activated');
         }
+        // Also on a paused to playing resume, which keeps isMushafActive.
+        if (
+          this.adhkarPlayer &&
+          audioCoordinator.getActiveSource() !== 'adhkar'
+        )
+          this.dropAdhkarEntry();
       }
 
       // @ai-start
@@ -331,10 +341,11 @@ class LockScreenService {
         this.isMushafActive = false;
         this.lastMushafTitle = null; // @ai
 
-        // Clear mushaf lock screen and restore main player
+        // Clear mushaf lock screen and restore main player, unless adhkar
+        // holds the lock screen.
         this.clearPlayer(mushafAudioService.getPlayer());
         this.lastTrackId = null;
-        this.syncCurrentState();
+        if (!this.adhkarPlayer) this.syncCurrentState();
 
         if (__DEV__) console.log('[LockScreenService] Mushaf override cleared');
       }
@@ -359,6 +370,10 @@ class LockScreenService {
         return;
       }
       this.adhkarPlayer = player;
+      // adhkarWillPlay leaves the mushaf 'paused', not 'idle', so its
+      // override would otherwise outlive it and restore main on a later stop.
+      this.isMushafActive = false;
+      this.lastMushafTitle = null; // @ai
       this.clearPlayer(expoAudioService.getPlayer());
       this.clearPlayer(mushafAudioService.getPlayer());
       player.setActiveForLockScreen(true, metadata, {
@@ -375,13 +390,18 @@ class LockScreenService {
     }
   }
 
-  /** Remove the adhkar entry and restore the main player's. */
+  /**
+   * Remove the adhkar entry and restore the main player's. A no-op when the
+   * entry already went to another source, and main is not restored over a
+   * playing mushaf.
+   */
   clearAdhkar(player: AudioPlayer): void {
+    if (this.adhkarPlayer !== player) return;
     this.clearPlayer(player);
     this.adhkarPlayer = null;
     this.adhkarActive = false;
     this.lastTrackId = null;
-    this.syncCurrentState();
+    if (!this.isMushafActive) this.syncCurrentState();
   }
 }
 

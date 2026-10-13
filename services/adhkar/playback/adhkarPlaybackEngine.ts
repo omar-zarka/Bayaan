@@ -254,7 +254,13 @@ export function startAdhkarPlaybackEngine(
       return;
     }
     if (session.status === 'playing') {
-      if (activePlayer && lockScreenToken !== session.trackToken) {
+      // Also on a resume of the same track: the lock screen service may have
+      // dropped the entry while paused (Quran or mushaf took over). It only
+      // updates the metadata when the entry is still there.
+      if (
+        activePlayer &&
+        (lockScreenToken !== session.trackToken || prev?.status !== 'playing')
+      ) {
         lockScreenToken = session.trackToken;
         deps.lockScreen.activate(activePlayer, session);
       }
@@ -275,6 +281,10 @@ export function startAdhkarPlaybackEngine(
   }
 
   attach();
+  // A provider handover restarts the engine mid-playback, and stopSync took
+  // the lock screen entry with it.
+  const initial = store.getState().session;
+  if (initial?.status === 'playing') follow(initial, null);
 
   const unsubscribe = store.subscribe((state, prevState) => {
     if (state.session !== prevState.session)

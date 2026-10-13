@@ -261,3 +261,29 @@ it('saves the position when the app goes to the background', () => {
   stop();
   expect(appRemove).toHaveBeenCalled();
 });
+
+it('re-activates the lock screen on a resume of the same track', () => {
+  dispatch({type: 'pressPlayAll', source: src});
+  player.emit({playing: true});
+  expect(lockScreen.activate).toHaveBeenCalledTimes(1);
+  dispatch({type: 'toggle'});
+  // Paused: the lock screen service may drop the entry when Quran plays.
+  dispatch({type: 'toggle'});
+  player.emit({playing: true});
+  expect(lockScreen.activate).toHaveBeenCalledTimes(2);
+});
+
+it('re-activates the lock screen when the engine restarts mid-playback', () => {
+  dispatch({type: 'pressPlayAll', source: src});
+  player.emit({playing: true});
+  stop();
+  lockScreen.activate.mockClear();
+  stop = startAdhkarPlaybackEngine({
+    createPlayer: () => player,
+    getSource: file => (file ? 1 : null),
+    coordinator,
+    lockScreen,
+  });
+  expect(lockScreen.activate).toHaveBeenCalledTimes(1);
+  expect(player.play).toHaveBeenCalledTimes(1);
+});
