@@ -74,6 +74,13 @@ import {reciterShareUrl, shareUrl} from '@/utils/shareUtils';
 import branding from '@/config/branding';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
+import {currentLanguage} from '@/i18n/language';
+import {forceLTR, isRTL} from '@/utils/rtl';
+import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+// @ai-end
 
 interface ReciterProfileProps {
   id: string;
@@ -194,12 +201,14 @@ const SurahListSkeleton: React.FC<{theme: any}> = React.memo(({theme}) => {
 // devices get the same custom header/nav buttons as Android.
 const isGlass = USE_GLASS;
 
+// @ai-start
 const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   id: currentReciterId,
   showLoved = false,
   initialRewayatId: initialRewayatIdProp,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('player');
   const styles = createSharedStyles(theme);
   const insets = useSafeAreaInsets();
   const bottomInset = useBottomInset();
@@ -298,9 +307,12 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                   const slug = reciter?.slug ?? currentReciterId;
                   shareUrl(
                     reciterShareUrl(slug),
-                    `Listen to ${reciter?.name ?? 'this reciter'} on ${
-                      branding.appName
-                    }`,
+                    t('reciterProfile.shareMessage', {
+                      name: reciter
+                        ? getReciterDisplayName(reciter)
+                        : t('reciterProfile.thisReciter'),
+                      appName: branding.appName,
+                    }),
                   );
                 }}
                 hitSlop={8}>
@@ -320,7 +332,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
             </View>
           ),
     });
-  }, [navigation, theme, showSearch]);
+  }, [navigation, theme, showSearch, t]);
 
   const [viewMode, setViewMode] = useState<ReciterProfileViewMode>(
     useSettings(state => state.reciterProfileViewMode),
@@ -419,6 +431,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
         available = available.filter(
           surah =>
             surah.name.toLowerCase().includes(q) ||
+            surah.name_arabic.includes(searchQuery) ||
             surah.translated_name_english.toLowerCase().includes(q),
         );
       }
@@ -508,7 +521,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
             s.id.toString(),
             selectedRewayat.id,
           ),
-          title: s.name,
+          title: getSurahDisplayName(s),
           artist: reciter.name,
           reciterId: reciter.id,
           artwork,
@@ -540,7 +553,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
           s.id.toString(),
           selectedRewayat.id,
         ),
-        title: s.name,
+        title: getSurahDisplayName(s),
         artist: reciter.name,
         reciterId: reciter.id,
         artwork,
@@ -576,7 +589,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
           s.id.toString(),
           selectedRewayat.id,
         ),
-        title: s.name,
+        title: getSurahDisplayName(s),
         artist: reciter.name,
         reciterId: reciter.id,
         artwork,
@@ -848,11 +861,13 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   // The pager uses opacity-gated reveal to scroll to index 1 before showing.
   const tabs = useMemo(() => {
     const result: Array<{id: string; label: string}> = [];
-    result.push({id: 'uploads', label: 'My Uploads'});
+    result.push({id: 'uploads', label: t('reciterProfile.myUploads')});
     if (reciter?.rewayat) {
       reciter.rewayat.forEach(r => {
         const style =
-          r.style.charAt(0).toUpperCase() + r.style.slice(1).toLowerCase();
+          currentLanguage === 'ar'
+            ? getRecitationStyleLabel(r.style)
+            : r.style.charAt(0).toUpperCase() + r.style.slice(1).toLowerCase();
         result.push({
           id: r.id,
           label: `${getDisplayLabelFromName(r.name)} · ${style}`,
@@ -860,7 +875,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
       });
     }
     return result;
-  }, [reciter?.rewayat]);
+  }, [reciter?.rewayat, t]);
 
   const handleTabChange = useCallback(
     (tabId: string) => {
@@ -1036,7 +1051,9 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                     if (shouldShow !== headerTitleShownRef.current) {
                       headerTitleShownRef.current = shouldShow;
                       navigation.setOptions({
-                        headerTitle: shouldShow ? reciter.name : '',
+                        headerTitle: shouldShow
+                          ? getReciterDisplayName(reciter)
+                          : '',
                         headerStyle: {
                           backgroundColor: shouldShow
                             ? theme.colors.background
@@ -1108,7 +1125,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                             styles.optionButtonText,
                             sortOption === 'asc' && styles.activeOptionText,
                           ]}>
-                          Asc
+                          {t('reciterProfile.sort.asc')}
                         </Text>
                       </Pressable>
                       <Pressable
@@ -1122,7 +1139,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                             styles.optionButtonText,
                             sortOption === 'desc' && styles.activeOptionText,
                           ]}>
-                          Desc
+                          {t('reciterProfile.sort.desc')}
                         </Text>
                       </Pressable>
                       <Pressable
@@ -1138,7 +1155,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                             sortOption === 'revelation' &&
                               styles.activeOptionText,
                           ]}>
-                          Rev
+                          {t('reciterProfile.sort.revelation')}
                         </Text>
                       </Pressable>
                     </View>
@@ -1197,7 +1214,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                 directionalLockEnabled
                 showsHorizontalScrollIndicator={false}
                 scrollEventThrottle={16}
-                style={{opacity: pagerOpacity}}
+                style={[{opacity: pagerOpacity}, forceLTR]}
                 onContentSizeChange={handlePagerContentSizeChange}
                 onScrollBeginDrag={() => {
                   scrollTargetRef.current = null;
@@ -1214,6 +1231,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                       width: screenWidth,
                       minHeight: contentMinHeight,
                       paddingBottom: bottomInset,
+                      direction: isRTL ? 'rtl' : 'ltr',
                     }}>
                     {renderedTabsRef.current.has(tab.id) ? (
                       tab.id === 'uploads' ? (
@@ -1301,7 +1319,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                   color: theme.colors.text,
                   textAlign: 'center',
                 }}>
-                {reciter.name}
+                {getReciterDisplayName(reciter)}
               </Text>
             </RNAnimated.View>
           )}
@@ -1315,9 +1333,12 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                 const slug = reciter?.slug ?? currentReciterId;
                 shareUrl(
                   reciterShareUrl(slug),
-                  `Listen to ${reciter?.name ?? 'this reciter'} on ${
-                    branding.appName
-                  }`,
+                  t('reciterProfile.shareMessage', {
+                    name: reciter
+                      ? getReciterDisplayName(reciter)
+                      : t('reciterProfile.thisReciter'),
+                    appName: branding.appName,
+                  }),
                 );
               }}
             />
@@ -1353,7 +1374,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
             selectedRewayatId={selectedRewayatId}
             onRewayatSelect={handleRewayatChange}
             isDarkMode={theme.isDarkMode}
-            reciterName={reciter.name}
+            reciterName={getReciterDisplayName(reciter)}
             viewMode={viewMode}
             getColorForSurah={getColorForSurah}
           />
@@ -1362,6 +1383,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // Lightweight wrapper — defers mounting the heavy content until the navigation
 // transition finishes so the screen push feels instant.

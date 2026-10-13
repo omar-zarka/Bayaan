@@ -6,6 +6,9 @@ import {Theme} from '@/utils/themeUtils';
 import {useTheme} from '@/hooks/useTheme';
 import SearchBar from '@/components/SearchBar';
 import {SearchHeaderProps} from '@/components/reciter-profile/types';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+// @ai-end
 
 /**
  * SearchHeader component for the ReciterProfile
@@ -15,6 +18,7 @@ import {SearchHeaderProps} from '@/components/reciter-profile/types';
  *
  * @component
  */
+// @ai-start
 export const SearchHeader: React.FC<SearchHeaderProps> = ({
   showSearch,
   searchQuery,
@@ -22,6 +26,7 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
   insets,
 }) => {
   const {theme} = useTheme();
+  const {t} = useTranslation('player');
   const styles = createStyles(theme);
 
   if (!showSearch) return null;
@@ -33,13 +38,14 @@ export const SearchHeader: React.FC<SearchHeaderProps> = ({
         {paddingTop: insets.top + moderateScale(15)},
       ]}>
       <SearchBar
-        placeholder="Search Surahs"
+        placeholder={t('reciterProfile.searchPlaceholder')}
         onChangeText={onSearchChange}
         value={searchQuery}
       />
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({

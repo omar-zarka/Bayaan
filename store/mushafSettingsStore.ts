@@ -2,6 +2,7 @@ import {create} from 'zustand';
 import {persist, createJSONStorage} from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {getReadingThemeById} from '@/constants/readingThemes';
+import {defaultShowEnglishReadingAids} from '@/i18n/language'; // @ai
 import {
   migratePersistedId,
   type RewayahId,
@@ -217,13 +218,13 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
   persist(
     set => ({
       // Default values
-      showTranslation: true,
+      showTranslation: defaultShowEnglishReadingAids, // @ai
       showTransliteration: false,
       showTajweed: false,
       showThemes: false,
       showCommunityReflections: false,
       showWBW: false,
-      wbwShowTranslation: true,
+      wbwShowTranslation: defaultShowEnglishReadingAids, // @ai
       wbwShowTransliteration: false,
       arabicFontSize: getActualFontSize(5), // Default: middle of scale
       translationFontSize: getActualFontSize(3),
@@ -450,7 +451,7 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
         }
         if (version < 8) {
           state.showWBW = false;
-          state.wbwShowTranslation = true;
+          state.wbwShowTranslation = defaultShowEnglishReadingAids; // @ai
           state.wbwShowTransliteration = false;
         }
         if (version < 9) {

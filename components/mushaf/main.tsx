@@ -75,6 +75,12 @@ import {
   getQCFFontVariant,
 } from '@/services/mushaf/QCFFontLoader'; // @ai
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
+// @ai-start
+import {appLayoutDirection, isRTL} from '@/utils/rtl';
+import {useTranslation} from 'react-i18next';
+import i18n from '@/i18n';
+import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
+// @ai-end
 import {useHeaderHeight} from 'expo-router/react-navigation'; // @ai
 import {RewayahFallbackBanner} from '@/components/MushafSettingsContent'; // @ai
 
@@ -108,6 +114,7 @@ function spreadPrimaryPage(spread: Spread): number {
 // Helpers
 // ============================================================================
 
+// @ai-start
 function getSurahNamesForPage(pageNumber: number): string {
   const lines = digitalKhattDataService.getPageLines(pageNumber);
   const seen = new Set<number>();
@@ -116,7 +123,7 @@ function getSurahNamesForPage(pageNumber: number): string {
     const num = line.surah_number;
     if (num >= 1 && num <= 114 && !seen.has(num)) {
       seen.add(num);
-      names.push(SURAHS[num - 1].name);
+      names.push(getSurahDisplayName(SURAHS[num - 1]));
     }
   }
   if (names.length > 0) return names.join(' \u00B7 ');
@@ -125,13 +132,24 @@ function getSurahNamesForPage(pageNumber: number): string {
   // so pages without a header need the pageToSurah mapping.
   const pageToSurah = digitalKhattDataService.getPageToSurah();
   const surahId = pageToSurah[pageNumber];
-  if (surahId >= 1 && surahId <= 114) return SURAHS[surahId - 1].name;
+  if (surahId >= 1 && surahId <= 114)
+    return getSurahDisplayName(SURAHS[surahId - 1]);
   return '';
 }
+// @ai-end
+
+// @ai-start
+function getJuzLabelForPage(pageNumber: number): string {
+  return i18n.t('common:labels.juzNumber', {
+    number: getJuzForPage(pageNumber),
+  });
+}
+// @ai-end
 
 // ============================================================================
 // Digital Khatt PageView (Skia-based with DK V1/V2 fonts)
 // ============================================================================
+// @ai-start
 const DKPageView: React.FC<{
   pageNumber: number;
   textColor: string;
@@ -204,6 +222,8 @@ const DKPageView: React.FC<{
     <View
       style={{
         width: metrics.pageWidth,
+        // Page geometry and the Quran canvas use physical book coordinates.
+        direction: 'ltr',
         height: metrics.screenHeight,
         backgroundColor: isBookLayout ? bgColor : cardColor,
         // QCF fonts load async — keep page visible so the background color
@@ -326,6 +346,7 @@ const DKPageView: React.FC<{
     </View>
   );
 };
+// @ai-end
 
 // ============================================================================
 // DKSpreadView: FlatList item that hosts either a single centered page
@@ -335,6 +356,7 @@ const DKPageView: React.FC<{
 //   [ even-page | gap | odd-page ]
 // so RTL reading order (right → left) matches a physical mushaf.
 // ============================================================================
+// @ai-start
 const DKSpreadView: React.FC<{
   /** Primary page (odd / right side in facing mode). */
   pageNumber: number;
@@ -380,8 +402,8 @@ const DKSpreadView: React.FC<{
           pageNumber={pageNumber}
           textColor={textColor}
           surahLabel={getSurahNamesForPage(pageNumber)}
-          juzLabel={`Juz ${getJuzForPage(pageNumber)}`}
-          pageLabel={String(pageNumber)}
+          juzLabel={getJuzLabelForPage(pageNumber)}
+          pageLabel={localizeDigits(pageNumber)}
           labelColor={labelColor}
           borderColor={borderColor}
           cardColor={cardColor}
@@ -404,8 +426,8 @@ const DKSpreadView: React.FC<{
         pageNumber={pageNumber}
         textColor={textColor}
         surahLabel={getSurahNamesForPage(pageNumber)}
-        juzLabel={`Juz ${getJuzForPage(pageNumber)}`}
-        pageLabel={String(pageNumber)}
+        juzLabel={getJuzLabelForPage(pageNumber)}
+        pageLabel={localizeDigits(pageNumber)}
         labelColor={labelColor}
         borderColor={borderColor}
         cardColor={cardColor}
@@ -429,6 +451,7 @@ const DKSpreadView: React.FC<{
           height: metrics.screenHeight,
           backgroundColor: spreadBg,
           flexDirection: 'row',
+          direction: 'ltr',
           justifyContent: 'center',
           alignItems: 'center',
         }}>
@@ -436,8 +459,8 @@ const DKSpreadView: React.FC<{
           pageNumber={leftPageNumber}
           textColor={textColor}
           surahLabel={getSurahNamesForPage(leftPageNumber)}
-          juzLabel={`Juz ${getJuzForPage(leftPageNumber)}`}
-          pageLabel={String(leftPageNumber)}
+          juzLabel={getJuzLabelForPage(leftPageNumber)}
+          pageLabel={localizeDigits(leftPageNumber)}
           labelColor={labelColor}
           borderColor={borderColor}
           cardColor={cardColor}
@@ -451,8 +474,8 @@ const DKSpreadView: React.FC<{
           pageNumber={pageNumber}
           textColor={textColor}
           surahLabel={getSurahNamesForPage(pageNumber)}
-          juzLabel={`Juz ${getJuzForPage(pageNumber)}`}
-          pageLabel={String(pageNumber)}
+          juzLabel={getJuzLabelForPage(pageNumber)}
+          pageLabel={localizeDigits(pageNumber)}
           labelColor={labelColor}
           borderColor={borderColor}
           cardColor={cardColor}
@@ -478,8 +501,8 @@ const DKSpreadView: React.FC<{
         pageNumber={pageNumber}
         textColor={textColor}
         surahLabel={getSurahNamesForPage(pageNumber)}
-        juzLabel={`Juz ${getJuzForPage(pageNumber)}`}
-        pageLabel={String(pageNumber)}
+        juzLabel={getJuzLabelForPage(pageNumber)}
+        pageLabel={localizeDigits(pageNumber)}
         labelColor={labelColor}
         borderColor={borderColor}
         cardColor={cardColor}
@@ -491,6 +514,7 @@ const DKSpreadView: React.FC<{
     </View>
   );
 };
+// @ai-end
 
 // ============================================================================
 // MushafViewer (main exported component)
@@ -510,6 +534,7 @@ export default function MushafViewer({
   initialSurahId,
 }: MushafViewerProps) {
   useKeepAwake();
+  const {t} = useTranslation(['reader', 'common']);
   const [currentPage, setCurrentPage] = useState(initialPage);
   // @ai-start
   // Twelve pages open one surah and start another (591 has At-Tariq and
@@ -760,9 +785,12 @@ export default function MushafViewer({
     const url = mushafShareUrl(currentPage, isDarkMode ? 'dark' : 'light');
     shareUrl(
       url,
-      `Check out page ${currentPage} of the Quran on ${branding.appName}`,
+      t('mushaf.shareMessage', {
+        page: currentPage,
+        appName: branding.appName,
+      }),
     );
-  }, [currentPage, isDarkMode]);
+  }, [currentPage, isDarkMode, t]);
 
   // iOS 26: configure Stack navigator header based on current mode
   useEffect(() => {
@@ -802,7 +830,7 @@ export default function MushafViewer({
           <Pressable
             onPress={() => setIsSearchMode(true)}
             accessibilityRole="button"
-            accessibilityLabel="Search surahs"
+            accessibilityLabel={t('mushaf.searchSurahs')}
             style={{alignItems: 'center'}}>
             <View
               style={{
@@ -817,7 +845,7 @@ export default function MushafViewer({
                   color: theme.colors.text,
                 }}
                 numberOfLines={1}>
-                {SURAHS[currentSurahId - 1].name}
+                {getSurahDisplayName(SURAHS[currentSurahId - 1])}
               </Text>
               <Ionicons
                 name="chevron-down"
@@ -831,8 +859,11 @@ export default function MushafViewer({
                 fontFamily: 'Manrope-Regular',
                 color: theme.colors.textSecondary,
               }}>
-              Page {currentPage} · Juz {getJuzForPage(currentPage)} ·{' '}
-              {getRewayahShortLabel(rewayah)}
+              {t('mushaf.headerMeta', {
+                page: currentPage,
+                juz: getJuzForPage(currentPage),
+                rewayah: getRewayahShortLabel(rewayah),
+              })}
             </Text>
           </Pressable>
         </TitleWrapper>
@@ -879,6 +910,7 @@ export default function MushafViewer({
     theme,
     isDarkMode,
     navigation,
+    t,
   ]);
 
   const onViewableItemsChanged = useCallback(
@@ -1204,7 +1236,8 @@ export default function MushafViewer({
             offset: metrics.screenWidth * index,
             index,
           })}
-          inverted
+          inverted={!isRTL}
+          style={appLayoutDirection}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           windowSize={7}
@@ -1224,8 +1257,8 @@ export default function MushafViewer({
                   pageNumber={item}
                   textColor={readingColors.text}
                   surahLabel={getSurahNamesForPage(item)}
-                  juzLabel={`Juz ${getJuzForPage(item)}`}
-                  pageLabel={String(item)}
+                  juzLabel={getJuzLabelForPage(item)}
+                  pageLabel={localizeDigits(item)}
                   labelColor={readingColors.textSecondary}
                   borderColor={edgeBorderColor}
                   cardColor={pageBg}
@@ -1260,7 +1293,8 @@ export default function MushafViewer({
             offset: metrics.screenWidth * index,
             index,
           })}
-          inverted
+          inverted={!isRTL}
+          style={appLayoutDirection}
           onViewableItemsChanged={onViewableItemsChanged}
           viewabilityConfig={viewabilityConfig}
           windowSize={7}
@@ -1304,7 +1338,7 @@ export default function MushafViewer({
                   style={styles.headerCenter}
                   onPress={openSearchMode}
                   accessibilityRole="button"
-                  accessibilityLabel="Search surahs">
+                  accessibilityLabel={t('mushaf.searchSurahs')}>
                   <View
                     style={[
                       styles.headerBox,
@@ -1321,7 +1355,7 @@ export default function MushafViewer({
                           {color: theme.colors.text},
                         ]}
                         numberOfLines={1}>
-                        {SURAHS[currentSurahId - 1].name}
+                        {getSurahDisplayName(SURAHS[currentSurahId - 1])}
                       </Text>
                       <Ionicons
                         name="chevron-down"
@@ -1334,8 +1368,11 @@ export default function MushafViewer({
                         styles.headerMeta,
                         {color: theme.colors.textSecondary},
                       ]}>
-                      Page {currentPage} · Juz {getJuzForPage(currentPage)} ·{' '}
-                      {getRewayahShortLabel(rewayah)}
+                      {t('mushaf.headerMeta', {
+                        page: currentPage,
+                        juz: getJuzForPage(currentPage),
+                        rewayah: getRewayahShortLabel(rewayah),
+                      })}
                     </Text>
                   </View>
                 </Pressable>
@@ -1350,7 +1387,7 @@ export default function MushafViewer({
                       })
                     }
                     accessibilityRole="button"
-                    accessibilityLabel="Mushaf settings">
+                    accessibilityLabel={t('mushaf.settings')}>
                     <Ionicons
                       name="options-outline"
                       size={moderateScale(22)}
@@ -1433,6 +1470,7 @@ export default function MushafViewer({
     </View>
   );
 }
+// @ai-end
 
 const styles = StyleSheet.create({
   container: {

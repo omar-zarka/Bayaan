@@ -41,6 +41,10 @@ import {UserPlaylist, PlaylistItem} from '@/services/playlist/PlaylistService';
 import {Reciter, Rewayat} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
+// @ai-end
 /**
  * Simplified type for loved tracks from the useLoved hook
  * The hook returns a subset without the timestamp field
@@ -97,6 +101,7 @@ interface CollectionSearchModalProps {
   theme: Theme;
 }
 
+// @ai-start
 export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
   visible,
   onClose,
@@ -131,6 +136,7 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
   // ============================================
 
   const router = useRouter();
+  const {t} = useTranslation(['collection', 'common']);
   const insets = useSafeAreaInsets();
   const {theme: activeTheme} = useTheme();
 
@@ -222,7 +228,9 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
           type: 'playlist',
           id: playlist.id,
           title: playlist.name,
-          subtitle: `${playlist.itemCount} items`,
+          subtitle: t('collectionScreen.itemsCount', {
+            count: playlist.itemCount,
+          }),
           metadata: {kind: 'playlist', data: playlist},
         });
         console.log('  ✓ Found playlist by name:', playlist.name);
@@ -262,13 +270,18 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
                 const reciter =
                   allReciters.find(r => r.id === item.reciterId) ||
                   favoriteReciters.find(r => r.id === item.reciterId);
-                const reciterName = reciter ? reciter.name : 'Unknown Reciter';
+                const reciterName = reciter
+                  ? getReciterDisplayName(reciter)
+                  : t('searchModal.unknownReciter');
 
                 results.push({
                   type: 'playlist_item',
                   id: `playlist-${playlist.id}-item-${item.id}`,
-                  title: surah.name,
-                  subtitle: `${reciterName} • in "${playlist.name}" playlist`,
+                  title: getSurahDisplayName(surah),
+                  subtitle: t('searchModal.inPlaylist', {
+                    reciter: reciterName,
+                    playlist: playlist.name,
+                  }),
                   metadata: {
                     kind: 'playlist_item',
                     data: {
@@ -321,8 +334,10 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
         results.push({
           type: 'surah',
           id: `loved-${track.reciterId}-${track.surahId}-${track.rewayatId}`,
-          title: surah.name,
-          subtitle: `Loved • ${reciter.name}`,
+          title: getSurahDisplayName(surah),
+          subtitle: t('searchModal.lovedBy', {
+            reciter: getReciterDisplayName(reciter),
+          }),
           metadata: {kind: 'surah', data: track},
         });
         console.log('  ✓ Found loved track:', surah.name);
@@ -360,8 +375,10 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
         results.push({
           type: 'download',
           id: `download-${download.reciterId}-${download.surahId}-${download.rewayatId}`,
-          title: `Downloaded: ${surah.name}`,
-          subtitle: reciter.name,
+          title: t('searchModal.downloadedTitle', {
+            surah: getSurahDisplayName(surah),
+          }),
+          subtitle: getReciterDisplayName(reciter),
           metadata: {kind: 'download', data: download},
         });
         console.log('  ✓ Found download:', surah.name);
@@ -386,8 +403,10 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
         results.push({
           type: 'reciter',
           id: reciter.id,
-          title: reciter.name,
-          subtitle: `${reciter.rewayat.length} rewayat available`,
+          title: getReciterDisplayName(reciter),
+          subtitle: t('searchModal.rewayatAvailable', {
+            count: reciter.rewayat.length,
+          }),
           metadata: {kind: 'reciter', data: reciter},
         });
         console.log('  ✓ Found favorite reciter:', reciter.name);
@@ -406,8 +425,11 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
           results.push({
             type: 'rewayat',
             id: rewayat.id,
-            title: `${getDisplayLabelFromName(rewayat.name)} by ${reciter.name}`,
-            subtitle: 'Rewayat',
+            title: t('searchModal.rewayahBy', {
+              rewayah: getDisplayLabelFromName(rewayat.name),
+              reciter: getReciterDisplayName(reciter),
+            }),
+            subtitle: t('common:terms.rewayat'),
             metadata: {kind: 'rewayat', data: {reciter, rewayat}},
           });
           console.log('  ✓ Found rewayat:', rewayat.name);
@@ -557,17 +579,17 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
   const getTypeLabel = (type: string) => {
     switch (type) {
       case 'playlist':
-        return 'Playlist';
+        return t('common:terms.playlist');
       case 'reciter':
-        return 'Reciter';
+        return t('common:terms.reciter');
       case 'surah':
-        return 'Loved';
+        return t('searchModal.typeLoved');
       case 'rewayat':
-        return 'Rewayat';
+        return t('common:terms.rewayat');
       case 'download':
-        return 'Downloaded';
+        return t('common:status.downloaded');
       case 'playlist_item':
-        return 'In Playlist';
+        return t('searchModal.typeInPlaylist');
       default:
         return '';
     }
@@ -677,7 +699,7 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
           <View style={styles.headerContent}>
             <SearchInput
               ref={searchInputRef}
-              placeholder="Search playlists, reciters, surahs, rewayat..."
+              placeholder={t('searchModal.placeholder')}
               value={query}
               onChangeText={setQuery}
               onCancel={() => {
@@ -710,14 +732,14 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
               color={activeTheme.colors.textSecondary}
             />
             <Text style={[styles.emptyTitle, {color: activeTheme.colors.text}]}>
-              Search Your Collection
+              {t('searchModal.emptyTitle')}
             </Text>
             <Text
               style={[
                 styles.emptySubtitle,
                 {color: activeTheme.colors.textSecondary},
               ]}>
-              Search playlists, reciters, surahs, rewayat, and downloads
+              {t('searchModal.emptySubtitle')}
             </Text>
           </View>
         ) : (
@@ -744,7 +766,7 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
                       styles.loadingText,
                       {color: activeTheme.colors.textSecondary},
                     ]}>
-                    Searching...
+                    {t('searchModal.searching')}
                   </Text>
                 </View>
               ) : searchResults.length === 0 ? (
@@ -759,14 +781,14 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
                       styles.noResultsText,
                       {color: activeTheme.colors.text},
                     ]}>
-                    No results found
+                    {t('common:status.noResults')}
                   </Text>
                   <Text
                     style={[
                       styles.noResultsSubtext,
                       {color: activeTheme.colors.textSecondary},
                     ]}>
-                    Try different keywords
+                    {t('searchModal.tryDifferent')}
                   </Text>
                 </View>
               ) : (
@@ -777,8 +799,9 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
                       styles.resultsCount,
                       {color: activeTheme.colors.textSecondary},
                     ]}>
-                    {searchResults.length}{' '}
-                    {searchResults.length === 1 ? 'result' : 'results'}
+                    {t('searchModal.resultsCount', {
+                      count: searchResults.length,
+                    })}
                   </Text>
                 </View>
               )
@@ -791,6 +814,7 @@ export const CollectionSearchModal: React.FC<CollectionSearchModalProps> = ({
     </View>
   );
 };
+// @ai-end
 
 // ============================================
 // STYLES
