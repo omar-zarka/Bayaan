@@ -334,12 +334,84 @@ export function recountCategories(seed: SeedFile): SeedFile {
   };
 }
 
+// ---- Text, count and translation fixes --------------------------------------
+
+export interface RowPatch {
+  arabic?: string;
+  translation?: string | null;
+  transliteration?: string | null;
+  instruction?: string | null;
+  repeat_count?: number;
+}
+
+// Exact values; sources are listed in the adhkar content fix plan (Task 5).
+export const TEXT_FIXES: Readonly<Record<string, RowPatch>> = {
+  '83': {repeat_count: 7},
+  '148': {repeat_count: 7},
+  '119': {
+    repeat_count: 3,
+    arabic:
+      '((سُبْحَانَ المَلِكِ القُدُّوسِ)) ثلاثَ مرَّاتٍ والثَّالِثَةُ يَجْهَرُ بها ويَمُدُّ بها صَوتَهُ يقولُ: [رَبِّ الْمَلاَئِكَةِ وَالرُّوحِ].',
+  },
+  '130': {repeat_count: 3},
+  '195': {repeat_count: 100},
+  '114': {repeat_count: 3},
+  '106': {repeat_count: 33},
+  '255': {
+    translation:
+      'He who uttered:" There is no god but Allah, the One, having no partner with Him, His is the Sovereignty and all praise is due to Him and He is Potent over everything" ten times, he is like one who emancipated four slaves from the progeny of Isma\'il.',
+    instruction: '',
+  },
+  '185': {
+    translation:
+      'If any one of you is invited, he should accept (the invitation). In case he is fasting, he should pray (in order to bless the inmates of the house), and if he is not fasting he should eat.',
+    instruction: '',
+  },
+  '86': {
+    translation:
+      'In the name of Allah, when Whose name is mentioned nothing on Earth or in Heaven can cause harm, and He is the Hearer, the Knower (three times)',
+  },
+  '134': {
+    translation:
+      '(He should say: (I have believed in Allah and His Messengers.))',
+  },
+  '133': {
+    translation:
+      '(Say:) I seek refuge in Allah. (Then you should desist from doing what you are in doubt about.)',
+    instruction: '',
+  },
+  '61': {
+    transliteration:
+      'Allahumma innee as-alukal-jannah, wa-aAAoothu bika minan-nar.',
+  },
+  '267': {
+    arabic:
+      'قَالَ النَّبِيُّ صلى الله عليه وسلم ((إِذَا كَانَ جُنْحُ اللَّيْلِ – أَوْ أَمْسَيْتُم – فَـكُفُّوا صِبْيانَـكُم، فَإِنَّ الشَّيَاطِينَ تَنْتَشِرُ حِينَئِذٍ، فَإِذَا ذَهَبَ سَاعَةٌ مِنَ اللَّيلِ فَخَلُّوهُمْ، وَأَغْلِقُوا الأَبْوَابَ وَاذْكُرُوا اسْمَ اللَّهِ؛ فَإِنَّ الشَّيطَانَ لاَ يَفْتَحُ بَاباً مُغلَقاً، وَأَوْكُوا قِرَبَكُمْ، وَاذْكُرُوا اسْمَ اللَّهِ، وَخَمِّرُوا آنِيَتَكُم، وَاذْكُرُوا اسْمَ اللَّهِ، وَلَوْ أَنْ تَعْرُضُوا عَلَيْهَا شَيْئاً، وَأَطْفِئُوا مَصَابِيحَكُمْ)).',
+  },
+  'quranic-35': {
+    arabic:
+      'رَبَّنَا وَأَدْخِلْهُمْ جَنَّاتِ عَدْنٍ الَّتِي وَعَدْتَهُمْ وَمَنْ صَلَحَ مِنْ آبَائِهِمْ وَأَزْوَاجِهِمْ وَذُرِّيَّاتِهِمْ إِنَّكَ أَنْتَ الْعَزِيزُ الْحَكِيمُ وَقِهِمُ السَّيِّئَاتِ وَمَنْ تَقِ السَّيِّئَاتِ يَوْمَئِذٍ فَقَدْ رَحِمْتَهُ وَذَلِكَ هُوَ الْفَوْزُ الْعَظِيمُ',
+    translation:
+      'Our Lord, and admit them to gardens of perpetual residence which You have promised them and whoever was righteous among their fathers, their spouses and their offspring. Indeed, it is You who is the Exalted in Might, the Wise. And protect them from the evil consequences [of their deeds]. And he whom You protect from evil consequences that Day - You will have given him mercy. And that is the great attainment.',
+  },
+};
+
+export function applyTextFixes(seed: SeedFile): SeedFile {
+  return {
+    ...seed,
+    adhkar: seed.adhkar.map(row =>
+      Object.hasOwn(TEXT_FIXES, row.id) ? {...row, ...TEXT_FIXES[row.id]} : row,
+    ),
+  };
+}
+
 // Tasks append their steps before recountCategories, which must stay last.
 export const FIX_STEPS: FixStep[] = [
   seed => stripEveningNotes(seed),
   (seed, eveningMarkdown) =>
     applyEveningRows(seed, parseEveningRows(eveningMarkdown)),
   seed => setPeriodLists(seed),
+  seed => applyTextFixes(seed),
   seed => recountCategories(seed),
 ];
 

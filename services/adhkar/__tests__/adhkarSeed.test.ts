@@ -8,6 +8,7 @@ import {
   EVENING_TEXTS_DOC,
   parseEveningRows,
 } from '@/scripts/adhkar-content/eveningRows';
+import {tasbeehDisplayText} from '@/services/widgets/dhikrText';
 
 const root = path.resolve(__dirname, '../../..');
 const rows = adhkarSeed.adhkar;
@@ -176,5 +177,60 @@ describe('morning variant rows', () => {
       '(O Allah, by your leave we have reached the morning and by Your leave we have reached the evening, by Your leave we live and die and unto You is our resurrection.)',
     );
     expect(row('77').instruction).toBe('');
+  });
+});
+
+describe('text, count and translation fixes', () => {
+  it('uses the repeat count written in the text', () => {
+    const counts: Record<string, number> = {
+      '83': 7,
+      '148': 7,
+      '119': 3,
+      '130': 3,
+      '195': 100,
+      '114': 3,
+      '106': 33,
+      '69': 33,
+    };
+    for (const [id, count] of Object.entries(counts)) {
+      expect({id, count: row(id).repeat_count}).toEqual({id, count});
+    }
+  });
+
+  it('pairs each Arabic text with its own translation', () => {
+    expect(row('255').translation).toContain('ten times');
+    expect(row('255').translation).toContain('four slaves');
+    expect(row('255').instruction).toBe('');
+    expect(row('185').translation).toBe(
+      'If any one of you is invited, he should accept (the invitation). In case he is fasting, he should pray (in order to bless the inmates of the house), and if he is not fasting he should eat.',
+    );
+    expect(row('185').instruction).toBe('');
+    expect(row('86').translation).toContain('the Hearer, the Knower');
+    expect(row('86').translation).not.toContain('All-Seeing');
+    expect(row('134').translation).toContain('His Messengers');
+    expect(row('133').translation).toBe(
+      '(Say:) I seek refuge in Allah. (Then you should desist from doing what you are in doubt about.)',
+    );
+    expect(row('61').transliteration).toBe(
+      'Allahumma innee as-alukal-jannah, wa-aAAoothu bika minan-nar.',
+    );
+  });
+
+  it('fills the missing and truncated Arabic', () => {
+    expect(row('267').arabic).toContain('إِذَا كَانَ جُنْحُ');
+    expect(row('267').arabic.endsWith('مَصَابِيحَكُمْ)).')).toBe(true);
+    expect(row('quranic-35').arabic.endsWith('الْفَوْزُ الْعَظِيمُ')).toBe(
+      true,
+    );
+    expect(row('quranic-35').translation).toContain(
+      'And that is the great attainment.',
+    );
+  });
+
+  it('gives row 119 a clean dhikr text for the tasbeeh widget', () => {
+    const text = tasbeehDisplayText(row('119').arabic);
+    expect(text).not.toBeNull();
+    expect(text).not.toContain(')');
+    expect(text?.split(' ')).toHaveLength(3);
   });
 });

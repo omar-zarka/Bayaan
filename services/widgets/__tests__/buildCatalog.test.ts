@@ -62,8 +62,22 @@ describe('tasbeehTranslation', () => {
 });
 
 describe('tasbeeh adhkar', () => {
-  it('picks the 13 repeatable adhkar from the seed', () => {
+  it('skips rows whose count is an instruction, not a dhikr', () => {
+    expect(
+      tasbeehAdhkar([
+        {
+          id: '114',
+          arabic: '((يَنْفُثُ عَنْ يَسَارِهِ)) (ثلاثاً).',
+          translation: null,
+          repeat_count: 3,
+        },
+      ]),
+    ).toEqual([]);
+  });
+
+  it('picks the 17 repeatable adhkar from the seed', () => {
     expect(TASBEEH_ADHKAR.map(d => d.id)).toEqual([
+      '83',
       '86',
       '87',
       '91',
@@ -73,10 +87,13 @@ describe('tasbeeh adhkar', () => {
       '96',
       '97',
       '98',
+      '106',
       '33',
       '41',
       '69',
       '72',
+      '119',
+      '148',
     ]);
     const seedArabic = seedAdhkar(adhkarSeed).find(
       d => d.id === DEFAULT_TASBEEH_DHIKR_ID,
@@ -127,7 +144,7 @@ describe('buildCatalog', () => {
 describe('buildTasbeehEntries', () => {
   it('gives every tasbeeh dhikr today’s count and its target', () => {
     const entries = buildTasbeehEntries(
-      TASBEEH_ADHKAR.slice(0, 3),
+      TASBEEH_ADHKAR.slice(1, 4),
       {'91': 12},
       '2026-10-10',
     );
