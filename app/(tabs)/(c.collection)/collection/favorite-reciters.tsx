@@ -332,7 +332,9 @@ export default function FavoriteRecitersScreen() {
     );
   }
 
-  const ListHeaderComponent = () => {
+  // @ai: render as an element; a component defined here remounts the search
+  // input on every keystroke and drops focus.
+  const renderListHeader = (): React.ReactElement => {
     return (
       <View style={styles.headerContainer}>
         <View style={styles.contentArea}>
@@ -445,7 +447,7 @@ export default function FavoriteRecitersScreen() {
         data={filteredReciters}
         renderItem={renderItem}
         keyExtractor={item => item.id}
-        ListHeaderComponent={ListHeaderComponent}
+        ListHeaderComponent={renderListHeader()} // @ai
         contentContainerStyle={styles.listContentContainer}
         onScroll={RNAnimated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],

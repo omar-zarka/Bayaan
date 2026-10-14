@@ -91,6 +91,13 @@ describe('createCatalogSearch (Home)', () => {
       {type: 'surah', item: SURAHS[35], score: 100},
     ]);
   });
+
+  // Device QA (2026-10-14): reciter "Al-Qaria Yassen" outranked Ya-Sin.
+  it('ranks Ya-Sin first for its common spellings', () => {
+    for (const query of ['yaseen', 'yasin', 'ya-seen']) {
+      expect(search.search(query)[0]?.item).toBe(SURAHS[35]);
+    }
+  });
 });
 
 // Final-review fixes (2026-10-12).
