@@ -16,6 +16,7 @@ import {
   type ActivityStartResult,
   type NowPlayingActivityState,
 } from './liveActivity';
+import type {AdhkarSessionActivityState} from './adhkarActivity';
 import {parsePendingTasbeeh, type PendingTasbeeh} from './tasbeeh';
 
 export * from './snapshot';
@@ -26,6 +27,7 @@ export * from './catalog';
 export * from './artworkRequests';
 export * from './dayMath';
 export * from './liveActivity';
+export * from './adhkarActivity';
 export * from './content';
 export * from './contentKinds';
 export * from './contextRules';
@@ -133,4 +135,32 @@ export async function endNowPlayingActivities(): Promise<void> {
   const native = NativeBayaanWidgets;
   if (!native?.endNowPlayingActivities) return;
   await native.endNowPlayingActivities();
+}
+
+export async function startAdhkarSessionActivity(
+  state: AdhkarSessionActivityState,
+  staleAt: number,
+): Promise<ActivityStartResult> {
+  const native = NativeBayaanWidgets;
+  if (!native?.startAdhkarSessionActivity) return 'unavailable';
+  const result: unknown = await native.startAdhkarSessionActivity(
+    JSON.stringify(state),
+    staleAt,
+  );
+  return isActivityStartResult(result) ? result : 'error';
+}
+
+export async function updateAdhkarSessionActivity(
+  state: AdhkarSessionActivityState,
+  staleAt: number,
+): Promise<boolean> {
+  const native = NativeBayaanWidgets;
+  if (!native?.updateAdhkarSessionActivity) return false;
+  return native.updateAdhkarSessionActivity(JSON.stringify(state), staleAt);
+}
+
+export async function endAdhkarSessionActivities(): Promise<void> {
+  const native = NativeBayaanWidgets;
+  if (!native?.endAdhkarSessionActivities) return;
+  await native.endAdhkarSessionActivities();
 }

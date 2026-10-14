@@ -20,6 +20,13 @@ export interface NativeBayaanWidgetsModule {
   // JSON content state of the activity on screen, or "" when there is none.
   currentNowPlayingActivity?(): string;
   endNowPlayingActivities?(): Promise<void>;
+  // iOS only (absent on Android): the adhkar session Live Activity.
+  startAdhkarSessionActivity?(json: string, staleAtMs: number): Promise<string>;
+  updateAdhkarSessionActivity?(
+    json: string,
+    staleAtMs: number,
+  ): Promise<boolean>;
+  endAdhkarSessionActivities?(): Promise<void>;
   addListener(
     event: 'onCommandQueued',
     listener: () => void,
