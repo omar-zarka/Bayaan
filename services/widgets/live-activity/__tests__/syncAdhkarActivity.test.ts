@@ -311,6 +311,29 @@ describe('syncAdhkarActivity', () => {
     expect(mockLog).toEqual(['end', 'start:1/3:playing']);
   });
 
+  it('stamps the refresh clock when a start finds an activity to update', async () => {
+    jest.useFakeTimers({
+      now: 1_000_000,
+      doNotFake: ['nextTick', 'queueMicrotask', 'setImmediate'],
+    });
+    mockStart.mockResolvedValueOnce('updated');
+    const {sync, store} = load();
+    sync.startAdhkarActivitySync();
+    jest.advanceTimersByTime(60_000);
+    playAll(store);
+    await sync.reconcileAdhkarActivity();
+    // The stale date was just pushed: no refresh right away.
+    expect(mockLog).toEqual(['end', 'start:1/3:playing']);
+    mockLog.length = 0;
+    const refreshIn = ADHKAR_PLAYING_STALE_MS - ADHKAR_STALE_REFRESH_MARGIN_MS;
+    jest.advanceTimersByTime(refreshIn - 1);
+    await sync.reconcileAdhkarActivity();
+    expect(mockLog).toEqual([]);
+    jest.advanceTimersByTime(1);
+    await sync.reconcileAdhkarActivity();
+    expect(mockLog).toEqual(['update:1/3:playing']);
+  });
+
   it('refreshes the stale date of an unchanged playing activity', async () => {
     jest.useFakeTimers({
       now: 1_000_000,

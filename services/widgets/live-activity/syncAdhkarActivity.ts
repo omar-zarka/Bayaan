@@ -151,7 +151,7 @@ async function reconcileOnce(): Promise<void> {
       const result = await safeStart(plan.state, plan.staleAt);
       if (gen !== generation) return;
       memory = afterAdhkarStart(memory, plan.key, plan.state, result);
-      if (result === 'started') sentAt = now;
+      if (result === 'started' || result === 'updated') sentAt = now;
       break;
     }
     case 'update': {
