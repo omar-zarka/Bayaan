@@ -44,6 +44,9 @@ import {useBottomInset} from '@/hooks/useBottomInset';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 
+// Space between the header and a card the jump pill scrolls to.
+const JUMP_GAP = 8;
+
 // @ai-start
 const SavedAdhkarScreen: React.FC = () => {
   const router = useRouter();
@@ -112,14 +115,21 @@ const SavedAdhkarScreen: React.FC = () => {
     return found < 0 ? null : found;
   }, [currentDhikrId, adhkarList]);
 
+  // The playing card's top lands just under the transparent header. On iOS
+  // glass the list scrolls under the header (contentInset); elsewhere it
+  // starts below it (marginTop).
+  const scrollViewOffset =
+    (USE_GLASS ? headerHeight : 0) + moderateScale(JUMP_GAP);
+
   const scrollToPlaying = useCallback(() => {
     if (sessionIndex === null) return;
     flatListRef.current?.scrollToIndex({
       index: sessionIndex,
-      viewPosition: 0.3,
+      viewPosition: 0,
+      viewOffset: scrollViewOffset,
       animated: true,
     });
-  }, [sessionIndex]);
+  }, [sessionIndex, scrollViewOffset]);
 
   // A surface asked to show the playing dhikr.
   const lastReveal = useRef(revealToken);

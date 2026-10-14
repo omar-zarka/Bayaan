@@ -61,6 +61,9 @@ import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
 // @ai-end
 
+// Space between the header and a card the jump pill scrolls to.
+const JUMP_GAP = 8;
+
 interface DhikrItem {
   dhikr: Dhikr;
   index: number;
@@ -220,6 +223,12 @@ const SuperCategoryListScreen: React.FC = () => {
     return found < 0 ? null : found;
   }, [currentDhikrId, allAdhkarForPlayAll]);
 
+  // The playing card's top lands just under the transparent header. On iOS
+  // glass the list scrolls under the header (contentInset); elsewhere it
+  // starts below it (marginTop).
+  const scrollViewOffset =
+    (USE_GLASS ? headerHeight : 0) + moderateScale(JUMP_GAP);
+
   const locationOf = useCallback(
     (globalIndex: number): {sectionIndex: number; itemIndex: number} | null => {
       let remaining = globalIndex;
@@ -242,7 +251,8 @@ const SuperCategoryListScreen: React.FC = () => {
     if (isSingleCategory) {
       flatListRef.current?.scrollToIndex({
         index: sessionIndex,
-        viewPosition: 0.3,
+        viewPosition: 0,
+        viewOffset: scrollViewOffset,
         animated: true,
       });
       return;
@@ -250,11 +260,15 @@ const SuperCategoryListScreen: React.FC = () => {
     const loc = locationOf(sessionIndex);
     if (!loc) return;
     sectionListRef.current?.scrollToLocation({
-      ...loc,
-      viewPosition: 0.3,
+      sectionIndex: loc.sectionIndex,
+      // scrollToLocation counts the section header as row 0 of the section,
+      // so itemIndex k lands on the cell before the item.
+      itemIndex: loc.itemIndex + 1,
+      viewPosition: 0,
+      viewOffset: scrollViewOffset,
       animated: true,
     });
-  }, [sessionIndex, isSingleCategory, locationOf]);
+  }, [sessionIndex, isSingleCategory, locationOf, scrollViewOffset]);
 
   // A surface asked to show the playing dhikr.
   const lastReveal = useRef(revealToken);
