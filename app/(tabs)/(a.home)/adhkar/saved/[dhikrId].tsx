@@ -32,6 +32,8 @@ import {
 } from '@/services/adhkar/playback/openPlayingDhikr';
 import {AdhkarSessionSourceProvider} from '@/components/adhkar/AdhkarSessionSourceContext';
 import {useHeaderHeight} from 'expo-router/react-navigation';
+import {USE_GLASS} from '@/hooks/useGlassProps';
+import {useBottomInset} from '@/hooks/useBottomInset';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 import {appLayoutDirection} from '@/utils/rtl';
@@ -73,6 +75,14 @@ const SavedDhikrReaderScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
+  // Glass headers are transparent, so content is padded below them. The
+  // non-glass header is opaque and already takes its own space; padding
+  // by headerHeight there would leave a blank band of that height.
+  const contentTop = USE_GLASS ? headerHeight : 0;
+  // Non-glass tab bars (and the floating player) overlay the screen, so the
+  // page must clear them; glass keeps the safe-area inset only.
+  const bottomInset = useBottomInset();
+  const contentBottom = USE_GLASS ? insets.bottom : bottomInset;
   const flatListRef = useRef<FlatList<Dhikr>>(null);
 
   const [initialIndex, setInitialIndex] = useState(
@@ -328,7 +338,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
   if (!isDataLoaded) {
     return (
       <View style={styles.container}>
-        <View style={[styles.loadingContainer, {paddingTop: headerHeight}]}>
+        <View style={[styles.loadingContainer, {paddingTop: contentTop}]}>
           <LoadingIndicator />
         </View>
       </View>
@@ -338,7 +348,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
   if (adhkarList.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={[styles.loadingContainer, {paddingTop: headerHeight}]}>
+        <View style={[styles.loadingContainer, {paddingTop: contentTop}]}>
           <Text style={styles.emptyText}>{t('adhkar.noSaved')}</Text>
         </View>
       </View>
@@ -351,7 +361,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
         <View
           style={[
             styles.listContainer,
-            {paddingTop: headerHeight, paddingBottom: insets.bottom},
+            {paddingTop: contentTop, paddingBottom: contentBottom},
           ]}>
           <FlatList
             ref={flatListRef}
