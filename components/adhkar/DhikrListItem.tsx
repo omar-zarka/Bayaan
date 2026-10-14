@@ -125,8 +125,11 @@ const createStyles = (theme: Theme) => {
       borderWidth: 1,
       borderColor: Color(accentColor).alpha(0.15).toString(),
     },
+    // The text color at 6% mixed over the card, so the card stays opaque.
     containerCurrent: {
-      backgroundColor: Color(theme.colors.text).alpha(0.06).toString(),
+      backgroundColor: Color(theme.colors.card)
+        .mix(Color(theme.colors.text), 0.06)
+        .toString(),
     },
     numberRow: {
       flexDirection: 'row',

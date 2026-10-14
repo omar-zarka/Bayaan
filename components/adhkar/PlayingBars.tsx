@@ -34,7 +34,14 @@ function Bar({
   return (
     <Animated.View
       style={[
-        {width, height, borderRadius: width / 2, backgroundColor: color},
+        {
+          width,
+          height,
+          borderRadius: width / 2,
+          backgroundColor: color,
+          // Grow from the baseline, not the middle.
+          transformOrigin: 'bottom',
+        },
         style,
       ]}
     />
