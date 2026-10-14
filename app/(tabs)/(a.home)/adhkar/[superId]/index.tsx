@@ -157,6 +157,11 @@ const SuperCategoryListScreen: React.FC = () => {
     ? getSuperCategoryDisplayTitle(titled)
     : t('common:status.loading');
 
+  // The session's list title, localized as the header shows it.
+  const listTitle = superCategory
+    ? getSuperCategoryDisplayTitle(superCategory)
+    : undefined;
+
   // Determine if this is a single-category super category
   const isSingleCategory = categoryGroups.length === 1;
 
@@ -322,7 +327,7 @@ const SuperCategoryListScreen: React.FC = () => {
     if (!superId || allAdhkarForPlayAll.length === 0) return;
     const source = {
       listId: superId,
-      listTitle: superCategory?.title || t('adhkar.dhikr'),
+      listTitle: listTitle || t('adhkar.dhikr'),
       items: toSessionItems(allAdhkarForPlayAll),
     };
     const wasPlaying = isThisCategoryPlaying;
@@ -346,14 +351,14 @@ const SuperCategoryListScreen: React.FC = () => {
         categoryShortTitle: firstGroup
           ? shortenCategoryTitle(firstGroup.categoryTitle)
           : '',
-        superCategoryTitle: superCategory?.title,
+        superCategoryTitle: listTitle,
         playAll: 'true',
       },
     });
   }, [
     superId,
     allAdhkarForPlayAll,
-    superCategory?.title,
+    listTitle,
     t,
     isThisCategoryPlaying,
     dispatch,
@@ -465,7 +470,7 @@ const SuperCategoryListScreen: React.FC = () => {
             dhikrId: item.dhikr.id,
             globalIndex: item.globalIndex.toString(),
             categoryShortTitle: item.categoryShortTitle,
-            superCategoryTitle: superCategory?.title,
+            superCategoryTitle: listTitle,
           },
         }}
         asChild>
@@ -490,7 +495,7 @@ const SuperCategoryListScreen: React.FC = () => {
         </Pressable>
       </Link>
     ),
-    [superId, superCategory?.title, currentDhikrId, sessionPlaying],
+    [superId, listTitle, currentDhikrId, sessionPlaying],
   );
 
   const renderSectionHeader = useCallback(({section}: {section: Section}) => {

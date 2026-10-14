@@ -31,7 +31,10 @@ import {resolveViewableChange} from '@/components/adhkar/playAllScrollGuard';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {Dhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
-import {shortenCategoryTitle} from '@/utils/adhkarUtils';
+import {
+  getSuperCategoryDisplayTitle,
+  shortenCategoryTitle,
+} from '@/utils/adhkarUtils';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
 import {
@@ -105,6 +108,7 @@ const DhikrReaderScreen: React.FC = () => {
 
   const [adhkarList, setAdhkarList] = useState<Dhikr[]>([]);
   const [categoryTitles, setCategoryTitles] = useState<CategoryTitleMap>({});
+  const [loadedListTitle, setLoadedListTitle] = useState<string | null>(null);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
@@ -139,6 +143,7 @@ const DhikrReaderScreen: React.FC = () => {
         if (data) {
           const flatAdhkar = data.categoryGroups.flatMap(g => g.adhkar);
           setAdhkarList(flatAdhkar);
+          setLoadedListTitle(getSuperCategoryDisplayTitle(data.superCategory));
           const opened = flatAdhkar.findIndex(d => d.id === dhikrId);
           if (opened >= 0) {
             setInitialIndex(opened);
@@ -174,11 +179,12 @@ const DhikrReaderScreen: React.FC = () => {
       superId && adhkarList.length > 0
         ? {
             listId: superId,
-            listTitle: superCategoryTitle || t('adhkar.dhikr'),
+            listTitle:
+              superCategoryTitle || loadedListTitle || t('adhkar.dhikr'),
             items: toSessionItems(adhkarList),
           }
         : null,
-    [superId, adhkarList, superCategoryTitle, t],
+    [superId, adhkarList, superCategoryTitle, loadedListTitle, t],
   );
 
   // Follow the session when it advances through this list in Play All.
