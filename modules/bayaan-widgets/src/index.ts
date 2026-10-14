@@ -159,8 +159,13 @@ export async function updateAdhkarSessionActivity(
   return native.updateAdhkarSessionActivity(JSON.stringify(state), staleAt);
 }
 
-export async function endAdhkarSessionActivities(): Promise<void> {
+// With dismissAtMs the ended activity stays on screen until that time (it
+// is cleared on schedule even if the app is then suspended); without it the
+// activity is dismissed at once.
+export async function endAdhkarSessionActivities(
+  dismissAtMs?: number,
+): Promise<void> {
   const native = NativeBayaanWidgets;
   if (!native?.endAdhkarSessionActivities) return;
-  await native.endAdhkarSessionActivities();
+  await native.endAdhkarSessionActivities(dismissAtMs ?? null);
 }

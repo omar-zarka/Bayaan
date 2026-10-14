@@ -26,7 +26,9 @@ export interface NativeBayaanWidgetsModule {
     json: string,
     staleAtMs: number,
   ): Promise<boolean>;
-  endAdhkarSessionActivities?(): Promise<void>;
+  // dismissAtMs: keep the ended activity on screen until then; omitted (or
+  // null) dismisses it at once.
+  endAdhkarSessionActivities?(dismissAtMs: number | null): Promise<void>;
   addListener(
     event: 'onCommandQueued',
     listener: () => void,

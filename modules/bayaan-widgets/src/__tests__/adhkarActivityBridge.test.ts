@@ -63,6 +63,14 @@ describe('adhkar Live Activity wrappers', () => {
     expect(update).toHaveBeenCalledWith(JSON.stringify(state()), 43);
     await endAdhkarSessionActivities();
     expect(end).toHaveBeenCalledTimes(1);
+    expect(end).toHaveBeenLastCalledWith(null);
+  });
+
+  it('pass the dismiss time of a delayed end', async () => {
+    const end = jest.fn(async (_at: number | null) => undefined);
+    mockNative = {endAdhkarSessionActivities: end};
+    await endAdhkarSessionActivities(1_900_000);
+    expect(end).toHaveBeenCalledWith(1_900_000);
   });
 
   it('maps an unknown native result to error', async () => {

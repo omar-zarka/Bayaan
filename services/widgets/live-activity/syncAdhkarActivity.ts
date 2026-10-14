@@ -42,6 +42,9 @@ let chain: Promise<void> = Promise.resolve();
 let timer: ReturnType<typeof setTimeout> | null = null;
 // When the live activity's stale date was last pushed forward.
 let sentAt = 0;
+// Set when a paused activity was ended for the background with a delayed
+// dismissal: it may still be on screen, so the next start clears it first.
+let endedForBackground = false;
 // Bumped on every start and stop of the sync: a reconcile that began under an
 // older generation must not write memory after its native call returns.
 let generation = 0;
@@ -108,8 +111,8 @@ function withStaleRefresh(
 
 // Nothing in the store marks the 15th minute of a pause or the stale refresh
 // of a playing activity, so a timer does. If the app is suspended the timer
-// may not run: the stale date covers that and the next foreground reconcile
-// ends or refreshes the activity.
+// may not run: a paused activity is ended for the background with a delayed
+// dismissal (endPausedForBackground), and a playing one keeps the app alive.
 function scheduleTimer(now: number): void {
   if (timer) clearTimeout(timer);
   timer = null;
@@ -140,6 +143,11 @@ async function reconcileOnce(): Promise<void> {
   );
   switch (plan.kind) {
     case 'start': {
+      if (endedForBackground) {
+        endedForBackground = false;
+        await endAdhkarSessionActivities().catch(logError);
+        if (gen !== generation) return;
+      }
       const result = await safeStart(plan.state, plan.staleAt);
       if (gen !== generation) return;
       memory = afterAdhkarStart(memory, plan.key, plan.state, result);
@@ -168,6 +176,25 @@ async function reconcileOnce(): Promise<void> {
   scheduleTimer(Date.now());
 }
 
+// The app may be suspended once in the background, so the 15-minute timer
+// would not run and "Paused" would stay for hours. End the paused activity
+// now and let ActivityKit dismiss it when the pause limit is reached. Memory
+// resets without suppressing, so pressing play later starts a fresh one. A
+// playing session is left alone: audio keeps the app alive.
+async function endPausedForBackground(): Promise<void> {
+  if (!enabled || !memory.live) return;
+  const gen = generation;
+  const session = useAdhkarSessionStore.getState().session;
+  if (!session || session.status !== 'paused') return;
+  await endAdhkarSessionActivities(
+    session.lastActiveAt + ADHKAR_PAUSED_END_MS,
+  ).catch(logError);
+  if (gen !== generation) return;
+  memory = INITIAL_ADHKAR_ACTIVITY_MEMORY;
+  endedForBackground = true;
+  scheduleTimer(Date.now());
+}
+
 export function reconcileAdhkarActivity(): Promise<void> {
   chain = chain.then(reconcileOnce).catch(logError);
   return chain;
@@ -185,6 +212,7 @@ export function startAdhkarActivitySync(): () => void {
   enabled = true;
   generation += 1;
   memory = INITIAL_ADHKAR_ACTIVITY_MEMORY;
+  endedForBackground = false;
   // An activity left by a killed process shows a session that is no longer
   // playing (spec 8): end it before anything starts.
   chain = chain.then(() => endAdhkarSessionActivities()).catch(logError);
@@ -199,6 +227,9 @@ export function startAdhkarActivitySync(): () => void {
   });
   const appState = AppState.addEventListener('change', next => {
     if (next === 'active') reconcileAdhkarActivity().catch(logError);
+    if (next === 'background') {
+      chain = chain.then(endPausedForBackground).catch(logError);
+    }
   });
   return () => {
     enabled = false;

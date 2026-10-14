@@ -57,9 +57,14 @@ enum AdhkarSessionActivityBridge {
     return true
   }
 
-  static func endAll() async {
+  /// Ends every adhkar activity. With dismissAtMs it stays on screen, ended,
+  /// until then (the system still removes it within four hours), so it goes
+  /// away on time even while the app is suspended.
+  static func endAll(dismissAtMs: Double? = nil) async {
+    let policy: ActivityUIDismissalPolicy =
+      dismissAtMs.map { .after(Date(timeIntervalSince1970: $0 / 1000)) } ?? .immediate
     for activity in Activity<AdhkarSessionAttributes>.activities {
-      await activity.end(nil, dismissalPolicy: .immediate)
+      await activity.end(nil, dismissalPolicy: policy)
     }
   }
 }

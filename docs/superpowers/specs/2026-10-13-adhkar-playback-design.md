@@ -186,11 +186,12 @@ The Live Activity and lock screen use the URL `bayaan://adhkar-playing`. A new r
 - **Views:**
   - **Lock screen:** the list title, the Arabic preview right to left in the system Arabic font (widgets cannot load Digital Khatt), "4 of 23", and a play-state glyph.
   - **Dynamic Island:** compact shows the bars and "4/23"; minimal shows the bars; expanded matches the lock screen view.
+  - **Stale:** past its stale date (`context.isStale`) every view shows the session as not playing, with the preview and progress dimmed. The stale date does not end the activity.
   - **Tapping** opens `bayaan://adhkar-playing`.
 - **Planner:** a pure `planAdhkarActivity(memory, session)` in `services/widgets/live-activity/`:
   - it starts an activity when a session first plays;
   - it updates on index or play-state changes;
-  - it ends the activity when the session ends, when the session pauses because Quran started, or after 15 minutes paused;
+  - it ends the activity when the session ends, when the session pauses because Quran started, or after 15 minutes paused. If the app goes to the background while paused (it may then be suspended, so no timer runs), the sync ends the activity at once with a dismissal scheduled for the 15-minute mark; pressing play later starts a new one;
   - a dismissed activity is not restarted until a new session starts.
 
   Unit tests cover each transition.
@@ -207,7 +208,7 @@ The Live Activity and lock screen use the URL `bayaan://adhkar-playing`. A new r
 | The same dhikr is in Morning and Evening | Only the session's `listId` gets the indicator and the pill. The other list shows nothing. |
 | The saved list changes during a Saved session | The session keeps its copy. The indicator matches by `dhikrId` and shows only if the row still exists. |
 | Clips shorter than 2 s | They advance. Covered by the track-token test. |
-| The app is killed | The saved session comes back paused at its dhikr and position, unless it is stale. The Live Activity is ended by the system's stale date (10 minutes after the last update) or at next launch. |
+| The app is killed | The saved session comes back paused at its dhikr and position, unless it is stale. The Live Activity stays on screen: once its stale date passes (10 minutes after the last update) it shows as not playing, and it is cleared at the next launch or by the system's limit on activity age. |
 | The app is reopened after the window changes | A Morning session saved at 10:00 is gone at 16:00. An Evening session saved at 20:00 is still there at 23:00 and gone at 05:00. |
 | A Quran surah starts during Play All | Adhkar pauses at its position and the tile shows it paused. Pressing play pauses the surah and resumes adhkar where it stopped. |
 

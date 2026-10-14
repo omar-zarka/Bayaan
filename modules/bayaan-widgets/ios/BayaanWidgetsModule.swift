@@ -118,8 +118,8 @@ public class BayaanWidgetsModule: Module {
       await AdhkarSessionActivityBridge.update(json, staleAtMs: staleAtMs)
     }
 
-    AsyncFunction("endAdhkarSessionActivities") { () async in
-      await AdhkarSessionActivityBridge.endAll()
+    AsyncFunction("endAdhkarSessionActivities") { (dismissAtMs: Double?) async in
+      await AdhkarSessionActivityBridge.endAll(dismissAtMs: dismissAtMs)
     }
 
     Function("writeCatalog") { (json: String) in

@@ -18,7 +18,7 @@ const mockUpdate = jest.fn<
   Promise<boolean>,
   [AdhkarSessionActivityState, number]
 >();
-const mockEnd = jest.fn<Promise<void>, []>();
+const mockEnd = jest.fn<Promise<void>, [number | undefined]>();
 let mockSupported = true;
 let mockPlatformOS = 'ios';
 let mockEnabled = true;
@@ -41,9 +41,9 @@ jest.mock('bayaan-widgets', () => ({
     mockLog.push(`update:${mockDescribe(s)}`);
     return mockUpdate(s, at);
   },
-  endAdhkarSessionActivities: () => {
-    mockLog.push('end');
-    return mockEnd();
+  endAdhkarSessionActivities: (dismissAt?: number) => {
+    mockLog.push(dismissAt === undefined ? 'end' : `end@${dismissAt}`);
+    return mockEnd(dismissAt);
   },
 }));
 jest.mock('react-native', () => {
@@ -255,6 +255,60 @@ describe('syncAdhkarActivity', () => {
     jest.advanceTimersByTime(1);
     await sync.reconcileAdhkarActivity();
     expect(mockLog).toEqual(['end']);
+  });
+
+  it('ends a paused activity for the background, dismissed at the pause limit', async () => {
+    jest.useFakeTimers({
+      now: 1_000_000,
+      doNotFake: ['nextTick', 'queueMicrotask', 'setImmediate'],
+    });
+    const {sync, store} = load();
+    sync.startAdhkarActivitySync();
+    playAll(store);
+    await sync.reconcileAdhkarActivity();
+    jest.advanceTimersByTime(30_000);
+    store.getState().dispatch({type: 'toggle'});
+    await sync.reconcileAdhkarActivity();
+    const pausedAt = store.getState().session?.lastActiveAt;
+    expect(pausedAt).toBe(1_030_000);
+    jest.advanceTimersByTime(60_000);
+    mockLog.length = 0;
+    mockAppStateListener?.('background');
+    await sync.reconcileAdhkarActivity();
+    expect(mockLog).toEqual([`end@${1_030_000 + ADHKAR_PAUSED_END_MS}`]);
+    // Memory forgot it, so no timer is left to end it again.
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('leaves a playing activity alone when the app goes to the background', async () => {
+    const {sync, store} = load();
+    sync.startAdhkarActivitySync();
+    playAll(store);
+    await sync.reconcileAdhkarActivity();
+    mockLog.length = 0;
+    mockAppStateListener?.('background');
+    await sync.reconcileAdhkarActivity();
+    expect(mockLog).toEqual([]);
+  });
+
+  it('starts a fresh activity on play after a background end', async () => {
+    const {sync, store} = load();
+    sync.startAdhkarActivitySync();
+    playAll(store);
+    await sync.reconcileAdhkarActivity();
+    store.getState().dispatch({type: 'toggle'});
+    await sync.reconcileAdhkarActivity();
+    mockAppStateListener?.('background');
+    await sync.reconcileAdhkarActivity();
+    mockLog.length = 0;
+    mockAppStateListener?.('active');
+    await sync.reconcileAdhkarActivity();
+    expect(mockLog).toEqual([]); // still paused: nothing to show
+    store.getState().dispatch({type: 'toggle'});
+    confirmPlaying(store);
+    await sync.reconcileAdhkarActivity();
+    // The delayed-dismissal activity is cleared before the new one starts.
+    expect(mockLog).toEqual(['end', 'start:1/3:playing']);
   });
 
   it('refreshes the stale date of an unchanged playing activity', async () => {
