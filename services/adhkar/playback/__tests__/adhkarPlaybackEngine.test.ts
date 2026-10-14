@@ -225,7 +225,7 @@ it('does not write the previous clip time onto a dhikr swiped to while paused', 
   player.currentTime = 4;
   dispatch({type: 'toggle'});
   expect(useAdhkarSessionStore.getState().session?.positionSec).toBe(4);
-  dispatch({type: 'swipedTo', listId: src.listId, index: 1});
+  dispatch({type: 'swipedTo', listId: src.listId, dhikrId: 'b'});
   expect(useAdhkarSessionStore.getState().session?.positionSec).toBe(0);
   const handler = lastAppStateHandler();
   handler('background');

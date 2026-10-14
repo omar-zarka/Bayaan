@@ -33,7 +33,9 @@ export interface AdhkarSession extends SessionSource {
 export type SessionEvent =
   | {type: 'pressCard'; source: SessionSource; index: number}
   | {type: 'pressPlayAll'; source: SessionSource}
-  | {type: 'swipedTo'; listId: string; index: number}
+  // The dhikr id, not a screen index: the reader's list can drift from the
+  // session's items (an unsaved row leaves the Saved reader).
+  | {type: 'swipedTo'; listId: string; dhikrId: string}
   | {type: 'toggle'}
   | {type: 'stop'}
   | {type: 'toggleLoop'}

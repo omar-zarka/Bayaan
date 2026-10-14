@@ -106,7 +106,13 @@ export function reduceSession(
         state.mode === 'all' &&
         state.listId === event.source.listId
       ) {
-        return moveTo(state, event.index, false, now);
+        // The screen's list is the fresh one (Saved can lose rows).
+        return moveTo(
+          {...state, items: event.source.items},
+          event.index,
+          false,
+          now,
+        );
       }
       return startSession(event.source, event.index, 'single', token, now);
     }
@@ -125,8 +131,9 @@ export function reduceSession(
     case 'swipedTo': {
       if (!state || state.mode !== 'all' || state.listId !== event.listId)
         return state;
-      if (event.index === state.index) return state;
-      return moveTo(state, event.index, state.status === 'paused', now);
+      const index = state.items.findIndex(i => i.dhikrId === event.dhikrId);
+      if (index < 0 || index === state.index) return state;
+      return moveTo(state, index, state.status === 'paused', now);
     }
     case 'trackEnded': {
       if (!state || event.token !== state.trackToken) return state;

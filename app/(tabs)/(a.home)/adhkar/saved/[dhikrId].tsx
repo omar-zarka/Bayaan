@@ -75,7 +75,9 @@ const SavedDhikrReaderScreen: React.FC = () => {
   const headerHeight = useHeaderHeight();
   const flatListRef = useRef<FlatList<Dhikr>>(null);
 
-  const initialIndex = globalIndexParam ? parseInt(globalIndexParam, 10) : 0;
+  const [initialIndex, setInitialIndex] = useState(
+    globalIndexParam ? parseInt(globalIndexParam, 10) : 0,
+  );
 
   const [adhkarList, setAdhkarList] = useState<Dhikr[]>([]);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -88,7 +90,17 @@ const SavedDhikrReaderScreen: React.FC = () => {
   const dispatch = useAdhkarSessionStore(s => s.dispatch);
   const isThisAllSession =
     session?.listId === 'saved' && session.mode === 'all';
-  const sessionIndex = session?.listId === 'saved' ? session.index : null;
+  const sessionDhikrId =
+    session?.listId === 'saved'
+      ? (session.items[session.index]?.dhikrId ?? null)
+      : null;
+  // Where the session's dhikr sits in this screen's rows. session.index
+  // counts the session's own items, which can drift from this list.
+  const sessionIndex = useMemo(() => {
+    if (sessionDhikrId === null) return null;
+    const found = adhkarList.findIndex(d => d.id === sessionDhikrId);
+    return found < 0 ? null : found;
+  }, [sessionDhikrId, adhkarList]);
 
   // Load saved adhkar
   useEffect(() => {
@@ -105,6 +117,11 @@ const SavedDhikrReaderScreen: React.FC = () => {
         // Filter out nulls
         const validAdhkar = adhkarResults.filter((d): d is Dhikr => d !== null);
         setAdhkarList(validAdhkar);
+        const opened = validAdhkar.findIndex(d => d.id === dhikrId);
+        if (opened >= 0) {
+          setInitialIndex(opened);
+          setCurrentIndex(opened);
+        }
       } catch (error) {
         console.error('Failed to load saved adhkar:', error);
       } finally {
@@ -113,6 +130,8 @@ const SavedDhikrReaderScreen: React.FC = () => {
     }
 
     loadData();
+    // The opened dhikr only seeds the first position.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Update list when saved items change (item unsaved)
@@ -228,7 +247,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
   );
 
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken[]}) => {
+    ({viewableItems}: {viewableItems: ViewToken<Dhikr>[]}) => {
       if (viewableItems.length > 0 && viewableItems[0].index !== null) {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
@@ -245,7 +264,11 @@ const SavedDhikrReaderScreen: React.FC = () => {
           newIndex !== sessionIndex &&
           change.isUserSwipe
         ) {
-          dispatch({type: 'swipedTo', listId: 'saved', index: newIndex});
+          dispatch({
+            type: 'swipedTo',
+            listId: 'saved',
+            dhikrId: viewableItems[0].item.id,
+          });
         }
       }
     },

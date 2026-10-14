@@ -218,7 +218,7 @@ describe('rule 5: swiping in the reader', () => {
   it('moves playback in the active all list', () => {
     const s = reduceSession(
       session({index: 0, trackToken: 1}),
-      {type: 'swipedTo', listId: 'morning-adhkar', index: 1},
+      {type: 'swipedTo', listId: 'morning-adhkar', dhikrId: 'b'},
       NOW,
     );
     expect(s).toMatchObject({index: 1, status: 'loading', trackToken: 2});
@@ -226,7 +226,7 @@ describe('rule 5: swiping in the reader', () => {
   it('stays paused when swiping a paused all session', () => {
     const s = reduceSession(
       session({status: 'paused'}),
-      {type: 'swipedTo', listId: 'morning-adhkar', index: 1},
+      {type: 'swipedTo', listId: 'morning-adhkar', dhikrId: 'b'},
       NOW,
     );
     expect(s).toMatchObject({index: 1, status: 'paused'});
@@ -234,7 +234,7 @@ describe('rule 5: swiping in the reader', () => {
   it('pauses on a row without audio', () => {
     const s = reduceSession(
       session(),
-      {type: 'swipedTo', listId: 'morning-adhkar', index: 2},
+      {type: 'swipedTo', listId: 'morning-adhkar', dhikrId: 'c'},
       NOW,
     );
     expect(s).toMatchObject({index: 2, status: 'paused'});
@@ -244,7 +244,17 @@ describe('rule 5: swiping in the reader', () => {
     expect(
       reduceSession(
         before,
-        {type: 'swipedTo', listId: 'morning-adhkar', index: 1},
+        {type: 'swipedTo', listId: 'morning-adhkar', dhikrId: 'b'},
+        NOW,
+      ),
+    ).toBe(before);
+  });
+  it('ignores a dhikr the session does not have', () => {
+    const before = session();
+    expect(
+      reduceSession(
+        before,
+        {type: 'swipedTo', listId: 'morning-adhkar', dhikrId: 'gone'},
         NOW,
       ),
     ).toBe(before);
@@ -254,7 +264,7 @@ describe('rule 5: swiping in the reader', () => {
     expect(
       reduceSession(
         before,
-        {type: 'swipedTo', listId: 'evening-adhkar', index: 1},
+        {type: 'swipedTo', listId: 'evening-adhkar', dhikrId: 'x'},
         NOW,
       ),
     ).toBe(before);
@@ -329,5 +339,32 @@ describe('rules 7 and 8, player events', () => {
     expect(
       reduceSession(null, {type: 'restored', session: restored}, NOW),
     ).toBe(restored);
+  });
+});
+
+describe('Saved list drift (a row unsaved during the session)', () => {
+  const saved = source('saved', ['a', 'b', 'c', 'd']);
+  // The reader dropped 'b'; the session still holds the four rows.
+  const shorter = source('saved', ['a', 'c', 'd']);
+
+  it('swipe resolves the dhikr in the session items, not the screen index', () => {
+    const s = reduceSession(
+      session({...saved, index: 0}),
+      {type: 'swipedTo', listId: 'saved', dhikrId: 'c'},
+      NOW,
+    );
+    expect(s?.items[s.index].dhikrId).toBe('c');
+    expect(s?.index).toBe(2);
+  });
+
+  it('a card press in the same all list takes the screen items', () => {
+    const s = reduceSession(
+      session({...saved, index: 0}),
+      {type: 'pressCard', source: shorter, index: 1},
+      NOW,
+    );
+    expect(s).toMatchObject({mode: 'all', index: 1, status: 'loading'});
+    expect(s?.items).toBe(shorter.items);
+    expect(s?.items[s.index].dhikrId).toBe('c');
   });
 });

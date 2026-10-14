@@ -109,9 +109,6 @@ const SuperCategoryListScreen: React.FC = () => {
       (s.session.status === 'playing' || s.session.status === 'loading'),
   );
 
-  const sessionIndex = useAdhkarSessionStore(s =>
-    s.session?.listId === superId ? s.session.index : null,
-  );
   const revealToken = useAdhkarSessionStore(s => s.revealToken);
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
   const sectionListRef = useRef<SectionList<DhikrItem, Section>>(null);
@@ -209,6 +206,14 @@ const SuperCategoryListScreen: React.FC = () => {
     if (categoryGroups.length === 0) return [];
     return categoryGroups.flatMap(group => group.adhkar);
   }, [categoryGroups]);
+
+  // Where the session's dhikr sits in this screen's rows (session.index
+  // counts the session's own items, which can drift from this list).
+  const sessionIndex = useMemo(() => {
+    if (currentDhikrId === null) return null;
+    const found = allAdhkarForPlayAll.findIndex(d => d.id === currentDhikrId);
+    return found < 0 ? null : found;
+  }, [currentDhikrId, allAdhkarForPlayAll]);
 
   const locationOf = useCallback(
     (globalIndex: number): {sectionIndex: number; itemIndex: number} | null => {
@@ -325,7 +330,10 @@ const SuperCategoryListScreen: React.FC = () => {
     if (wasPlaying) return;
     const session = useAdhkarSessionStore.getState().session;
     if (!session || session.listId !== superId) return;
-    const first = allAdhkarForPlayAll[session.index];
+    const firstId = session.items[session.index]?.dhikrId;
+    const firstIndex = allAdhkarForPlayAll.findIndex(d => d.id === firstId);
+    if (firstIndex < 0) return;
+    const first = allAdhkarForPlayAll[firstIndex];
     const firstGroup = categoryGroups.find(group =>
       group.adhkar.some(d => d.id === first.id),
     );
@@ -334,7 +342,7 @@ const SuperCategoryListScreen: React.FC = () => {
       params: {
         superId,
         dhikrId: first.id,
-        globalIndex: String(session.index),
+        globalIndex: String(firstIndex),
         categoryShortTitle: firstGroup
           ? shortenCategoryTitle(firstGroup.categoryTitle)
           : '',

@@ -99,7 +99,9 @@ const DhikrReaderScreen: React.FC = () => {
   const headerHeight = useHeaderHeight();
   const flatListRef = useRef<FlatList<Dhikr>>(null);
 
-  const initialIndex = globalIndexParam ? parseInt(globalIndexParam, 10) : 0;
+  const [initialIndex, setInitialIndex] = useState(
+    globalIndexParam ? parseInt(globalIndexParam, 10) : 0,
+  );
 
   const [adhkarList, setAdhkarList] = useState<Dhikr[]>([]);
   const [categoryTitles, setCategoryTitles] = useState<CategoryTitleMap>({});
@@ -113,7 +115,17 @@ const DhikrReaderScreen: React.FC = () => {
   const dispatch = useAdhkarSessionStore(s => s.dispatch);
   const isThisAllSession =
     session?.listId === superId && session.mode === 'all';
-  const sessionIndex = session?.listId === superId ? session.index : null;
+  const sessionDhikrId =
+    session?.listId === superId
+      ? (session.items[session.index]?.dhikrId ?? null)
+      : null;
+  // Where the session's dhikr sits in this screen's rows. session.index
+  // counts the session's own items, which can drift from this list.
+  const sessionIndex = useMemo(() => {
+    if (sessionDhikrId === null) return null;
+    const found = adhkarList.findIndex(d => d.id === sessionDhikrId);
+    return found < 0 ? null : found;
+  }, [sessionDhikrId, adhkarList]);
 
   useEffect(() => {
     async function loadData() {
@@ -127,6 +139,11 @@ const DhikrReaderScreen: React.FC = () => {
         if (data) {
           const flatAdhkar = data.categoryGroups.flatMap(g => g.adhkar);
           setAdhkarList(flatAdhkar);
+          const opened = flatAdhkar.findIndex(d => d.id === dhikrId);
+          if (opened >= 0) {
+            setInitialIndex(opened);
+            setCurrentIndex(opened);
+          }
 
           const titlesMap: CategoryTitleMap = {};
           data.categoryGroups.forEach(group => {
@@ -144,6 +161,8 @@ const DhikrReaderScreen: React.FC = () => {
     }
 
     loadData();
+    // The opened dhikr only seeds the first position.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [superId]);
 
   const currentDhikr = useMemo(() => {
@@ -299,7 +318,7 @@ const DhikrReaderScreen: React.FC = () => {
   );
 
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken[]}) => {
+    ({viewableItems}: {viewableItems: ViewToken<Dhikr>[]}) => {
       if (viewableItems.length > 0 && viewableItems[0].index !== null) {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
@@ -317,7 +336,11 @@ const DhikrReaderScreen: React.FC = () => {
           change.isUserSwipe &&
           superId
         ) {
-          dispatch({type: 'swipedTo', listId: superId, index: newIndex});
+          dispatch({
+            type: 'swipedTo',
+            listId: superId,
+            dhikrId: viewableItems[0].item.id,
+          });
         }
       }
     },

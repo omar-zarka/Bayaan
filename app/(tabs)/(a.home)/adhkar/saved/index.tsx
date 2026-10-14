@@ -71,9 +71,6 @@ const SavedAdhkarScreen: React.FC = () => {
       (s.session.status === 'playing' || s.session.status === 'loading'),
   );
 
-  const sessionIndex = useAdhkarSessionStore(s =>
-    s.session?.listId === 'saved' ? s.session.index : null,
-  );
   const revealToken = useAdhkarSessionStore(s => s.revealToken);
   const [visibleIndices, setVisibleIndices] = useState<number[]>([]);
   const flatListRef = useRef<FlatList<Dhikr>>(null);
@@ -106,6 +103,14 @@ const SavedAdhkarScreen: React.FC = () => {
 
     loadSavedAdhkar();
   }, [savedIds.size]); // Reload when saved count changes
+
+  // Where the session's dhikr sits in this screen's rows (session.index
+  // counts the session's own items, which keep a row unsaved since).
+  const sessionIndex = useMemo(() => {
+    if (currentDhikrId === null) return null;
+    const found = adhkarList.findIndex(d => d.id === currentDhikrId);
+    return found < 0 ? null : found;
+  }, [currentDhikrId, adhkarList]);
 
   const scrollToPlaying = useCallback(() => {
     if (sessionIndex === null) return;
@@ -189,12 +194,14 @@ const SavedAdhkarScreen: React.FC = () => {
     if (wasPlaying) return;
     const session = useAdhkarSessionStore.getState().session;
     if (!session || session.listId !== 'saved') return;
-    const first = adhkarList[session.index];
+    const firstId = session.items[session.index]?.dhikrId;
+    const firstIndex = adhkarList.findIndex(d => d.id === firstId);
+    if (firstIndex < 0) return;
     router.push({
       pathname: '/(tabs)/(a.home)/adhkar/saved/[dhikrId]',
       params: {
-        dhikrId: first.id,
-        globalIndex: String(session.index),
+        dhikrId: adhkarList[firstIndex].id,
+        globalIndex: String(firstIndex),
         playAll: 'true',
       },
     });
