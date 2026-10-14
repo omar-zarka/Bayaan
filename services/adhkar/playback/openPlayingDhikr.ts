@@ -73,12 +73,16 @@ export function planOpenPlaying(
   };
 }
 
+// `current` defaults to the focused adhkar screen. The bayaan://adhkar-playing
+// route passes null: it sits on top of whatever screen was focused, so it
+// must always navigate (a reveal would leave its empty screen showing).
 export function openPlayingDhikr(
   router: {push(href: ReaderHref): void; replace(href: ReaderHref): void},
   mode: 'push' | 'replace' = 'push',
+  current: AdhkarFocus = getAdhkarFocus(),
 ): boolean {
   const {session, requestReveal} = useAdhkarSessionStore.getState();
-  const plan = planOpenPlaying(session, getAdhkarFocus());
+  const plan = planOpenPlaying(session, current);
   if (plan.kind === 'none') return false;
   if (plan.kind === 'reveal') {
     requestReveal();

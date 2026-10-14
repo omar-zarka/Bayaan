@@ -1,4 +1,9 @@
-import {planOpenPlaying} from '@/services/adhkar/playback/openPlayingDhikr';
+import {
+  openPlayingDhikr,
+  planOpenPlaying,
+  setAdhkarFocus,
+} from '@/services/adhkar/playback/openPlayingDhikr';
+import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import type {AdhkarSession} from '@/services/adhkar/playback/types';
 
 const session: AdhkarSession = {
@@ -52,5 +57,35 @@ it('pushes the saved reader for a saved session', () => {
       pathname: '/(tabs)/(a.home)/adhkar/saved/[dhikrId]',
       params: {dhikrId: 'b', globalIndex: '1'},
     },
+  });
+});
+
+describe('openPlayingDhikr', () => {
+  const router = {push: jest.fn(), replace: jest.fn()};
+  beforeEach(() => {
+    router.push.mockClear();
+    router.replace.mockClear();
+    useAdhkarSessionStore.setState({session, revealToken: 0});
+    setAdhkarFocus({kind: 'list', listId: 'morning-adhkar'});
+  });
+  afterEach(() => {
+    setAdhkarFocus(null);
+    useAdhkarSessionStore.setState({session: null, revealToken: 0});
+  });
+
+  it('reveals in place when the session list is focused', () => {
+    expect(openPlayingDhikr(router)).toBe(true);
+    expect(useAdhkarSessionStore.getState().revealToken).toBe(1);
+    expect(router.push).not.toHaveBeenCalled();
+  });
+
+  it('the deep link route navigates even while the session list is focused', () => {
+    expect(openPlayingDhikr(router, 'replace', null)).toBe(true);
+    expect(router.replace).toHaveBeenCalledWith(
+      expect.objectContaining({
+        pathname: '/(tabs)/(a.home)/adhkar/[superId]/[dhikrId]',
+      }),
+    );
+    expect(useAdhkarSessionStore.getState().revealToken).toBe(0);
   });
 });

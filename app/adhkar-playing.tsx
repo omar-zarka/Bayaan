@@ -7,7 +7,7 @@ import {openPlayingDhikr} from '@/services/adhkar/playback/openPlayingDhikr';
 export default function AdhkarPlayingRoute(): null {
   const router = useRouter();
   useEffect(() => {
-    if (!openPlayingDhikr(router, 'replace')) {
+    if (!openPlayingDhikr(router, 'replace', null)) {
       router.replace('/(tabs)/(a.home)/adhkar');
     }
   }, [router]);
