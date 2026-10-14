@@ -335,4 +335,66 @@ describe('syncAdhkarActivity', () => {
     expect(mockLog).toEqual(['end']);
     expect(mockCoordinatorListener).toBeNull();
   });
+
+  it('leaves no timers and makes no later call after cleanup', async () => {
+    jest.useFakeTimers({
+      now: 1_000_000,
+      doNotFake: ['nextTick', 'queueMicrotask', 'setImmediate'],
+    });
+    for (const pause of [false, true]) {
+      const {sync, store} = load();
+      const stop = sync.startAdhkarActivitySync();
+      playAll(store);
+      await sync.reconcileAdhkarActivity();
+      if (pause) {
+        store.getState().dispatch({type: 'toggle'});
+        await sync.reconcileAdhkarActivity();
+      }
+      expect(jest.getTimerCount()).toBe(1);
+      stop();
+      expect(jest.getTimerCount()).toBe(0);
+      mockLog.length = 0;
+      jest.advanceTimersByTime(ADHKAR_PAUSED_END_MS * 2);
+      await Promise.resolve();
+      expect(mockLog).toEqual([]);
+    }
+  });
+
+  it('still resets memory and schedules when the native end rejects', async () => {
+    jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const {sync, store} = load();
+    sync.startAdhkarActivitySync();
+    playAll(store);
+    await sync.reconcileAdhkarActivity();
+    mockEnd.mockRejectedValueOnce(new Error('native boom'));
+    store.getState().dispatch({type: 'stop'});
+    await sync.reconcileAdhkarActivity();
+    playAll(store);
+    await sync.reconcileAdhkarActivity();
+    expect(mockStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('drops the result of a start that a restart overtook', async () => {
+    let finishStart: (r: 'started') => void = () => undefined;
+    mockStart.mockReset().mockImplementationOnce(
+      () =>
+        new Promise<'started'>(resolve => {
+          finishStart = resolve;
+        }),
+    );
+    mockStart.mockResolvedValue('started');
+    const {sync, store} = load();
+    const stop = sync.startAdhkarActivitySync();
+    playAll(store);
+    const pending = sync.reconcileAdhkarActivity();
+    while (mockStart.mock.calls.length === 0) await Promise.resolve();
+    stop();
+    sync.startAdhkarActivitySync();
+    finishStart('started');
+    await pending;
+    await sync.reconcileAdhkarActivity();
+    // The restart ended the stale activity and memory forgot it, so the
+    // session starts again instead of being treated as live.
+    expect(mockStart).toHaveBeenCalledTimes(2);
+  });
 });

@@ -42,6 +42,9 @@ let chain: Promise<void> = Promise.resolve();
 let timer: ReturnType<typeof setTimeout> | null = null;
 // When the live activity's stale date was last pushed forward.
 let sentAt = 0;
+// Bumped on every start and stop of the sync: a reconcile that began under an
+// older generation must not write memory after its native call returns.
+let generation = 0;
 
 function logError(error: unknown): void {
   console.error('[AdhkarActivity] Failed to sync:', error);
@@ -127,6 +130,7 @@ function scheduleTimer(now: number): void {
 // Reads the latest session when it runs, so queued calls collapse.
 async function reconcileOnce(): Promise<void> {
   if (!enabled) return;
+  const gen = generation;
   const session = useAdhkarSessionStore.getState().session;
   const now = Date.now();
   const plan = withStaleRefresh(
@@ -135,26 +139,24 @@ async function reconcileOnce(): Promise<void> {
     now,
   );
   switch (plan.kind) {
-    case 'start':
-      memory = afterAdhkarStart(
-        memory,
-        plan.key,
-        plan.state,
-        await safeStart(plan.state, plan.staleAt),
-      );
-      sentAt = now;
+    case 'start': {
+      const result = await safeStart(plan.state, plan.staleAt);
+      if (gen !== generation) return;
+      memory = afterAdhkarStart(memory, plan.key, plan.state, result);
+      if (result === 'started') sentAt = now;
       break;
-    case 'update':
-      memory = afterAdhkarUpdate(
-        memory,
-        plan.key,
-        plan.state,
-        await safeUpdate(plan.state, plan.staleAt),
-      );
-      sentAt = now;
+    }
+    case 'update': {
+      const ok = await safeUpdate(plan.state, plan.staleAt);
+      if (gen !== generation) return;
+      memory = afterAdhkarUpdate(memory, plan.key, plan.state, ok);
+      if (ok) sentAt = now;
       break;
+    }
     case 'end':
-      await endAdhkarSessionActivities();
+      // A failed end still resets memory and reaches scheduleTimer.
+      await endAdhkarSessionActivities().catch(logError);
+      if (gen !== generation) return;
       memory = afterAdhkarEnd();
       break;
     case 'reset':
@@ -181,6 +183,7 @@ export function startAdhkarActivitySync(): () => void {
     return () => undefined;
   }
   enabled = true;
+  generation += 1;
   memory = INITIAL_ADHKAR_ACTIVITY_MEMORY;
   // An activity left by a killed process shows a session that is no longer
   // playing (spec 8): end it before anything starts.
@@ -199,6 +202,7 @@ export function startAdhkarActivitySync(): () => void {
   });
   return () => {
     enabled = false;
+    generation += 1;
     if (timer) clearTimeout(timer);
     timer = null;
     unsubscribeStore();
