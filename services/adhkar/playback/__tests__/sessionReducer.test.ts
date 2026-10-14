@@ -368,3 +368,32 @@ describe('Saved list drift (a row unsaved during the session)', () => {
     expect(s?.items[s.index].dhikrId).toBe('c');
   });
 });
+
+describe('play on a row without audio in all mode', () => {
+  it('toggle moves to the next playable row', () => {
+    const s = reduceSession(
+      session({index: 2, status: 'paused', trackToken: 3}),
+      {type: 'toggle'},
+      NOW,
+    );
+    expect(s).toMatchObject({index: 3, status: 'loading', trackToken: 4});
+  });
+  it('playerResumed moves to the next playable row', () => {
+    const s = reduceSession(
+      session({index: 2, status: 'paused'}),
+      {type: 'playerResumed'},
+      NOW,
+    );
+    expect(s).toMatchObject({index: 3, status: 'loading'});
+  });
+  it('ends the session when no playable row is left', () => {
+    const tail = source('l', ['p', 'q'], ['q']);
+    expect(
+      reduceSession(
+        session({...tail, index: 1, status: 'paused'}),
+        {type: 'toggle'},
+        NOW,
+      ),
+    ).toBeNull();
+  });
+});

@@ -77,8 +77,26 @@ function moveTo(
   };
 }
 
-function toggled(session: AdhkarSession, now: number): AdhkarSession {
+// Play on a row without audio in all mode moves on to the next row that has
+// audio, or ends the session when none is left.
+function resumedOnSilentRow(
+  session: AdhkarSession,
+  now: number,
+): AdhkarSession | null {
+  const next = nextPlayableIndex(session.items, session.index);
+  if (next < 0) return null;
+  return moveTo(session, next, false, now);
+}
+
+function isSilentAllRow(session: AdhkarSession): boolean {
+  return (
+    session.mode === 'all' && !(session.items[session.index]?.playable ?? false)
+  );
+}
+
+function toggled(session: AdhkarSession, now: number): AdhkarSession | null {
   if (session.status === 'paused') {
+    if (isSilentAllRow(session)) return resumedOnSilentRow(session, now);
     return {...session, status: 'loading', error: false, lastActiveAt: now};
   }
   return {...session, status: 'paused', lastActiveAt: now};
@@ -165,6 +183,7 @@ export function reduceSession(
       return {...state, status: 'paused', lastActiveAt: now};
     case 'playerResumed':
       if (!state || state.status !== 'paused') return state;
+      if (isSilentAllRow(state)) return resumedOnSilentRow(state, now);
       return {...state, status: 'playing', error: false, lastActiveAt: now};
     case 'otherAudioStarted':
       if (!state || state.status === 'paused') return state;
