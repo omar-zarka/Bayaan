@@ -44,6 +44,7 @@ import {
 } from '@/services/adhkar/playback/openPlayingDhikr';
 import {AdhkarSessionSourceProvider} from '@/components/adhkar/AdhkarSessionSourceContext';
 import {useHeaderHeight} from 'expo-router/react-navigation';
+import {USE_GLASS} from '@/hooks/useGlassProps';
 import {dhikrShareUrl, shareUrl} from '@/utils/shareUtils';
 import branding from '@/config/branding';
 // @ai-start
@@ -100,6 +101,10 @@ const DhikrReaderScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
+  // Glass headers are transparent, so content is padded below them. The
+  // non-glass header is opaque and already takes its own space; padding
+  // by headerHeight there would leave a blank band of that height.
+  const contentTop = USE_GLASS ? headerHeight : 0;
   const flatListRef = useRef<FlatList<Dhikr>>(null);
 
   const [initialIndex, setInitialIndex] = useState(
@@ -406,7 +411,7 @@ const DhikrReaderScreen: React.FC = () => {
   if (!isDataLoaded) {
     return (
       <View style={styles.container}>
-        <View style={[styles.loadingContainer, {paddingTop: headerHeight}]}>
+        <View style={[styles.loadingContainer, {paddingTop: contentTop}]}>
           <LoadingIndicator />
         </View>
       </View>
@@ -416,7 +421,7 @@ const DhikrReaderScreen: React.FC = () => {
   if (adhkarList.length === 0) {
     return (
       <View style={styles.container}>
-        <View style={[styles.loadingContainer, {paddingTop: headerHeight}]}>
+        <View style={[styles.loadingContainer, {paddingTop: contentTop}]}>
           <Text style={styles.emptyText}>{t('adhkar.noneFound')}</Text>
         </View>
       </View>
@@ -429,7 +434,7 @@ const DhikrReaderScreen: React.FC = () => {
         <View
           style={[
             styles.listContainer,
-            {paddingTop: headerHeight, paddingBottom: insets.bottom},
+            {paddingTop: contentTop, paddingBottom: insets.bottom},
           ]}>
           <FlatList
             ref={flatListRef}
