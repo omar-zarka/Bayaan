@@ -132,6 +132,19 @@ describe('with a session', () => {
     );
   });
 
+  it('shows bars while playing and a paused icon while paused', () => {
+    const r = mount('row');
+    const has = (id: string): boolean =>
+      r.root.findAll(n => n.props.testID === id).length > 0;
+    expect(has('dhikr-playing-bars')).toBe(true);
+    expect(has('adhkar-now-playing-paused')).toBe(false);
+    act(() => {
+      useAdhkarSessionStore.setState({session: {...session, status: 'paused'}});
+    });
+    expect(has('dhikr-playing-bars')).toBe(false);
+    expect(has('adhkar-now-playing-paused')).toBe(true);
+  });
+
   it('toggles, opens and stops', () => {
     const r = mount('tile');
     const press = (id: string): void => {

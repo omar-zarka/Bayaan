@@ -86,12 +86,21 @@ export function AdhkarNowPlayingCard({
     </View>
   );
 
-  const bars = (
-    <PlayingBars
-      animating={active}
-      color={theme.colors.text}
-      size={moderateScale(isTile ? 14 : 18)}
-    />
+  // Spec 4.3: moving bars while playing, a paused icon while paused.
+  const indicatorSize = moderateScale(isTile ? 14 : 18);
+  const bars = active ? (
+    <PlayingBars animating color={theme.colors.text} size={indicatorSize} />
+  ) : (
+    <View
+      testID="adhkar-now-playing-paused"
+      style={{
+        width: indicatorSize,
+        height: indicatorSize,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+      <Feather name="pause" size={indicatorSize} color={muted} />
+    </View>
   );
   const title = (
     <Text
