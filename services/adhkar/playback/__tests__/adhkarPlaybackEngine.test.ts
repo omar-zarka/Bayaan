@@ -11,6 +11,7 @@ jest.mock('expo-audio', () => ({createAudioPlayer: jest.fn()}));
 type Listener = (s: {
   playing: boolean;
   didJustFinish: boolean;
+  isLoaded: boolean;
   currentTime: number;
   duration: number;
 }) => void;
@@ -37,6 +38,7 @@ function fakePlayer() {
       listener?.({
         playing: false,
         didJustFinish: false,
+        isLoaded: true,
         currentTime: 0,
         duration: 10,
         ...s,
@@ -286,4 +288,91 @@ it('re-activates the lock screen when the engine restarts mid-playback', () => {
   });
   expect(lockScreen.activate).toHaveBeenCalledTimes(1);
   expect(player.play).toHaveBeenCalledTimes(1);
+});
+
+describe('swiping while paused', () => {
+  function pausedOnB(): void {
+    dispatch({type: 'pressPlayAll', source: src});
+    player.emit({playing: true});
+    dispatch({type: 'toggle'});
+    dispatch({type: 'swipedTo', listId: src.listId, dhikrId: 'b'});
+  }
+
+  it('drops the old clip and moves the lock screen entry to the new dhikr', () => {
+    pausedOnB();
+    expect(lockScreen.activate).toHaveBeenLastCalledWith(
+      player,
+      expect.objectContaining({index: 1, status: 'paused'}),
+    );
+    // Play from the app loads the new dhikr instead of resuming the old clip.
+    dispatch({type: 'toggle'});
+    expect(player.replace).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears the lock screen entry when another source took over', () => {
+    dispatch({type: 'pressPlayAll', source: src});
+    player.emit({playing: true});
+    coordinator.getActiveSource.mockReturnValue('main');
+    dispatch({type: 'otherAudioStarted'});
+    lockScreen.clear.mockClear();
+    lockScreen.activate.mockClear();
+    dispatch({type: 'swipedTo', listId: src.listId, dhikrId: 'b'});
+    // Already cleared on takeover: nothing to move.
+    expect(lockScreen.activate).not.toHaveBeenCalled();
+  });
+
+  it('a remote play of the stale clip is stopped and plays the current dhikr', () => {
+    pausedOnB();
+    player.pause.mockClear();
+    coordinator.adhkarWillPlay.mockClear();
+    // Lock screen play resumes the clip still loaded in the native player.
+    player.emit({playing: true});
+    expect(player.pause).toHaveBeenCalledTimes(1);
+    expect(player.replace).toHaveBeenCalledTimes(2);
+    expect(coordinator.adhkarWillPlay).toHaveBeenCalled();
+    expect(useAdhkarSessionStore.getState().session).toMatchObject({
+      index: 1,
+      status: 'loading',
+    });
+    player.emit({playing: true});
+    expect(useAdhkarSessionStore.getState().session?.status).toBe('playing');
+  });
+});
+
+describe('restored position', () => {
+  function restoreAt(positionSec: number): void {
+    dispatch({
+      type: 'restored',
+      session: {
+        ...src,
+        index: 1,
+        mode: 'all',
+        loop: false,
+        status: 'paused',
+        error: false,
+        trackToken: 1,
+        positionSec,
+        lastActiveAt: 0,
+      },
+    });
+    dispatch({type: 'toggle'});
+  }
+
+  it('re-seeks once the clip loads when the early seek was dropped', () => {
+    restoreAt(5);
+    expect(player.seekTo).toHaveBeenCalledTimes(1);
+    player.emit({isLoaded: false, currentTime: 0});
+    expect(player.seekTo).toHaveBeenCalledTimes(1);
+    player.emit({isLoaded: true, playing: true, currentTime: 0});
+    expect(player.seekTo).toHaveBeenCalledTimes(2);
+    expect(player.seekTo).toHaveBeenLastCalledWith(5);
+    player.emit({isLoaded: true, playing: true, currentTime: 0.2});
+    expect(player.seekTo).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not seek again when the early seek held', () => {
+    restoreAt(5);
+    player.emit({isLoaded: true, playing: true, currentTime: 5.1});
+    expect(player.seekTo).toHaveBeenCalledTimes(1);
+  });
 });

@@ -15,7 +15,13 @@ const PLAY_CONFIRM_MS = 1500;
 interface PlayerStatus {
   playing: boolean;
   didJustFinish: boolean;
+  isLoaded: boolean;
+  currentTime: number;
 }
+
+// A restored position further than this from where the clip reports it is
+// re-applied once the clip has loaded.
+const SEEK_TOLERANCE_SEC = 1;
 
 export interface EnginePlayer {
   loop: boolean;
@@ -91,12 +97,16 @@ let loadedToken: number | null = null;
 // The token that has reported playing: true. A didJustFinish before that is
 // left over from the previous clip.
 let confirmedToken: number | null = null;
+// A restored position to re-apply once the loaded clip reports isLoaded:
+// a seek sent right after replace() can land before the clip is ready.
+let pendingSeek: {token: number; seconds: number} | null = null;
 
 export function resetAdhkarEngineForTests(): void {
   activePlayer = null;
   realPlayer = null;
   loadedToken = null;
   confirmedToken = null;
+  pendingSeek = null;
 }
 
 export function getAdhkarPlaybackPosition(): {
@@ -111,6 +121,7 @@ export function getAdhkarPlaybackPosition(): {
 }
 
 export function seekAdhkarPlayback(seconds: number): void {
+  pendingSeek = null;
   try {
     activePlayer?.seekTo(seconds);
   } catch (error) {
@@ -182,7 +193,11 @@ export function startAdhkarPlaybackEngine(
     p.replace(source);
     loadedToken = session.trackToken;
     confirmedToken = null;
-    if (session.positionSec > 0) p.seekTo(session.positionSec);
+    pendingSeek = null;
+    if (session.positionSec > 0) {
+      p.seekTo(session.positionSec);
+      pendingSeek = {token: session.trackToken, seconds: session.positionSec};
+    }
     return true;
   }
 
@@ -196,9 +211,35 @@ export function startAdhkarPlaybackEngine(
       .dispatch({type: 'positionSaved', positionSec: activePlayer.currentTime});
   }
 
+  function applyPendingSeek(status: PlayerStatus, token: number): void {
+    if (!pendingSeek || !status.isLoaded) return;
+    const {token: seekToken, seconds} = pendingSeek;
+    pendingSeek = null;
+    if (seekToken !== token) return;
+    if (Math.abs(status.currentTime - seconds) <= SEEK_TOLERANCE_SEC) return;
+    try {
+      activePlayer?.seekTo(seconds);
+    } catch (error) {
+      if (__DEV__) console.warn('[AdhkarEngine] seek failed', error);
+    }
+  }
+
   function onStatus(status: PlayerStatus): void {
     const s = store.getState().session;
-    if (!s || loadedToken !== s.trackToken) return;
+    if (!s) return;
+    if (loadedToken !== s.trackToken) {
+      // The loaded clip is no longer the session's dhikr (swiped while
+      // paused). Lock screen or headphone play must not play it unseen:
+      // stop it and play the session's current dhikr instead.
+      if (status.playing && activePlayer) {
+        activePlayer.pause();
+        // Not after a failed load: that would retry on every status tick.
+        if (s.status === 'paused' && !s.error)
+          store.getState().dispatch({type: 'toggle'});
+      }
+      return;
+    }
+    applyPendingSeek(status, s.trackToken);
     if (status.playing) {
       confirmedToken = loadedToken;
       if (s.status === 'loading') {
@@ -268,6 +309,22 @@ export function startAdhkarPlaybackEngine(
     }
     // paused
     clearConfirm();
+    if (prev && prev.trackToken !== session.trackToken) {
+      // Swiped while paused: the loaded clip is not the session's dhikr any
+      // more. Drop it so a later play loads the new one.
+      loadedToken = null;
+      confirmedToken = null;
+      pendingSeek = null;
+      if (activePlayer && lockScreenToken !== null) {
+        if (deps.coordinator.getActiveSource() === 'adhkar') {
+          lockScreenToken = session.trackToken;
+          deps.lockScreen.activate(activePlayer, session);
+        } else {
+          deps.lockScreen.clear(activePlayer);
+          lockScreenToken = null;
+        }
+      }
+    }
     if (prev && prev.status !== 'paused' && activePlayer) {
       savePosition();
       activePlayer.pause();
