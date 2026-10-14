@@ -26,6 +26,7 @@ import {useAmbientStore} from '@/store/ambientStore';
 import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
 import {mushafAudioService} from './MushafAudioService';
 import {startAdhkarPlaybackEngine} from '@/services/adhkar/playback/adhkarPlaybackEngine';
+import {startAdhkarActivitySync} from '@/services/widgets/live-activity/syncAdhkarActivity';
 import {
   startSessionSaving,
   restoreSavedSession,
@@ -50,6 +51,7 @@ let sharedPlayer: AudioPlayer | null = null;
 let mountedProviders = 0;
 let lockScreenSyncing = false;
 let stopAdhkarEngine: (() => void) | null = null;
+let stopAdhkarActivity: (() => void) | null = null;
 let stopAdhkarSaving: (() => void) | null = null;
 let phoneProviderMounted = false;
 const phoneProviderListeners = new Set<() => void>();
@@ -183,6 +185,7 @@ export function ExpoAudioProvider({
           lockScreenSyncing = true;
           await lockScreenService.startSync();
           stopAdhkarEngine = startAdhkarPlaybackEngine();
+          stopAdhkarActivity = startAdhkarActivitySync();
           stopAdhkarSaving = startSessionSaving();
           restoreSavedSession().catch(() => {});
         }
@@ -210,6 +213,8 @@ export function ExpoAudioProvider({
         lockScreenService.stopSync();
         stopAdhkarEngine?.();
         stopAdhkarEngine = null;
+        stopAdhkarActivity?.();
+        stopAdhkarActivity = null;
         stopAdhkarSaving?.();
         stopAdhkarSaving = null;
       }, 0);

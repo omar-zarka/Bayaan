@@ -231,4 +231,16 @@ describe('AudioCoordinator - adhkar', () => {
     expect(useAdhkarSessionStore.getState().session.status).toBe('paused');
     expect(c.getActiveSource()).toBe('main');
   });
+
+  it('notifies subscribers after the active source changes', () => {
+    const c = freshCoordinator();
+    const seen: string[] = [];
+    const unsubscribe = c.subscribe(() => seen.push(c.getActiveSource()));
+    c.mainWillPlay();
+    c.mainWillPlay(); // no change, no call
+    c.sourceDidStop('main');
+    unsubscribe();
+    c.mushafWillPlay();
+    expect(seen).toEqual(['main', 'none']);
+  });
 });
