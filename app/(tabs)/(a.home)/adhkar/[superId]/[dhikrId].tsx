@@ -185,27 +185,27 @@ const DhikrReaderScreen: React.FC = () => {
   // Row a Play All auto-scroll is heading to; null when no such scroll is in
   // flight. Viewable changes until it lands are not user swipes.
   const playAllScrollTarget = useRef<number | null>(null);
+  // Follow only a change of the session's dhikr, never a paused or restored
+  // session that merely points elsewhere when the reader opens.
+  const followedDhikrId = useRef(sessionDhikrId);
   useEffect(() => {
-    if (
-      isThisAllSession &&
-      sessionIndex !== null &&
-      sessionIndex !== currentIndex &&
-      isDataLoaded &&
-      adhkarList.length > 0
-    ) {
-      playAllScrollTarget.current = sessionIndex;
-      flatListRef.current?.scrollToIndex({
-        index: sessionIndex,
-        animated: true,
-      });
-      setCurrentIndex(sessionIndex);
-    }
+    if (!isDataLoaded) return;
+    if (sessionDhikrId === followedDhikrId.current) return;
+    followedDhikrId.current = sessionDhikrId;
+    if (!isThisAllSession || sessionIndex === null) return;
+    if (sessionIndex === currentIndex) return;
+    playAllScrollTarget.current = sessionIndex;
+    flatListRef.current?.scrollToIndex({
+      index: sessionIndex,
+      animated: true,
+    });
+    setCurrentIndex(sessionIndex);
   }, [
     isThisAllSession,
+    sessionDhikrId,
     sessionIndex,
     currentIndex,
     isDataLoaded,
-    adhkarList.length,
   ]);
 
   // A surface asked to show the playing dhikr.
@@ -317,11 +317,18 @@ const DhikrReaderScreen: React.FC = () => {
     [toggleSaved],
   );
 
+  // The first viewability report is the page the reader opened on, not a
+  // user swipe.
+  const sawFirstViewable = useRef(false);
   const onViewableItemsChanged = useCallback(
     ({viewableItems}: {viewableItems: ViewToken<Dhikr>[]}) => {
       if (viewableItems.length > 0 && viewableItems[0].index !== null) {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
+        if (!sawFirstViewable.current) {
+          sawFirstViewable.current = true;
+          return;
+        }
 
         // Move the session when the user manually swipes (not from Play All
         // auto-scroll, which may pass several rows before it lands)
