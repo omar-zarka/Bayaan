@@ -84,11 +84,11 @@ type AdhkarSessionState = {session: AdhkarSession | null};
 
 1. **Start from a card.** Pressing play on a card whose dhikr is not the current item starts a `single` session on that dhikr. One exception: if the card belongs to the active session's list and that session is in `all` mode, the session jumps to the card and stays in `all` mode.
 2. **Toggle the current card.** Pressing play or pause on the card that is the current item toggles `playing` and `paused`.
-3. **Play All.** The list's Play All button starts an `all` session at the first row with audio, replacing any session. Pressing it while that list's session is active ends the session, as today.
+3. **Play All.** The list's Play All button starts an `all` session at the first row with audio, replacing any session (a `single` session of the same list or any session of another list). While that list's `all` session exists, the button reads "Pause" (playing or loading) or "Resume" (paused) and pressing it toggles the session between `playing` and `paused`. It never ends the session.
 4. **Advance.** In `all` mode, when a clip ends the session moves to the next row with audio. After the last one the session ends. In `single` mode the clip either repeats (if `loop` is on) or ends the session.
 5. **Swiping in the reader.** In the reader of the active `all` session's list, a hand swipe moves playback to the new page. This keeps the "follows a hand swipe" behavior shipped in #365. In `single` mode, swiping does not touch playback: the clip keeps playing and the other pages show an idle play button.
 6. **Leaving the reader** does not stop playback.
-7. **Stop.** The close button on the Home tile or the Adhkar screen row ends the session.
+7. **Stop.** "Stop adhkar" in the Home card's long-press sheet, or the close button on the Adhkar screen player, ends the session. Pause never ends it.
 8. **One thing plays at a time.** Starting adhkar pauses the main Quran player and the mushaf player. Starting either of them pauses the adhkar session. The session stays saved, so the Home tile can resume it.
 9. **Rows without audio** are skipped by advance and by Play All. A card without audio has no play button, as today.
 
@@ -115,7 +115,7 @@ The reducer test suite has one or more cases per rule.
 
   The stale check runs at launch, when the app returns to the foreground, and before any surface renders the tile.
 - **Time windows.** The app has no prayer times, so the windows use the clock, like the CarPlay picks in `services/car/snapshot/situational.ts`. Morning runs 04:00 to 14:59 and Evening runs 15:00 to 03:59. The windows live in one module, `services/adhkar/timeWindows.ts`, so the suggestions row (section 11) and a later move to real prayer times change one file.
-- **Ending a session.** Finishing the list, a single clip ending, or the close button ends the session and clears the saved copy.
+- **Ending a session.** Only these end the session and clear the saved copy: finishing the list (or a single clip ending), "Stop adhkar" in the Home card's long-press sheet, the close button on the Adhkar screen player, and the stale rules above. Pausing from any surface, including the Play All button, keeps the session.
 
 ## 4. Surfaces
 
@@ -133,17 +133,13 @@ All new copy uses i18n keys in every locale (`npm run i18n:check` must pass). Th
 - Applies to category lists and the Saved list.
 
 ### 4.3 Home tile (`components/RecitersView.tsx`, Continue Listening row)
-- While a session exists (playing, paused or restored), the first tile in Continue Listening is an adhkar tile showing:
-  - the list title;
-  - `adhkar.position`;
-  - the bars or a paused icon;
-  - a play/pause button and a small close button.
-- Tapping the tile body calls `openPlayingDhikr()`.
+- While a session exists (playing, paused or restored), the first card in Continue Listening is an adhkar card with the same design as the Quran recent card (`RecentReciterCard`): the list illustration on top (a neutral bookmark tile for Saved), the list title, "Dhikr 4 of 23", a read-only progress bar through the list, "19 left", and a play/pause button with `NowPlayingIndicator` while playing.
+- Tapping the image or title calls `openPlayingDhikr()`. The playback zone toggles play and pause. A long press opens a sheet with "Stop adhkar", which ends the session.
 - The row renders when it has recent tracks or a session. With no recent tracks it shows only the adhkar tile.
 - `branding.homeRowConfig` ordering is respected. If a fork hides Continue Listening, the tile does not appear. That is accepted.
 
 ### 4.4 Adhkar screen row (`components/AdhkarView.tsx`)
-- A compact row above `SavedAdhkarHero`, with the same content and actions as the Home tile.
+- A player above `SavedAdhkarHero` with the look of the app's mini player pill (the glass pill on iOS 26, the frosted `FloatingPlayer` pill elsewhere): the list illustration as artwork, the list title, "Dhikr 4 of 23", a play/pause button and a close button that ends the session. Tapping the body calls `openPlayingDhikr()`.
 - It sits inside the scroll content, so it needs no inset handling beyond the existing `headerHeight` padding.
 
 ### 4.5 Jump pill in a list (`adhkar/[superId]/index.tsx` and `adhkar/saved/index.tsx`)

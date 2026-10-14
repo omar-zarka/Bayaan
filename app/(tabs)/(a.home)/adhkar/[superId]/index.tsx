@@ -46,7 +46,10 @@ import {
 } from '@/utils/adhkarUtils';
 // @ai-end
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
-import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
+import {
+  playAllState,
+  toSessionItems,
+} from '@/services/adhkar/playback/sessionReducer';
 import {
   setAdhkarFocus,
   clearAdhkarFocus,
@@ -97,8 +100,8 @@ const SuperCategoryListScreen: React.FC = () => {
   const {getSuperCategoryById} = useAdhkar();
 
   // Check if currently playing this category
-  const isThisCategoryPlaying = useAdhkarSessionStore(
-    s => s.session?.listId === superId && s.session.mode === 'all',
+  const playAllStatus = useAdhkarSessionStore(s =>
+    playAllState(s.session, superId),
   );
 
   const currentDhikrId = useAdhkarSessionStore(s =>
@@ -344,9 +347,9 @@ const SuperCategoryListScreen: React.FC = () => {
       listTitle: listTitle || t('adhkar.dhikr'),
       items: toSessionItems(allAdhkarForPlayAll),
     };
-    const wasPlaying = isThisCategoryPlaying;
+    const wasActive = playAllStatus !== 'idle';
     dispatch({type: 'pressPlayAll', source});
-    if (wasPlaying) return;
+    if (wasActive) return;
     const session = useAdhkarSessionStore.getState().session;
     if (!session || session.listId !== superId) return;
     const firstId = session.items[session.index]?.dhikrId;
@@ -374,7 +377,7 @@ const SuperCategoryListScreen: React.FC = () => {
     allAdhkarForPlayAll,
     listTitle,
     t,
-    isThisCategoryPlaying,
+    playAllStatus,
     dispatch,
     categoryGroups,
     router,
@@ -455,7 +458,7 @@ const SuperCategoryListScreen: React.FC = () => {
           </Pressable>
           <PlayAllButton
             onPress={handlePlayAll}
-            isPlaying={isThisCategoryPlaying}
+            state={playAllStatus}
             disabled={loading || allAdhkarForPlayAll.length === 0}
           />
         </View>
@@ -468,7 +471,7 @@ const SuperCategoryListScreen: React.FC = () => {
     isSingleCategory,
     handleShare,
     handlePlayAll,
-    isThisCategoryPlaying,
+    playAllStatus,
     loading,
     allAdhkarForPlayAll.length,
     theme,

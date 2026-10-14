@@ -34,7 +34,10 @@ import {Dhikr, SavedDhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {useAdhkar} from '@/hooks/useAdhkar';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
-import {toSessionItems} from '@/services/adhkar/playback/sessionReducer';
+import {
+  playAllState,
+  toSessionItems,
+} from '@/services/adhkar/playback/sessionReducer';
 import {
   setAdhkarFocus,
   clearAdhkarFocus,
@@ -59,8 +62,8 @@ const SavedAdhkarScreen: React.FC = () => {
   const {savedIds} = useAdhkar();
 
   // Check if currently playing saved adhkar
-  const isSavedPlaying = useAdhkarSessionStore(
-    s => s.session?.listId === 'saved' && s.session.mode === 'all',
+  const playAllStatus = useAdhkarSessionStore(s =>
+    playAllState(s.session, 'saved'),
   );
 
   const currentDhikrId = useAdhkarSessionStore(s =>
@@ -199,9 +202,9 @@ const SavedAdhkarScreen: React.FC = () => {
       listTitle: t('adhkar.saved'),
       items: toSessionItems(adhkarList),
     };
-    const wasPlaying = isSavedPlaying;
+    const wasActive = playAllStatus !== 'idle';
     dispatch({type: 'pressPlayAll', source});
-    if (wasPlaying) return;
+    if (wasActive) return;
     const session = useAdhkarSessionStore.getState().session;
     if (!session || session.listId !== 'saved') return;
     const firstId = session.items[session.index]?.dhikrId;
@@ -215,7 +218,7 @@ const SavedAdhkarScreen: React.FC = () => {
         playAll: 'true',
       },
     });
-  }, [adhkarList, t, isSavedPlaying, dispatch, router]);
+  }, [adhkarList, t, playAllStatus, dispatch, router]);
 
   useFocusEffect(
     useCallback(() => {
@@ -262,7 +265,7 @@ const SavedAdhkarScreen: React.FC = () => {
         <View style={{paddingHorizontal: moderateScale(4)}}>
           <PlayAllButton
             onPress={handlePlayAll}
-            isPlaying={isSavedPlaying}
+            state={playAllStatus}
             disabled={isLoading || adhkarList.length === 0}
           />
         </View>
@@ -272,7 +275,7 @@ const SavedAdhkarScreen: React.FC = () => {
     navigation,
     adhkarList.length,
     handlePlayAll,
-    isSavedPlaying,
+    playAllStatus,
     isLoading,
     theme,
     t,

@@ -2,6 +2,7 @@
 import {
   reduceSession,
   nextPlayableIndex,
+  playAllState,
 } from '@/services/adhkar/playback/sessionReducer';
 import type {
   AdhkarSession,
@@ -150,10 +151,42 @@ describe('rule 3: Play All', () => {
     );
     expect(s).toMatchObject({index: 1, mode: 'all', status: 'loading'});
   });
-  it('ends the session when pressed on the active all list', () => {
-    expect(
-      reduceSession(session(), {type: 'pressPlayAll', source: morning}, NOW),
-    ).toBeNull();
+  it('pauses the active all list when pressed while playing', () => {
+    const s = reduceSession(
+      session(),
+      {type: 'pressPlayAll', source: morning},
+      NOW,
+    );
+    expect(s).toMatchObject({mode: 'all', index: 0, status: 'paused'});
+  });
+  it('pauses the active all list when pressed while loading', () => {
+    const s = reduceSession(
+      session({status: 'loading'}),
+      {type: 'pressPlayAll', source: morning},
+      NOW,
+    );
+    expect(s).toMatchObject({status: 'paused'});
+  });
+  it('resumes the paused all list at its current row', () => {
+    const s = reduceSession(
+      session({status: 'paused', index: 1, trackToken: 4}),
+      {type: 'pressPlayAll', source: morning},
+      NOW,
+    );
+    expect(s).toMatchObject({
+      mode: 'all',
+      index: 1,
+      status: 'loading',
+      trackToken: 4,
+    });
+  });
+  it('restarts from the first playable row for another list', () => {
+    const s = reduceSession(
+      session({index: 3}),
+      {type: 'pressPlayAll', source: evening},
+      NOW,
+    );
+    expect(s).toMatchObject({listId: 'evening-adhkar', mode: 'all', index: 0});
   });
   it('replaces a single session of the same list', () => {
     const s = reduceSession(
@@ -395,5 +428,26 @@ describe('play on a row without audio in all mode', () => {
         NOW,
       ),
     ).toBeNull();
+  });
+});
+
+describe('playAllState', () => {
+  it('is idle without a session or for another list', () => {
+    expect(playAllState(null, 'morning-adhkar')).toBe('idle');
+    expect(playAllState(session(), 'evening-adhkar')).toBe('idle');
+  });
+  it('is idle for a single-mode session of the same list', () => {
+    expect(playAllState(session({mode: 'single'}), 'morning-adhkar')).toBe(
+      'idle',
+    );
+  });
+  it('is playing while playing or loading, paused while paused', () => {
+    expect(playAllState(session(), 'morning-adhkar')).toBe('playing');
+    expect(playAllState(session({status: 'loading'}), 'morning-adhkar')).toBe(
+      'playing',
+    );
+    expect(playAllState(session({status: 'paused'}), 'morning-adhkar')).toBe(
+      'paused',
+    );
   });
 });

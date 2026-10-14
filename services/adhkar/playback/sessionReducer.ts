@@ -102,6 +102,19 @@ function toggled(session: AdhkarSession, now: number): AdhkarSession | null {
   return {...session, status: 'paused', lastActiveAt: now};
 }
 
+export type PlayAllState = 'idle' | 'playing' | 'paused';
+
+/** What a list's Play All button shows: only that list's all-mode session
+ * counts, since Play All on a single-mode session starts all mode. */
+export function playAllState(
+  session: AdhkarSession | null,
+  listId: string | undefined,
+): PlayAllState {
+  if (!session || session.mode !== 'all' || session.listId !== listId)
+    return 'idle';
+  return session.status === 'paused' ? 'paused' : 'playing';
+}
+
 export function reduceSession(
   state: AdhkarSession | null,
   event: SessionEvent,
@@ -140,7 +153,8 @@ export function reduceSession(
         state.mode === 'all' &&
         state.listId === event.source.listId
       ) {
-        return null;
+        // Pause and Resume in the list header: it never ends the session.
+        return toggled(state, now);
       }
       const first = nextPlayableIndex(event.source.items, 0);
       if (first < 0) return state;
