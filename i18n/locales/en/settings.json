@@ -283,12 +283,12 @@
     "thematicHelper": "Alternating highlights by thematic passage",
     "fontHeader": "Font",
     "tajweedColoring": "Tajweed Coloring",
-    "tajweedUnavailable": "Unavailable in Mushaf 1440 beta",
+    "tajweedPreview": "Preview colored tajweed",
     "tajweedDescription": "Highlight rules with colors",
     "rewayahHeader": "Rewayah",
     "rewayahDisabled": "Rewayah switching is disabled in Mushaf 1440 beta.",
     "qcfBetaTitle": "Mushaf 1440 Beta",
-    "qcfBetaMessage": "Mushaf 1440 is {{appName}}’s most modern mushaf pipeline, but it is still in beta. Some features are currently disabled, including tajweed coloring and rewayah switching.",
+    "qcfBetaMessage": "Mushaf 1440 is {{appName}}’s most modern mushaf pipeline, but it is still in beta. Tajweed coloring is available as a preview. Rewayah switching is still disabled.",
     "nowReading": "Now reading",
     "currentlyReading": "Currently reading",
     "rewayahExpandLabel": "Rewayah: {{name}}. Expand to change.",
@@ -393,6 +393,9 @@
       "retry": "Try again",
       "keepLabel": "Keep reading Hafs",
       "keep": "Keep Hafs"
-    }
+    },
+    "communityReflections": "Community Reflections",
+    "communityReflectionsHelper": "Show community reflections under each ayah in list view",
+    "indopakHafsOnly": "IndoPak shows Hafs only. Choosing another rewayah switches the font to {{font}}."
   }
 }

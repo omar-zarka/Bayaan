@@ -10,8 +10,10 @@ import Color from 'color';
 import {
   getLanguagePreference,
   setLanguagePreference,
+  AVAILABLE_LANGUAGES,
   type LanguagePreference,
 } from '@/i18n/language';
+import {LANGUAGES} from '@/i18n/languages';
 
 export default function LanguageScreen() {
   const {theme} = useTheme();
@@ -27,8 +29,11 @@ export default function LanguageScreen() {
       label: t('language.system'),
       hint: t('language.systemDescription'),
     },
-    {value: 'en', label: t('language.english')},
-    {value: 'ar', label: t('language.arabic')},
+    // Each language is listed by its own name, in its own script.
+    ...AVAILABLE_LANGUAGES.map(code => ({
+      value: code,
+      label: LANGUAGES[code].endonym,
+    })),
   ];
 
   const handleSelect = (value: LanguagePreference) => {
