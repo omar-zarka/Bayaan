@@ -54,6 +54,9 @@
     "openPlaying": "Open the playing dhikr",
     "jumpToPlaying": "Now playing",
     "position": "{{current}} of {{total}}",
+    "dhikrPosition": "Dhikr {{current}} of {{total}}",
+    "remaining_one": "{{count}} left",
+    "remaining_other": "{{count}} left",
     "dhikr": "Dhikr",
     "shareCategory": "Check out {{title}} on {{appName}}",
     "shareDhikr": "Check out this dhikr on {{appName}}"
