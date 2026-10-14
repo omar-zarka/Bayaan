@@ -11,33 +11,40 @@ private let adhkarPlayingURL = AppLinks.url("adhkar-playing")!
 struct AdhkarSessionLiveActivity: Widget {
   var body: some WidgetConfiguration {
     ActivityConfiguration(for: AdhkarSessionAttributes.self) { context in
-      AdhkarLockScreenView(state: context.state)
+      AdhkarLockScreenView(state: context.state, isStale: context.isStale)
         .activityBackgroundTint(WidgetPalette.background)
         .activitySystemActionForegroundColor(.white)
         .widgetURL(adhkarPlayingURL)
     } dynamicIsland: { context in
       let state = context.state
+      // Past its stale date the app stopped refreshing it (killed or
+      // suspended): never claim it is still playing.
+      let isPlaying = state.isPlaying && !context.isStale
+      let dim = adhkarStaleOpacity(context.isStale)
       return DynamicIsland {
         DynamicIslandExpandedRegion(.leading) {
-          AdhkarBars(isPlaying: state.isPlaying, height: 22).padding(.leading, 8)
+          AdhkarBars(isPlaying: isPlaying, height: 22).padding(.leading, 8)
         }
         DynamicIslandExpandedRegion(.center) {
           AdhkarTitles(state: state)
         }
         DynamicIslandExpandedRegion(.trailing) {
-          AdhkarPlayStateGlyph(isPlaying: state.isPlaying).padding(.trailing, 8)
+          AdhkarPlayStateGlyph(isPlaying: isPlaying).padding(.trailing, 8)
         }
         DynamicIslandExpandedRegion(.bottom) {
-          AdhkarPreview(text: state.preview, lines: 2).padding(.horizontal, 8)
+          AdhkarPreview(text: state.preview, lines: 2)
+            .opacity(dim)
+            .padding(.horizontal, 8)
         }
       } compactLeading: {
-        AdhkarBars(isPlaying: state.isPlaying, height: 14)
+        AdhkarBars(isPlaying: isPlaying, height: 14)
       } compactTrailing: {
         Text(state.shortPositionLabel)
           .font(.caption2.monospacedDigit())
           .foregroundStyle(.white)
+          .opacity(dim)
       } minimal: {
-        AdhkarBars(isPlaying: state.isPlaying, height: 12)
+        AdhkarBars(isPlaying: isPlaying, height: 12)
       }
       .widgetURL(adhkarPlayingURL)
       .keylineTint(.white)
@@ -45,17 +52,27 @@ struct AdhkarSessionLiveActivity: Widget {
   }
 }
 
+/// Opacity of the preview and progress once the activity is stale.
+func adhkarStaleOpacity(_ isStale: Bool) -> Double {
+  isStale ? 0.6 : 1
+}
+
 struct AdhkarLockScreenView: View {
   let state: AdhkarSessionActivityState
+  let isStale: Bool
 
   var body: some View {
+    // Past its stale date the app stopped refreshing it (killed or
+    // suspended): never claim it is still playing.
+    let isPlaying = state.isPlaying && !isStale
     VStack(spacing: 10) {
       HStack(spacing: 12) {
-        AdhkarBars(isPlaying: state.isPlaying, height: 22)
+        AdhkarBars(isPlaying: isPlaying, height: 22)
         AdhkarTitles(state: state)
-        AdhkarPlayStateGlyph(isPlaying: state.isPlaying)
+        AdhkarPlayStateGlyph(isPlaying: isPlaying)
       }
       AdhkarPreview(text: state.preview, lines: 2)
+        .opacity(adhkarStaleOpacity(isStale))
     }
     .padding(14)
     .overlay(alignment: .topTrailing) {
