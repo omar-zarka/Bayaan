@@ -209,3 +209,73 @@ describe('dropStaleSession', () => {
     expect(useAdhkarSessionStore.getState().session).toBe(paused);
   });
 });
+
+describe('waitForSessionRestore', () => {
+  type Persistence =
+    typeof import('@/services/adhkar/playback/sessionPersistence');
+
+  // The readiness promise is module state: each test gets a fresh module.
+  function fresh(): Persistence {
+    let mod: Persistence | null = null;
+    jest.isolateModules(() => {
+      mod = require('@/services/adhkar/playback/sessionPersistence');
+    });
+    if (!mod) throw new Error('module failed to load');
+    return mod;
+  }
+
+  afterEach(() => jest.useRealTimers());
+
+  it('resolves once the restore settles', async () => {
+    const p = fresh();
+    let settled = false;
+    const waiting = p.waitForSessionRestore(60_000).then(() => {
+      settled = true;
+    });
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    await p.restoreSavedSession(async () => null);
+    await waiting;
+    expect(settled).toBe(true);
+  });
+
+  it('resolves at once after a restore that already settled', async () => {
+    const p = fresh();
+    await p.restoreSavedSession(async () => null);
+    // Fake timers after the restore (AsyncStorage stays real), and none is
+    // advanced: only the settled restore can resolve it.
+    jest.useFakeTimers();
+    await expect(p.waitForSessionRestore(60_000)).resolves.toBeUndefined();
+  });
+
+  it('settles even when the restore throws', async () => {
+    const p = fresh();
+    await p.saveSession({
+      ...live,
+      listId: 'saved',
+      status: 'paused',
+      lastActiveAt: Date.now(),
+    });
+    await expect(
+      p.restoreSavedSession(async () => {
+        throw new Error('db');
+      }),
+    ).rejects.toThrow('db');
+    await expect(p.waitForSessionRestore(60_000)).resolves.toBeUndefined();
+  });
+
+  it('resolves after the timeout when no restore runs', async () => {
+    jest.useFakeTimers();
+    const p = fresh();
+    let settled = false;
+    const waiting = p.waitForSessionRestore(3000).then(() => {
+      settled = true;
+    });
+    jest.advanceTimersByTime(2999);
+    await Promise.resolve();
+    expect(settled).toBe(false);
+    jest.advanceTimersByTime(1);
+    await waiting;
+    expect(settled).toBe(true);
+  });
+});

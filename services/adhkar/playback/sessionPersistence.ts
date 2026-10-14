@@ -82,9 +82,28 @@ async function loadListItems(listId: string): Promise<SessionItem[] | null> {
   return toSessionItems(data.categoryGroups.flatMap(g => g.adhkar));
 }
 
-/** Rebuilds the saved session as paused, or drops it (stale, list gone, dhikr gone). */
-export async function restoreSavedSession(
-  loadItems: (listId: string) => Promise<SessionItem[] | null> = loadListItems,
+// Settles once per process, when the launch restore finishes (or fails).
+let markRestoreSettled: () => void = () => undefined;
+const restoreSettled = new Promise<void>(resolve => {
+  markRestoreSettled = resolve;
+});
+
+/**
+ * Resolves when the launch restore has settled, or after timeoutMs. The
+ * bayaan://adhkar-playing route waits on it during a cold launch.
+ */
+export function waitForSessionRestore(timeoutMs: number): Promise<void> {
+  return new Promise(resolve => {
+    const timer = setTimeout(resolve, timeoutMs);
+    restoreSettled.then(() => {
+      clearTimeout(timer);
+      resolve();
+    });
+  });
+}
+
+async function restoreNow(
+  loadItems: (listId: string) => Promise<SessionItem[] | null>,
 ): Promise<void> {
   const saved = await loadSavedSession();
   if (!saved) return;
@@ -116,6 +135,17 @@ export async function restoreSavedSession(
       lastActiveAt: saved.lastActiveAt,
     },
   });
+}
+
+/** Rebuilds the saved session as paused, or drops it (stale, list gone, dhikr gone). */
+export async function restoreSavedSession(
+  loadItems: (listId: string) => Promise<SessionItem[] | null> = loadListItems,
+): Promise<void> {
+  try {
+    await restoreNow(loadItems);
+  } finally {
+    markRestoreSettled();
+  }
 }
 
 /** Drops the live session if it is paused and stale (foreground return, tile render). */
