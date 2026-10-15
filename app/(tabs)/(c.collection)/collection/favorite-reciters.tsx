@@ -170,7 +170,9 @@ export default function FavoriteRecitersScreen() {
           position: 'absolute',
           top: insets.top + moderateScale(10),
           right: moderateScale(15),
-          zIndex: 5,
+          // @ai: above CollectionStickyHeader (zIndex 10), whose transparent
+          // overlay otherwise swallows taps on Android.
+          zIndex: 11,
           padding: moderateScale(8),
         },
         emptyHeader: {
