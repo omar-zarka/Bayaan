@@ -5,26 +5,32 @@ import {initReactI18next} from 'react-i18next';
 import {currentLanguage} from './language';
 import {localizeDigits} from './format';
 import {resources, defaultNS, namespaces} from './resources';
+import {SOURCE_LANGUAGE, getLanguageConfig} from './languages';
 
-const arabicDigits: PostProcessorModule = {
+const localizedDigits: PostProcessorModule = {
   type: 'postProcessor',
-  name: 'arabicDigits',
-  process: (value: string) => localizeDigits(value, 'ar'),
+  name: 'localizedDigits',
+  process: (value: string) => localizeDigits(value),
 };
 
 i18n
   .use(initReactI18next)
-  .use(arabicDigits)
+  .use(localizedDigits)
   .init({
     resources,
     lng: currentLanguage,
-    fallbackLng: 'en',
+    fallbackLng: SOURCE_LANGUAGE,
     ns: namespaces,
     defaultNS,
     initAsync: false,
     returnNull: false,
+    // An empty value (a key not translated yet) falls back to English.
+    returnEmptyString: false,
     interpolation: {escapeValue: false},
-    postProcess: currentLanguage === 'ar' ? ['arabicDigits'] : false,
+    postProcess:
+      getLanguageConfig(currentLanguage).digits === 'latn'
+        ? false
+        : ['localizedDigits'],
     react: {useSuspense: false},
   });
 

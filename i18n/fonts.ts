@@ -1,5 +1,6 @@
 // @ai-generated
 import {currentLanguage} from './language';
+import {getLanguageConfig, type UiFont} from './languages';
 
 const manrope = {
   'Manrope-Regular': require('@/assets/fonts/Manrope-Regular.ttf'),
@@ -24,4 +25,9 @@ const plexSansArabic: Record<keyof typeof manrope, number> = {
   'Manrope-ExtraBold': require('@/assets/fonts/IBMPlexSansArabic-Bold.ttf'),
 };
 
-export const uiFontFiles = currentLanguage === 'ar' ? plexSansArabic : manrope;
+const fontFiles: Record<UiFont, Record<keyof typeof manrope, number>> = {
+  manrope,
+  plexSansArabic,
+};
+
+export const uiFontFiles = fontFiles[getLanguageConfig(currentLanguage).uiFont];

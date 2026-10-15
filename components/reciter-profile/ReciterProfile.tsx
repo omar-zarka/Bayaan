@@ -16,6 +16,7 @@ import {
   NativeSyntheticEvent,
   useWindowDimensions,
   InteractionManager,
+  PixelRatio, // @ai
   Platform,
   StyleSheet,
   Alert,
@@ -78,10 +79,12 @@ import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 import {currentLanguage} from '@/i18n/language';
+import {SOURCE_LANGUAGE} from '@/i18n/languages';
 import {forceLTR, isRTL} from '@/utils/rtl';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 import {rankSurahs} from '@/utils/search/catalog'; // @ai
 // @ai-end
+import {hasPagerReachedInitialPage} from './utils/pagerLayout'; // @ai
 
 interface ReciterProfileProps {
   id: string;
@@ -860,9 +863,9 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     if (reciter?.rewayat) {
       reciter.rewayat.forEach(r => {
         const style =
-          currentLanguage === 'ar'
-            ? getRecitationStyleLabel(r.style)
-            : r.style.charAt(0).toUpperCase() + r.style.slice(1).toLowerCase();
+          currentLanguage === SOURCE_LANGUAGE
+            ? r.style.charAt(0).toUpperCase() + r.style.slice(1).toLowerCase()
+            : getRecitationStyleLabel(r.style);
         result.push({
           id: r.id,
           label: `${getDisplayLabelFromName(r.name)} · ${style}`,
@@ -965,7 +968,14 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     (contentWidth: number) => {
       if (pagerScrolledRef.current) return;
       const targetX = initialTabIndex * screenWidth;
-      if (contentWidth >= targetX + screenWidth) {
+      // @ai-start
+      const initialPageReady = hasPagerReachedInitialPage(
+        contentWidth,
+        screenWidth,
+        initialTabIndex,
+        PixelRatio.get(),
+      );
+      if (initialPageReady) {
         pagerScrolledRef.current = true;
         // Set scrollX so the tab bar indicator lands on the correct tab immediately
         scrollX.setValue(targetX);
@@ -979,6 +989,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
           setNeighborsReady(true);
         });
       }
+      // @ai-end
     },
     [screenWidth, pagerOpacity, initialTabIndex, scrollX],
   );

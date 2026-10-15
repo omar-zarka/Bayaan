@@ -186,7 +186,8 @@
     "removeBookmark": "Remove Bookmark",
     "communityReflections": "Community Reflections",
     "unnumbered": "Not a numbered verse in {{rewayah}}.",
-    "loadFailed": "Couldn't load the {{rewayah}} text."
+    "loadFailed": "Couldn't load the {{rewayah}} text.",
+    "loadingText": "Loading the {{rewayah}} text"
   },
   "mushafPlayer": {
     "title": "Playback Settings",
@@ -284,5 +285,31 @@
     "select": "Select Tafseer",
     "versesRange": "VERSES {{range}}",
     "notAvailable": "Tafseer not available for this verse"
+  },
+  "communityReflections": {
+    "loadFailed": "Couldn't load reflections. Try again later.",
+    "empty": "No reflections yet",
+    "count_one": "{{count}} reflection",
+    "count_other": "{{count}} reflections",
+    "openLabel": "Open {{author}}'s reflection"
+  },
+  "selectionFailure": {
+    "unnumbered": "Not a numbered verse in {{rewayah}}",
+    "loadFailed": "Couldn't load the {{rewayah}} text",
+    "nothingDone": {
+      "copied": "Nothing was copied.",
+      "shared": "Nothing was shared.",
+      "saved": "Nothing was saved.",
+      "played": "Nothing was played."
+    },
+    "nothingDoneRetry": {
+      "copied": "Nothing was copied. Please try again.",
+      "shared": "Nothing was shared. Please try again.",
+      "saved": "Nothing was saved. Please try again.",
+      "played": "Nothing was played. Please try again."
+    },
+    "nothingToCopy": "Nothing to copy",
+    "nothingToShare": "Nothing to share",
+    "noOwnText": "In {{rewayah}}, this selection is read as part of a neighboring verse."
   }
 }

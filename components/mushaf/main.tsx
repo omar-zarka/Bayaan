@@ -70,7 +70,10 @@ import PageEdgeDecoration, {
   EDGE_HORIZONTAL_INSET,
 } from './PageEdgeDecoration';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
-import {qcfFontLoader} from '@/services/mushaf/QCFFontLoader';
+import {
+  qcfFontLoader,
+  getQCFFontVariant,
+} from '@/services/mushaf/QCFFontLoader'; // @ai
 import {mushafPreloadService} from '@/services/mushaf/MushafPreloadService';
 // @ai-start
 import {appLayoutDirection, isRTL} from '@/utils/rtl';
@@ -266,6 +269,7 @@ const DKPageView: React.FC<{
       )}
       {isQCF ? (
         <QCFPage
+          metrics={metrics} // @ai
           pageNumber={pageNumber}
           textColor={textColor}
           dividerColor={labelColor}
@@ -953,7 +957,14 @@ export default function MushafViewer({
       // Preload QCF page font immediately, overlapping with the scroll/animation
       if (mushafRenderer === 'qcf_v2') {
         const fm = mushafPreloadService.fontMgr;
-        if (fm) qcfFontLoader.ensure(targetPage, fm).catch(() => {});
+        // @ai-start
+        const variant = getQCFFontVariant(
+          useMushafSettingsStore.getState().showTajweed,
+          Color(readingColors.text).isLight(),
+        );
+        if (fm)
+          qcfFontLoader.ensure(targetPage, fm, variant).catch(() => undefined);
+        // @ai-end
       }
       // Explicit navigation = start a new chain (preserves old position)
       const surahId = digitalKhattDataService.initialized
@@ -971,7 +982,7 @@ export default function MushafViewer({
         });
       }
     },
-    [isVertical, mushafRenderer, pageToFlatListIndex],
+    [isVertical, mushafRenderer, pageToFlatListIndex, readingColors.text], // @ai
   );
 
   const navigateToPageAnimated = useCallback(
