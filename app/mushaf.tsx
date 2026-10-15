@@ -61,6 +61,7 @@ export default function MushafScreen() {
   const {surah, page, ayah, anchor} =
     useLocalSearchParams<MushafScreenParams>(); // @ai
   const {theme} = useTheme();
+  const {t} = useTranslation(['reader', 'common']); // @ai
 
   // Safety net — DK data is initialized at AppInitializer priority 4-5,
   // so in practice this is always true by the time MushafScreen mounts.
@@ -214,10 +215,10 @@ export default function MushafScreen() {
           style={[styles.loading, {backgroundColor: theme.colors.background}]}
           accessibilityRole="alert">
           <Text style={[styles.errorTitle, {color: theme.colors.text}]}>
-            Couldn&apos;t load the mushaf
+            {t('reader:mushaf.loadFailedTitle')}
           </Text>
           <Text style={[styles.errorBody, {color: theme.colors.text}]}>
-            Check that your device has some free storage, then try again.
+            {t('reader:mushaf.loadFailedBody')}
           </Text>
           <Pressable
             onPress={retryLoad}
@@ -229,7 +230,7 @@ export default function MushafScreen() {
               pressed && styles.retryButtonPressed,
             ]}>
             <Text style={[styles.retryText, {color: theme.colors.text}]}>
-              Try again
+              {t('common:actions.tryAgain')}
             </Text>
           </Pressable>
         </View>

@@ -2,6 +2,7 @@
 jest.mock('../language', () => ({currentLanguage: 'en'}));
 
 import {
+  decimalSeparator,
   localizeDigits,
   formatNumber,
   getSurahDisplayName,
@@ -75,5 +76,12 @@ describe('surah and reciter names', () => {
     expect(
       getReciterDisplayName({name: 'Mishary', name_arabic: 'مشاري'}, 'ar'),
     ).toBe('مشاري');
+  });
+});
+
+describe('decimalSeparator', () => {
+  it("matches the language's digits", () => {
+    expect(decimalSeparator('en')).toBe('.');
+    expect(decimalSeparator('ar')).toBe('٫');
   });
 });

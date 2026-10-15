@@ -15,6 +15,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 async function loadStores(showEnglishByDefault: boolean) {
   jest.doMock('@/i18n/language', () => ({
     defaultShowEnglishReadingAids: showEnglishByDefault,
+    defaultShowTransliteration: showEnglishByDefault,
   }));
   let mushaf!: typeof import('../mushafSettingsStore').useMushafSettingsStore;
   let adhkar!: typeof import('../adhkarSettingsStore').useAdhkarSettingsStore;

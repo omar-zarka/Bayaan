@@ -20,7 +20,7 @@ import {GradientText} from '@/components/GradientText';
 import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 // @ai-start
 import {useTranslation} from 'react-i18next';
-import {currentLanguage} from '@/i18n/language';
+import {currentLanguageConfig} from '@/i18n/language'; // @ai
 import {
   getReciterDisplayName,
   getSurahDisplayName,
@@ -133,7 +133,9 @@ export const TrackItem: React.FC<TrackItemProps> = React.memo(
 
     // The Arabic surah name is already shown as text in Arabic mode.
     const surahGlyph =
-      currentLanguage === 'ar' ? undefined : surahGlyphMap[surah.id];
+      currentLanguageConfig.bilingualContent === 'ar' // @ai
+        ? undefined
+        : surahGlyphMap[surah.id];
     const surahTitle = `${localizeDigits(surah.id)}. ${getSurahDisplayName(
       surah,
     )}`;

@@ -1140,7 +1140,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
         branding.ayahCommunityReflectionsComponent != null && (
           <View style={styles.card}>
             <View style={styles.optionRow}>
-              <Text style={styles.optionLabel}>Community Reflections</Text>
+              <Text style={styles.optionLabel}>
+                {t('mushafSettings.communityReflections')}
+              </Text>
               <Switch
                 trackColor={trackColor}
                 thumbColor="#FFFFFF"
@@ -1151,7 +1153,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
               />
             </View>
             <Text style={styles.helperText}>
-              Show community reflections under each ayah in list view
+              {t('mushafSettings.communityReflectionsHelper')}
             </Text>
           </View>
         )}
@@ -1167,7 +1169,7 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             </Text>
             <Text style={styles.tajweedSubLabel}>
               {isQCF1440
-                ? t('mushafSettings.tajweedUnavailable')
+                ? t('mushafSettings.tajweedPreview') // @ai
                 : rewayah !== 'hafs'
                   ? hafsOnlyTajweedDescription // @ai
                   : t('mushafSettings.tajweedDescription')}
@@ -1177,7 +1179,6 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
             value={showTajweed}
             onValueChange={toggleTajweed}
             theme={theme}
-            disabled={isQCF1440}
           />
         </View>
         <View style={styles.divider} />
@@ -1260,8 +1261,9 @@ export const MushafSettingsContent: React.FC<MushafSettingsContentProps> = ({
       {/* @ai-start */}
       {mushafRenderer === 'dk_indopak' && (
         <Text style={styles.helperText}>
-          IndoPak shows Hafs only. Choosing another rewayah switches the font to{' '}
-          {REWAYAH_FALLBACK_RENDERER_LABEL}.
+          {t('mushafSettings.indopakHafsOnly', {
+            font: REWAYAH_FALLBACK_RENDERER_LABEL,
+          })}
         </Text>
       )}
       {/* @ai-end */}
