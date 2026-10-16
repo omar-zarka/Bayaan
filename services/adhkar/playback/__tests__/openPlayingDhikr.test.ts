@@ -36,12 +36,13 @@ it('reveals when the session list reader or list is focused', () => {
     planOpenPlaying(session, {kind: 'list', listId: 'morning-adhkar'}),
   ).toEqual({kind: 'reveal'});
 });
-it('opens the category list with the reader at the playing index on top', () => {
+it('opens the Adhkar screen, the category list and the reader at the playing index', () => {
   expect(
     planOpenPlaying(session, {kind: 'reader', listId: 'evening-adhkar'}),
   ).toEqual({
     kind: 'push',
     routes: [
+      {name: 'index', params: {}},
       {name: '[superId]/index', params: {superId: 'morning-adhkar'}},
       {
         name: '[superId]/[dhikrId]',
@@ -55,10 +56,11 @@ it('opens the category list with the reader at the playing index on top', () => 
     ],
   });
 });
-it('opens the saved list and reader for a saved session', () => {
+it('opens the Adhkar screen, the saved list and its reader for a saved session', () => {
   expect(planOpenPlaying({...session, listId: 'saved'}, null)).toEqual({
     kind: 'push',
     routes: [
+      {name: 'index', params: {}},
       {name: 'saved/index', params: {}},
       {name: 'saved/[dhikrId]', params: {dhikrId: 'b', globalIndex: '1'}},
     ],
@@ -88,6 +90,7 @@ describe('openPlayingDhikr', () => {
     expect(navigation.dispatch).toHaveBeenCalledTimes(1);
     expect(navigation.dispatch).toHaveBeenCalledWith(
       adhkarStackAction([
+        {name: 'index', params: {}},
         {name: '[superId]/index', params: {superId: 'morning-adhkar'}},
         {
           name: '[superId]/[dhikrId]',

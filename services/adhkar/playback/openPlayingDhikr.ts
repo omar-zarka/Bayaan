@@ -23,6 +23,7 @@ export function getAdhkarFocus(): AdhkarFocus {
 
 // Routes of the adhkar stack (app/(tabs)/(a.home)/adhkar/_layout.tsx).
 export type AdhkarStackRoute =
+  | {name: 'index'; params: Record<string, never>}
   | {name: '[superId]/index'; params: {superId: string}}
   | {
       name: '[superId]/[dhikrId]';
@@ -36,13 +37,18 @@ export type AdhkarStackRoute =
   | {name: 'saved/index'; params: Record<string, never>}
   | {name: 'saved/[dhikrId]'; params: {dhikrId: string; globalIndex: string}};
 
-// `routes` is the session's list with its reader on top. The list opens
-// under the reader so the reader always has a back button (a screen opened
-// first in the adhkar stack has none).
+// `routes` is the path a person would take by hand: the Adhkar screen, the
+// session's list, then its reader. Back retraces it, and the reader always
+// has a back button (a screen opened first in the adhkar stack has none).
 export type OpenPlan =
   | {kind: 'none'}
   | {kind: 'reveal'}
-  | {kind: 'push'; routes: [AdhkarStackRoute, AdhkarStackRoute]};
+  | {
+      kind: 'push';
+      routes: [AdhkarStackRoute, AdhkarStackRoute, AdhkarStackRoute];
+    };
+
+const ADHKAR_SCREEN: AdhkarStackRoute = {name: 'index', params: {}};
 
 export function planOpenPlaying(
   session: AdhkarSession | null,
@@ -57,6 +63,7 @@ export function planOpenPlaying(
     return {
       kind: 'push',
       routes: [
+        ADHKAR_SCREEN,
         {name: 'saved/index', params: {}},
         {name: 'saved/[dhikrId]', params: {dhikrId: item.dhikrId, globalIndex}},
       ],
@@ -65,6 +72,7 @@ export function planOpenPlaying(
   return {
     kind: 'push',
     routes: [
+      ADHKAR_SCREEN,
       {name: '[superId]/index', params: {superId: session.listId}},
       {
         name: '[superId]/[dhikrId]',
