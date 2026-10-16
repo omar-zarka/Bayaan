@@ -76,7 +76,8 @@ public class BayaanWidgetsModule: Module {
         to: dir.appendingPathComponent("snapshot.json"), options: .atomic)
     }
 
-    // ListeningAccessory and the play/pause control read the same snapshot slice as ContinueListening.
+    // ListeningAccessory and the play/pause control read the same snapshot slice as ContinueListening;
+    // VerseOfTheDayAccessory shares AyahOfTheDay's provider.
     Function("reloadWidgets") { (kinds: [String]) in
       for kind in kinds {
         WidgetCenter.shared.reloadTimelines(ofKind: kind)
@@ -86,11 +87,15 @@ public class BayaanWidgetsModule: Module {
             ControlCenter.shared.reloadControls(ofKind: "PlaybackControl")
           }
         }
+        if kind == "AyahOfTheDay" {
+          WidgetCenter.shared.reloadTimelines(ofKind: "VerseOfTheDayAccessory")
+        }
       }
     }
 
     Function("takeQueuedCommands") { () -> String in takeString("widgets.commandQueue") }
     Function("takePendingTasbeeh") { () -> String in takeString("widgets.pendingTasbeeh") }
+    Function("takePendingWidgetEvents") { () -> String in takeString("widgets.pendingEvents") }
 
     Function("isLiveActivitySupported") { () -> Bool in NowPlayingActivityBridge.isSupported }
 

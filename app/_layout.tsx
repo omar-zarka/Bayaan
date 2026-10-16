@@ -551,4 +551,8 @@ function RootLayout() {
 }
 // @ai-end
 
+// A deep link (widget, Live Activity, App Link) that opens a screen in this
+// stack lands on top of its first screen, so back always has a target.
+export const unstable_settings = {initialRouteName: '(tabs)'};
+
 export default Sentry.wrap(RootLayout);
