@@ -193,5 +193,12 @@
   "workspaces": [
     "packages/*"
   ],
-  "private": true
+  "private": true,
+  "expo": {
+    "autolinking": {
+      "buildFromSource": [
+        "expo-audio"
+      ]
+    }
+  }
 }
