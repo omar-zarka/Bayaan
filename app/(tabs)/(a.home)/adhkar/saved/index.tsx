@@ -84,15 +84,16 @@ const SavedAdhkarScreen: React.FC = () => {
 
     if (adhkarList.length === 0) return;
 
-    startPlayAll(adhkarList, 0, 'saved', 'saved');
+    const startIndex = startPlayAll(adhkarList, 0, 'saved', 'saved');
+    if (startIndex < 0) return;
 
-    // Navigate to reader with first dhikr
-    const firstDhikr = adhkarList[0];
+    // Navigate to reader at the first dhikr that has audio
+    const firstDhikr = adhkarList[startIndex];
     router.push({
       pathname: '/(tabs)/(a.home)/adhkar/saved/[dhikrId]',
       params: {
         dhikrId: firstDhikr.id,
-        globalIndex: '0',
+        globalIndex: String(startIndex),
         playAll: 'true',
       },
     });
