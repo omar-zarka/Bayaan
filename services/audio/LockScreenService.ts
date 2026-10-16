@@ -5,6 +5,8 @@
  * Remote commands (play, pause, seek, skip) are handled natively by expo-audio — no JS routing needed.
  *
  * This service only manages: which player is active for lock screen, and metadata updates.
+ * The exception is adhkar's next / previous (patched expo-audio trackControls),
+ * which the adhkar engine handles in JS.
  */
 
 import {Platform} from 'react-native';
@@ -22,6 +24,10 @@ import {
   cachedAdhkarArtworkUri,
   loadAdhkarArtworkUri,
 } from '@/services/adhkar/playback/adhkarArtwork';
+import {
+  adhkarTrackControls,
+  type AdhkarTrackControls,
+} from '@/services/adhkar/playback/trackControls';
 import branding from '@/config/branding';
 import i18n from '@/i18n';
 
@@ -100,6 +106,14 @@ export function adhkarLockScreenMetadata(
   return metadata;
 }
 
+function sameTrackControls(
+  a: AdhkarTrackControls | null,
+  b: AdhkarTrackControls | null,
+): boolean {
+  if (!a || !b) return a === b;
+  return a.previous === b.previous && a.next === b.next;
+}
+
 function adhkarLabels(): AdhkarLockScreenLabels {
   return {
     position: (current, total) =>
@@ -121,6 +135,8 @@ class LockScreenService {
   private adhkarPlayer: AudioPlayer | null = null;
   private adhkarActive = false;
   private adhkarSession: AdhkarSession | null = null;
+  // The next / previous last given to the adhkar entry; null when off.
+  private adhkarTrackControls: AdhkarTrackControls | null = null;
 
   private constructor() {}
 
@@ -163,6 +179,7 @@ class LockScreenService {
       this.clearPlayer(this.adhkarPlayer);
       this.adhkarPlayer = null;
       this.adhkarSession = null;
+      this.adhkarTrackControls = null;
       this.adhkarActive = false;
     }
 
@@ -189,6 +206,12 @@ class LockScreenService {
   setCarMode(enabled: boolean): void {
     if (this.carMode === enabled) return;
     this.carMode = enabled;
+    if (this.adhkarPlayer && this.adhkarActive && this.adhkarSession) {
+      this.applyAdhkarTrackControls(
+        this.adhkarPlayer,
+        this.trackControlsFor(this.adhkarSession),
+      );
+    }
     if (this.isMushafActive || this.adhkarPlayer) return;
     const {queue} = usePlayerStore.getState();
     const track = queue.tracks[queue.currentIndex];
@@ -216,6 +239,16 @@ class LockScreenService {
     } catch {
       // Player may not be active for the lock screen yet
     }
+  }
+
+  /** True while the adhkar session holds the lock screen entry. */
+  isAdhkarHeld(): boolean {
+    return this.adhkarPlayer !== null;
+  }
+
+  /** True while the adhkar entry shows its own next / previous. */
+  hasAdhkarTrackControls(): boolean {
+    return this.adhkarTrackControls !== null;
   }
 
   // ========== PRIVATE ==========
@@ -314,6 +347,7 @@ class LockScreenService {
     this.clearPlayer(this.adhkarPlayer);
     this.adhkarPlayer = null;
     this.adhkarSession = null;
+    this.adhkarTrackControls = null;
     this.adhkarActive = false;
     this.lastTrackId = null;
   }
@@ -412,11 +446,13 @@ class LockScreenService {
       adhkarLabels(),
       artworkUrl,
     );
+    const trackControls = this.trackControlsFor(session);
 
     try {
       if (this.adhkarPlayer === player && this.adhkarActive) {
         this.adhkarSession = session;
         player.updateLockScreenMetadata(metadata);
+        this.applyAdhkarTrackControls(player, trackControls);
       } else {
         this.adhkarPlayer = player;
         this.adhkarSession = session;
@@ -429,8 +465,10 @@ class LockScreenService {
         player.setActiveForLockScreen(true, metadata, {
           showSeekForward: false,
           showSeekBackward: false,
+          ...(trackControls ? {trackControls} : {}),
         });
         this.adhkarActive = true;
+        this.adhkarTrackControls = trackControls;
       }
     } catch (error) {
       if (__DEV__)
@@ -441,6 +479,36 @@ class LockScreenService {
       return;
     }
     if (!artworkUrl) this.loadAdhkarArtwork(player, session.listId);
+  }
+
+  /**
+   * The adhkar entry's next / previous. Off on iOS while a car is connected:
+   * CarPlay registers its own next / previous on the shared remote command
+   * center and sends them through the car bridge, which routes them to the
+   * session (two targets would skip twice).
+   */
+  private trackControlsFor(session: AdhkarSession): AdhkarTrackControls | null {
+    if (this.carMode && Platform.OS === 'ios') return null;
+    return adhkarTrackControls(session);
+  }
+
+  /** Updates the entry's next / previous when they change. */
+  private applyAdhkarTrackControls(
+    player: AudioPlayer,
+    controls: AdhkarTrackControls | null,
+  ): void {
+    if (sameTrackControls(this.adhkarTrackControls, controls)) return;
+    this.adhkarTrackControls = controls;
+    try {
+      // Absent on binaries built without the expo-audio patch.
+      player.setLockScreenTrackControls?.(controls);
+    } catch (error) {
+      if (__DEV__)
+        console.warn(
+          '[LockScreenService] Adhkar track controls failed:',
+          error,
+        );
+    }
   }
 
   /**
@@ -478,6 +546,7 @@ class LockScreenService {
     this.clearPlayer(player);
     this.adhkarPlayer = null;
     this.adhkarSession = null;
+    this.adhkarTrackControls = null;
     this.adhkarActive = false;
     this.lastTrackId = null;
     if (!this.isMushafActive) this.syncCurrentState();

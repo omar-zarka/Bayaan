@@ -8,6 +8,7 @@ import type {AudioPlayer} from 'expo-audio';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {getAudioSource} from '@/utils/adhkarAudio';
 import {currentItem} from './sessionReducer';
+import {skipAdhkarTrack, type TrackDirection} from './trackControls';
 import type {AdhkarSession} from './types';
 
 const PLAY_CONFIRM_MS = 1500;
@@ -34,6 +35,11 @@ export interface EnginePlayer {
   addListener(
     event: 'playbackStatusUpdate',
     listener: (status: PlayerStatus) => void,
+  ): {remove(): void};
+  // The lock screen's next / previous (patched expo-audio, trackControls).
+  addListener(
+    event: 'lockScreenTrackCommand',
+    listener: (event: {command: TrackDirection}) => void,
   ): {remove(): void};
 }
 
@@ -135,6 +141,7 @@ export function startAdhkarPlaybackEngine(
   const deps: EngineDeps = {...defaultDeps(), ...overrides};
   const store = useAdhkarSessionStore;
   let subscription: {remove(): void} | null = null;
+  let trackSubscription: {remove(): void} | null = null;
   let confirmTimer: ReturnType<typeof setTimeout> | null = null;
   let retried = false;
   let lockScreenToken: number | null = null;
@@ -148,6 +155,10 @@ export function startAdhkarPlaybackEngine(
   function attach(): void {
     if (!activePlayer || subscription) return;
     subscription = activePlayer.addListener('playbackStatusUpdate', onStatus);
+    trackSubscription = activePlayer.addListener(
+      'lockScreenTrackCommand',
+      ({command}) => skipAdhkarTrack(command),
+    );
   }
 
   function clearConfirm(): void {
@@ -362,6 +373,8 @@ export function startAdhkarPlaybackEngine(
     appStateSubscription.remove();
     subscription?.remove();
     subscription = null;
+    trackSubscription?.remove();
+    trackSubscription = null;
     clearConfirm();
   };
 }

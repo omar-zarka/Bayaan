@@ -16,8 +16,14 @@ type Listener = (s: {
   duration: number;
 }) => void;
 
+type TrackListener = (e: {command: 'next' | 'previous'}) => void;
+type ListenerArgs =
+  | ['playbackStatusUpdate', Listener]
+  | ['lockScreenTrackCommand', TrackListener];
+
 function fakePlayer() {
   let listener: Listener | null = null;
+  let trackListener: TrackListener | null = null;
   return {
     loop: false,
     currentTime: 0,
@@ -26,7 +32,17 @@ function fakePlayer() {
     play: jest.fn(),
     pause: jest.fn(),
     seekTo: jest.fn(),
-    addListener: jest.fn((_e: string, l: Listener) => {
+    addListener: jest.fn((...args: ListenerArgs) => {
+      if (args[0] === 'lockScreenTrackCommand') {
+        const t = args[1];
+        trackListener = t;
+        return {
+          remove: jest.fn(() => {
+            if (trackListener === t) trackListener = null;
+          }),
+        };
+      }
+      const l = args[1];
       listener = l;
       return {
         remove: jest.fn(() => {
@@ -34,6 +50,9 @@ function fakePlayer() {
         }),
       };
     }),
+    pressTrack(command: 'next' | 'previous') {
+      trackListener?.({command});
+    },
     emit(s: Partial<Parameters<Listener>[0]>) {
       listener?.({
         playing: false,
@@ -374,5 +393,34 @@ describe('restored position', () => {
     restoreAt(5);
     player.emit({isLoaded: true, playing: true, currentTime: 5.1});
     expect(player.seekTo).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('lock screen next / previous', () => {
+  it('moves the session to the next and previous dhikr', () => {
+    dispatch({type: 'pressPlayAll', source: src});
+    player.emit({playing: true});
+    player.pressTrack('next');
+    expect(useAdhkarSessionStore.getState().session?.index).toBe(1);
+    player.pressTrack('previous');
+    expect(useAdhkarSessionStore.getState().session?.index).toBe(0);
+  });
+
+  it('does nothing past the ends or in single mode', () => {
+    dispatch({type: 'pressPlayAll', source: src});
+    player.pressTrack('previous');
+    expect(useAdhkarSessionStore.getState().session?.index).toBe(0);
+    dispatch({type: 'stop'});
+    dispatch({type: 'pressCard', source: src, index: 0});
+    player.pressTrack('next');
+    expect(useAdhkarSessionStore.getState().session?.index).toBe(0);
+  });
+
+  it('stops listening when the engine stops', () => {
+    dispatch({type: 'pressPlayAll', source: src});
+    stop();
+    player.pressTrack('next');
+    expect(useAdhkarSessionStore.getState().session?.index).toBe(0);
+    stop = () => {};
   });
 });
