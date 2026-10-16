@@ -115,6 +115,18 @@ public class BayaanWidgetsModule: Module {
       await NowPlayingActivityBridge.endAll()
     }
 
+    AsyncFunction("startAdhkarSessionActivity") { (json: String, staleAtMs: Double) async -> String in
+      await AdhkarSessionActivityBridge.start(json, staleAtMs: staleAtMs)
+    }
+
+    AsyncFunction("updateAdhkarSessionActivity") { (json: String, staleAtMs: Double) async -> Bool in
+      await AdhkarSessionActivityBridge.update(json, staleAtMs: staleAtMs)
+    }
+
+    AsyncFunction("endAdhkarSessionActivities") { (dismissAtMs: Double?) async in
+      await AdhkarSessionActivityBridge.endAll(dismissAtMs: dismissAtMs)
+    }
+
     Function("writeCatalog") { (json: String) in
       guard let dir = widgetsDir() else { return }
       try? json.data(using: .utf8)?.write(

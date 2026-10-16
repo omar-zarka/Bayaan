@@ -33,7 +33,7 @@ struct BayaanWidgetsBundle: WidgetBundle {
     VerseOfTheDayAccessoryWidget()
     #endif
     #if !BAYAAN_NO_WIDGET_LIVE_ACTIVITY
-    NowPlayingLiveActivity()
+    LiveActivities().body
     #endif
     if #available(iOS 18.0, *) {
       #if !BAYAAN_NO_WIDGET_PLAYBACK_CONTROL
