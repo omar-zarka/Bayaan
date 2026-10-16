@@ -46,46 +46,51 @@
   <text x="64" y="448" font-size="11.5" font-weight="700" fill="#2a2a2a">Back up &amp; restore</text>
   <text x="280" y="449" font-size="14" fill="#8a887f" text-anchor="end">&#8250;</text>
 
-  <!-- ============ Panel 2 — Import preview ============ -->
+  <!-- ============ Panel 2 — Import preview (signed in) ============ -->
   <rect x="340" y="28" width="280" height="440" rx="26" fill="#ffffff"/>
   <rect x="358" y="54" width="150" height="10" rx="5" fill="#e4e2da"/>
-  <rect x="358" y="74" width="220" height="8" rx="4" fill="#eeece5"/>
-  <rect x="358" y="90" width="196" height="8" rx="4" fill="#eeece5"/>
+  <rect x="358" y="72" width="220" height="8" rx="4" fill="#eeece5"/>
+  <rect x="358" y="86" width="196" height="8" rx="4" fill="#eeece5"/>
   <rect x="340" y="28" width="280" height="440" rx="26" fill="#000000" fill-opacity="0.28"/>
-  <rect x="340" y="106" width="280" height="362" rx="22" fill="#ffffff"/>
-  <rect x="464" y="116" width="32" height="4" rx="2" fill="#c9c7bf"/>
-  <text x="360" y="146" font-size="15" font-weight="700" fill="#2a2a2a">Import this backup?</text>
-  <text x="360" y="164" font-size="11" fill="#8a887f">From App &#183; exported 12 Oct 2026</text>
+  <rect x="340" y="100" width="280" height="368" rx="22" fill="#ffffff"/>
+  <rect x="464" y="110" width="32" height="4" rx="2" fill="#c9c7bf"/>
+  <text x="360" y="140" font-size="15" font-weight="700" fill="#2a2a2a">Import this backup?</text>
+  <text x="360" y="158" font-size="11" fill="#8a887f">From App &#183; exported 12 Oct 2026</text>
 
   <g font-size="12" fill="#3a3a3a">
-    <text x="360" y="190">Bookmarks</text>
-    <text x="360" y="212">Notes</text>
-    <text x="360" y="234">Highlights</text>
-    <text x="360" y="256">Playlists</text>
-    <text x="360" y="278">Favourite reciters</text>
-    <text x="360" y="300">Loved tracks</text>
-    <text x="360" y="322">Saved adhkar</text>
+    <text x="360" y="182">Bookmarks</text>
+    <text x="360" y="202">Notes</text>
+    <text x="360" y="222">Highlights</text>
+    <text x="360" y="242">Playlists</text>
+    <text x="360" y="262">Favourite reciters</text>
+    <text x="360" y="282">Loved tracks</text>
+    <text x="360" y="302">Saved adhkar</text>
   </g>
   <g font-size="10.5" fill="#8a887f" text-anchor="end">
-    <text x="600" y="190"><tspan font-weight="700" fill="#2a2a2a">42 new</tspan> &#183; 3 already here</text>
-    <text x="600" y="212"><tspan font-weight="700" fill="#2a2a2a">17 new</tspan></text>
-    <text x="600" y="234"><tspan font-weight="700" fill="#2a2a2a">25 new</tspan> &#183; 1 kept its colour</text>
-    <text x="600" y="256"><tspan font-weight="700" fill="#2a2a2a">4 new</tspan> (31 items)</text>
-    <text x="600" y="278"><tspan font-weight="700" fill="#2a2a2a">6 new</tspan></text>
-    <text x="600" y="300"><tspan font-weight="700" fill="#2a2a2a">20 new</tspan> &#183; 2 not available</text>
-    <text x="600" y="322"><tspan font-weight="700" fill="#2a2a2a">9 new</tspan></text>
+    <text x="600" y="182"><tspan font-weight="700" fill="#2a2a2a">42 new</tspan> &#183; 3 already here</text>
+    <text x="600" y="202"><tspan font-weight="700" fill="#2a2a2a">17 new</tspan></text>
+    <text x="600" y="222"><tspan font-weight="700" fill="#2a2a2a">25 new</tspan> &#183; 1 kept its colour</text>
+    <text x="600" y="242"><tspan font-weight="700" fill="#2a2a2a">4 new</tspan> (31 items)</text>
+    <text x="600" y="262"><tspan font-weight="700" fill="#2a2a2a">6 new</tspan></text>
+    <text x="600" y="282"><tspan font-weight="700" fill="#2a2a2a">20 new</tspan> &#183; 2 not available</text>
+    <text x="600" y="302"><tspan font-weight="700" fill="#2a2a2a">9 new</tspan></text>
   </g>
-  <line x1="360" y1="336" x2="600" y2="336" stroke="#eeece5"/>
+  <line x1="360" y1="316" x2="600" y2="316" stroke="#eeece5"/>
 
-  <text x="360" y="358" font-size="12" fill="#2a2a2a">Restore settings too</text>
-  <text x="360" y="373" font-size="10" fill="#8a887f">Replaces your current preferences</text>
-  <rect x="566" y="346" width="34" height="20" rx="10" fill="#e4e2da"/>
-  <circle cx="577" cy="356" r="8" fill="#ffffff" stroke="#d8d6cf"/>
+  <!-- Restore settings too: off by default -->
+  <text x="360" y="336" font-size="12" fill="#2a2a2a">Restore settings too</text>
+  <text x="360" y="351" font-size="10" fill="#8a887f">Off by default. Replaces your preferences.</text>
+  <rect x="566" y="322" width="34" height="20" rx="10" fill="#e4e2da"/>
+  <circle cx="577" cy="332" r="8" fill="#ffffff" stroke="#d8d6cf"/>
+  <!-- Shown only while an account is signed in -->
+  <rect x="360" y="358" width="240" height="34" rx="8" fill="#fbf7ea" stroke="#eadfb8"/>
+  <text x="368" y="372" font-size="10" fill="#5a5030">Your preferences sync, so this also</text>
+  <text x="368" y="385" font-size="10" fill="#5a5030">changes them on your other devices.</text>
 
-  <text x="360" y="396" font-size="10.5" fill="#8a887f">Nothing on this device is removed or changed.</text>
-  <rect x="360" y="408" width="240" height="34" rx="10" fill="#2a2a2a"/>
-  <text x="480" y="430" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Import</text>
-  <text x="480" y="458" font-size="12" fill="#3a3a3a" text-anchor="middle">Cancel</text>
+  <text x="360" y="407" font-size="10.5" fill="#8a887f">Nothing on this device is removed or changed.</text>
+  <rect x="360" y="414" width="240" height="32" rx="10" fill="#2a2a2a"/>
+  <text x="480" y="435" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Import</text>
+  <text x="480" y="461" font-size="12" fill="#3a3a3a" text-anchor="middle">Cancel</text>
   <rect x="340" y="28" width="280" height="440" rx="26" fill="none" stroke="#d8d6cf" stroke-width="2"/>
 
   <!-- ============ Panel 3 — Sign-out confirmation ============ -->
@@ -112,16 +117,16 @@
   <rect x="670" y="372" width="240" height="36" rx="10" fill="#b3261e"/>
   <text x="790" y="395" font-size="13" font-weight="700" fill="#ffffff" text-anchor="middle">Sign out</text>
   <text x="790" y="434" font-size="12" fill="#3a3a3a" text-anchor="middle">Cancel</text>
-  <text x="790" y="456" font-size="9.5" fill="#8a887f" text-anchor="middle">The export finishes before sign-out removes data.</text>
+  <text x="790" y="456" font-size="9.5" fill="#8a887f" text-anchor="middle">The export runs before every sign-out step.</text>
   <rect x="650" y="28" width="280" height="440" rx="26" fill="none" stroke="#d8d6cf" stroke-width="2"/>
 
   <!-- ============ Captions ============ -->
   <g text-anchor="middle">
     <text x="170" y="496" font-size="12" font-weight="700" fill="#3a3a3a">1 &#183; Back up &amp; restore</text>
     <text x="170" y="512" font-size="10.5" fill="#8a887f">Settings &#8250; App &amp; data; two rows and a notice</text>
-    <text x="480" y="496" font-size="12" font-weight="700" fill="#3a3a3a">2 &#183; Import preview</text>
-    <text x="480" y="512" font-size="10.5" fill="#8a887f">Counts first; nothing is written before Import</text>
+    <text x="480" y="496" font-size="12" font-weight="700" fill="#3a3a3a">2 &#183; Import preview (signed in)</text>
+    <text x="480" y="512" font-size="10.5" fill="#8a887f">Counts first; settings stay off unless turned on</text>
     <text x="790" y="496" font-size="12" font-weight="700" fill="#3a3a3a">3 &#183; Sign-out confirmation</text>
-    <text x="790" y="512" font-size="10.5" fill="#8a887f">Export a copy runs before the purge</text>
+    <text x="790" y="512" font-size="10.5" fill="#8a887f">Export a copy runs before the flush and the purge</text>
   </g>
 </svg>
