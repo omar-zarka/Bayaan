@@ -3,8 +3,13 @@
 import React from 'react';
 import {act, create} from 'react-test-renderer';
 
-const mockReplace = jest.fn();
-const mockRouter = {push: jest.fn(), replace: mockReplace};
+const mockPush = jest.fn();
+const mockRouter = {push: mockPush};
+const mockNavigation = {
+  canGoBack: jest.fn(() => true),
+  goBack: jest.fn(),
+  dispatch: jest.fn(),
+};
 let mockFinishRestore: () => void = () => undefined;
 const mockWait = jest.fn(
   (_timeoutMs: number) =>
@@ -12,21 +17,27 @@ const mockWait = jest.fn(
       mockFinishRestore = resolve;
     }),
 );
-const mockOpen = jest.fn<boolean, [unknown, string, unknown]>();
+const mockOpen = jest.fn<boolean, [unknown, unknown]>();
 
-jest.mock('expo-router', () => ({useRouter: () => mockRouter}));
+jest.mock('expo-router', () => ({
+  useRouter: () => mockRouter,
+  useNavigationContainerRef: () => mockNavigation,
+}));
 jest.mock('@/services/adhkar/playback/sessionPersistence', () => ({
   waitForSessionRestore: (timeoutMs: number) => mockWait(timeoutMs),
 }));
 jest.mock('@/services/adhkar/playback/openPlayingDhikr', () => ({
-  openPlayingDhikr: (router: unknown, mode: string, current: unknown) =>
-    mockOpen(router, mode, current),
+  openPlayingDhikr: (navigation: unknown, current: unknown) =>
+    mockOpen(navigation, current),
 }));
 
 import AdhkarPlayingRoute from '@/app/adhkar-playing';
 
 beforeEach(() => {
-  mockReplace.mockClear();
+  mockPush.mockClear();
+  mockNavigation.canGoBack.mockReturnValue(true);
+  mockNavigation.goBack.mockClear();
+  mockNavigation.dispatch.mockClear();
   mockWait.mockClear();
   mockOpen.mockReset();
 });
@@ -41,8 +52,25 @@ it('waits for the saved session, then opens the playing dhikr', async () => {
   await act(async () => {
     mockFinishRestore();
   });
-  expect(mockOpen).toHaveBeenCalledWith(mockRouter, 'replace', null);
-  expect(mockReplace).not.toHaveBeenCalled();
+  expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+  expect(mockOpen).toHaveBeenCalledWith(mockNavigation, null);
+  expect(mockPush).not.toHaveBeenCalled();
+});
+
+it('swaps itself for the tabs when it is the only route', async () => {
+  mockOpen.mockReturnValue(true);
+  mockNavigation.canGoBack.mockReturnValue(false);
+  await act(async () => {
+    create(<AdhkarPlayingRoute />);
+  });
+  await act(async () => {
+    mockFinishRestore();
+  });
+  expect(mockNavigation.goBack).not.toHaveBeenCalled();
+  expect(mockNavigation.dispatch).toHaveBeenCalledWith({
+    type: 'REPLACE',
+    payload: {name: '(tabs)'},
+  });
 });
 
 it('falls back to the Adhkar screen when no session comes back', async () => {
@@ -53,7 +81,7 @@ it('falls back to the Adhkar screen when no session comes back', async () => {
   await act(async () => {
     mockFinishRestore();
   });
-  expect(mockReplace).toHaveBeenCalledWith('/(tabs)/(a.home)/adhkar');
+  expect(mockPush).toHaveBeenCalledWith('/(tabs)/(a.home)/adhkar');
 });
 
 it('does not navigate after it unmounts', async () => {
@@ -69,5 +97,6 @@ it('does not navigate after it unmounts', async () => {
     mockFinishRestore();
   });
   expect(mockOpen).not.toHaveBeenCalled();
-  expect(mockReplace).not.toHaveBeenCalled();
+  expect(mockNavigation.goBack).not.toHaveBeenCalled();
+  expect(mockPush).not.toHaveBeenCalled();
 });

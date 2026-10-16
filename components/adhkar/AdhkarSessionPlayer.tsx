@@ -5,7 +5,7 @@
 // opens the playing dhikr; the close button ends the session.
 import React, {useCallback, useMemo} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {useRouter} from 'expo-router';
+import {useNavigationContainerRef} from 'expo-router';
 import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import {GlassView} from 'expo-glass-effect';
@@ -27,7 +27,7 @@ export function AdhkarSessionPlayer({
 }): React.JSX.Element {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
-  const router = useRouter();
+  const navigation = useNavigationContainerRef();
   const glassColorScheme = useGlassColorScheme();
   const dispatch = useAdhkarSessionStore(s => s.dispatch);
 
@@ -38,8 +38,8 @@ export function AdhkarSessionPlayer({
   });
 
   const handleOpen = useCallback(() => {
-    openPlayingDhikr(router);
-  }, [router]);
+    openPlayingDhikr(navigation);
+  }, [navigation]);
 
   // FloatingPlayer's container, without the absolute positioning.
   const containerStyle = useMemo(

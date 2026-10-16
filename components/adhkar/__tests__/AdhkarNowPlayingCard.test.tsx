@@ -6,9 +6,9 @@ import type {AdhkarSession} from '@/services/adhkar/playback/types';
 
 // Strings come from the app's English resources (test-utils/setupI18n.ts).
 
-const mockPush = jest.fn();
+const mockDispatch = jest.fn();
 jest.mock('expo-router', () => ({
-  useRouter: () => ({push: mockPush, replace: jest.fn()}),
+  useNavigationContainerRef: () => ({dispatch: mockDispatch}),
 }));
 
 jest.mock('@/hooks/useTheme', () => ({
@@ -93,8 +93,8 @@ jest.mock('react-native-reanimated', () => ({
 }));
 
 jest.mock('@/services/adhkar/playback/openPlayingDhikr', () => ({
-  openPlayingDhikr: (router: {push: (p: string) => void}) => {
-    router.push('/adhkar/x');
+  openPlayingDhikr: (navigation: {dispatch: (a: string) => void}) => {
+    navigation.dispatch('open');
     return true;
   },
 }));
@@ -153,7 +153,7 @@ function mount(variant: 'tile' | 'row'): ReactTestRenderer {
 }
 
 beforeEach(() => {
-  mockPush.mockClear();
+  mockDispatch.mockClear();
   mockShowSheet.mockClear();
   act(() => {
     useAdhkarSessionStore.setState({session: null, revealToken: 0});
@@ -217,7 +217,7 @@ describe('Continue Listening card', () => {
   it('opens the playing dhikr from the body', () => {
     const r = mount('tile');
     press(r, 'adhkar-now-playing-open');
-    expect(mockPush).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalled();
   });
 
   it('opens the stop sheet on long press and keeps the session', () => {
@@ -259,7 +259,7 @@ describe('Adhkar screen player', () => {
   it('opens the playing dhikr from the body', () => {
     const r = mount('row');
     press(r, 'adhkar-now-playing-open');
-    expect(mockPush).toHaveBeenCalled();
+    expect(mockDispatch).toHaveBeenCalled();
   });
 
   it('ends the session from the close button', () => {

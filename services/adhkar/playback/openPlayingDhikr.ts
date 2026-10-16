@@ -21,9 +21,11 @@ export function getAdhkarFocus(): AdhkarFocus {
   return focus;
 }
 
-export type ReaderHref =
+// Routes of the adhkar stack (app/(tabs)/(a.home)/adhkar/_layout.tsx).
+export type AdhkarStackRoute =
+  | {name: '[superId]/index'; params: {superId: string}}
   | {
-      pathname: '/(tabs)/(a.home)/adhkar/[superId]/[dhikrId]';
+      name: '[superId]/[dhikrId]';
       params: {
         superId: string;
         dhikrId: string;
@@ -31,15 +33,16 @@ export type ReaderHref =
         superCategoryTitle: string;
       };
     }
-  | {
-      pathname: '/(tabs)/(a.home)/adhkar/saved/[dhikrId]';
-      params: {dhikrId: string; globalIndex: string};
-    };
+  | {name: 'saved/index'; params: Record<string, never>}
+  | {name: 'saved/[dhikrId]'; params: {dhikrId: string; globalIndex: string}};
 
+// `routes` is the session's list with its reader on top. The list opens
+// under the reader so the reader always has a back button (a screen opened
+// first in the adhkar stack has none).
 export type OpenPlan =
   | {kind: 'none'}
   | {kind: 'reveal'}
-  | {kind: 'push'; href: ReaderHref};
+  | {kind: 'push'; routes: [AdhkarStackRoute, AdhkarStackRoute]};
 
 export function planOpenPlaying(
   session: AdhkarSession | null,
@@ -53,32 +56,67 @@ export function planOpenPlaying(
   if (session.listId === 'saved') {
     return {
       kind: 'push',
-      href: {
-        pathname: '/(tabs)/(a.home)/adhkar/saved/[dhikrId]',
-        params: {dhikrId: item.dhikrId, globalIndex},
-      },
+      routes: [
+        {name: 'saved/index', params: {}},
+        {name: 'saved/[dhikrId]', params: {dhikrId: item.dhikrId, globalIndex}},
+      ],
     };
   }
   return {
     kind: 'push',
-    href: {
-      pathname: '/(tabs)/(a.home)/adhkar/[superId]/[dhikrId]',
+    routes: [
+      {name: '[superId]/index', params: {superId: session.listId}},
+      {
+        name: '[superId]/[dhikrId]',
+        params: {
+          superId: session.listId,
+          dhikrId: item.dhikrId,
+          globalIndex,
+          superCategoryTitle: session.listTitle,
+        },
+      },
+    ],
+  };
+}
+
+export type AdhkarNavigateAction = {
+  type: 'NAVIGATE';
+  payload: {
+    name: '(tabs)';
+    params: {
+      screen: '(a.home)';
       params: {
-        superId: session.listId,
-        dhikrId: item.dhikrId,
-        globalIndex,
-        superCategoryTitle: session.listTitle,
+        screen: 'adhkar';
+        params: {state: {routes: AdhkarStackRoute[]}};
+      };
+    };
+  };
+};
+
+// One action that lays out the whole adhkar stack. Two pushes in a row do
+// not work: expo-router resolves the second against the state from before
+// the first landed.
+export function adhkarStackAction(
+  routes: AdhkarStackRoute[],
+): AdhkarNavigateAction {
+  return {
+    type: 'NAVIGATE',
+    payload: {
+      name: '(tabs)',
+      params: {
+        screen: '(a.home)',
+        params: {screen: 'adhkar', params: {state: {routes}}},
       },
     },
   };
 }
 
+// `navigation` is the root navigation container (useNavigationContainerRef).
 // `current` defaults to the focused adhkar screen. The bayaan://adhkar-playing
-// route passes null: it sits on top of whatever screen was focused, so it
-// must always navigate (a reveal would leave its empty screen showing).
+// route passes null: it must always navigate (a reveal would leave its empty
+// screen showing).
 export function openPlayingDhikr(
-  router: {push(href: ReaderHref): void; replace(href: ReaderHref): void},
-  mode: 'push' | 'replace' = 'push',
+  navigation: {dispatch(action: AdhkarNavigateAction): void},
   current: AdhkarFocus = getAdhkarFocus(),
 ): boolean {
   const {session, requestReveal} = useAdhkarSessionStore.getState();
@@ -88,6 +126,6 @@ export function openPlayingDhikr(
     requestReveal();
     return true;
   }
-  router[mode](plan.href);
+  navigation.dispatch(adhkarStackAction(plan.routes));
   return true;
 }

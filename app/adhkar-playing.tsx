@@ -3,7 +3,7 @@
 // mounts this before the saved session is restored, so it waits for the
 // restore first (at most RESTORE_WAIT_MS).
 import {useEffect} from 'react';
-import {useRouter} from 'expo-router';
+import {useNavigationContainerRef, useRouter} from 'expo-router';
 import {openPlayingDhikr} from '@/services/adhkar/playback/openPlayingDhikr';
 import {waitForSessionRestore} from '@/services/adhkar/playback/sessionPersistence';
 
@@ -11,17 +11,23 @@ const RESTORE_WAIT_MS = 3000;
 
 export default function AdhkarPlayingRoute(): null {
   const router = useRouter();
+  const navigation = useNavigationContainerRef();
   useEffect(() => {
     let cancelled = false;
     waitForSessionRestore(RESTORE_WAIT_MS).then(() => {
       if (cancelled) return;
-      if (!openPlayingDhikr(router, 'replace', null)) {
-        router.replace('/(tabs)/(a.home)/adhkar');
+      // Leave this route on the container itself, so the navigation below
+      // runs against the tabs. Replacing this route with a tab route instead
+      // would stack a second copy of the tabs with nothing to go back to.
+      if (navigation.canGoBack()) navigation.goBack();
+      else navigation.dispatch({type: 'REPLACE', payload: {name: '(tabs)'}});
+      if (!openPlayingDhikr(navigation, null)) {
+        router.push('/(tabs)/(a.home)/adhkar');
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [navigation, router]);
   return null;
 }

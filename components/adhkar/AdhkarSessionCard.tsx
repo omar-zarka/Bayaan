@@ -5,7 +5,7 @@
 // playing dhikr; the playback zone toggles; a long press offers "Stop adhkar".
 import React, {useCallback, useMemo} from 'react';
 import {Pressable, StyleSheet, Text, View} from 'react-native';
-import {useRouter} from 'expo-router';
+import {useNavigationContainerRef} from 'expo-router';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
 import {GlassView} from 'expo-glass-effect';
@@ -43,7 +43,7 @@ export function AdhkarSessionCard({
 }): React.JSX.Element {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
-  const router = useRouter();
+  const navigation = useNavigationContainerRef();
   const dispatch = useAdhkarSessionStore(s => s.dispatch);
   const reduceMotion = useReducedMotion();
   const glassColorScheme = useGlassColorScheme();
@@ -58,8 +58,8 @@ export function AdhkarSessionCard({
   const {listTitle} = session;
 
   const handleOpen = useCallback(() => {
-    openPlayingDhikr(router);
-  }, [router]);
+    openPlayingDhikr(navigation);
+  }, [navigation]);
 
   const handleToggle = useCallback(() => {
     dispatch({type: 'toggle'});
