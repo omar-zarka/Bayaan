@@ -85,5 +85,6 @@ describe('resolveNativeWidgets', () => {
   it('lists Android surfaces as a prefix of all surfaces', () => {
     expect(ANDROID_WIDGET_IDS).toEqual(NATIVE_WIDGET_IDS.slice(0, 12));
     expect(ANDROID_WIDGET_IDS).not.toContain('LiveActivity');
+    expect(ANDROID_WIDGET_IDS).not.toContain('VerseOfTheDayAccessory');
   });
 });
