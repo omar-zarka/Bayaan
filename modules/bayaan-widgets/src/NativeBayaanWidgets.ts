@@ -8,6 +8,7 @@ export interface NativeBayaanWidgetsModule {
   reloadWidgets(kinds: string[]): void;
   takeQueuedCommands(): string;
   takePendingTasbeeh(): string;
+  takePendingWidgetEvents(): string;
   cacheArtwork(sourceUrl: string, fileName: string): Promise<boolean>;
   hasArtwork(fileName: string): boolean;
   writeCatalog(json: string): void;

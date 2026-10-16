@@ -18,10 +18,15 @@ import {
 } from './liveActivity';
 import type {AdhkarSessionActivityState} from './adhkarActivity';
 import {parsePendingTasbeeh, type PendingTasbeeh} from './tasbeeh';
+import {
+  parsePendingWidgetEvents,
+  type PendingWidgetEvent,
+} from './widgetEvents';
 
 export * from './snapshot';
 export * from './commands';
 export * from './tasbeeh';
+export * from './widgetEvents';
 export * from './widgetKinds';
 export * from './catalog';
 export * from './artworkRequests';
@@ -55,6 +60,13 @@ export function takeQueuedCommands(): QueuedWidgetCommand[] {
 export function takePendingTasbeeh(): PendingTasbeeh[] {
   if (!NativeBayaanWidgets) return [];
   return parsePendingTasbeeh(NativeBayaanWidgets.takePendingTasbeeh());
+}
+
+export function takePendingWidgetEvents(): PendingWidgetEvent[] {
+  if (!NativeBayaanWidgets) return [];
+  return parsePendingWidgetEvents(
+    NativeBayaanWidgets.takePendingWidgetEvents(),
+  );
 }
 
 export async function cacheArtwork(
