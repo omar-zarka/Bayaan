@@ -69,7 +69,7 @@ The list lives in its own dependency-free file, not in `branding.js`: the plugin
 
 No control, Live Activity or App Shortcut depends on adhkar or ambient audio, so none follows those flags; each can still be listed out by id (`PlaybackControl`, `PlaySurahControl`, `LiveActivity`, `ListeningAccessory`). The car has no adhkar or ambient surfaces.
 
-Ids: `ContinueListening`, `ContinueReading`, `QuickSurah`, `PinnedReciter`, `AyahOfTheDay`, `Tasbeeh`, `RecentlyPlayed`, `LibraryShelf`, `Bedtime`, `ReciterSpotlight`, `Adhkar`, `HijriDate`, `Occasion`, `BayaanNow`, and iOS-only `ListeningAccessory`, `LiveActivity`, `PlaybackControl`, `PlaySurahControl`.
+Ids: `ContinueListening`, `ContinueReading`, `QuickSurah`, `PinnedReciter`, `AyahOfTheDay`, `Tasbeeh`, `RecentlyPlayed`, `LibraryShelf`, `Bedtime`, `ReciterSpotlight`, `Adhkar`, `BayaanNow`, and iOS-only `ListeningAccessory`, `LiveActivity`, `PlaybackControl`, `PlaySurahControl`.
 
 Enforcement:
 
