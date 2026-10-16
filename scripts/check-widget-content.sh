@@ -34,8 +34,8 @@ precondition(WidgetContent.decode(Data("nope".utf8)) == nil, "accepted junk cont
 
 // Generated static data
 let adhkar = try! JSONDecoder().decode(AdhkarPeriods.self, from: load("\(targetDir)/adhkar-periods.json"))
-precondition(adhkar.morning.count == 24 && adhkar.morning.superId == "morning-adhkar" && adhkar.evening.superId == "evening-adhkar", "adhkar periods")
-precondition(adhkar.data(for: .evening).featured.contains { $0.id == "97" } && !adhkar.morning.featured.contains { $0.id == "97" }, "adhkar featured split")
+precondition(adhkar.morning.count == 23 && adhkar.evening.count == 21 && adhkar.morning.superId == "morning-adhkar" && adhkar.evening.superId == "evening-adhkar", "adhkar periods")
+precondition(adhkar.data(for: .evening).featured.contains { $0.id == "97" } && !adhkar.morning.featured.contains { $0.id == "97" } && !adhkar.evening.featured.contains { $0.id == "94" }, "adhkar featured split")
 print("swift content decode: OK")
 
 // Rule vectors

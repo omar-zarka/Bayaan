@@ -171,7 +171,7 @@ export interface AdhkarPeriodData {
   superId: string;
   title: string;
   arabicTitle: string;
-  count: number; // adhkar in the category
+  count: number; // adhkar in the period's dhikr list
   featured: FeaturedDhikr[];
   items: SessionDhikr[]; // the whole category, in order_index order
 }
@@ -185,7 +185,6 @@ export interface AdhkarPeriodSource {
   superId: string;
   title: string;
   arabicTitle: string;
-  categoryId: string;
   featured: string[];
 }
 
@@ -216,7 +215,6 @@ function isPeriodSource(value: unknown): value is AdhkarPeriodSource {
     typeof value.superId === 'string' &&
     typeof value.title === 'string' &&
     typeof value.arabicTitle === 'string' &&
-    typeof value.categoryId === 'string' &&
     isStringList(value.featured)
   );
 }
@@ -265,6 +263,20 @@ export function sessionDhikrText(arabic: string): string {
   return text.replace(/[\s.،,:]+$/, '');
 }
 
+// Ordered dhikr ids per super category (data/adhkar.json
+// super_category_dhikr_ids); the same lists the app's screens use.
+export type AdhkarSeedLists = Record<string, string[]>;
+
+export function parseAdhkarSeedLists(seed: unknown): AdhkarSeedLists {
+  const raw = isObject(seed) ? seed.super_category_dhikr_ids : undefined;
+  if (!isObject(raw)) return {};
+  const lists: AdhkarSeedLists = {};
+  for (const [superId, ids] of Object.entries(raw)) {
+    if (isStringList(ids)) lists[superId] = ids;
+  }
+  return lists;
+}
+
 // Text that fits within budget characters, cut at a word boundary with an
 // ellipsis when it does not.
 export function cutToBudget(
@@ -299,20 +311,26 @@ function sessionItem(row: AdhkarSeedRow): SessionDhikr {
 export function buildAdhkarPeriods(
   source: Record<AdhkarPeriodName, AdhkarPeriodSource>,
   seed: AdhkarSeedRow[],
+  lists: AdhkarSeedLists,
 ): AdhkarPeriods {
   function period(name: AdhkarPeriodName): AdhkarPeriodData {
     const src = source[name];
-    const inCategory = seed.filter(d => d.category_id === src.categoryId);
+    const ids = lists[src.superId];
+    if (!ids || ids.length === 0) {
+      throw new Error(`${name}: no dhikr list for ${src.superId}`);
+    }
     if (src.featured.length === 0) {
       throw new Error(`${name} has no featured adhkar`);
     }
     const featured = src.featured.map(id => {
-      const row = inCategory.find(d => d.id === id);
-      if (!row) {
+      if (!ids.includes(id)) {
         throw new Error(
-          `${name}: dhikr ${id} is not in category ${src.categoryId}`,
+          `${name}: dhikr ${id} is not in the ${src.superId} list`,
         );
       }
+      const row = seed.find(d => d.id === id);
+      if (!row)
+        throw new Error(`${name}: dhikr ${id} is missing from the seed`);
       const arabic = tasbeehDisplayText(row.arabic);
       if (!arabic) throw new Error(`${name}: dhikr ${id} has no (( )) text`);
       if (arabic.length > MAX_FEATURED_DHIKR_CHARS) {
@@ -330,11 +348,14 @@ export function buildAdhkarPeriods(
       superId: src.superId,
       title: src.title,
       arabicTitle: src.arabicTitle,
-      count: inCategory.length,
+      count: ids.length,
       featured,
-      items: [...inCategory]
-        .sort((a, b) => a.order_index - b.order_index)
-        .map(sessionItem),
+      items: ids.map(id => {
+        const row = seed.find(d => d.id === id);
+        if (!row)
+          throw new Error(`${name}: dhikr ${id} is missing from the seed`);
+        return sessionItem(row);
+      }),
     };
   }
   return {morning: period('morning'), evening: period('evening')};

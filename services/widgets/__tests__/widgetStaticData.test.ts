@@ -260,6 +260,7 @@ describe('buildAdhkarPeriods items', () => {
   const periods = buildAdhkarPeriods(
     {morning: src, evening: {...src, superId: 'evening-adhkar'}},
     seed,
+    {'morning-adhkar': ['1', '2', '3'], 'evening-adhkar': ['1', '2', '3']},
   );
 
   it('lists the category in order with repeat counts of at least 1', () => {

@@ -16,6 +16,7 @@ import {
   buildSurahCatalogSwift,
   isAdhkarPeriodSources,
   parseAdhkarSeed,
+  parseAdhkarSeedLists,
 } from '../services/widgets/widgetStaticData';
 
 const root = path.resolve(__dirname, '..');
@@ -82,9 +83,11 @@ function main(): void {
   if (!isAdhkarPeriodSources(periodSource)) {
     throw new Error('data/widgets/adhkar-periods.json is malformed');
   }
+  const adhkarSeed = readJson('data/adhkar.json');
   const adhkarPeriods = buildAdhkarPeriods(
     periodSource,
-    parseAdhkarSeed(readJson('data/adhkar.json')),
+    parseAdhkarSeed(adhkarSeed),
+    parseAdhkarSeedLists(adhkarSeed),
   );
   db.close();
 
