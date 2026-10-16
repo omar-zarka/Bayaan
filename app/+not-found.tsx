@@ -1,14 +1,7 @@
-import {useEffect} from 'react';
-import {useNavigationContainerRef} from 'expo-router';
+import {useLeaveLinkRoute} from '@/hooks/useLeaveLinkRoute';
 
-// An unknown link (an old widget, a typo) leaves this route and shows the
-// screen underneath. Redirecting to "/" instead would stack a second copy of
-// the tabs with nothing to go back to.
+// An unknown link (an old widget, a typo) shows the screen underneath.
 export default function NotFound(): null {
-  const navigation = useNavigationContainerRef();
-  useEffect(() => {
-    if (navigation.canGoBack()) navigation.goBack();
-    else navigation.dispatch({type: 'REPLACE', payload: {name: '(tabs)'}});
-  }, [navigation]);
+  useLeaveLinkRoute();
   return null;
 }
