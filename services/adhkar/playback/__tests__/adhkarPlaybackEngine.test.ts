@@ -221,6 +221,47 @@ it('clears the lock screen when another source took over', () => {
   expect(lockScreen.clear).toHaveBeenCalled();
 });
 
+describe('a playing update that lands after another source took over', () => {
+  // The update was sent before the engine's pause reached the player. Acting
+  // on it would pause the Quran the user just started.
+  function takenOver(): void {
+    dispatch({type: 'pressPlayAll', source: src});
+    player.emit({playing: true});
+    coordinator.getActiveSource.mockReturnValue('main');
+    dispatch({type: 'otherAudioStarted'});
+    coordinator.adhkarWillPlay.mockClear();
+    player.pause.mockClear();
+  }
+
+  it('is not taken as a remote resume', () => {
+    takenOver();
+    player.emit({playing: true});
+    expect(coordinator.adhkarWillPlay).not.toHaveBeenCalled();
+    expect(player.pause).toHaveBeenCalledTimes(1);
+    expect(useAdhkarSessionStore.getState().session?.status).toBe('paused');
+  });
+
+  it('does not play the current dhikr from a stale clip either', () => {
+    takenOver();
+    dispatch({type: 'swipedTo', listId: src.listId, dhikrId: 'b'});
+    player.emit({playing: true});
+    expect(coordinator.adhkarWillPlay).not.toHaveBeenCalled();
+    expect(player.replace).toHaveBeenCalledTimes(1);
+    expect(useAdhkarSessionStore.getState().session).toMatchObject({
+      index: 1,
+      status: 'paused',
+    });
+  });
+
+  it('is a remote resume again once adhkar owns playback', () => {
+    takenOver();
+    coordinator.getActiveSource.mockReturnValue('adhkar');
+    player.emit({playing: true});
+    expect(coordinator.adhkarWillPlay).toHaveBeenCalled();
+    expect(useAdhkarSessionStore.getState().session?.status).toBe('playing');
+  });
+});
+
 it('does not write the previous clip time onto a dhikr swiped to while paused', () => {
   dispatch({type: 'pressPlayAll', source: src});
   player.emit({playing: true});

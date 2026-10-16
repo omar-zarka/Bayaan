@@ -224,9 +224,20 @@ export function startAdhkarPlaybackEngine(
     }
   }
 
+  // Another source took over and our pause has not reached the player yet:
+  // its playing updates are stale, not a remote resume.
+  function otherSourceOwnsPlayback(): boolean {
+    const active = deps.coordinator.getActiveSource();
+    return active === 'main' || active === 'mushaf';
+  }
+
   function onStatus(status: PlayerStatus): void {
     const s = store.getState().session;
     if (!s) return;
+    if (status.playing && s.status === 'paused' && otherSourceOwnsPlayback()) {
+      activePlayer?.pause();
+      return;
+    }
     if (loadedToken !== s.trackToken) {
       // The loaded clip is no longer the session's dhikr (swiped while
       // paused). Lock screen or headphone play must not play it unseen:
