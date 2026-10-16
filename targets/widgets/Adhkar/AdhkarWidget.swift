@@ -77,7 +77,7 @@ struct AdhkarView: View {
   private func small(_ data: AdhkarPeriodData, _ dhikr: FeaturedDhikr) -> some View {
     VStack(spacing: 6) {
       HStack {
-        Text(data.arabicTitle).font(WidgetFonts.dhikr(15)).opacity(0.75).lineLimit(1)
+        Text(data.title).font(.footnote.weight(.bold)).opacity(0.75).lineLimit(1)
         Spacer(minLength: 0)
         BayaanLogo(size: 12)
       }
