@@ -3,14 +3,12 @@
 import React from 'react';
 import {act, create} from 'react-test-renderer';
 
-let mockRootKey: string | undefined = 'root';
-const mockReplace = jest.fn();
 const mockNavigation = {
-  isReady: jest.fn(() => true),
   canGoBack: jest.fn(() => true),
   goBack: jest.fn(),
   dispatch: jest.fn(),
 };
+const mockContainer = {dispatch: jest.fn()};
 let mockFinishRestore: () => void = () => undefined;
 const mockWait = jest.fn(
   (_timeoutMs: number) =>
@@ -21,10 +19,8 @@ const mockWait = jest.fn(
 const mockOpen = jest.fn<boolean, [unknown, unknown]>();
 
 jest.mock('expo-router', () => ({
-  useNavigationContainerRef: () => mockNavigation,
-  useRootNavigationState: () =>
-    mockRootKey === undefined ? undefined : {key: mockRootKey},
-  useRouter: () => ({replace: mockReplace}),
+  useNavigation: () => mockNavigation,
+  useNavigationContainerRef: () => mockContainer,
 }));
 jest.mock('@/services/adhkar/playback/sessionPersistence', () => ({
   waitForSessionRestore: (timeoutMs: number) => mockWait(timeoutMs),
@@ -39,9 +35,7 @@ import AdhkarPlayingRoute from '@/app/adhkar-playing';
 import {adhkarStackAction} from '@/services/adhkar/playback/openPlayingDhikr';
 
 beforeEach(() => {
-  mockRootKey = 'root';
-  mockReplace.mockClear();
-  mockNavigation.isReady.mockReturnValue(true);
+  mockContainer.dispatch.mockClear();
   mockNavigation.canGoBack.mockReturnValue(true);
   mockNavigation.goBack.mockClear();
   mockNavigation.dispatch.mockClear();
@@ -60,8 +54,8 @@ it('waits for the saved session, then opens the playing dhikr', async () => {
     mockFinishRestore();
   });
   expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
-  expect(mockOpen).toHaveBeenCalledWith(mockNavigation, null);
-  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  expect(mockOpen).toHaveBeenCalledWith(mockContainer, null);
+  expect(mockContainer.dispatch).not.toHaveBeenCalled();
 });
 
 it('swaps itself for the tabs when it is the only route', async () => {
@@ -74,29 +68,10 @@ it('swaps itself for the tabs when it is the only route', async () => {
     mockFinishRestore();
   });
   expect(mockNavigation.goBack).not.toHaveBeenCalled();
-  expect(mockReplace).toHaveBeenCalledWith('/(tabs)/(a.home)');
-});
-
-it('waits for navigation to be ready before anything else', async () => {
-  mockOpen.mockReturnValue(true);
-  mockRootKey = undefined;
-  mockNavigation.isReady.mockReturnValue(false);
-  let renderer: ReturnType<typeof create> | null = null;
-  await act(async () => {
-    renderer = create(<AdhkarPlayingRoute />);
+  expect(mockNavigation.dispatch).toHaveBeenCalledWith({
+    type: 'REPLACE',
+    payload: {name: '(tabs)'},
   });
-  expect(mockWait).not.toHaveBeenCalled();
-  mockRootKey = 'root';
-  mockNavigation.isReady.mockReturnValue(true);
-  await act(async () => {
-    renderer?.update(<AdhkarPlayingRoute />);
-  });
-  expect(mockWait).toHaveBeenCalledTimes(1);
-  await act(async () => {
-    mockFinishRestore();
-  });
-  expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
-  expect(mockOpen).toHaveBeenCalledWith(mockNavigation, null);
 });
 
 it('falls back to the Adhkar screen when no session comes back', async () => {
@@ -107,7 +82,7 @@ it('falls back to the Adhkar screen when no session comes back', async () => {
   await act(async () => {
     mockFinishRestore();
   });
-  expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+  expect(mockContainer.dispatch).toHaveBeenCalledWith(
     adhkarStackAction([{name: 'index', params: {}}]),
   );
 });
@@ -126,5 +101,5 @@ it('does not navigate after it unmounts', async () => {
   });
   expect(mockOpen).not.toHaveBeenCalled();
   expect(mockNavigation.goBack).not.toHaveBeenCalled();
-  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  expect(mockContainer.dispatch).not.toHaveBeenCalled();
 });
