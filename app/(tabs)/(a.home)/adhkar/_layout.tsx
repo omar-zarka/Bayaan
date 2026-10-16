@@ -67,8 +67,19 @@ export default function AdhkarLayout() {
           }}
         />
         <Stack.Screen name="[superId]/index" />
-        <Stack.Screen name="[superId]/[dhikrId]" />
+        {/* The readers page with a full-width horizontal list, which wins
+            over the iOS 26 swipe-back-from-anywhere gesture. With it off, the
+            left-edge swipe takes priority over the pager and pops. A reader
+            opened by a list row's zoom link keeps the zoom dismiss. */}
+        <Stack.Screen
+          name="[superId]/[dhikrId]"
+          options={{fullScreenGestureEnabled: false}}
+        />
         <Stack.Screen name="saved" />
+        <Stack.Screen
+          name="saved/[dhikrId]"
+          options={{fullScreenGestureEnabled: false}}
+        />
       </Stack>
     </AdhkarAudioProvider>
   );
