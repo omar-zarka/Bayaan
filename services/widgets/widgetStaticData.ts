@@ -155,6 +155,17 @@ export interface FeaturedDhikr {
   repeatCount: number;
 }
 
+export interface SessionDhikr {
+  id: string;
+  translation: string | null;
+  repeatCount: number; // >= 1
+  audioFile: string | null;
+  mediumText: string;
+  mediumCut: boolean;
+  largeText: string;
+  largeCut: boolean;
+}
+
 export interface AdhkarPeriodData {
   period: AdhkarPeriodName;
   superId: string;
@@ -162,6 +173,7 @@ export interface AdhkarPeriodData {
   arabicTitle: string;
   count: number; // adhkar in the period's dhikr list
   featured: FeaturedDhikr[];
+  items: SessionDhikr[]; // the whole category, in order_index order
 }
 
 export interface AdhkarPeriods {
@@ -182,9 +194,13 @@ export interface AdhkarSeedRow {
   arabic: string;
   translation: string | null;
   repeat_count: number;
+  audio_file: string | null;
+  order_index: number;
 }
 
 export const MAX_FEATURED_DHIKR_CHARS = 180;
+export const SESSION_MEDIUM_CHARS = 120;
+export const SESSION_LARGE_CHARS = 420;
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -220,14 +236,31 @@ function isSeedRow(value: unknown): value is AdhkarSeedRow {
     typeof value.category_id === 'string' &&
     typeof value.arabic === 'string' &&
     (value.translation === null || typeof value.translation === 'string') &&
-    typeof value.repeat_count === 'number'
+    typeof value.repeat_count === 'number' &&
+    (value.audio_file === undefined ||
+      value.audio_file === null ||
+      typeof value.audio_file === 'string') &&
+    (value.order_index === undefined || typeof value.order_index === 'number')
   );
 }
 
 export function parseAdhkarSeed(seed: unknown): AdhkarSeedRow[] {
   if (!isObject(seed) || !Array.isArray(seed.adhkar)) return [];
   const rows: unknown[] = seed.adhkar;
-  return rows.filter(isSeedRow);
+  return rows.filter(isSeedRow).map(row => ({
+    ...row,
+    audio_file: row.audio_file ?? null,
+    order_index: row.order_index ?? 0,
+  }));
+}
+
+// Session card text: the (( )) dhikr when marked, else the whole text
+// without bare parentheses (Ayat al-Kursi, the three Quls).
+export function sessionDhikrText(arabic: string): string {
+  const marked = tasbeehDisplayText(arabic);
+  const text =
+    marked ?? arabic.replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.replace(/[\s.،,:]+$/, '');
 }
 
 // Ordered dhikr ids per super category (data/adhkar.json
@@ -242,6 +275,37 @@ export function parseAdhkarSeedLists(seed: unknown): AdhkarSeedLists {
     if (isStringList(ids)) lists[superId] = ids;
   }
   return lists;
+}
+
+// Text that fits within budget characters, cut at a word boundary with an
+// ellipsis when it does not.
+export function cutToBudget(
+  text: string,
+  budget: number,
+): {text: string; cut: boolean} {
+  if (text.length <= budget) return {text, cut: false};
+  const head = text.slice(0, budget - 1);
+  const space = head.lastIndexOf(' ');
+  return {
+    text: `${(space > 0 ? head.slice(0, space) : head).trim()}…`,
+    cut: true,
+  };
+}
+
+function sessionItem(row: AdhkarSeedRow): SessionDhikr {
+  const text = sessionDhikrText(row.arabic);
+  const medium = cutToBudget(text, SESSION_MEDIUM_CHARS);
+  const large = cutToBudget(text, SESSION_LARGE_CHARS);
+  return {
+    id: row.id,
+    translation: tasbeehTranslation(row.translation),
+    repeatCount: Math.max(1, row.repeat_count),
+    audioFile: row.audio_file,
+    mediumText: medium.text,
+    mediumCut: medium.cut,
+    largeText: large.text,
+    largeCut: large.cut,
+  };
 }
 
 export function buildAdhkarPeriods(
@@ -286,6 +350,12 @@ export function buildAdhkarPeriods(
       arabicTitle: src.arabicTitle,
       count: ids.length,
       featured,
+      items: ids.map(id => {
+        const row = seed.find(d => d.id === id);
+        if (!row)
+          throw new Error(`${name}: dhikr ${id} is missing from the seed`);
+        return sessionItem(row);
+      }),
     };
   }
   return {morning: period('morning'), evening: period('evening')};

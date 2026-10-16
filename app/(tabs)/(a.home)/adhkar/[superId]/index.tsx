@@ -71,7 +71,10 @@ interface CategoryGroup {
 
 // @ai-start
 const SuperCategoryListScreen: React.FC = () => {
-  const {superId} = useLocalSearchParams<{superId: string}>();
+  const {superId, dhikr} = useLocalSearchParams<{
+    superId: string;
+    dhikr?: string;
+  }>();
   const router = useRouter();
   const navigation = useNavigation();
   const {theme} = useTheme();
@@ -176,6 +179,90 @@ const SuperCategoryListScreen: React.FC = () => {
       categoryShortTitle: shortTitle,
     }));
   }, [categoryGroups, isSingleCategory]);
+
+  const listRef = useRef<FlatList<DhikrItem>>(null);
+
+  // A widget link (adhkar/<superId>?dhikr=<id>) opens the list at that dhikr. On an open screen a
+  // new link changes the param: a different dhikr scrolls to it, a link without one scrolls to the top.
+  // A link to another super category reuses this screen: until its list loads, the old one is still
+  // here, so the effect waits for the loaded super category to match the param.
+  // Holds what the last scroll acted on (dhikr '' for none), null until a list has loaded.
+  const handledDhikr = useRef<{
+    superId: string;
+    dhikr: string;
+    headerHeight: number;
+  } | null>(null);
+  // The row the list is held at until the user scrolls. Rows above it and past the rendered window
+  // keep changing height after the jump (Quran passages lay out after they measure their width, more
+  // rows render), which leaves the target off screen, so each content size change scrolls back to it.
+  const pinnedIndex = useRef<number | null>(null);
+
+  const scrollToDhikr = useCallback(
+    (index: number) => {
+      listRef.current?.scrollToIndex({
+        index,
+        animated: false,
+        viewOffset: USE_GLASS ? headerHeight : 0,
+      });
+    },
+    [headerHeight],
+  );
+
+  useEffect(() => {
+    if (flatAdhkarList.length === 0 || superCategory?.id !== superId) return;
+    const target = dhikr ?? '';
+    const handled = handledDhikr.current;
+    if (
+      handled?.superId === superId &&
+      handled.dhikr === target &&
+      handled.headerHeight === headerHeight
+    ) {
+      return;
+    }
+    // The list is at the top when a new super category mounts a fresh one, and when the header
+    // settles to a new height during the push: the changed contentOffset prop resets the scroll.
+    const opening =
+      handled?.superId !== superId || handled.headerHeight !== headerHeight;
+    handledDhikr.current = {superId, dhikr: target, headerHeight};
+    const index = Math.max(
+      0,
+      flatAdhkarList.findIndex(item => item.dhikr.id === target),
+    );
+    if (index === 0 && opening) {
+      pinnedIndex.current = null;
+      return;
+    }
+    pinnedIndex.current = index;
+    requestAnimationFrame(() => scrollToDhikr(index));
+  }, [
+    dhikr,
+    superId,
+    superCategory?.id,
+    flatAdhkarList,
+    headerHeight,
+    scrollToDhikr,
+  ]);
+
+  const onContentSizeChange = useCallback(() => {
+    const index = pinnedIndex.current;
+    if (index === null) return;
+    requestAnimationFrame(() => scrollToDhikr(index));
+  }, [scrollToDhikr]);
+
+  const onScrollBeginDrag = useCallback(() => {
+    pinnedIndex.current = null;
+  }, []);
+
+  const onScrollToIndexFailed = useCallback(
+    (info: {index: number; averageItemLength: number}) => {
+      listRef.current?.scrollToOffset({
+        offset: info.averageItemLength * info.index,
+        animated: false,
+      });
+      setTimeout(() => scrollToDhikr(info.index), 100);
+    },
+    [scrollToDhikr],
+  );
 
   // Build full adhkar list for Play All (works for both single and multi-category)
   const allAdhkarForPlayAll: Dhikr[] = useMemo(() => {
@@ -420,6 +507,8 @@ const SuperCategoryListScreen: React.FC = () => {
     <View style={styles.container}>
       {isSingleCategory ? (
         <FlatList
+          ref={listRef}
+          onScrollToIndexFailed={onScrollToIndexFailed}
           data={flatAdhkarList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -434,6 +523,8 @@ const SuperCategoryListScreen: React.FC = () => {
           windowSize={5}
           removeClippedSubviews={true}
           ListEmptyComponent={ListEmptyComponent}
+          onContentSizeChange={onContentSizeChange}
+          onScrollBeginDrag={onScrollBeginDrag}
         />
       ) : (
         <SectionList

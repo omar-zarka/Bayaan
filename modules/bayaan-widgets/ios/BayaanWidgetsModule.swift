@@ -95,6 +95,7 @@ public class BayaanWidgetsModule: Module {
 
     Function("takeQueuedCommands") { () -> String in takeString("widgets.commandQueue") }
     Function("takePendingTasbeeh") { () -> String in takeString("widgets.pendingTasbeeh") }
+    Function("takePendingWidgetEvents") { () -> String in takeString("widgets.pendingEvents") }
 
     Function("isLiveActivitySupported") { () -> Bool in NowPlayingActivityBridge.isSupported }
 

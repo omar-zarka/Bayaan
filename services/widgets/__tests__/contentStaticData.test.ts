@@ -23,6 +23,8 @@ const seed: AdhkarSeedRow[] = [
     arabic: '((سُبْحَانَ اللَّهِ)) (ثلاثاً).',
     translation: "'Glory be to Allah.'",
     repeat_count: 3,
+    audio_file: null,
+    order_index: 0,
   },
   {
     id: '2',
@@ -30,6 +32,8 @@ const seed: AdhkarSeedRow[] = [
     arabic: '((الْحَمْدُ لِلَّهِ))',
     translation: null,
     repeat_count: 1,
+    audio_file: null,
+    order_index: 1,
   },
   {
     id: '3',
@@ -37,6 +41,8 @@ const seed: AdhkarSeedRow[] = [
     arabic: '((بِاسْمِكَ))',
     translation: null,
     repeat_count: 1,
+    audio_file: null,
+    order_index: 2,
   },
   {
     id: '4',
@@ -44,6 +50,8 @@ const seed: AdhkarSeedRow[] = [
     arabic: 'no brackets here',
     translation: null,
     repeat_count: 1,
+    audio_file: null,
+    order_index: 3,
   },
 ];
 
@@ -68,19 +76,21 @@ function periods(
 }
 
 const lists = {
-  'morning-adhkar': ['1', '2', '4', '9'],
+  'morning-adhkar': ['1', '2', '4'],
   'evening-adhkar': ['2', '1'],
 };
 
 describe('buildAdhkarPeriods', () => {
-  it('cleans featured adhkar and counts the period list', () => {
+  it('cleans featured adhkar and counts the category', () => {
     const out = buildAdhkarPeriods(periods(['1'], ['2', '1']), seed, lists);
-    expect(out.morning).toEqual({
+    const {items, ...morning} = out.morning;
+    expect(items.map(i => i.id)).toEqual(['1', '2', '4']);
+    expect(morning).toEqual({
       period: 'morning',
       superId: 'morning-adhkar',
       title: 'Morning Adhkar',
       arabicTitle: 'أذكار الصباح',
-      count: 4,
+      count: 3,
       featured: [
         {
           id: '1',
@@ -121,10 +131,15 @@ describe('buildAdhkarPeriods', () => {
         arabic: `((${'ا'.repeat(181)}))`,
         translation: null,
         repeat_count: 1,
+        audio_file: null,
+        order_index: 9,
       },
     ];
     expect(() =>
-      buildAdhkarPeriods(periods(['9'], ['1']), long, lists),
+      buildAdhkarPeriods(periods(['9'], ['1']), long, {
+        ...lists,
+        'morning-adhkar': ['9'],
+      }),
     ).toThrow('too long');
   });
 });
