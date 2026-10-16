@@ -160,16 +160,6 @@ function getCredits(
         },
       ],
     },
-    {
-      section: t('credits.sections.designArt'),
-      items: [
-        {
-          title: t('credits.items.yamamotoTitle'),
-          description: t('credits.items.yamamoto'),
-          link: 'https://twitter.com/NaokiQYamamoto',
-        },
-      ],
-    },
   ];
 }
 // @ai-end
