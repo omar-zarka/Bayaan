@@ -18,6 +18,10 @@ import {expoAudioService} from './ExpoAudioService';
 import {mushafAudioService} from './MushafAudioService';
 import {audioCoordinator} from './AudioCoordinator';
 import type {AdhkarSession} from '@/services/adhkar/playback/types';
+import {
+  cachedAdhkarArtworkUri,
+  loadAdhkarArtworkUri,
+} from '@/services/adhkar/playback/adhkarArtwork';
 import branding from '@/config/branding';
 import i18n from '@/i18n';
 
@@ -63,6 +67,48 @@ export function adhkarLockScreenTitle(
   return `${session.listTitle} · ${position(session.index + 1, session.items.length)}`;
 }
 
+// Lists recited by Alafasy (the credits: morning and evening adhkar and the
+// Quranic duas). The rest of Hisn al-Muslim, and Saved, show the app name.
+const ALAFASY_LISTS: ReadonlySet<string> = new Set([
+  'morning-adhkar',
+  'evening-adhkar',
+  'quranic-duas',
+]);
+
+export interface AdhkarLockScreenLabels {
+  position: (current: number, total: number) => string;
+  alafasy: string;
+  appName: string;
+}
+
+/**
+ * Lock screen metadata for adhkar playback: the dhikr's place in the list,
+ * the reciter (or the app name), the list as the album, and the list's
+ * artwork once resolved.
+ */
+export function adhkarLockScreenMetadata(
+  session: AdhkarSession,
+  labels: AdhkarLockScreenLabels,
+  artworkUrl?: string,
+): AudioMetadata {
+  const metadata: AudioMetadata = {
+    title: adhkarLockScreenTitle(session, labels.position),
+    artist: ALAFASY_LISTS.has(session.listId) ? labels.alafasy : labels.appName,
+    albumTitle: session.listTitle,
+  };
+  if (artworkUrl) metadata.artworkUrl = artworkUrl;
+  return metadata;
+}
+
+function adhkarLabels(): AdhkarLockScreenLabels {
+  return {
+    position: (current, total) =>
+      i18n.t('home:adhkar.position', {current, total}),
+    alafasy: i18n.t('settings:credits.items.alafasyTitle'),
+    appName: branding.appName,
+  };
+}
+
 class LockScreenService {
   private static instance: LockScreenService;
   private storeUnsubscribe: (() => void) | null = null;
@@ -74,6 +120,7 @@ class LockScreenService {
   private carAyahLabel: string | null = null;
   private adhkarPlayer: AudioPlayer | null = null;
   private adhkarActive = false;
+  private adhkarSession: AdhkarSession | null = null;
 
   private constructor() {}
 
@@ -115,6 +162,7 @@ class LockScreenService {
     if (this.adhkarPlayer) {
       this.clearPlayer(this.adhkarPlayer);
       this.adhkarPlayer = null;
+      this.adhkarSession = null;
       this.adhkarActive = false;
     }
 
@@ -265,6 +313,7 @@ class LockScreenService {
     if (!this.adhkarPlayer) return;
     this.clearPlayer(this.adhkarPlayer);
     this.adhkarPlayer = null;
+    this.adhkarSession = null;
     this.adhkarActive = false;
     this.lastTrackId = null;
   }
@@ -357,37 +406,66 @@ class LockScreenService {
    * same player already active only gets new metadata.
    */
   activateAdhkar(player: AudioPlayer, session: AdhkarSession): void {
-    const metadata: AudioMetadata = {
-      title: adhkarLockScreenTitle(session, (current, total) =>
-        i18n.t('home:adhkar.position', {current, total}),
-      ),
-      artist: branding.appName,
-    };
+    const artworkUrl = cachedAdhkarArtworkUri(session.listId);
+    const metadata = adhkarLockScreenMetadata(
+      session,
+      adhkarLabels(),
+      artworkUrl,
+    );
 
     try {
       if (this.adhkarPlayer === player && this.adhkarActive) {
+        this.adhkarSession = session;
         player.updateLockScreenMetadata(metadata);
-        return;
+      } else {
+        this.adhkarPlayer = player;
+        this.adhkarSession = session;
+        // adhkarWillPlay leaves the mushaf 'paused', not 'idle', so its
+        // override would otherwise outlive it and restore main on a later stop.
+        this.isMushafActive = false;
+        this.lastMushafTitle = null; // @ai
+        this.clearPlayer(expoAudioService.getPlayer());
+        this.clearPlayer(mushafAudioService.getPlayer());
+        player.setActiveForLockScreen(true, metadata, {
+          showSeekForward: false,
+          showSeekBackward: false,
+        });
+        this.adhkarActive = true;
       }
-      this.adhkarPlayer = player;
-      // adhkarWillPlay leaves the mushaf 'paused', not 'idle', so its
-      // override would otherwise outlive it and restore main on a later stop.
-      this.isMushafActive = false;
-      this.lastMushafTitle = null; // @ai
-      this.clearPlayer(expoAudioService.getPlayer());
-      this.clearPlayer(mushafAudioService.getPlayer());
-      player.setActiveForLockScreen(true, metadata, {
-        showSeekForward: false,
-        showSeekBackward: false,
-      });
-      this.adhkarActive = true;
     } catch (error) {
       if (__DEV__)
         console.warn(
           '[LockScreenService] Failed to activate adhkar player:',
           error,
         );
+      return;
     }
+    if (!artworkUrl) this.loadAdhkarArtwork(player, session.listId);
+  }
+
+  /**
+   * Adds the list's artwork once its file is ready, if the same player still
+   * holds the lock screen for the same list.
+   */
+  private loadAdhkarArtwork(player: AudioPlayer, listId: string): void {
+    loadAdhkarArtworkUri(listId)
+      .then(uri => {
+        const session = this.adhkarSession;
+        if (
+          !uri ||
+          this.adhkarPlayer !== player ||
+          !this.adhkarActive ||
+          session?.listId !== listId
+        )
+          return;
+        player.updateLockScreenMetadata(
+          adhkarLockScreenMetadata(session, adhkarLabels(), uri),
+        );
+      })
+      .catch(error => {
+        if (__DEV__)
+          console.warn('[LockScreenService] Adhkar artwork failed:', error);
+      });
   }
 
   /**
@@ -399,6 +477,7 @@ class LockScreenService {
     if (this.adhkarPlayer !== player) return;
     this.clearPlayer(player);
     this.adhkarPlayer = null;
+    this.adhkarSession = null;
     this.adhkarActive = false;
     this.lastTrackId = null;
     if (!this.isMushafActive) this.syncCurrentState();
