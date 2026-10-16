@@ -14,6 +14,11 @@ import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 
 import {getAudioSource} from '@/utils/adhkarAudio';
+import {
+  isCarriedOverStatus,
+  isTrackFinished,
+  type TrackEndStatus,
+} from '@/utils/adhkarTrackEnd';
 
 /**
  * Context value for direct player access
@@ -120,11 +125,24 @@ const AudioPlayerManager: React.FC<{
     }
   }, [shouldPlay]);
 
+  // Status carried over from the previous source; ignored until a new one arrives.
+  const staleStatus = useRef<TrackEndStatus | null>(null);
+  const latestStatus = useRef<TrackEndStatus | null>(null);
+  latestStatus.current = status
+    ? {
+        currentTime: status.currentTime ?? 0,
+        duration: status.duration ?? 0,
+        playing: status.playing,
+        didJustFinish: status.didJustFinish,
+      }
+    : null;
+
   // When audio source changes, reset tracking state and record start time
   useEffect(() => {
     hasHandledEnd.current = false;
     currentTrackingSource.current = audioSource;
     trackStartTime.current = Date.now();
+    staleStatus.current = latestStatus.current;
   }, [audioSource]);
 
   useEffect(() => {
@@ -139,20 +157,25 @@ const AudioPlayerManager: React.FC<{
       return;
     }
 
-    const currentTime = status.currentTime ?? 0;
-    const duration = status.duration ?? 0;
+    const current: TrackEndStatus = {
+      currentTime: status.currentTime ?? 0,
+      duration: status.duration ?? 0,
+      playing: status.playing,
+      didJustFinish: status.didJustFinish,
+    };
 
-    // Ensure the track has been playing for at least 2 seconds
-    // This prevents false triggers during track transitions when status may have stale values
-    const timeSinceStart = Date.now() - trackStartTime.current;
-    const minimumPlayTime = 2000; // 2 seconds
+    // Do not judge a status left over from the previous source.
+    if (isCarriedOverStatus(current, staleStatus.current)) return;
+    staleStatus.current = null;
 
-    if (
-      duration > 0 &&
-      currentTime >= duration - 0.1 &&
-      !status.playing &&
-      timeSinceStart > minimumPlayTime
-    ) {
+    // The time guard skips stale status from the previous track; it scales
+    // down for clips shorter than 4 s (see utils/adhkarTrackEnd.ts).
+    const finished = isTrackFinished(
+      current,
+      Date.now() - trackStartTime.current,
+    );
+
+    if (finished) {
       hasHandledEnd.current = true;
 
       if (isPlayAllMode) {

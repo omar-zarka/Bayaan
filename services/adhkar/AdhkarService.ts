@@ -9,6 +9,7 @@ import type {
   SuperCategorySection,
 } from '@/types/adhkar';
 import adhkarSeedData from '@/data/adhkar.json';
+const seedData: AdhkarSeedData = adhkarSeedData;
 
 // Re-export types for convenience
 export type {
@@ -19,6 +20,48 @@ export type {
   SuperCategory,
   SuperCategorySection,
 };
+
+interface SuperCategoryGroup {
+  categoryId: string;
+  categoryTitle: string;
+  adhkar: Dhikr[];
+}
+
+// Keeps list order; starts a new group whenever the category changes.
+function groupConsecutiveByCategory(
+  adhkar: Dhikr[],
+  categories: AdhkarCategory[],
+): SuperCategoryGroup[] {
+  const groups: SuperCategoryGroup[] = [];
+  for (const dhikr of adhkar) {
+    const last = groups[groups.length - 1];
+    if (last && last.categoryId === dhikr.categoryId) {
+      last.adhkar.push(dhikr);
+      continue;
+    }
+    const category = categories.find(c => c.id === dhikr.categoryId);
+    if (!category) continue;
+    groups.push({
+      categoryId: category.id,
+      categoryTitle: category.title,
+      adhkar: [dhikr],
+    });
+  }
+  return groups;
+}
+
+// A list can play its own recording of a shared dhikr (evening session).
+function applyAudioOverrides(
+  adhkar: Dhikr[],
+  overrides: Readonly<Record<string, string>> | null,
+): Dhikr[] {
+  if (!overrides) return adhkar;
+  return adhkar.map(dhikr =>
+    Object.hasOwn(overrides, dhikr.id)
+      ? {...dhikr, audioFile: overrides[dhikr.id]}
+      : dhikr,
+  );
+}
 
 class AdhkarService {
   private initPromise: Promise<void> | null = null;
@@ -41,16 +84,17 @@ class AdhkarService {
         // Seed database if empty or version changed
         const isSeeded = await adhkarDatabaseService.isDatabaseSeeded();
         if (!isSeeded || needsReseed) {
-          await adhkarDatabaseService.seedDatabase(
-            adhkarSeedData as AdhkarSeedData,
-          );
+          await adhkarDatabaseService.seedDatabase(seedData);
         }
 
         // Seed super categories if empty or version changed
         const areSuperCategoriesSeeded =
           await adhkarDatabaseService.areSuperCategoriesSeeded();
         if (!areSuperCategoriesSeeded || needsReseed) {
-          await adhkarDatabaseService.seedSuperCategories();
+          await adhkarDatabaseService.seedSuperCategories(
+            seedData.super_category_dhikr_ids ?? {},
+            seedData.super_category_audio_overrides ?? {},
+          );
         }
 
         // Update data version after successful seeding
@@ -187,6 +231,20 @@ class AdhkarService {
 
     // Get all categories
     const allCategories = await adhkarDatabaseService.getAllCategories();
+
+    // Explicit ordered list (morning and evening): follow it exactly
+    if (superCategory.dhikrIds) {
+      const listed = await adhkarDatabaseService.getAdhkarByIds(
+        superCategory.dhikrIds,
+      );
+      return {
+        superCategory,
+        categoryGroups: groupConsecutiveByCategory(
+          applyAudioOverrides(listed, superCategory.audioOverrides),
+          allCategories,
+        ),
+      };
+    }
 
     // Get adhkar for all category IDs in this super category
     const adhkar = await adhkarDatabaseService.getAdhkarByCategoryIds(
