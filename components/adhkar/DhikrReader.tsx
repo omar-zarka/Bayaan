@@ -140,6 +140,7 @@ export const DhikrReader: React.FC<DhikrReaderProps> = ({
         {showControls && (
           <View style={styles.audioSection}>
             <AdhkarAudioControls
+              dhikrId={dhikr.id}
               audioFile={dhikr.audioFile}
               onCopy={handleOpenCopyOptions}
               onBookmark={onSaveToggle}

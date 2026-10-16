@@ -48,6 +48,7 @@
   "adhkar": {
     "otherSection": "Other",
     "playAll": "Play All",
+    "resume": "Resume",
     "hideInfo": "Hide Info",
     "showInfo": "Show Info",
     "reciteTimes_one": "Recite {{count}} time",
@@ -77,7 +78,8 @@
       "showInstruction": "Show instruction",
       "hideInstruction": "Hide instruction",
       "playAll": "Play all",
-      "pauseAll": "Pause all"
+      "pauseAll": "Pause all",
+      "resumeAll": "Resume all"
     }
   },
   "a11y": {

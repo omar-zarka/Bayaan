@@ -144,7 +144,7 @@ export function buildSurahCatalogSwift(surahs: StaticSurah[]): string {
   ].join('\n');
 }
 
-// ---- Phase 3: adhkar periods and occasions -------------------------------
+// ---- Phase 3: adhkar periods --------------------------------------------
 
 export type AdhkarPeriodName = 'morning' | 'evening';
 
@@ -155,6 +155,17 @@ export interface FeaturedDhikr {
   repeatCount: number;
 }
 
+export interface SessionDhikr {
+  id: string;
+  translation: string | null;
+  repeatCount: number; // >= 1
+  audioFile: string | null;
+  mediumText: string;
+  mediumCut: boolean;
+  largeText: string;
+  largeCut: boolean;
+}
+
 export interface AdhkarPeriodData {
   period: AdhkarPeriodName;
   superId: string;
@@ -162,6 +173,7 @@ export interface AdhkarPeriodData {
   arabicTitle: string;
   count: number; // adhkar in the period's dhikr list
   featured: FeaturedDhikr[];
+  items: SessionDhikr[]; // the whole category, in order_index order
 }
 
 export interface AdhkarPeriods {
@@ -182,53 +194,13 @@ export interface AdhkarSeedRow {
   arabic: string;
   translation: string | null;
   repeat_count: number;
-}
-
-export interface HijriMonthName {
-  number: number;
-  name: string;
-  arabic: string;
-}
-
-export interface OccasionSource {
-  id: string;
-  name: string;
-  arabicName: string;
-  listenSurahId: number | null;
-  keys: string[];
-}
-
-export interface OccasionsSource {
-  months: HijriMonthName[];
-  occasions: OccasionSource[];
-}
-
-export interface OccasionInfo {
-  id: string;
-  name: string;
-  arabicName: string;
-  listenSurahId: number | null;
-  ayat: StaticAyah[];
-}
-
-export interface OccasionData {
-  months: HijriMonthName[];
-  occasions: OccasionInfo[];
+  audio_file: string | null;
+  order_index: number;
 }
 
 export const MAX_FEATURED_DHIKR_CHARS = 180;
-// Same ids and order as OCCASION_WINDOWS + jumuah in contextRules.ts.
-export const OCCASION_IDS = [
-  'eidFitr',
-  'arafah',
-  'eidAdha',
-  'lastTen',
-  'ramadan',
-  'dhulHijjah',
-  'ashura',
-  'jumuah',
-] as const;
-
+export const SESSION_MEDIUM_CHARS = 120;
+export const SESSION_LARGE_CHARS = 420;
 function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -264,14 +236,31 @@ function isSeedRow(value: unknown): value is AdhkarSeedRow {
     typeof value.category_id === 'string' &&
     typeof value.arabic === 'string' &&
     (value.translation === null || typeof value.translation === 'string') &&
-    typeof value.repeat_count === 'number'
+    typeof value.repeat_count === 'number' &&
+    (value.audio_file === undefined ||
+      value.audio_file === null ||
+      typeof value.audio_file === 'string') &&
+    (value.order_index === undefined || typeof value.order_index === 'number')
   );
 }
 
 export function parseAdhkarSeed(seed: unknown): AdhkarSeedRow[] {
   if (!isObject(seed) || !Array.isArray(seed.adhkar)) return [];
   const rows: unknown[] = seed.adhkar;
-  return rows.filter(isSeedRow);
+  return rows.filter(isSeedRow).map(row => ({
+    ...row,
+    audio_file: row.audio_file ?? null,
+    order_index: row.order_index ?? 0,
+  }));
+}
+
+// Session card text: the (( )) dhikr when marked, else the whole text
+// without bare parentheses (Ayat al-Kursi, the three Quls).
+export function sessionDhikrText(arabic: string): string {
+  const marked = tasbeehDisplayText(arabic);
+  const text =
+    marked ?? arabic.replace(/[()]/g, ' ').replace(/\s+/g, ' ').trim();
+  return text.replace(/[\s.،,:]+$/, '');
 }
 
 // Ordered dhikr ids per super category (data/adhkar.json
@@ -288,34 +277,35 @@ export function parseAdhkarSeedLists(seed: unknown): AdhkarSeedLists {
   return lists;
 }
 
-function isMonth(value: unknown): value is HijriMonthName {
-  return (
-    isObject(value) &&
-    typeof value.number === 'number' &&
-    typeof value.name === 'string' &&
-    typeof value.arabic === 'string'
-  );
+// Text that fits within budget characters, cut at a word boundary with an
+// ellipsis when it does not.
+export function cutToBudget(
+  text: string,
+  budget: number,
+): {text: string; cut: boolean} {
+  if (text.length <= budget) return {text, cut: false};
+  const head = text.slice(0, budget - 1);
+  const space = head.lastIndexOf(' ');
+  return {
+    text: `${(space > 0 ? head.slice(0, space) : head).trim()}…`,
+    cut: true,
+  };
 }
 
-function isOccasionSource(value: unknown): value is OccasionSource {
-  return (
-    isObject(value) &&
-    typeof value.id === 'string' &&
-    typeof value.name === 'string' &&
-    typeof value.arabicName === 'string' &&
-    (value.listenSurahId === null || typeof value.listenSurahId === 'number') &&
-    isStringList(value.keys)
-  );
-}
-
-export function isOccasionsSource(value: unknown): value is OccasionsSource {
-  return (
-    isObject(value) &&
-    Array.isArray(value.months) &&
-    value.months.every(isMonth) &&
-    Array.isArray(value.occasions) &&
-    value.occasions.every(isOccasionSource)
-  );
+function sessionItem(row: AdhkarSeedRow): SessionDhikr {
+  const text = sessionDhikrText(row.arabic);
+  const medium = cutToBudget(text, SESSION_MEDIUM_CHARS);
+  const large = cutToBudget(text, SESSION_LARGE_CHARS);
+  return {
+    id: row.id,
+    translation: tasbeehTranslation(row.translation),
+    repeatCount: Math.max(1, row.repeat_count),
+    audioFile: row.audio_file,
+    mediumText: medium.text,
+    mediumCut: medium.cut,
+    largeText: large.text,
+    largeCut: large.cut,
+  };
 }
 
 export function buildAdhkarPeriods(
@@ -360,33 +350,13 @@ export function buildAdhkarPeriods(
       arabicTitle: src.arabicTitle,
       count: ids.length,
       featured,
+      items: ids.map(id => {
+        const row = seed.find(d => d.id === id);
+        if (!row)
+          throw new Error(`${name}: dhikr ${id} is missing from the seed`);
+        return sessionItem(row);
+      }),
     };
   }
   return {morning: period('morning'), evening: period('evening')};
-}
-
-export function buildOccasionData(
-  source: OccasionsSource,
-  src: AyahSources,
-): OccasionData {
-  if (
-    source.months.length !== 12 ||
-    source.months.some((m, i) => m.number !== i + 1)
-  ) {
-    throw new Error('months must list 1 to 12 in order');
-  }
-  const ids = source.occasions.map(o => o.id);
-  if (JSON.stringify(ids) !== JSON.stringify(OCCASION_IDS)) {
-    throw new Error(`occasions must be exactly ${OCCASION_IDS.join(', ')}`);
-  }
-  return {
-    months: source.months,
-    occasions: source.occasions.map(o => ({
-      id: o.id,
-      name: o.name,
-      arabicName: o.arabicName,
-      listenSurahId: o.listenSurahId,
-      ayat: buildStaticAyat(o.keys, src),
-    })),
-  };
 }
