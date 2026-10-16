@@ -22,6 +22,7 @@ import {useAdhkar} from '@/hooks/useAdhkar';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {DhikrReader} from '@/components/adhkar/DhikrReader';
+import {resolveViewableChange} from '@/components/adhkar/playAllScrollGuard';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {Dhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
@@ -156,7 +157,9 @@ const DhikrReaderScreen: React.FC = () => {
   }, [stopAudio]);
 
   // Sync FlatList scroll when Play All index changes
-  const isScrollingFromPlayAll = useRef(false);
+  // Row a Play All auto-scroll is heading to; null when no such scroll is in
+  // flight. Viewable changes until it lands are not user swipes.
+  const playAllScrollTarget = useRef<number | null>(null);
   useEffect(() => {
     if (
       isThisPlayAllSource &&
@@ -164,16 +167,12 @@ const DhikrReaderScreen: React.FC = () => {
       isDataLoaded &&
       adhkarList.length > 0
     ) {
-      isScrollingFromPlayAll.current = true;
+      playAllScrollTarget.current = playAllIndex;
       flatListRef.current?.scrollToIndex({
         index: playAllIndex,
         animated: true,
       });
       setCurrentIndex(playAllIndex);
-      // Reset flag after animation completes
-      setTimeout(() => {
-        isScrollingFromPlayAll.current = false;
-      }, 300);
     }
   }, [
     isThisPlayAllSource,
@@ -272,11 +271,17 @@ const DhikrReaderScreen: React.FC = () => {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
 
-        // Sync Play All store when user manually swipes (not from Play All auto-scroll)
+        // Sync Play All store when user manually swipes (not from Play All
+        // auto-scroll, which may pass several rows before it lands)
+        const change = resolveViewableChange(
+          playAllScrollTarget.current,
+          newIndex,
+        );
+        playAllScrollTarget.current = change.target;
         if (
           isThisPlayAllSource &&
           newIndex !== playAllIndex &&
-          !isScrollingFromPlayAll.current
+          change.isUserSwipe
         ) {
           goToIndex(newIndex);
         }
@@ -284,6 +289,17 @@ const DhikrReaderScreen: React.FC = () => {
     },
     [isThisPlayAllSource, playAllIndex, goToIndex],
   );
+
+  // A drag is the user taking over, even mid auto-scroll.
+  const handleScrollBeginDrag = useCallback(() => {
+    playAllScrollTarget.current = null;
+  }, []);
+
+  // Any scroll that comes to rest ends the auto-scroll, even one that moved
+  // nothing.
+  const handleMomentumScrollEnd = useCallback(() => {
+    playAllScrollTarget.current = null;
+  }, []);
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
@@ -356,6 +372,8 @@ const DhikrReaderScreen: React.FC = () => {
           initialScrollIndex={initialIndex}
           getItemLayout={getItemLayout}
           onViewableItemsChanged={onViewableItemsChanged}
+          onScrollBeginDrag={handleScrollBeginDrag}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
           viewabilityConfig={viewabilityConfig}
           windowSize={3}
           maxToRenderPerBatch={2}

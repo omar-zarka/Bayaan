@@ -10,8 +10,28 @@ import {create} from 'zustand';
 import {Dhikr} from '@/types/adhkar';
 import {useAdhkarAudioStore} from '@/store/adhkarAudioStore';
 import {usePlayerStore} from '@/services/player/store/playerStore';
+import {hasAudio} from '@/utils/adhkarAudio';
 
 type SourceType = 'morning' | 'evening' | 'saved' | 'other';
+
+/** First index at or after `from` whose dhikr has bundled audio, or -1. */
+export function nextPlayableIndex(
+  queue: readonly Dhikr[],
+  from: number,
+): number {
+  for (let i = Math.max(0, from); i < queue.length; i++) {
+    if (hasAudio(queue[i].audioFile)) return i;
+  }
+  return -1;
+}
+
+/** Last index at or before `from` whose dhikr has bundled audio, or -1. */
+function previousPlayableIndex(queue: readonly Dhikr[], from: number): number {
+  for (let i = Math.min(from, queue.length - 1); i >= 0; i--) {
+    if (hasAudio(queue[i].audioFile)) return i;
+  }
+  return -1;
+}
 
 interface AdhkarPlayAllState {
   // Mode
@@ -30,13 +50,14 @@ interface AdhkarPlayAllState {
 }
 
 interface AdhkarPlayAllActions {
-  // Start Play All with a list of adhkar
+  // Start Play All with a list of adhkar. Returns the index playback starts
+  // at (the first row with audio at or after startIndex), or -1 if none.
   startPlayAll: (
     adhkarList: Dhikr[],
     startIndex: number,
     sourceType: SourceType,
     sourceId: string,
-  ) => void;
+  ) => number;
 
   // Stop Play All and reset
   stopPlayAll: () => void;
@@ -67,7 +88,11 @@ export const useAdhkarPlayAllStore = create<
   isPlaying: false,
 
   startPlayAll: (adhkarList, startIndex, sourceType, sourceId) => {
-    if (adhkarList.length === 0) return;
+    const first = nextPlayableIndex(
+      adhkarList,
+      Math.min(startIndex, adhkarList.length - 1),
+    );
+    if (first < 0) return -1;
 
     // Stop single-dhikr playback
     useAdhkarAudioStore.getState().pause();
@@ -81,11 +106,12 @@ export const useAdhkarPlayAllStore = create<
     set({
       isPlayAllMode: true,
       queue: adhkarList,
-      currentIndex: Math.min(startIndex, adhkarList.length - 1),
+      currentIndex: first,
       sourceType,
       sourceId,
       isPlaying: true,
     });
+    return first;
   },
 
   stopPlayAll: () => {
@@ -103,8 +129,10 @@ export const useAdhkarPlayAllStore = create<
     const {queue, currentIndex, isPlayAllMode} = get();
     if (!isPlayAllMode) return false;
 
-    if (currentIndex < queue.length - 1) {
-      set({currentIndex: currentIndex + 1});
+    // Rows without audio are skipped; they have nothing to play.
+    const next = nextPlayableIndex(queue, currentIndex + 1);
+    if (next >= 0) {
+      set({currentIndex: next});
       return true;
     }
     // End of queue - stop Play All
@@ -113,11 +141,13 @@ export const useAdhkarPlayAllStore = create<
   },
 
   goToPrevious: () => {
-    const {currentIndex, isPlayAllMode} = get();
+    const {queue, currentIndex, isPlayAllMode} = get();
     if (!isPlayAllMode) return false;
 
-    if (currentIndex > 0) {
-      set({currentIndex: currentIndex - 1});
+    // Rows without audio are skipped, as in advanceToNext.
+    const previous = previousPlayableIndex(queue, currentIndex - 1);
+    if (previous >= 0) {
+      set({currentIndex: previous});
       return true;
     }
     return false;
@@ -128,13 +158,25 @@ export const useAdhkarPlayAllStore = create<
     if (!isPlayAllMode) return;
 
     if (index >= 0 && index < queue.length) {
-      set({currentIndex: index});
+      // A row without audio cannot play: pause there instead of leaving the
+      // player waiting on a track that never starts.
+      if (hasAudio(queue[index].audioFile)) {
+        set({currentIndex: index});
+      } else {
+        set({currentIndex: index, isPlaying: false});
+      }
     }
   },
 
   play: () => {
-    const {isPlayAllMode} = get();
+    const {isPlayAllMode, queue, currentIndex} = get();
     if (!isPlayAllMode) return;
+
+    const playable = nextPlayableIndex(queue, currentIndex);
+    if (playable < 0) {
+      get().stopPlayAll();
+      return;
+    }
 
     // Pause main Quran player if it's playing
     const mainPlayerState = usePlayerStore.getState();
@@ -142,7 +184,7 @@ export const useAdhkarPlayAllStore = create<
       mainPlayerState.pause();
     }
 
-    set({isPlaying: true});
+    set({currentIndex: playable, isPlaying: true});
   },
 
   pause: () => {
