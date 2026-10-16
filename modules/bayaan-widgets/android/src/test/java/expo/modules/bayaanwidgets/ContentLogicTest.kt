@@ -45,7 +45,9 @@ class ContentLogicTest {
 
   @Test fun parsesGeneratedStaticData() {
     val adhkar = ContentModels.decodeAdhkarPeriods(asset("adhkar-periods.json"))!!
-    assertEquals(24, adhkar.morning.count)
+    assertEquals(23, adhkar.morning.count)
+    assertEquals(21, adhkar.evening.count)
+    assertTrue(adhkar.evening.featured.none { it.id == "94" })
     assertEquals("evening-adhkar", adhkar.of(AdhkarPeriod.EVENING).superId)
     assertTrue(adhkar.evening.featured.any { it.id == "97" } && adhkar.morning.featured.none { it.id == "97" })
     val occasions = ContentModels.decodeOccasions(asset("occasions.json"))!!
