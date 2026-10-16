@@ -196,6 +196,11 @@
       "exclude": [
         "react-native-screens"
       ]
+    },
+    "autolinking": {
+      "buildFromSource": [
+        "expo-audio"
+      ]
     }
   },
   "private": true
