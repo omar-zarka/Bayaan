@@ -15,7 +15,7 @@ import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import {Dhikr} from '@/types/adhkar';
-import {adhkarCopyText} from '@/utils/adhkarText';
+import {adhkarCopyText, adhkarTranslationCopyText} from '@/utils/adhkarText';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 // @ai-end
@@ -95,11 +95,11 @@ export const AdhkarCopyOptionsSheet = (
     }
 
     if (copyTranslation && dhikr.translation) {
-      parts.push(dhikr.translation);
+      parts.push(adhkarTranslationCopyText(dhikr.translation));
     }
 
     if (copyTransliteration && dhikr.transliteration) {
-      parts.push(dhikr.transliteration);
+      parts.push(adhkarCopyText(dhikr.transliteration));
     }
 
     if (parts.length > 0) {

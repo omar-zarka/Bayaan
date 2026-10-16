@@ -13,4 +13,6 @@
 // Version 8: Sourced transliterations and instructions, 99 Names meanings,
 //            restored row 114, marker fixes, category 132 under Home,
 //            evening audio overrides
-export const ADHKAR_DATA_VERSION = 8;
+// Version 9: Count notes outside the dhikr marks, transliteration marks,
+//            rows 197, 204, 250 and 265 from sunnah.com, category 86 title
+export const ADHKAR_DATA_VERSION = 9;

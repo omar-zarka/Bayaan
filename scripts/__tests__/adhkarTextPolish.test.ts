@@ -1,7 +1,8 @@
 // scripts/__tests__/adhkarTextPolish.test.ts
 // Checks data/adhkar.json against the text polish inputs in
 // scripts/adhkar-content (translit.json, names.json, hisnmuslimRows.json,
-// markerFixes.json, translitFitrahive.json).
+// markerFixes.json, translitMarkerFixes.json, rowFixes.json,
+// translitFitrahive.json).
 import adhkarData from '@/data/adhkar.json';
 import {parseAdhkarArabic, type AdhkarSegment} from '@/utils/adhkarText';
 import {
@@ -11,10 +12,13 @@ import {
   MARKER_FIXES,
   NAME_MEANINGS,
   NAMES_CATEGORY,
+  ROW_FIXES,
   SITE_ROWS,
+  TRANSLIT_MARKER_FIXES,
   TRANSLITERATIONS,
   UNCHANGED,
   arabicSkeleton,
+  markerFreeText,
   tidyQuranReferences,
   withoutMarkers,
 } from '../adhkar-content/textPolish';
@@ -55,9 +59,16 @@ describe('transliterations', () => {
   it('equal the input value on every row outside the rulings', () => {
     for (const r of nonNames) {
       if (ruled.has(r.id)) continue;
+      const input = TRANSLITERATIONS[r.id].transliteration;
+      const fix = TRANSLIT_MARKER_FIXES[r.id];
+      if (fix)
+        expect({id: r.id, before: fix.before}).toEqual({
+          id: r.id,
+          before: input,
+        });
       expect({id: r.id, value: r.transliteration}).toEqual({
         id: r.id,
-        value: TRANSLITERATIONS[r.id].transliteration,
+        value: fix ? fix.after : input,
       });
     }
   });
@@ -81,7 +92,7 @@ describe('transliterations', () => {
   });
 
   it('leave the other ruled rows without a transliteration', () => {
-    for (const id of ['125', '265', 'evening-80', 'evening-81']) {
+    for (const id of ['125', 'evening-80', 'evening-81']) {
       expect(FITRAHIVE_ALTERNATIVES[id]).toBeUndefined();
       expect({id, value: row(id).transliteration}).toEqual({id, value: null});
     }
@@ -183,7 +194,9 @@ describe('rows restored from hisnmuslim.com', () => {
       expect(r.arabic.trim()).not.toBe('');
       expect(r.translation?.trim()).toBeTruthy();
       expect(withoutMarkers(r.arabic)).toBe(withoutMarkers(site.arabic));
-      expect(r.translation).toBe(site.translation);
+      expect(r.translation).toBe(
+        ROW_FIXES.rows[id]?.translation ?? site.translation,
+      );
     }
   });
 
@@ -198,9 +211,9 @@ describe('rows restored from hisnmuslim.com', () => {
 describe('marker fixes', () => {
   it('change only marker characters', () => {
     for (const [id, fix] of Object.entries(MARKER_FIXES)) {
-      expect({id, same: withoutMarkers(fix.before)}).toEqual({
+      expect({id, same: markerFreeText(fix.before)}).toEqual({
         id,
-        same: withoutMarkers(fix.after),
+        same: markerFreeText(fix.after),
       });
       expect({id, applied: row(id).arabic}).toEqual({id, applied: fix.after});
     }
@@ -291,6 +304,103 @@ describe('marker fixes', () => {
 
   it('close the Quran bracket of row 50', () => {
     expect(row('50').arabic).toContain('﴾))');
+  });
+
+  it('move the count notes out of the dhikr (rows 66, 69, 106, 138)', () => {
+    for (const id of ['66', '69', '106', '138']) {
+      const segments = parseAdhkarArabic(row(id).arabic);
+      expect({
+        id,
+        narration: segments.some(s => s.kind === 'narration'),
+      }).toEqual({id, narration: true});
+      for (const segment of segments) {
+        expect({id, text: segment.text}).not.toEqual({
+          id,
+          text: expect.stringMatching(/[()]/),
+        });
+      }
+    }
+  });
+
+  it('show the name instruction of row 155 as narration and turn the row 238 gloss into commas', () => {
+    const segments = parseAdhkarArabic(row('155').arabic);
+    expect(kinds(segments)).toEqual(['dhikr', 'narration', 'dhikr']);
+    expect(segments[1].text.normalize('NFC')).toBe(
+      'بِاسْمِهِ'.normalize('NFC'),
+    );
+    expect(row('238').arabic).not.toMatch(/[()]/);
+  });
+});
+
+describe('transliteration marker fixes', () => {
+  it('change only marker characters and are applied', () => {
+    for (const [id, fix] of Object.entries(TRANSLIT_MARKER_FIXES)) {
+      expect({id, same: markerFreeText(fix.before)}).toEqual({
+        id,
+        same: markerFreeText(fix.after),
+      });
+      expect({id, applied: row(id).transliteration}).toEqual({
+        id,
+        applied: fix.after,
+      });
+    }
+  });
+
+  it('leave no visible bracket in any transliteration after parsing', () => {
+    for (const r of rows) {
+      if (!r.transliteration) continue;
+      for (const segment of parseAdhkarArabic(r.transliteration)) {
+        expect({id: r.id, text: segment.text}).not.toEqual({
+          id: r.id,
+          text: expect.stringMatching(/[()[\]{}]/),
+        });
+      }
+    }
+  });
+
+  it('render count notes and placeholders as narration', () => {
+    const shapes: Record<string, string[]> = {
+      '66': ['dhikr', 'narration', 'dhikr'],
+      '106': ['dhikr', 'narration', 'dhikr', 'narration', 'dhikr', 'narration'],
+      '129': ['dhikr', 'narration', 'dhikr'],
+      '160': ['dhikr', 'narration', 'dhikr'],
+      '5': ['dhikr', 'addition', 'dhikr'],
+      '10': ['dhikr'],
+      '50': ['dhikr'],
+    };
+    for (const [id, expected] of Object.entries(shapes)) {
+      const transliteration = row(id).transliteration ?? '';
+      expect({id, kinds: kinds(parseAdhkarArabic(transliteration))}).toEqual({
+        id,
+        kinds: expected,
+      });
+    }
+  });
+});
+
+describe('rows from published editions', () => {
+  it('take the sunnah.com translation and transliteration', () => {
+    for (const [id, fix] of Object.entries(ROW_FIXES.rows)) {
+      expect(fix.sourceUrl).toBe(`https://sunnah.com/hisn:${id}`);
+      expect({id, value: row(id).translation}).toEqual({
+        id,
+        value: fix.translation,
+      });
+      expect(TRANSLITERATIONS[id].sourceUrl).toBe(fix.sourceUrl);
+      expect({id, value: row(id).transliteration}).toEqual({
+        id,
+        value: TRANSLITERATIONS[id].transliteration,
+      });
+    }
+  });
+
+  it('correct the category 86 title on the category and its rows', () => {
+    const title = ROW_FIXES.categories['86'].title;
+    expect(title.startsWith('Invocation')).toBe(true);
+    expect(adhkarData.categories.find(c => c.id === '86')?.title).toBe(title);
+    for (const r of adhkarData.adhkar.filter(a => a.category_id === '86')) {
+      expect(r.category_name).toBe(title);
+    }
   });
 });
 

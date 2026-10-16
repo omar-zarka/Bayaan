@@ -1,7 +1,8 @@
 // scripts/adhkar-content/textPolish.ts
 // Text polish for data/adhkar.json (2026-10-13): transliterations and
-// instructions, 99 Names meanings, rows restored from hisnmuslim.com, marker
-// fixes and the meta totals. Every value comes from a JSON input next to this
+// instructions, 99 Names meanings, rows restored from hisnmuslim.com, rows
+// and a category title corrected from published editions, Arabic and
+// transliteration marker fixes and the meta totals. Every value comes from a JSON input next to this
 // file; nothing is written here by hand. Every step is idempotent.
 // No '@/' imports: tsx scripts import this file.
 import translitJson from './translit.json';
@@ -9,6 +10,8 @@ import fitrahiveJson from './translitFitrahive.json';
 import namesJson from './names.json';
 import hisnmuslimJson from './hisnmuslimRows.json';
 import markerJson from './markerFixes.json';
+import translitMarkerJson from './translitMarkerFixes.json';
+import rowFixesJson from './rowFixes.json';
 import type {SeedFile, SeedRow} from './adhkarFixes';
 
 export const NAMES_CATEGORY = 'names-of-allah';
@@ -60,6 +63,21 @@ export interface SiteRow {
 export interface MarkerFix {
   before: string;
   after: string;
+}
+
+export interface TranslationFix {
+  translation: string;
+  sourceUrl: string;
+}
+
+export interface CategoryTitleFix {
+  title: string;
+  sourceUrl: string;
+}
+
+export interface RowFixes {
+  rows: Record<string, TranslationFix>;
+  categories: Record<string, CategoryTitleFix>;
 }
 
 function parseTranslit(value: unknown): Record<string, TranslitEntry> {
@@ -146,38 +164,75 @@ function parseSiteRows(value: unknown): Record<string, SiteRow> {
   return out;
 }
 
-function parseMarkerFixes(value: unknown): Record<string, MarkerFix> {
+function parseMarkerFixes(
+  value: unknown,
+  file: string,
+): Record<string, MarkerFix> {
   const out: Record<string, MarkerFix> = {};
-  for (const [id, entry] of entriesOf(value, 'markerFixes.json')) {
+  for (const [id, entry] of entriesOf(value, file)) {
     if (
       !isRecord(entry) ||
       typeof entry.before !== 'string' ||
       typeof entry.after !== 'string'
     ) {
-      throw new Error(`markerFixes.json: malformed row ${id}`);
+      throw new Error(`${file}: malformed row ${id}`);
     }
     out[id] = {before: entry.before, after: entry.after};
   }
   return out;
 }
 
+function parseRowFixes(value: unknown): RowFixes {
+  if (!isRecord(value)) throw new Error('rowFixes.json must be an object');
+  const rows: Record<string, TranslationFix> = {};
+  for (const [id, entry] of entriesOf(value.rows, 'rowFixes.json rows')) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.translation !== 'string' ||
+      typeof entry.sourceUrl !== 'string'
+    ) {
+      throw new Error(`rowFixes.json: malformed row ${id}`);
+    }
+    rows[id] = {translation: entry.translation, sourceUrl: entry.sourceUrl};
+  }
+  const categories: Record<string, CategoryTitleFix> = {};
+  for (const [id, entry] of entriesOf(
+    value.categories,
+    'rowFixes.json categories',
+  )) {
+    if (
+      !isRecord(entry) ||
+      typeof entry.title !== 'string' ||
+      typeof entry.sourceUrl !== 'string'
+    ) {
+      throw new Error(`rowFixes.json: malformed category ${id}`);
+    }
+    categories[id] = {title: entry.title, sourceUrl: entry.sourceUrl};
+  }
+  return {rows, categories};
+}
+
 export const TRANSLITERATIONS = parseTranslit(translitJson);
 export const FITRAHIVE_ALTERNATIVES = parseFitrahive(fitrahiveJson);
 export const NAME_MEANINGS = parseNames(namesJson);
 export const SITE_ROWS = parseSiteRows(hisnmuslimJson);
-export const MARKER_FIXES = parseMarkerFixes(markerJson);
+export const MARKER_FIXES = parseMarkerFixes(markerJson, 'markerFixes.json');
+export const TRANSLIT_MARKER_FIXES = parseMarkerFixes(
+  translitMarkerJson,
+  'translitMarkerFixes.json',
+);
+export const ROW_FIXES = parseRowFixes(rowFixesJson);
 
 // ---- Transliterations ---------------------------------------------------------
 
 // Rows whose research value is unusable (77 drifts into the evening wording,
-// 125 is another dua's English, 265 is garbled, the evening 80/81 forms have
+// 125 is another dua's English, the evening 80/81 forms have
 // no published transliteration). They take the MIT fitrahive value only when
 // its Arabic has the same words as the row's (same letter skeleton, see
 // arabicSkeleton); otherwise null.
 export const FITRAHIVE_RULED_IDS: readonly string[] = [
   '77',
   '125',
-  '265',
   'evening-80',
   'evening-81',
 ];
@@ -321,6 +376,29 @@ export function applySiteRows(seed: SeedFile): SeedFile {
   };
 }
 
+// ---- Rows and a category title from published editions -------------------------
+
+export function applyRowFixes(seed: SeedFile): SeedFile {
+  const {rows, categories} = ROW_FIXES;
+  return {
+    ...seed,
+    categories: seed.categories.map(category =>
+      Object.hasOwn(categories, category.id)
+        ? {...category, title: categories[category.id].title}
+        : category,
+    ),
+    adhkar: seed.adhkar.map(row => {
+      const translation = Object.hasOwn(rows, row.id)
+        ? rows[row.id].translation
+        : row.translation;
+      const categoryName = Object.hasOwn(categories, row.category_id)
+        ? categories[row.category_id].title
+        : row.category_name;
+      return {...row, translation, category_name: categoryName};
+    }),
+  };
+}
+
 // ---- Markers ------------------------------------------------------------------------
 
 const MARKS = /[()[\]﴾﴿]/g;
@@ -328,6 +406,15 @@ const MARKS = /[()[\]﴾﴿]/g;
 /** Text with (( )), ( ), [ ], ﴿ ﴾ and spacing removed. */
 export function withoutMarkers(text: string): string {
   return text.replace(MARKS, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The letters and punctuation of a text, without markers (with the { } of
+ * the transliterations), commas and whitespace, so a fix may turn a gloss's
+ * parentheses into commas (row 238) but never change a letter.
+ */
+export function markerFreeText(text: string): string {
+  return text.replace(/[()[\]{}﴾﴿،,\s]/g, '');
 }
 
 export function applyMarkerFixes(seed: SeedFile): SeedFile {
@@ -339,10 +426,33 @@ export function applyMarkerFixes(seed: SeedFile): SeedFile {
       if (row.arabic !== fix.before) {
         throw new Error(`marker fix for ${row.id} no longer matches its text`);
       }
-      if (withoutMarkers(fix.before) !== withoutMarkers(fix.after)) {
+      if (markerFreeText(fix.before) !== markerFreeText(fix.after)) {
         throw new Error(`marker fix for ${row.id} changes more than markers`);
       }
       return {...row, arabic: fix.after};
+    }),
+  };
+}
+
+// Transliterations take the Arabic marks so parseAdhkarArabic can render
+// them: (( )) around the words to say, counts and placeholders outside.
+export function applyTranslitMarkerFixes(seed: SeedFile): SeedFile {
+  return {
+    ...seed,
+    adhkar: seed.adhkar.map(row => {
+      const fix = TRANSLIT_MARKER_FIXES[row.id];
+      if (!fix || row.transliteration === fix.after) return row;
+      if (row.transliteration !== fix.before) {
+        throw new Error(
+          `transliteration marker fix for ${row.id} no longer matches its text`,
+        );
+      }
+      if (markerFreeText(fix.before) !== markerFreeText(fix.after)) {
+        throw new Error(
+          `transliteration marker fix for ${row.id} changes more than markers`,
+        );
+      }
+      return {...row, transliteration: fix.after};
     }),
   };
 }

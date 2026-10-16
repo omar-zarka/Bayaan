@@ -2,8 +2,10 @@ import adhkarData from '@/data/adhkar.json';
 import {
   adhkarCardLabel,
   adhkarCopyText,
+  adhkarTranslationCopyText,
   cleanAdhkarTranslation,
   parseAdhkarArabic,
+  segmentAdhkarTranslation,
   type AdhkarSegment,
 } from '../adhkarText';
 import {getAdhkarQuranPassages} from '../adhkarQuran';
@@ -63,7 +65,10 @@ describe('parseAdhkarArabic', () => {
   });
 
   it('keeps a parenthesis that sits next to the closing mark', () => {
-    const segments = parseAdhkarArabic(row('138').arabic);
+    // Row 138 before v9 moved its count note outside the marks.
+    const segments = parseAdhkarArabic(
+      '((أَعُوذُ بِاللَّهِ، وَاتْفُلْ عَلَى يَسَارِكَ (ثلاثاً))).',
+    );
     expect(segments).toHaveLength(1);
     expect(segments[0].text.endsWith('(ثلاثاً)')).toBe(true);
   });
@@ -142,10 +147,17 @@ describe('outer parentheses and unpaired brackets', () => {
     }
   });
 
-  it('keeps inner parentheses of a wrapped row (row 5)', () => {
-    const [segment] = parseAdhkarArabic(row('5').arabic);
-    expect(segment.text.startsWith('(')).toBe(false);
-    expect(segment.text).toMatch(/\([^()]+\)/);
+  it('keeps inner parentheses of a wrapped row', () => {
+    expect(parseAdhkarArabic('(أَ (بَ) جَ).')).toEqual([
+      {kind: 'dhikr', text: 'أَ (بَ) جَ.', quranIndex: null},
+    ]);
+  });
+
+  it('shows the garment word of row 5 as an addition', () => {
+    const segments = parseAdhkarArabic(row('5').arabic);
+    expect(kinds(segments)).toEqual(['dhikr', 'addition', 'dhikr']);
+    expect(nfc(segments[1].text)).toBe(nfc('الثَّوْبَ'));
+    expect(segments.some(s => /[()]/.test(s.text))).toBe(false);
   });
 
   it('keeps parentheses that do not wrap the whole row', () => {
@@ -310,6 +322,200 @@ describe('adhkarCardLabel', () => {
   it('is only the Arabic without a translation', () => {
     expect(adhkarCardLabel('(( سُبْحَانَ اللَّهِ ))', null)).toBe(
       adhkarCopyText('(( سُبْحَانَ اللَّهِ ))'),
+    );
+  });
+});
+
+// Translator glosses inside a sentence keep their parentheses: they mark
+// words that are not in the Arabic. Every other parenthesis is rendered.
+const KEPT_GLOSSES: ReadonlyArray<readonly [string, string]> = [
+  ['evening-90', '(in worshipping Allāh)'],
+  ['99', '(A form of spitting comprising mainly of air with little spittle)'],
+  ['99', '(Al-Ikhlas, Al-Falaq, An-Nas)'],
+  ['107', '(i.e. You have total mastery over)'],
+  ['110', '(chapter 32)'],
+  ['110', '(chapter 67)'],
+  ['11', '(Allah)'],
+  ['22', '(one who calls to prayer)'],
+  ['22', '(or)'],
+  ['6', '(i.e. the garment)'],
+  ['7', '(with another)'],
+  ['29', '(others with Allah)'],
+  ['30', '(great angels)'],
+  ['35', '(He is)'],
+  ['35', '(i.e. Jibra-eel)'],
+  ['40', '(of You)'],
+  ['43', '(He is)'],
+  ['43', '(i.e. Jibra-eel)'],
+  ['51', '(prostration)'],
+  ['53', '(al)'],
+  ['74', '(two rakAAah nafilah)'],
+  ['119', '(i.e. Jibra-eel)'],
+  ['120', '(i.e. You have total mastery over)'],
+  ['128', '(He is)'],
+  ['138', '(A form of spitting comprising mainly of air with little spittle)'],
+  ['140', '(i.e. two rakAAas)'],
+  ['145', '(the new parent)'],
+  ['147', '(the sickness)'],
+  ['148', '(the sick person)'],
+  ['155', '(vicegerent, as is commonly translated)'],
+  ['155', '(also refer to supplication #198)'],
+  ['160', '(of good)'],
+  ['160', '(i.e. passed away)'],
+  ['160', '(by death)'],
+  ['162', '(faltasbir waltahtasib)'],
+  ['168', '(The One)'],
+  ['174', '(let it fall)'],
+  ['178', '(when you remember)'],
+  ['185', '(the invitation)'],
+  ['185', '(in order to bless the inmates of the house)'],
+  ['188', '(i.e. the one who sneezed)'],
+  ['190', '(your spouse)'],
+  ['195', '(to accept my repentance)'],
+  ['206', '(transport)'],
+  ['207', '(transport)'],
+  ['207', '(vicegerent, as is commonly translated)'],
+  ['214', '(Allah is the Most Great)'],
+  ['214', '(Glory is to Allah)'],
+  ['222', '(nation)'],
+  ['225', '(charitably)'],
+  ['226', '(the poor)'],
+  ['231', '(i.e. my praising)'],
+  ['233', '(in response to Your call)'],
+  ['236', '(one should make a personal supplication)'],
+  ['237', '(is)'],
+  ['238', '(Al-Mash aril Haraam)'],
+  ['238', '(Allah is the Most Great)'],
+  ['238', '(Allah is One)'],
+  ['238', '(There is none worthy of worship but Allah)'],
+  ['239', '(Allah is the Most Great)'],
+  ['239', '(stoning)'],
+  ['239', '(for supplications)'],
+  ['246', '(it is)'],
+  ['256', '(There are)'],
+  ['256', '(which are)'],
+  ['267', '(i.e. the first hour)'],
+  ['267', '(you may)'],
+  ['267', '(the children)'],
+];
+
+function visibleParens(translation: string): string[] {
+  return segmentAdhkarTranslation(translation).flatMap(
+    segment => segment.text.match(/\([^()]*\)|[()]/g) ?? [],
+  );
+}
+
+function translationOf(id: string): string {
+  const found = rows.find(r => r.id === id)?.translation;
+  if (!found) throw new Error(`row ${id} has no translation`);
+  return found;
+}
+
+function tpairs(translation: string): string[][] {
+  return segmentAdhkarTranslation(translation).map(s => [s.kind, s.text]);
+}
+
+describe('segmentAdhkarTranslation', () => {
+  it('drops a whole-row wrapper (row 91 after the count)', () => {
+    expect(tpairs(translationOf('91'))).toEqual([
+      ['dhikr', 'How perfect Allah is and I praise Him.'],
+      ['narration', 'one hundred times'],
+    ]);
+  });
+
+  it('splits counts inside the wrapper into narration (row 106)', () => {
+    expect(tpairs(translationOf('106'))).toEqual([
+      ['dhikr', 'How Perfect Allah is.'],
+      ['narration', 'thirty-three times'],
+      ['dhikr', 'All praise is for Allah.'],
+      ['narration', 'thirty-three times'],
+      ['dhikr', 'Allah is the greatest.'],
+      ['narration', 'thirty-four times'],
+    ]);
+  });
+
+  it('keeps a later dhikr as dhikr and a definition as narration (rows 82, 90)', () => {
+    expect(
+      segmentAdhkarTranslation(translationOf('82')).map(s => s.kind),
+    ).toEqual(['dhikr', 'narration', 'dhikr', 'narration']);
+    expect(tpairs(translationOf('90'))[1]).toEqual([
+      'narration',
+      'fitrah: the religion of Islam, the way of Ibraheem u.',
+    ]);
+  });
+
+  it('mutes the narration around quoted words (rows 146, 254)', () => {
+    expect(
+      segmentAdhkarTranslation(translationOf('146')).map(s => s.kind),
+    ).toEqual(['narration', 'dhikr']);
+    expect(tpairs(translationOf('254'))).toEqual([
+      ['narration', 'Whoever says:'],
+      ['dhikr', 'How perfect Allah is and I praise Him.'],
+      [
+        'narration',
+        'a hundred times during the day, his sins are wiped away, even if they are like the foam of the sea.',
+      ],
+    ]);
+  });
+
+  it('turns ayah numbers and surah labels into references (rows 4, 76)', () => {
+    const verses = segmentAdhkarTranslation(translationOf('4'));
+    expect(verses[0]).toEqual({kind: 'reference', text: '190'});
+    expect(verses[1].kind).toBe('dhikr');
+    const surahs = segmentAdhkarTranslation(translationOf('76'));
+    expect(surahs[0]).toEqual({
+      kind: 'reference',
+      text: 'Soorah al-Ikhlaas 112',
+    });
+    expect(surahs.filter(s => s.kind === 'narration')).toEqual([]);
+  });
+
+  it('keeps the honorific words without their parentheses (rows 24, evening-90)', () => {
+    expect(translationOf('evening-90')).toContain('(ﷺ)');
+    expect(visibleParens(translationOf('evening-90'))).toEqual([
+      '(in worshipping Allāh)',
+    ]);
+    expect(segmentAdhkarTranslation(translationOf('24'))[0].text).toContain(
+      "Prophet sal-Allaahu 'alayhe wa sallam after",
+    );
+  });
+
+  it('keeps short glosses inside a sentence (rows 11, 22)', () => {
+    expect(tpairs(translationOf('11'))).toEqual([
+      ['dhikr', 'I ask You (Allah) for forgiveness.'],
+    ]);
+    expect(visibleParens(translationOf('22'))).toEqual([
+      '(one who calls to prayer)',
+      '(or)',
+    ]);
+  });
+
+  it('shows no parenthesis outside the kept glosses in any row', () => {
+    const shown: (readonly [string, string])[] = [];
+    for (const {id, translation} of rows) {
+      if (!translation) continue;
+      for (const paren of visibleParens(translation)) shown.push([id, paren]);
+    }
+    expect(shown).toEqual(KEPT_GLOSSES);
+  });
+});
+
+describe('adhkarTranslationCopyText', () => {
+  it('copies the dhikr without the count note or wrapper', () => {
+    expect(adhkarTranslationCopyText(translationOf('91'))).toBe(
+      'How perfect Allah is and I praise Him.',
+    );
+  });
+
+  it('keeps the narration when it is most of the text (row 254)', () => {
+    expect(adhkarTranslationCopyText(translationOf('254'))).toBe(
+      'Whoever says: How perfect Allah is and I praise Him. a hundred times during the day, his sins are wiped away, even if they are like the foam of the sea.',
+    );
+  });
+
+  it('leaves out ayah numbers', () => {
+    expect(adhkarTranslationCopyText(translationOf('4'))).not.toMatch(
+      /\b19\d\b/,
     );
   });
 });

@@ -8,7 +8,9 @@ import type {EveningRow} from './eveningRows';
 import {
   applyMarkerFixes,
   applyNameFixes,
+  applyRowFixes,
   applySiteRows,
+  applyTranslitMarkerFixes,
   applyTransliterations,
   updateMetaTotals,
 } from './textPolish';
@@ -501,8 +503,10 @@ export const FIX_STEPS: FixStep[] = [
   seed => applyTextFixes(seed),
   seed => applyAudioFixes(seed),
   seed => applySiteRows(seed),
+  seed => applyRowFixes(seed),
   seed => applyMarkerFixes(seed),
   seed => applyTransliterations(seed),
+  seed => applyTranslitMarkerFixes(seed),
   seed => applyNameFixes(seed),
   seed => updateMetaTotals(seed),
   seed => recountCategories(seed),

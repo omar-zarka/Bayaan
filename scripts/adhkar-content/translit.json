@@ -1414,11 +1414,10 @@
     "match": "exact"
   },
   "197": {
-    "transliteration": "wa-lak",
+    "transliteration": "Walaka",
     "instruction": null,
-    "source": "hisnmuslim-en",
-    "sourceUrl": "http://www.hisnmuslim.com/api/en/86.json",
-    "match": "exact"
+    "source": "sunnah-com-hisn",
+    "sourceUrl": "https://sunnah.com/hisn:197"
   },
   "198": {
     "transliteration": "Jazakal-lahu khayran.",
@@ -1463,11 +1462,10 @@
     "match": "exact"
   },
   "204": {
-    "transliteration": "Wafeehim barakal-lah.",
+    "transliteration": "Wafīka bārakallāh.",
     "instruction": null,
-    "source": "hisnmuslim-en",
-    "sourceUrl": "http://www.hisnmuslim.com/api/en/93.json",
-    "match": "differs"
+    "source": "sunnah-com-hisn",
+    "sourceUrl": "https://sunnah.com/hisn:204"
   },
   "205": {
     "transliteration": "Allahumma la tayra illa tayruk, wala khayra illa khayruk, wala ilaha ghayruk.",
@@ -1785,11 +1783,10 @@
     "match": "missing"
   },
   "250": {
-    "transliteration": "Astaghfirul-lahal-lathee la ilaha illa huwal-hayyul-qayyoomu wa-atoobu ilayh.",
+    "transliteration": "Astaghfirullāha ‘l-'Aẓīm alladhi lā ilāha illā huwa ‘l-ḥayyul-Qayyūm wa atūbu ilayh.",
     "instruction": null,
-    "source": "hisnmuslim-en",
-    "sourceUrl": "http://www.hisnmuslim.com/api/en/129.json",
-    "match": "differs"
+    "source": "sunnah-com-hisn",
+    "sourceUrl": "https://sunnah.com/hisn:250"
   },
   "251": {
     "transliteration": null,
@@ -1890,11 +1887,10 @@
     "match": "differs"
   },
   "265": {
-    "transliteration": "'Subhaanallaah.', and 'Walhamdulillaah.', and 'Wa laa ilaaha illallaah'., and 'Wallaahu Akbar',and 'Wa laa hawla wa laa guwawala illaa billaah'.",
+    "transliteration": "Subḥānallāh. Walḥamdu lillāh. Wa lā ilāha illallāh Wallāhu Akbar Wa lā ḥawla wa lā quwwata illā billāh.",
     "instruction": null,
-    "source": "hisnmuslim-en",
-    "sourceUrl": "http://www.hisnmuslim.com/api/en/130.json",
-    "match": "differs"
+    "source": "sunnah-com-hisn",
+    "sourceUrl": "https://sunnah.com/hisn:265"
   },
   "266": {
     "transliteration": null,
