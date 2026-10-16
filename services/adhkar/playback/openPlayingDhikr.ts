@@ -48,7 +48,7 @@ export type OpenPlan =
       routes: [AdhkarStackRoute, AdhkarStackRoute, AdhkarStackRoute];
     };
 
-const ADHKAR_SCREEN: AdhkarStackRoute = {name: 'index', params: {}};
+export const ADHKAR_SCREEN: AdhkarStackRoute = {name: 'index', params: {}};
 
 export function planOpenPlaying(
   session: AdhkarSession | null,
@@ -91,6 +91,7 @@ export type AdhkarNavigateAction = {
   type: 'NAVIGATE';
   payload: {
     name: '(tabs)';
+    pop: true;
     params: {
       screen: '(a.home)';
       params: {
@@ -103,7 +104,8 @@ export type AdhkarNavigateAction = {
 
 // One action that lays out the whole adhkar stack. Two pushes in a row do
 // not work: expo-router resolves the second against the state from before
-// the first landed.
+// the first landed. `pop` returns to the existing tabs when a root screen
+// (the mushaf, a link route) is on top, instead of stacking a second copy.
 export function adhkarStackAction(
   routes: AdhkarStackRoute[],
 ): AdhkarNavigateAction {
@@ -111,6 +113,7 @@ export function adhkarStackAction(
     type: 'NAVIGATE',
     payload: {
       name: '(tabs)',
+      pop: true,
       params: {
         screen: '(a.home)',
         params: {screen: 'adhkar', params: {state: {routes}}},

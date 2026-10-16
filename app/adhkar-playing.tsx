@@ -3,14 +3,17 @@
 // mounts this before the saved session is restored, so it waits for the
 // restore first (at most RESTORE_WAIT_MS).
 import {useEffect} from 'react';
-import {useNavigationContainerRef, useRouter} from 'expo-router';
-import {openPlayingDhikr} from '@/services/adhkar/playback/openPlayingDhikr';
+import {useNavigationContainerRef} from 'expo-router';
+import {
+  ADHKAR_SCREEN,
+  adhkarStackAction,
+  openPlayingDhikr,
+} from '@/services/adhkar/playback/openPlayingDhikr';
 import {waitForSessionRestore} from '@/services/adhkar/playback/sessionPersistence';
 
 const RESTORE_WAIT_MS = 3000;
 
 export default function AdhkarPlayingRoute(): null {
-  const router = useRouter();
   const navigation = useNavigationContainerRef();
   useEffect(() => {
     let cancelled = false;
@@ -22,12 +25,12 @@ export default function AdhkarPlayingRoute(): null {
       if (navigation.canGoBack()) navigation.goBack();
       else navigation.dispatch({type: 'REPLACE', payload: {name: '(tabs)'}});
       if (!openPlayingDhikr(navigation, null)) {
-        router.push('/(tabs)/(a.home)/adhkar');
+        navigation.dispatch(adhkarStackAction([ADHKAR_SCREEN]));
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [navigation, router]);
+  }, [navigation]);
   return null;
 }

@@ -107,12 +107,13 @@ describe('openPlayingDhikr', () => {
   });
 });
 
-it('adhkarStackAction nests the routes under the home tab adhkar stack', () => {
+it('adhkarStackAction pops to the tabs and nests the routes under the home adhkar stack', () => {
   const routes: AdhkarStackRoute[] = [{name: 'saved/index', params: {}}];
   expect(adhkarStackAction(routes)).toEqual({
     type: 'NAVIGATE',
     payload: {
       name: '(tabs)',
+      pop: true,
       params: {
         screen: '(a.home)',
         params: {screen: 'adhkar', params: {state: {routes}}},
