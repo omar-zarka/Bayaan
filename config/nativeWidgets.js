@@ -11,7 +11,7 @@
  * See docs/rfcs/021-native-widget-seams.md.
  */
 
-/** Every surface, in a stable order. The last four are iOS-only. */
+/** Every surface, in a stable order. The last five are iOS-only. */
 const NATIVE_WIDGET_IDS = [
   'ContinueListening',
   'ContinueReading',
@@ -26,6 +26,7 @@ const NATIVE_WIDGET_IDS = [
   'Adhkar',
   'BayaanNow',
   'ListeningAccessory',
+  'VerseOfTheDayAccessory',
   'LiveActivity',
   'PlaybackControl',
   'PlaySurahControl',
