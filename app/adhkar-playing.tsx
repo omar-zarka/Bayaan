@@ -20,7 +20,13 @@ export default function AdhkarPlayingRoute(): null {
   const container = useNavigationContainerRef();
   useEffect(() => {
     let cancelled = false;
-    waitForSessionRestore(RESTORE_WAIT_MS).then(() => {
+    // The extra frame lets a cold launch apply the link's initial state
+    // first; a back dispatched before that is dropped.
+    const restored = waitForSessionRestore(RESTORE_WAIT_MS).then(
+      () =>
+        new Promise<void>(resolve => requestAnimationFrame(() => resolve())),
+    );
+    restored.then(() => {
       if (cancelled) return;
       // Leave this route first, so the navigation below runs against the
       // tabs. Replacing it with a tab route instead would stack a second copy

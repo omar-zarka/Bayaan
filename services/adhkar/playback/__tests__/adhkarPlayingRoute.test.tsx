@@ -32,6 +32,11 @@ jest.mock('@/services/adhkar/playback/openPlayingDhikr', () => ({
 }));
 
 import AdhkarPlayingRoute from '@/app/adhkar-playing';
+
+// The route navigates a frame after the restore settles.
+function nextFrame(): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, 50));
+}
 import {adhkarStackAction} from '@/services/adhkar/playback/openPlayingDhikr';
 
 beforeEach(() => {
@@ -52,6 +57,7 @@ it('waits for the saved session, then opens the playing dhikr', async () => {
   expect(mockOpen).not.toHaveBeenCalled();
   await act(async () => {
     mockFinishRestore();
+    await nextFrame();
   });
   expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
   expect(mockOpen).toHaveBeenCalledWith(mockContainer, null);
@@ -66,6 +72,7 @@ it('swaps itself for the tabs when it is the only route', async () => {
   });
   await act(async () => {
     mockFinishRestore();
+    await nextFrame();
   });
   expect(mockNavigation.goBack).not.toHaveBeenCalled();
   expect(mockNavigation.dispatch).toHaveBeenCalledWith({
@@ -81,6 +88,7 @@ it('falls back to the Adhkar screen when no session comes back', async () => {
   });
   await act(async () => {
     mockFinishRestore();
+    await nextFrame();
   });
   expect(mockContainer.dispatch).toHaveBeenCalledWith(
     adhkarStackAction([{name: 'index', params: {}}]),
@@ -98,6 +106,7 @@ it('does not navigate after it unmounts', async () => {
   });
   await act(async () => {
     mockFinishRestore();
+    await nextFrame();
   });
   expect(mockOpen).not.toHaveBeenCalled();
   expect(mockNavigation.goBack).not.toHaveBeenCalled();
