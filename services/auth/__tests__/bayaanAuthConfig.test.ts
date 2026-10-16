@@ -243,6 +243,87 @@ describe('branding qfBffBase', () => {
     });
   });
 
+  it('names the Quran Foundation host it rejects', () => {
+    const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+    expect(() =>
+      readBayaanAuthConfig(env, 'https://apis-prelive.quran.foundation'),
+    ).toThrow('Quran Foundation host apis-prelive.quran.foundation');
+  });
+
+  it.each([
+    'https://bff.fork.test/',
+    ' https://bff.fork.test/ ',
+    'http://localhost:3000',
+    'https://bff.fork.test:8443/',
+  ])('accepts an origin, with or without a trailing slash (%p)', qfBffBase => {
+    const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+    expect(readBayaanAuthConfig(env, qfBffBase)).toEqual({
+      qfSyncEnabled: true,
+      apiUrl: qfBffBase.trim(),
+    });
+  });
+
+  it.each([
+    ['https://fork.test/bff', 'a path'],
+    ['https://fork.test/bff/', 'a path'],
+    ['https://fork.test/v1/qf', 'a path'],
+    ['https://fork.test/?env=prod', 'a query'],
+    ['https://fork.test/#bff', 'a fragment'],
+    ['https://fork.test/bff?env=prod', 'a path, a query'],
+  ])(
+    'rejects a branding BFF base that is not an origin (%s)',
+    (qfBffBase, found) => {
+      const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+      expect(() => readBayaanAuthConfig(env, qfBffBase)).toThrow(
+        `qfBffBase must be an origin only, such as https://fork.test; found ${found}`,
+      );
+    },
+  );
+
+  it('does not repeat credentials when it rejects a base with userinfo', () => {
+    const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+    let message = '';
+
+    try {
+      readBayaanAuthConfig(env, 'https://user:secret@fork.test');
+    } catch (error) {
+      message = (error as Error).message;
+    }
+
+    expect(message).toContain(
+      'origin only, such as https://fork.test; found credentials',
+    );
+    expect(message).not.toContain('secret');
+  });
+
+  it.each([
+    'bff.fork.test',
+    'localhost:3000',
+    '/v1/qf',
+    'ftp://bff.fork.test',
+    'not a url',
+  ])(
+    'rejects a branding BFF base that is not an absolute http(s) URL (%s)',
+    qfBffBase => {
+      const {readBayaanAuthConfig} = loadBayaanAuthConfig();
+
+      expect(() => readBayaanAuthConfig(env, qfBffBase)).toThrow(
+        `qfBffBase must be an absolute http(s) URL, got "${qfBffBase}"`,
+      );
+    },
+  );
+
+  it('fails at load when branding gives the BFF base a path', () => {
+    setPublicEnv({EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: 'true'});
+
+    expect(() => loadWithBranding('https://fork.test/bff')).toThrow(
+      'qfBffBase must be an origin only',
+    );
+  });
+
   it('reads the BFF base from branding at runtime', () => {
     setPublicEnv({EXPO_PUBLIC_BAYAAN_QF_SYNC_ENABLED: 'true'});
 

@@ -141,7 +141,7 @@ Either:
 - Deploy the [Backend--bayaan](https://github.com/thebayaan/Backend--bayaan) to your own infrastructure and point `EXPO_PUBLIC_BAYAAN_API_URL` at it, or
 - Populate your Supabase project with reciter data and use `npm run fetch-reciters` to generate `data/reciters.json` for use as a bundled fallback.
 
-To send only QF sign-in and sync to your own backend, set `qfBffBase` in `config/branding.js`. It replaces `EXPO_PUBLIC_BAYAAN_API_URL` for the QF backend only; catalog and content requests are unchanged.
+To send only QF sign-in and sync to your own backend, set `qfBffBase` in `config/branding.js` to its origin (for example `https://bff.example.com`, with no path). It replaces `EXPO_PUBLIC_BAYAAN_API_URL` for the QF backend only; catalog and content requests are unchanged.
 
 ### Step 5: iOS signing
 

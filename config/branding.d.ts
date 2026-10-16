@@ -130,7 +130,10 @@ export interface Branding {
    * settings sync). Absent: `EXPO_PUBLIC_BAYAAN_API_URL`. A fork that runs
    * its own BFF points this at it; catalog and content requests keep their
    * own base. Must not be a Quran Foundation OAuth or API host.
-   * No trailing slash.
+   * Origin only: an absolute http(s) URL with no path, query or fragment,
+   * such as `https://bff.example.com`. The BFF clients join absolute
+   * `/v1/...` paths onto it, which would drop a base path, so any other
+   * value throws at load.
    */
   qfBffBase?: string;
   /**
