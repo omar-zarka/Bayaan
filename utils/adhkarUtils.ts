@@ -4,6 +4,7 @@
 
 // @ai-start
 import i18n from '@/i18n';
+import {currentLanguageConfig} from '@/i18n/language'; // @ai
 import type enContent from '@/i18n/locales/en/content.json';
 // @ai-end
 
@@ -115,7 +116,7 @@ const TITLE_SHORTENINGS: Record<string, ShortTitleKey> = {
     'loveForAllah',
   'Invocation for someone who tells you: May Allah bless you':
     'receivingBlessing',
-  'vocation for someone who says: May Allah forgive you':
+  'Invocation for someone who says: May Allah forgive you':
     'receivingForgiveness',
   'Invocation for someone you have spoken ill to': 'afterBackbiting',
   'Invocation for someone who offers you a share of his wealth':
@@ -223,7 +224,7 @@ export function getSuperCategoryDisplayTitle(category: {
   title: string;
   arabicTitle?: string | null;
 }): string {
-  if (i18n.language === 'ar' && category.arabicTitle) {
+  if (currentLanguageConfig.bilingualContent === 'ar' && category.arabicTitle) {
     return category.arabicTitle;
   }
   return category.title;

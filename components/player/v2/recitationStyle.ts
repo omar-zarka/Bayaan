@@ -1,6 +1,7 @@
 // @ai-generated
 import i18n from '@/i18n';
 import {currentLanguage} from '@/i18n/language';
+import {SOURCE_LANGUAGE} from '@/i18n/languages';
 import {localizeDigits} from '@/i18n/format';
 
 const KNOWN_STYLES = ['murattal', 'mojawwad', 'molim'] as const;
@@ -15,7 +16,7 @@ function isKnownStyle(value: string): value is KnownStyle {
  * English keeps the raw value so existing casing/textTransform styles apply.
  */
 export function getRecitationStyleLabel(style: string): string {
-  if (currentLanguage !== 'ar') {
+  if (currentLanguage === SOURCE_LANGUAGE) {
     return style;
   }
   const match = /^([a-z]+)\s*(\d*)$/i.exec(style.trim());

@@ -105,7 +105,9 @@
     "rewayatCount_two": "روايتان",
     "rewayatCount_few": "{{count}} روايات",
     "rewayatCount_many": "{{count}} روايةً",
-    "rewayatCount_other": "{{count}} رواية",
+    "rewayatCount_other": "{{count}} رواية"
+  },
+  "reciterPicker": {
     "searchPlaceholder": "ابحث عن قارئ…",
     "empty": "لم يُعثر على قرّاء"
   },
@@ -208,7 +210,8 @@
     "removeBookmark": "إزالة العلامة المرجعية",
     "communityReflections": "تدبّرات المجتمع",
     "unnumbered": "ليست آية مرقّمة في رواية {{rewayah}}.",
-    "loadFailed": "تعذّر تحميل نص رواية {{rewayah}}."
+    "loadFailed": "تعذّر تحميل نص رواية {{rewayah}}.",
+    "loadingText": "جارٍ تحميل نص رواية {{rewayah}}"
   },
   "mushafPlayer": {
     "title": "إعدادات التشغيل",
@@ -216,7 +219,8 @@
     "startingVerse": "آية البداية",
     "endingVerse": "آية النهاية",
     "reciter": "القارئ",
-    "play": "تشغيل"
+    "play": "تشغيل",
+    "reciterPickerSubtitle": "قرّاء يدعمون التشغيل آيةً بآية"
   },
   "playlistContext": {
     "edit": "تعديل قائمة التشغيل",
@@ -325,5 +329,35 @@
     "select": "اختر التفسير",
     "versesRange": "الآيات {{range}}",
     "notAvailable": "التفسير غير متاح لهذه الآية"
+  },
+  "communityReflections": {
+    "loadFailed": "تعذّر تحميل التدبّرات. حاول مجددًا لاحقًا.",
+    "empty": "لا توجد تدبّرات بعد",
+    "count_zero": "لا توجد تدبّرات",
+    "count_one": "تدبّر واحد",
+    "count_two": "تدبّران",
+    "count_few": "{{count}} تدبّرات",
+    "count_many": "{{count}} تدبّرًا",
+    "count_other": "{{count}} تدبّر",
+    "openLabel": "افتح تدبّر {{author}}"
+  },
+  "selectionFailure": {
+    "unnumbered": "ليست آية مرقّمة في رواية {{rewayah}}",
+    "loadFailed": "تعذّر تحميل نص رواية {{rewayah}}",
+    "nothingDone": {
+      "copied": "لم يُنسخ شيء.",
+      "shared": "لم تتم المشاركة.",
+      "saved": "لم يُحفظ شيء.",
+      "played": "لم يُشغَّل شيء."
+    },
+    "nothingDoneRetry": {
+      "copied": "لم يُنسخ شيء. حاول مجددًا.",
+      "shared": "لم تتم المشاركة. حاول مجددًا.",
+      "saved": "لم يُحفظ شيء. حاول مجددًا.",
+      "played": "لم يُشغَّل شيء. حاول مجددًا."
+    },
+    "nothingToCopy": "لا يوجد ما يُنسخ",
+    "nothingToShare": "لا يوجد ما تتم مشاركته",
+    "noOwnText": "في رواية {{rewayah}}، يُقرأ هذا التحديد جزءًا من آية مجاورة."
   }
 }
