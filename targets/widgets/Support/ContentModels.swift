@@ -54,6 +54,17 @@ struct FeaturedDhikr: Codable, Hashable {
   let repeatCount: Int
 }
 
+struct SessionDhikr: Codable, Hashable {
+  let id: String
+  let translation: String?
+  let repeatCount: Int
+  let audioFile: String?
+  let mediumText: String
+  let mediumCut: Bool
+  let largeText: String
+  let largeCut: Bool
+}
+
 struct AdhkarPeriodData: Codable, Hashable {
   let period: String
   let superId: String
@@ -61,6 +72,7 @@ struct AdhkarPeriodData: Codable, Hashable {
   let arabicTitle: String
   let count: Int
   let featured: [FeaturedDhikr]
+  let items: [SessionDhikr]
 }
 
 struct AdhkarPeriods: Codable {

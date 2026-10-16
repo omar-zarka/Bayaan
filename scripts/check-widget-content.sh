@@ -12,7 +12,8 @@ cat "$root/targets/widgets/_shared/WidgetSnapshot.swift" \
     "$root/targets/widgets/Support/WidgetModels.swift" \
     "$root/targets/widgets/Support/WidgetLogic.swift" \
     "$root/targets/widgets/Support/ContentModels.swift" \
-    "$root/targets/widgets/Support/ContentLogic.swift" > "$tmp/content-test.swift"
+    "$root/targets/widgets/Support/ContentLogic.swift" \
+    "$root/targets/widgets/Support/AdhkarSessionLogic.swift" > "$tmp/content-test.swift"
 cat >> "$tmp/content-test.swift" <<'SWIFT'
 let dir = CommandLine.arguments[1]
 let targetDir = CommandLine.arguments[2]
@@ -100,6 +101,45 @@ precondition(ContentResolvers.spotlight(nil, date: instant) == nil, "spotlight n
 // Text
 precondition(ContentText.surahCount(1) == "1 surah" && ContentText.surahCount(12) == "12 surahs", "surahCount")
 precondition(ContentText.repeatLabel(1) == nil && ContentText.repeatLabel(3) == "×3", "repeatLabel")
+// Adhkar session vectors (shared with AdhkarSessionLogicTest.kt)
+let sv = json("\(dir)/adhkarSession.vectors.json") as! [String: Any]
+let rc = sv["repeatCounts"] as! [Int]
+let ids = sv["ids"] as! [String]
+func session(_ v: Any) -> AdhkarSession? {
+  guard let d = v as? [String: Any] else { return nil }
+  return AdhkarSession(period: d["period"] as! String, day: d["day"] as! String, index: d["index"] as! Int,
+                       remaining: d["remaining"] as! Int, completed: d["completed"] as! Bool,
+                       startedAtMs: (d["startedAtMs"] as? NSNumber)?.doubleValue)
+}
+for case let pair as [Any] in sv["sessionDay"] as! [Any] {
+  let ms = (pair[0] as! NSNumber).doubleValue
+  precondition(AdhkarSessionLogic.sessionDay(Date(timeIntervalSince1970: ms / 1000), timeZone: utc) == pair[1] as! String, "sessionDay \(ms)")
+}
+for case let c as [String: Any] in sv["resolve"] as! [Any] {
+  let got = AdhkarSessionLogic.resolve(session(c["stored"]!), period: c["period"] as! String, day: c["day"] as! String, repeatCounts: rc)
+  precondition(got == session(c["expect"]!)!, "resolve \(c["name"]!)")
+}
+for case let c as [String: Any] in sv["apply"] as! [Any] {
+  let got = AdhkarSessionLogic.apply(AdhkarSessionAction(rawValue: c["action"] as! String)!, to: session(c["start"]!)!,
+                                     repeatCounts: rc, nowMs: (c["nowMs"] as! NSNumber).doubleValue)
+  precondition(got == session(c["expect"]!)!, "apply \(c["name"]!)")
+}
+for case let c as [String: Any] in sv["completion"] as! [Any] {
+  let start = session(c["start"]!)!
+  let nowMs = (c["nowMs"] as! NSNumber).doubleValue
+  let after = AdhkarSessionLogic.apply(AdhkarSessionAction(rawValue: c["action"] as! String)!, to: start, repeatCounts: rc, nowMs: nowMs)
+  let got = AdhkarSessionLogic.completionEvent(before: start, after: after, repeatCounts: rc, superId: "morning-adhkar", nowMs: nowMs)
+  let want = (c["expect"] as? [String: Any]).map {
+    AdhkarSessionCompletion(category: $0["category"] as! String, durationMs: $0["duration_ms"] as! Int,
+                            dhikrCount: $0["dhikr_count"] as! Int, completedAtMs: ($0["completedAtMs"] as! NSNumber).doubleValue)
+  }
+  precondition(got == want, "completion \(c["name"]!)")
+}
+for case let c as [String: Any] in sv["link"] as! [Any] {
+  precondition(AdhkarSessionLogic.link(superId: "morning-adhkar", session: session(c["session"]!)!, ids: ids) == c["expect"] as! String, "link")
+}
+precondition(adhkar.morning.items.count == 24 && adhkar.morning.items.allSatisfy { $0.repeatCount >= 1 }, "adhkar items")
+print("swift adhkar session: OK")
 print("swift content logic: OK")
 SWIFT
 

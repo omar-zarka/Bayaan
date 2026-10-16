@@ -5,7 +5,6 @@ import {moderateScale} from 'react-native-size-matters';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 // @ai-end
-import {AdhkarAudioProvider} from '@/components/adhkar/AdhkarAudioProvider';
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {flipX} from '@/utils/rtl';
@@ -21,67 +20,65 @@ export default function AdhkarLayout() {
   const router = useRouter();
 
   return (
-    <AdhkarAudioProvider>
-      <Stack
-        screenOptions={{
-          headerShown: true,
-          freezeOnBlur: true,
-          headerTintColor: theme.colors.text,
-          ...(USE_GLASS
-            ? {
-                headerTransparent: true,
-                headerStyle: {backgroundColor: 'transparent'},
-              }
-            : {
-                headerStyle: {backgroundColor: theme.colors.background},
-              }),
-          headerTitleStyle: {
-            fontFamily: 'Manrope-SemiBold',
-            color: theme.colors.text,
-          },
-          headerShadowVisible: false,
-          headerBackButtonDisplayMode: 'minimal',
-        }}>
-        <Stack.Screen
-          name="index"
-          options={{
-            title: t('common:terms.adhkar'),
-            // The first screen of this stack gets no system back button, so
-            // draw one whenever the home stack has a screen to return to.
-            headerLeft: ({canGoBack}) =>
-              canGoBack ? (
-                <Pressable
-                  onPress={() => router.back()}
-                  hitSlop={8}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('common:actions.back')}
-                  style={{padding: moderateScale(4)}}>
-                  <Ionicons
-                    name="chevron-back"
-                    size={moderateScale(24)}
-                    color={theme.colors.text}
-                    style={flipX}
-                  />
-                </Pressable>
-              ) : null,
-          }}
-        />
-        <Stack.Screen name="[superId]/index" />
-        {/* The readers page with a full-width horizontal list, which wins
-            over the iOS 26 swipe-back-from-anywhere gesture. With it off, the
-            left-edge swipe takes priority over the pager and pops. A reader
-            opened by a list row's zoom link keeps the zoom dismiss. */}
-        <Stack.Screen
-          name="[superId]/[dhikrId]"
-          options={{fullScreenGestureEnabled: false}}
-        />
-        <Stack.Screen name="saved" />
-        <Stack.Screen
-          name="saved/[dhikrId]"
-          options={{fullScreenGestureEnabled: false}}
-        />
-      </Stack>
-    </AdhkarAudioProvider>
+    <Stack
+      screenOptions={{
+        headerShown: true,
+        freezeOnBlur: true,
+        headerTintColor: theme.colors.text,
+        ...(USE_GLASS
+          ? {
+              headerTransparent: true,
+              headerStyle: {backgroundColor: 'transparent'},
+            }
+          : {
+              headerStyle: {backgroundColor: theme.colors.background},
+            }),
+        headerTitleStyle: {
+          fontFamily: 'Manrope-SemiBold',
+          color: theme.colors.text,
+        },
+        headerShadowVisible: false,
+        headerBackButtonDisplayMode: 'minimal',
+      }}>
+      <Stack.Screen
+        name="index"
+        options={{
+          title: t('common:terms.adhkar'),
+          // The first screen of this stack gets no system back button, so
+          // draw one whenever the home stack has a screen to return to.
+          headerLeft: ({canGoBack}) =>
+            canGoBack ? (
+              <Pressable
+                onPress={() => router.back()}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('common:actions.back')}
+                style={{padding: moderateScale(4)}}>
+                <Ionicons
+                  name="chevron-back"
+                  size={moderateScale(24)}
+                  color={theme.colors.text}
+                  style={flipX}
+                />
+              </Pressable>
+            ) : null,
+        }}
+      />
+      <Stack.Screen name="[superId]/index" />
+      {/* The readers page with a full-width horizontal list, which wins
+          over the iOS 26 swipe-back-from-anywhere gesture. With it off, the
+          left-edge swipe takes priority over the pager and pops. A reader
+          opened by a list row's zoom link keeps the zoom dismiss. */}
+      <Stack.Screen
+        name="[superId]/[dhikrId]"
+        options={{fullScreenGestureEnabled: false}}
+      />
+      <Stack.Screen name="saved" />
+      <Stack.Screen
+        name="saved/[dhikrId]"
+        options={{fullScreenGestureEnabled: false}}
+      />
+    </Stack>
   );
 }
 // @ai-end
