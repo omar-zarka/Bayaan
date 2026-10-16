@@ -9,4 +9,10 @@
 // Version 5: Balanced "Other" section bento grid (left=14, right=14)
 // Version 6: Morning/evening split (6 evening rows, per-period dhikr lists,
 //            super_categories.dhikr_ids), text, count and audio fixes
-export const ADHKAR_DATA_VERSION = 6;
+// Version 7: Test builds only, never released
+// Version 8: Sourced transliterations and instructions, 99 Names meanings,
+//            restored row 114, marker fixes, category 132 under Home,
+//            evening audio overrides
+// Version 9: Count notes outside the dhikr marks, transliteration marks,
+//            rows 197, 204, 250 and 265 from sunnah.com, category 86 title
+export const ADHKAR_DATA_VERSION = 9;

@@ -61,6 +61,57 @@ describe('tasbeehTranslation', () => {
   });
 });
 
+describe('tasbeeh text of the seed rows', () => {
+  function seedRow(id: string): {arabic: string; translation: string | null} {
+    const found = seedAdhkar(adhkarSeed).find(d => d.id === id);
+    if (!found) throw new Error(`row ${id} missing`);
+    return found;
+  }
+
+  it('leaves no empty ( ) in rows 114, 207 and the translation of 218', () => {
+    for (const id of ['114', '207']) {
+      expect({id, text: tasbeehDisplayText(seedRow(id).arabic)}).not.toEqual({
+        id,
+        text: expect.stringMatching(/\(\s*\)/),
+      });
+    }
+    expect(tasbeehTranslation(seedRow('218').translation)).not.toMatch(
+      /\(\s*\)/,
+    );
+  });
+
+  it('leaves no (( or )) in the multi-dhikr rows 31, 114, 145, 160, 162', () => {
+    for (const id of ['31', '114', '145', '160', '162']) {
+      const text = tasbeehDisplayText(seedRow(id).arabic);
+      expect({id, empty: !text}).toEqual({id, empty: false});
+      expect({id, text}).not.toEqual({
+        id,
+        text: expect.stringMatching(/[()[\]]/),
+      });
+    }
+  });
+
+  it('shows no bracket in any picker title or subtitle', () => {
+    for (const {id, arabic, translation} of seedAdhkar(adhkarSeed)) {
+      for (const text of [
+        tasbeehDisplayText(arabic),
+        tasbeehTranslation(translation),
+      ]) {
+        expect({id, text}).not.toEqual({
+          id,
+          text: expect.stringMatching(/[()[\]]/),
+        });
+      }
+    }
+  });
+
+  it('gives the dhikr of a row with a gloss inside it (row 119)', () => {
+    expect(tasbeehTranslation(seedRow('119').translation)).toBe(
+      'How perfect The King, The Holy One is. Lord of the angels and the Rooh.',
+    );
+  });
+});
+
 describe('tasbeeh adhkar', () => {
   it('skips rows whose count is an instruction, not a dhikr', () => {
     expect(

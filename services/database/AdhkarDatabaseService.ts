@@ -194,7 +194,9 @@ class AdhkarDatabaseService {
       );
     `);
 
-    // Create tasbeeh counts table (daily reset via last_updated)
+    // Create tasbeeh counts table (daily reset via last_updated). dhikr_id
+    // holds the count key: the plain dhikr id, or `<superId>:<dhikrId>` for a
+    // list with its own count (services/adhkar/dhikrCountKey.ts).
     await this.db.execAsync(`
       CREATE TABLE IF NOT EXISTS dhikr_counts (
         dhikr_id TEXT PRIMARY KEY,
@@ -286,11 +288,6 @@ class AdhkarDatabaseService {
 
     const currentVersion = await this.getDataVersion();
     return currentVersion < DATA_VERSION;
-  }
-
-  // Update data version to current after successful seeding
-  async updateDataVersion(): Promise<void> {
-    await this.setDataVersion(DATA_VERSION);
   }
 
   // Get all categories with their tags
@@ -556,6 +553,25 @@ class AdhkarDatabaseService {
     });
   }
 
+  // All tasbeeh counts updated today, keyed by count key (plain dhikr id, or
+  // `<superId>:<dhikrId>` for the morning and evening lists). Rows from an
+  // earlier day count as zero; getDhikrCount resets them on the next tap.
+  async getTodayDhikrCounts(): Promise<DhikrCount[]> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const rows = await this.db.getAllAsync<CountRow>(
+      `SELECT dhikr_id, count, last_updated FROM dhikr_counts WHERE count > 0`,
+    );
+    const today = new Date().toDateString();
+    return rows
+      .filter(row => new Date(row.last_updated).toDateString() === today)
+      .map(row => ({
+        dhikrId: row.dhikr_id,
+        count: row.count,
+        lastUpdated: row.last_updated,
+      }));
+  }
+
   // Get all super categories
   async getAllSuperCategories(): Promise<SuperCategory[]> {
     if (!this.db) throw new Error('Database not initialized');
@@ -653,12 +669,64 @@ class AdhkarDatabaseService {
     return (result?.count ?? 0) > 0;
   }
 
-  // Seed database from JSON data (batch inserts for performance)
+  // Seed database from JSON data in one transaction (a failure keeps the
+  // previous content)
   async seedDatabase(data: AdhkarSeedData): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
 
     const db = this.db;
+    await db.withTransactionAsync(() => this.writeSeedData(db, data));
+  }
 
+  // Seed super categories in one transaction
+  async seedSuperCategories(
+    dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>> = {},
+    audioOverridesBySuperId: Readonly<
+      Record<string, Readonly<Record<string, string>>>
+    > = {},
+  ): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const db = this.db;
+    await db.withTransactionAsync(() =>
+      this.writeSuperCategories(db, dhikrIdsBySuperId, audioOverridesBySuperId),
+    );
+  }
+
+  // Replace all bundled content (adhkar, categories, tags, super categories)
+  // and record the data version in one transaction. If anything fails or the
+  // app dies midway, SQLite rolls it all back: the previous content and
+  // version stay, so the reseed runs again on the next launch. User tables
+  // (dhikr_favorites, dhikr_counts) are never touched.
+  // Non-exclusive transaction: nothing else may use this connection until it
+  // resolves; AdhkarService.initialize guarantees this (every call awaits it).
+  async reseed(
+    data: AdhkarSeedData,
+    dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>>,
+    audioOverridesBySuperId: Readonly<
+      Record<string, Readonly<Record<string, string>>>
+    > = {},
+  ): Promise<void> {
+    if (!this.db) throw new Error('Database not initialized');
+
+    const db = this.db;
+    await db.withTransactionAsync(async () => {
+      await this.writeSeedData(db, data);
+      await this.writeSuperCategories(
+        db,
+        dhikrIdsBySuperId,
+        audioOverridesBySuperId,
+      );
+      await this.setDataVersion(DATA_VERSION);
+    });
+  }
+
+  // Delete and reinsert adhkar, categories and tags (batch inserts for
+  // performance). Runs inside the caller's transaction.
+  private async writeSeedData(
+    db: SQLite.SQLiteDatabase,
+    data: AdhkarSeedData,
+  ): Promise<void> {
     // Clear existing data
     await db.execAsync(`
       DELETE FROM category_tags;
@@ -735,17 +803,15 @@ class AdhkarDatabaseService {
     }
   }
 
-  // Seed super categories
-  async seedSuperCategories(
-    dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>> = {},
+  // Delete and reinsert super categories. Runs inside the caller's
+  // transaction.
+  private async writeSuperCategories(
+    db: SQLite.SQLiteDatabase,
+    dhikrIdsBySuperId: Readonly<Record<string, readonly string[]>>,
     audioOverridesBySuperId: Readonly<
       Record<string, Readonly<Record<string, string>>>
-    > = {},
+    >,
   ): Promise<void> {
-    if (!this.db) throw new Error('Database not initialized');
-
-    const db = this.db;
-
     // Define all super categories (Main)
     // Bento layout pattern - Left: 1, 2, 3, 1... (last=1) | Right: 1, 3, 1, 2... (last=2)
     const mainAdhkar = [
@@ -960,7 +1026,7 @@ class AdhkarDatabaseService {
         column: 'right',
         sort_order: 2,
         section: 'other',
-        category_ids: ['10', '11', '97', '98'],
+        category_ids: ['10', '11', '97', '98', '132'],
       },
       {
         id: 'istikharah',

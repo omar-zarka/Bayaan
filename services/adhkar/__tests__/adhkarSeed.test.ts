@@ -8,6 +8,7 @@ import {
   EVENING_TEXTS_DOC,
   parseEveningRows,
 } from '@/scripts/adhkar-content/eveningRows';
+import {TRANSLITERATIONS} from '@/scripts/adhkar-content/textPolish';
 import {tasbeehDisplayText} from '@/services/widgets/dhikrText';
 
 const root = path.resolve(__dirname, '../../..');
@@ -124,7 +125,9 @@ describe('evening rows', () => {
     fs.readFileSync(path.join(root, EVENING_TEXTS_DOC), 'utf8'),
   );
 
-  it('match the reviewed spec document exactly', () => {
+  // Transliterations come from the sourced input (translit.json), which
+  // replaces the spec document's values.
+  it('match the reviewed spec document, with transliterations from translit.json', () => {
     expect(reviewed).toHaveLength(6);
     reviewed.forEach((spec, index) => {
       const r = row(spec.id);
@@ -134,7 +137,7 @@ describe('evening rows', () => {
         category_name: 'Words of remembrance for morning and evening',
         arabic: `((${spec.arabic}))`,
         translation: spec.translation,
-        transliteration: spec.transliteration,
+        transliteration: TRANSLITERATIONS[spec.id]?.transliteration ?? null,
         instruction: null,
         repeat_count: spec.repeatCount,
         audio_url: null,

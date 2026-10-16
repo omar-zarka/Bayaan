@@ -82,8 +82,8 @@ describe('version 6 reseed over saved adhkar', () => {
       "SELECT value FROM adhkar_meta WHERE key = 'data_version'",
     );
     await db.closeAsync();
-    expect(ADHKAR_DATA_VERSION).toBe(6);
-    expect(meta?.value).toBe('6');
+    expect(ADHKAR_DATA_VERSION).toBe(9);
+    expect(meta?.value).toBe('9');
     expect(await adhkarDatabaseService.needsReseed()).toBe(false);
     const row77 = await adhkarService.getDhikr('77');
     expect(row77?.arabic.startsWith('((أَصْبَحْنَا')).toBe(true);

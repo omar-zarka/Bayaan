@@ -74,6 +74,31 @@ function getCredits(
       ],
     },
     {
+      section: t('credits.sections.adhkarSources'),
+      items: [
+        {
+          title: 'hisnmuslim.com',
+          description: t('credits.items.hisnmuslim'),
+          link: 'https://www.hisnmuslim.com',
+        },
+        {
+          title: 'Tanzil',
+          description: t('credits.items.tanzil'),
+          link: 'https://tanzil.net/trans/',
+        },
+        {
+          title: 'Wikipedia contributors',
+          description: t('credits.items.wikipediaNames'),
+          link: 'https://creativecommons.org/licenses/by-sa/4.0/',
+        },
+        {
+          title: 'fitrahive/dua-dhikr',
+          description: t('credits.items.fitrahive'),
+          link: 'https://github.com/fitrahive/dua-dhikr',
+        },
+      ],
+    },
+    {
       section: t('credits.sections.designResources'),
       items: [
         {

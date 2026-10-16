@@ -5,6 +5,15 @@
 // No '@/' imports: tsx scripts import this file.
 import {parseEveningRows} from './eveningRows';
 import type {EveningRow} from './eveningRows';
+import {
+  applyMarkerFixes,
+  applyNameFixes,
+  applyRowFixes,
+  applySiteRows,
+  applyTranslitMarkerFixes,
+  applyTransliterations,
+  updateMetaTotals,
+} from './textPolish';
 
 export interface SeedRow {
   id: string;
@@ -493,6 +502,13 @@ export const FIX_STEPS: FixStep[] = [
   seed => setPeriodLists(seed),
   seed => applyTextFixes(seed),
   seed => applyAudioFixes(seed),
+  seed => applySiteRows(seed),
+  seed => applyRowFixes(seed),
+  seed => applyMarkerFixes(seed),
+  seed => applyTransliterations(seed),
+  seed => applyTranslitMarkerFixes(seed),
+  seed => applyNameFixes(seed),
+  seed => updateMetaTotals(seed),
   seed => recountCategories(seed),
 ];
 
