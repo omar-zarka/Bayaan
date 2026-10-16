@@ -14,12 +14,17 @@ import {useAdhkar} from '@/hooks/useAdhkar';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {DhikrReader} from '@/components/adhkar/DhikrReader';
+import {resolveViewableChange} from '@/components/adhkar/playAllScrollGuard';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {Dhikr, SavedDhikr} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
 import {useAdhkarAudioStore} from '@/store/adhkarAudioStore';
 import {useAdhkarPlayAllStore} from '@/store/adhkarPlayAllStore';
 import {useHeaderHeight} from 'expo-router/react-navigation';
+// @ai-start
+import {useTranslation} from 'react-i18next';
+import {appLayoutDirection} from '@/utils/rtl';
+// @ai-end
 
 const {width: SCREEN_WIDTH} = Dimensions.get('window');
 
@@ -43,6 +48,7 @@ const DhikrPage = React.memo(function DhikrPage({
   );
 });
 
+// @ai-start
 const SavedDhikrReaderScreen: React.FC = () => {
   const {dhikrId, globalIndex: globalIndexParam} = useLocalSearchParams<{
     dhikrId: string;
@@ -52,6 +58,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
   const router = useRouter();
   const navigation = useNavigation();
   const {theme} = useTheme();
+  const {t} = useTranslation('home');
   const insets = useSafeAreaInsets();
   const styles = useMemo(() => createStyles(theme), [theme]);
   const headerHeight = useHeaderHeight();
@@ -127,7 +134,9 @@ const SavedDhikrReaderScreen: React.FC = () => {
   }, [stopAudio]);
 
   // Sync FlatList scroll when Play All index changes
-  const isScrollingFromPlayAll = useRef(false);
+  // Row a Play All auto-scroll is heading to; null when no such scroll is in
+  // flight. Viewable changes until it lands are not user swipes.
+  const playAllScrollTarget = useRef<number | null>(null);
   useEffect(() => {
     if (
       isThisPlayAllSource &&
@@ -135,16 +144,12 @@ const SavedDhikrReaderScreen: React.FC = () => {
       isDataLoaded &&
       adhkarList.length > 0
     ) {
-      isScrollingFromPlayAll.current = true;
+      playAllScrollTarget.current = playAllIndex;
       flatListRef.current?.scrollToIndex({
         index: playAllIndex,
         animated: true,
       });
       setCurrentIndex(playAllIndex);
-      // Reset flag after animation completes
-      setTimeout(() => {
-        isScrollingFromPlayAll.current = false;
-      }, 300);
     }
   }, [
     isThisPlayAllSource,
@@ -166,7 +171,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
               fontFamily: theme.fonts.semiBold,
               color: theme.colors.text,
             }}>
-            Saved
+            {t('adhkar.saved')}
           </Text>
           {adhkarList.length > 1 && (
             <Text
@@ -176,13 +181,16 @@ const SavedDhikrReaderScreen: React.FC = () => {
                 color: theme.colors.textSecondary,
                 marginTop: moderateScale(2),
               }}>
-              {currentIndex + 1} of {adhkarList.length}
+              {t('adhkar.position', {
+                current: currentIndex + 1,
+                total: adhkarList.length,
+              })}
             </Text>
           )}
         </View>
       ),
     });
-  }, [navigation, currentIndex, adhkarList.length, theme]);
+  }, [navigation, currentIndex, adhkarList.length, theme, t]);
 
   const handleSaveToggle = useCallback(
     (dhikr: Dhikr) => {
@@ -197,11 +205,17 @@ const SavedDhikrReaderScreen: React.FC = () => {
         const newIndex = viewableItems[0].index;
         setCurrentIndex(newIndex);
 
-        // Sync Play All store when user manually swipes (not from Play All auto-scroll)
+        // Sync Play All store when user manually swipes (not from Play All
+        // auto-scroll, which may pass several rows before it lands)
+        const change = resolveViewableChange(
+          playAllScrollTarget.current,
+          newIndex,
+        );
+        playAllScrollTarget.current = change.target;
         if (
           isThisPlayAllSource &&
           newIndex !== playAllIndex &&
-          !isScrollingFromPlayAll.current
+          change.isUserSwipe
         ) {
           goToIndex(newIndex);
         }
@@ -209,6 +223,17 @@ const SavedDhikrReaderScreen: React.FC = () => {
     },
     [isThisPlayAllSource, playAllIndex, goToIndex],
   );
+
+  // A drag is the user taking over, even mid auto-scroll.
+  const handleScrollBeginDrag = useCallback(() => {
+    playAllScrollTarget.current = null;
+  }, []);
+
+  // Any scroll that comes to rest ends the auto-scroll, even one that moved
+  // nothing.
+  const handleMomentumScrollEnd = useCallback(() => {
+    playAllScrollTarget.current = null;
+  }, []);
 
   const viewabilityConfig = useRef({
     itemVisiblePercentThreshold: 50,
@@ -256,7 +281,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={[styles.loadingContainer, {paddingTop: headerHeight}]}>
-          <Text style={styles.emptyText}>No saved adhkar</Text>
+          <Text style={styles.emptyText}>{t('adhkar.noSaved')}</Text>
         </View>
       </View>
     );
@@ -271,6 +296,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
         ]}>
         <FlatList
           ref={flatListRef}
+          style={appLayoutDirection}
           data={adhkarList}
           renderItem={renderItem}
           keyExtractor={keyExtractor}
@@ -280,6 +306,8 @@ const SavedDhikrReaderScreen: React.FC = () => {
           initialScrollIndex={initialIndex}
           getItemLayout={getItemLayout}
           onViewableItemsChanged={onViewableItemsChanged}
+          onScrollBeginDrag={handleScrollBeginDrag}
+          onMomentumScrollEnd={handleMomentumScrollEnd}
           viewabilityConfig={viewabilityConfig}
           windowSize={3}
           maxToRenderPerBatch={2}
@@ -293,6 +321,7 @@ const SavedDhikrReaderScreen: React.FC = () => {
     </View>
   );
 };
+// @ai-end
 
 const createStyles = (theme: Theme) =>
   ScaledSheet.create({
