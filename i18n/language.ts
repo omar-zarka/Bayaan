@@ -82,40 +82,54 @@ export const defaultShowEnglishReadingAids =
 export const defaultShowTransliteration =
   defaultShowEnglishReadingAids && currentLanguageConfig.script !== 'Arab';
 
+/** Whether `language` needs a layout direction other than this session's. */
+function directionDiffers(language: AppLanguage): boolean {
+  const shouldBeRTL = isRTLLanguage(language);
+  return (
+    I18nManager.isRTL !== shouldBeRTL ||
+    (shouldBeRTL && !I18nManager.doLeftAndRightSwapInRTL)
+  );
+}
+
 /**
  * Persists the native layout direction for `language`. iOS and Android read it
- * when React Native starts, so it takes effect on the next launch. Returns
- * whether it differs from the direction this session started with.
+ * when React Native starts, so it takes effect on the next launch.
  *
  * Never reload the JS runtime in process to apply it. On React Native 0.86
  * bridgeless, `reloadAppAsync`, `Updates.reloadAsync` and `DevSettings.reload`
  * can crash: the old runtime may run a pending Fabric render after its
  * scheduler is torn down (`enableSchedulerDelegateInvalidation` is off in
  * stable builds), and Expo modules re-register while the old runtime is still
- * being torn down.
+ * being torn down. Android relaunches the whole process instead (i18n/restart).
  */
-function applyDirection(language: AppLanguage): boolean {
+function applyDirection(language: AppLanguage): void {
   const shouldBeRTL = isRTLLanguage(language);
-  const directionDiffers =
-    I18nManager.isRTL !== shouldBeRTL ||
-    (shouldBeRTL && !I18nManager.doLeftAndRightSwapInRTL);
   I18nManager.allowRTL(shouldBeRTL);
   I18nManager.swapLeftAndRightInRTL(true);
   // Write both directions even if the cached JS isRTL already matches. The
   // native persisted flag may have changed since those constants were read.
   I18nManager.forceRTL(shouldBeRTL);
-  return directionDiffers;
+}
+
+/**
+ * Whether choosing `preference` needs a restart to show: a different language,
+ * or a layout direction other than the one this session started with.
+ */
+export function languageChangeRequiresRestart(
+  preference: LanguagePreference,
+): boolean {
+  const nextLanguage = resolveLanguage(preference);
+  return nextLanguage !== currentLanguage || directionDiffers(nextLanguage);
 }
 
 /**
  * Saves the preference and the native direction for the next launch. Returns
- * whether the app must be closed and reopened for the change to apply.
+ * whether the app must restart for the change to apply.
  */
 export function setLanguagePreference(preference: LanguagePreference): boolean {
   storage.set(PREFERENCE_KEY, preference);
-  const nextLanguage = resolveLanguage(preference);
-  const directionDiffers = applyDirection(nextLanguage);
-  return directionDiffers || nextLanguage !== currentLanguage;
+  applyDirection(resolveLanguage(preference));
+  return languageChangeRequiresRestart(preference);
 }
 
 /**
