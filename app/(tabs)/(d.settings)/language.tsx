@@ -9,10 +9,12 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {
   getLanguagePreference,
+  languageChangeRequiresRestart,
   setLanguagePreference,
   AVAILABLE_LANGUAGES,
   type LanguagePreference,
 } from '@/i18n/language';
+import {canRestartToApplyLanguage, restartWithLanguage} from '@/i18n/restart';
 import {LANGUAGES} from '@/i18n/languages';
 
 export default function LanguageScreen() {
@@ -36,11 +38,38 @@ export default function LanguageScreen() {
     })),
   ];
 
+  const showReopenNotice = () =>
+    Alert.alert(t('languageRestart.title'), t('languageRestart.message'));
+
+  // Android relaunches the app process so the language applies at once.
+  const confirmRestart = (value: LanguagePreference) =>
+    Alert.alert(
+      t('languageRestart.confirmTitle'),
+      t('languageRestart.confirmMessage'),
+      [
+        {text: t('actions.cancel'), style: 'cancel'},
+        {
+          text: t('languageRestart.restart'),
+          onPress: () => {
+            setSelected(value);
+            if (!restartWithLanguage(value)) {
+              showReopenNotice();
+            }
+          },
+        },
+      ],
+    );
+
   const handleSelect = (value: LanguagePreference) => {
     if (value === selected) return;
+    if (canRestartToApplyLanguage && languageChangeRequiresRestart(value)) {
+      confirmRestart(value);
+      return;
+    }
+    // iOS cannot relaunch an app: the choice applies when it is next opened.
     setSelected(value);
     if (setLanguagePreference(value)) {
-      Alert.alert(t('languageRestart.title'), t('languageRestart.message'));
+      showReopenNotice();
     }
   };
 

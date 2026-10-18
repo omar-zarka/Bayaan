@@ -108,6 +108,15 @@ it('switches back to English on an Arabic device without reloading', () => {
   expectNoReload();
 });
 
+it('reports whether a preference needs a restart without saving it', () => {
+  const language = loadLanguage();
+  expect(language.languageChangeRequiresRestart('ar')).toBe(true);
+  expect(language.languageChangeRequiresRestart('en')).toBe(false);
+  expect(language.languageChangeRequiresRestart('system')).toBe(false);
+  expect(mockStorage.get('language_preference')).toBeUndefined();
+  expect(mockDirection.forceRTL).not.toHaveBeenCalled();
+});
+
 it('does not require a restart when the language and direction are unchanged', () => {
   expect(loadLanguage().setLanguagePreference('en')).toBe(false);
   expect(mockStorage.get('language_preference')).toBe('en');

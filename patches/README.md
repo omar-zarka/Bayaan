@@ -7,8 +7,9 @@ while keeping the normal platform design. No Screens patch is required.
 
 The Yoga wrapper remains LTR to preserve the native mini-player accessory's
 coordinates; screen and player contents apply the selected app direction.
-Language changes persist the native direction, which applies the next time
-the app is opened. The app is not reloaded in process (see i18n/language.ts).
+Language changes persist the native direction. Android relaunches the app
+process to apply it; iOS applies it the next time the app is opened. The app
+is never reloaded in process (see i18n/language.ts).
 
 When upgrading Router or Screens, verify Arabic and English tab order, Search
 placement, tab switching, and regular/minimized mini-player accessories.
