@@ -1,6 +1,6 @@
 /**
- * Adhkar lock screen entry: title, activation, hand-off to and from the
- * Quran and mushaf players.
+ * Adhkar lock screen entry: metadata, artwork, activation, hand-off to and
+ * from the Quran and mushaf players.
  */
 
 const mockMainPlayer = {
@@ -17,6 +17,7 @@ const adhkarPlayer = {
   setActiveForLockScreen: jest.fn(),
   updateLockScreenMetadata: jest.fn(),
   clearLockScreenControls: jest.fn(),
+  setLockScreenTrackControls: jest.fn(),
 };
 
 jest.mock('@/services/player/store/playerStore', () => {
@@ -62,9 +63,20 @@ jest.mock('../AudioCoordinator', () => ({
 jest.mock('@/i18n', () => ({
   __esModule: true,
   default: {
-    t: (_key: string, o: {current: number; total: number}) =>
-      `${o.current} of ${o.total}`,
+    t: (key: string, o?: {current: number; total: number}) =>
+      key === 'home:adhkar.position' && o
+        ? `${o.current} of ${o.total}`
+        : key === 'settings:credits.items.alafasyTitle'
+          ? 'Mishary Rashid Alafasy'
+          : key,
   },
+}));
+
+const mockCachedArtwork = jest.fn<string | undefined, [string]>();
+const mockLoadArtwork = jest.fn<Promise<string | null>, [string]>();
+jest.mock('@/services/adhkar/playback/adhkarArtwork', () => ({
+  cachedAdhkarArtworkUri: (listId: string) => mockCachedArtwork(listId),
+  loadAdhkarArtworkUri: (listId: string) => mockLoadArtwork(listId),
 }));
 
 jest.mock('@/config/branding', () => ({
@@ -72,10 +84,15 @@ jest.mock('@/config/branding', () => ({
   default: {appName: 'Bayaan'},
 }));
 
-import {adhkarLockScreenTitle, lockScreenService} from '../LockScreenService';
+import {
+  adhkarLockScreenMetadata,
+  adhkarLockScreenTitle,
+  lockScreenService,
+} from '../LockScreenService';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
 import type {AudioPlayer} from 'expo-audio';
+import {Platform} from 'react-native';
 import type {AdhkarSession} from '@/services/adhkar/playback/types';
 
 const session: AdhkarSession = {
@@ -97,7 +114,7 @@ const session: AdhkarSession = {
   lastActiveAt: 0,
 };
 
-// The mock player is structural; the service only uses these three methods.
+// The mock player is structural; the service only uses these methods.
 const asPlayer = (p: typeof adhkarPlayer): AudioPlayer =>
   p as unknown as AudioPlayer;
 
@@ -116,6 +133,8 @@ beforeEach(async () => {
     Object.values(p).forEach(fn => fn.mockClear()),
   );
   mockActiveSource = 'adhkar';
+  mockCachedArtwork.mockReset().mockReturnValue(undefined);
+  mockLoadArtwork.mockReset().mockResolvedValue(null);
   mushafStore.setState({playbackState: 'idle'});
   playerStore.setState({...track('t1'), playback: {state: 'paused'}});
   await lockScreenService.startSync();
@@ -136,13 +155,64 @@ describe('adhkarLockScreenTitle', () => {
   });
 });
 
+describe('adhkarLockScreenMetadata', () => {
+  const labels = {
+    position: (c: number, t: number) => `${c} of ${t}`,
+    alafasy: 'Mishary Rashid Alafasy',
+    appName: 'Bayaan',
+  };
+
+  it('credits Alafasy on the lists he recites, with the list as album', () => {
+    expect(adhkarLockScreenMetadata(session, labels)).toEqual({
+      title: 'Morning Adhkar · 4 of 23',
+      artist: 'Mishary Rashid Alafasy',
+      albumTitle: 'Morning Adhkar',
+    });
+    for (const listId of ['evening-adhkar', 'quranic-duas']) {
+      expect(
+        adhkarLockScreenMetadata({...session, listId}, labels).artist,
+      ).toBe('Mishary Rashid Alafasy');
+    }
+  });
+
+  it('shows the app name for other lists and Saved', () => {
+    for (const listId of ['travel', 'saved']) {
+      expect(
+        adhkarLockScreenMetadata({...session, listId}, labels).artist,
+      ).toBe('Bayaan');
+    }
+  });
+
+  it('adds the artwork only when it is known', () => {
+    expect(
+      adhkarLockScreenMetadata(session, labels, 'file:///a.png'),
+    ).toHaveProperty('artworkUrl', 'file:///a.png');
+    expect(adhkarLockScreenMetadata(session, labels)).not.toHaveProperty(
+      'artworkUrl',
+    );
+  });
+});
+
+const morningMetadata = {
+  title: 'Morning Adhkar · 4 of 23',
+  artist: 'Mishary Rashid Alafasy',
+  albumTitle: 'Morning Adhkar',
+};
+
+// Lets the artwork promise chain run.
+const flush = (): Promise<void> => new Promise(r => setImmediate(r));
+
 describe('activateAdhkar', () => {
   it('activates the adhkar player and clears main and mushaf', () => {
     lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
     expect(adhkarPlayer.setActiveForLockScreen).toHaveBeenCalledWith(
       true,
-      {title: 'Morning Adhkar · 4 of 23', artist: 'Bayaan'},
-      {showSeekForward: false, showSeekBackward: false},
+      morningMetadata,
+      {
+        showSeekForward: false,
+        showSeekBackward: false,
+        trackControls: {previous: true, next: true},
+      },
     );
     expect(mockMainPlayer.clearLockScreenControls).toHaveBeenCalled();
     expect(mockMushafPlayer.clearLockScreenControls).toHaveBeenCalled();
@@ -156,9 +226,53 @@ describe('activateAdhkar', () => {
     });
     expect(adhkarPlayer.setActiveForLockScreen).toHaveBeenCalledTimes(1);
     expect(adhkarPlayer.updateLockScreenMetadata).toHaveBeenCalledWith({
+      ...morningMetadata,
       title: 'Morning Adhkar · 5 of 23',
-      artist: 'Bayaan',
     });
+  });
+
+  it('adds the list artwork once it resolves', async () => {
+    mockLoadArtwork.mockResolvedValue('file:///morning.png');
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    expect(mockLoadArtwork).toHaveBeenCalledWith('morning-adhkar');
+    await flush();
+    expect(adhkarPlayer.updateLockScreenMetadata).toHaveBeenCalledWith({
+      ...morningMetadata,
+      artworkUrl: 'file:///morning.png',
+    });
+  });
+
+  it('passes cached artwork straight through without loading again', () => {
+    mockCachedArtwork.mockReturnValue('file:///morning.png');
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    expect(adhkarPlayer.setActiveForLockScreen).toHaveBeenCalledWith(
+      true,
+      {...morningMetadata, artworkUrl: 'file:///morning.png'},
+      expect.anything(),
+    );
+    expect(mockLoadArtwork).not.toHaveBeenCalled();
+  });
+
+  it('drops late artwork once the entry is gone', async () => {
+    mockLoadArtwork.mockResolvedValue('file:///morning.png');
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    lockScreenService.clearAdhkar(asPlayer(adhkarPlayer));
+    await flush();
+    expect(adhkarPlayer.updateLockScreenMetadata).not.toHaveBeenCalled();
+  });
+
+  it('drops late artwork for a list that is no longer playing', async () => {
+    mockLoadArtwork.mockResolvedValue('file:///morning.png');
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    mockLoadArtwork.mockReturnValue(new Promise(() => {}));
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), {
+      ...session,
+      listId: 'travel',
+      listTitle: 'Travel',
+    });
+    adhkarPlayer.updateLockScreenMetadata.mockClear();
+    await flush();
+    expect(adhkarPlayer.updateLockScreenMetadata).not.toHaveBeenCalled();
   });
 
   it('does not re-activate main on a main track change while held', () => {
@@ -241,6 +355,97 @@ describe('activateAdhkar', () => {
       true,
       expect.objectContaining({artist: 'Reciter · Ayah 3 of 7'}),
       {showSeekForward: false, showSeekBackward: false},
+    );
+  });
+});
+
+describe('adhkar track controls', () => {
+  const originalOS = Platform.OS;
+  afterEach(() => {
+    Platform.OS = originalOS;
+  });
+
+  it('opts in on activation, disabling previous on the first dhikr', () => {
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), {
+      ...session,
+      index: 0,
+    });
+    expect(adhkarPlayer.setActiveForLockScreen).toHaveBeenCalledWith(
+      true,
+      expect.anything(),
+      expect.objectContaining({trackControls: {previous: false, next: true}}),
+    );
+  });
+
+  it('activates without them in single mode', () => {
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), {
+      ...session,
+      mode: 'single',
+    });
+    expect(adhkarPlayer.setActiveForLockScreen).toHaveBeenCalledWith(
+      true,
+      expect.anything(),
+      {showSeekForward: false, showSeekBackward: false},
+    );
+    expect(lockScreenService.hasAdhkarTrackControls()).toBe(false);
+  });
+
+  it('updates them in place only when they change', () => {
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), {
+      ...session,
+      index: 4,
+    });
+    expect(adhkarPlayer.setLockScreenTrackControls).not.toHaveBeenCalled();
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), {
+      ...session,
+      index: 22,
+    });
+    expect(adhkarPlayer.setLockScreenTrackControls).toHaveBeenCalledWith({
+      previous: true,
+      next: false,
+    });
+  });
+
+  it('hands them to CarPlay on iOS while a car is connected, and back', () => {
+    Platform.OS = 'ios';
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    lockScreenService.setCarMode(true);
+    expect(adhkarPlayer.setLockScreenTrackControls).toHaveBeenLastCalledWith(
+      null,
+    );
+    expect(lockScreenService.hasAdhkarTrackControls()).toBe(false);
+    lockScreenService.setCarMode(false);
+    expect(adhkarPlayer.setLockScreenTrackControls).toHaveBeenLastCalledWith({
+      previous: true,
+      next: true,
+    });
+  });
+
+  it('keeps them on Android while a car is connected', () => {
+    Platform.OS = 'android';
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    lockScreenService.setCarMode(true);
+    expect(adhkarPlayer.setLockScreenTrackControls).not.toHaveBeenCalled();
+    expect(lockScreenService.hasAdhkarTrackControls()).toBe(true);
+  });
+
+  it('reports the held entry until it is cleared', () => {
+    expect(lockScreenService.isAdhkarHeld()).toBe(false);
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    expect(lockScreenService.isAdhkarHeld()).toBe(true);
+    lockScreenService.clearAdhkar(asPlayer(adhkarPlayer));
+    expect(lockScreenService.isAdhkarHeld()).toBe(false);
+    expect(lockScreenService.hasAdhkarTrackControls()).toBe(false);
+  });
+
+  it('never gives the Quran player track controls', () => {
+    lockScreenService.activateAdhkar(asPlayer(adhkarPlayer), session);
+    lockScreenService.clearAdhkar(asPlayer(adhkarPlayer));
+    expect(mockMainPlayer.setActiveForLockScreen).toHaveBeenCalledWith(
+      true,
+      expect.anything(),
+      {showSeekForward: true, showSeekBackward: true},
     );
   });
 });

@@ -43,7 +43,7 @@ export default function WhatsNewScreen() {
           <ChangelogContent
             changelog={latestChangelog}
             showVersion={true}
-            showFullDetails={false}
+            showFullDetails={true}
           />
         </ScrollView>
       </View>
