@@ -4,6 +4,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {expandPlayerSheet} from '@/services/player/sheetRef';
+import {useMiniPlayerAnchor} from '@/components/player/v2/useMiniPlayerAnchor';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
@@ -13,6 +14,8 @@ import {useTranslation} from 'react-i18next';
 import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 import {appLayoutDirection} from '@/utils/rtl';
 // @ai-end
+
+const capsuleRadius = (height: number) => height / 2;
 
 // @ai-start
 function MiniPlayerInner() {
@@ -47,6 +50,9 @@ function MiniPlayerInner() {
     }
   }, [playbackState, pause, play]);
 
+  // The bottom accessory is a capsule; the player surface grows out of it.
+  const anchorRef = useMiniPlayerAnchor(capsuleRadius);
+
   const handlePress = useCallback(() => {
     expandPlayerSheet();
   }, []);
@@ -59,7 +65,7 @@ function MiniPlayerInner() {
     // a11y — plain View row (not a grouping Pressable) so the play/pause
     // control is INDIVIDUALLY focusable by VoiceOver; the expand action lives
     // on the inner body only.
-    <View style={[styles.row, appLayoutDirection]}>
+    <View ref={anchorRef} style={[styles.row, appLayoutDirection]}>
       <Pressable
         onPress={handlePress}
         style={styles.body}

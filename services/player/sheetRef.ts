@@ -2,7 +2,54 @@ import type BottomSheet from '@gorhom/bottom-sheet';
 import {usePlayerStore} from './store/playerStore';
 
 /**
- * Module-scope holder for the player BottomSheet ref.
+ * Window rect of the mini player the full player opens from. The morphing
+ * player surface grows out of this rect and shrinks back onto it on close.
+ */
+export interface PlayerOrigin {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  radius: number;
+}
+
+/**
+ * Imperative handle the active player container registers. Either the gorhom
+ * sheet (adapted below) or the morphing PlayerSurface.
+ */
+export interface PlayerSheetController {
+  expand: (origin?: PlayerOrigin) => void;
+  close: () => void;
+}
+
+type AnchorMeasurer = (done: (origin?: PlayerOrigin) => void) => void;
+
+/**
+ * The mounted mini player (iOS bottom accessory, Android pill or tablet dock)
+ * registers how to measure itself, so the morphing surface can open from and
+ * close onto wherever it currently sits, whoever triggered the open.
+ */
+let _anchor: AnchorMeasurer | null = null;
+
+export function registerMiniPlayerAnchor(measure: AnchorMeasurer) {
+  _anchor = measure;
+}
+
+export function unregisterMiniPlayerAnchor(measure: AnchorMeasurer) {
+  if (_anchor === measure) _anchor = null;
+}
+
+/** Measures the mounted mini player; `done()` gets undefined if none. */
+export function measureMiniPlayerAnchor(done: (origin?: PlayerOrigin) => void) {
+  if (!_anchor) {
+    done(undefined);
+    return;
+  }
+  _anchor(done);
+}
+
+/**
+ * Module-scope holder for the active player container.
  *
  * This decouples the imperative expand/close calls from the Zustand
  * sheetMode state, fixing the gorhom v5 edge case where a gesture-driven
@@ -10,26 +57,41 @@ import {usePlayerStore} from './store/playerStore';
  * the closed detent — no animation runs, so animateToPositionCompleted
  * never fires).
  */
-let _sheetRef: React.RefObject<BottomSheet | null> | null = null;
+let _controller: PlayerSheetController | null = null;
 
-export function registerPlayerSheetRef(
-  ref: React.RefObject<BottomSheet | null>,
+export function registerPlayerSheetController(
+  controller: PlayerSheetController,
 ) {
-  _sheetRef = ref;
+  _controller = controller;
 }
 
-export function unregisterPlayerSheetRef() {
-  _sheetRef = null;
+export function unregisterPlayerSheetController(
+  controller: PlayerSheetController,
+) {
+  if (_controller === controller) _controller = null;
+}
+
+/** Adapts the gorhom BottomSheet ref to the controller interface. */
+export function registerPlayerSheetRef(
+  ref: React.RefObject<BottomSheet | null>,
+): PlayerSheetController {
+  const controller: PlayerSheetController = {
+    expand: () => ref.current?.expand(),
+    close: () => ref.current?.close(),
+  };
+  registerPlayerSheetController(controller);
+  return controller;
 }
 
 /**
- * Expand the player sheet. Always calls the imperative expand() method
- * AND sets sheetMode to 'full', so even if sheetMode was stale (stuck
- * on 'full' from a missed onChange), the sheet still opens.
+ * Expand the player. Always calls the imperative expand() AND sets sheetMode
+ * to 'full', so even if sheetMode was stale (stuck on 'full' from a missed
+ * onChange), the player still opens. `origin` is the tapped mini player's
+ * window rect; the gorhom sheet ignores it.
  */
-export function expandPlayerSheet() {
+export function expandPlayerSheet(origin?: PlayerOrigin) {
   usePlayerStore.getState().setSheetMode('full');
-  _sheetRef?.current?.expand();
+  _controller?.expand(origin);
 }
 
 /**
@@ -37,5 +99,5 @@ export function expandPlayerSheet() {
  */
 export function closePlayerSheet() {
   usePlayerStore.getState().setSheetMode('hidden');
-  _sheetRef?.current?.close();
+  _controller?.close();
 }

@@ -6,6 +6,7 @@ import {moderateScale} from 'react-native-size-matters';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {expandPlayerSheet} from '@/services/player/sheetRef';
+import {useMiniPlayerAnchor} from '@/components/player/v2/useMiniPlayerAnchor';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
@@ -23,6 +24,8 @@ import {useResponsive} from '@/hooks/useResponsive';
 import {useTranslation} from 'react-i18next';
 import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 // @ai-end
+
+const capsuleRadius = (height: number) => height / 2;
 
 // @ai-start
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
@@ -57,6 +60,9 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
   // iPad uses TabletDockedPlayer inside the sidebar instead of this pill.
   const shouldShow =
     !stateRestoring && !!currentTrack && !isMushafActive && !isTablet;
+
+  // The pill is a capsule; the player surface grows out of it.
+  const anchorRef = useMiniPlayerAnchor(capsuleRadius);
 
   const handlePress = useCallback(() => {
     expandPlayerSheet();
@@ -110,7 +116,7 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
           play/pause control is INDIVIDUALLY focusable by TalkBack / VoiceOver
           (a wrapping `accessible` Pressable would collapse the whole row into
           one node). The expand action lives on the inner body only. */}
-      <View style={styles.content}>
+      <View ref={anchorRef} style={styles.content}>
         <Pressable
           onPress={handlePress}
           style={styles.body}
