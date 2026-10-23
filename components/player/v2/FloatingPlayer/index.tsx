@@ -1,5 +1,6 @@
 import React, {useCallback, useMemo, useRef} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
+import {GestureDetector} from 'react-native-gesture-handler';
 import {usePathname} from 'expo-router';
 import {useTheme} from '@/hooks/useTheme';
 import {moderateScale} from 'react-native-size-matters';
@@ -26,6 +27,7 @@ import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 // @ai-end
 
 const capsuleRadius = (height: number) => height / 2;
+const artworkCornerRadius = () => moderateScale(8, 0.2);
 
 // @ai-start
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
@@ -62,7 +64,10 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
     !stateRestoring && !!currentTrack && !isMushafActive && !isTablet;
 
   // The pill is a capsule; the player surface grows out of it.
-  const anchorRef = useMiniPlayerAnchor(capsuleRadius);
+  const {anchorRef, artworkRef, openGesture} = useMiniPlayerAnchor({
+    radius: capsuleRadius,
+    artworkRadius: artworkCornerRadius,
+  });
 
   const handlePress = useCallback(() => {
     expandPlayerSheet();
@@ -116,51 +121,63 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
           play/pause control is INDIVIDUALLY focusable by TalkBack / VoiceOver
           (a wrapping `accessible` Pressable would collapse the whole row into
           one node). The expand action lives on the inner body only. */}
-      <View ref={anchorRef} style={styles.content}>
-        <Pressable
-          onPress={handlePress}
-          style={styles.body}
-          android_ripple={{color: 'rgba(0, 0, 0, 0.1)', borderless: false}}
-          accessibilityRole="button"
-          accessibilityLabel={`${getTrackDisplayTitle(currentTrack)}, ${getTrackArtistDisplay(currentTrack)}`}
-          accessibilityHint={t('a11y.openPlayer')}>
-          <ReciterImage
-            reciterName={currentTrack.reciterName}
-            style={styles.artwork}
-          />
-          <View style={styles.trackInfo}>
-            <Text style={[styles.title, {color: textColor}]} numberOfLines={1}>
-              {getTrackDisplayTitle(currentTrack)}
-            </Text>
-            <Text
-              style={[styles.subtitle, {color: subtitleColor}]}
-              numberOfLines={1}>
-              {getTrackArtistDisplay(currentTrack)}
-            </Text>
-          </View>
-        </Pressable>
-        <Pressable
-          onPress={handlePlayPause}
-          style={styles.playButton}
-          hitSlop={10}
-          accessibilityRole="button"
-          accessibilityLabel={t(
-            playbackState === 'playing'
-              ? 'common:actions.pause'
-              : 'common:actions.play',
-          )}>
-          {isLoadingNewTrack ? (
-            <LoadingIndicator color={theme.colors.text} />
-          ) : playbackState === 'playing' ? (
-            <PauseIcon
-              color={theme.colors.text}
-              size={moderateScale(20, 0.2)}
-            />
-          ) : (
-            <PlayIcon color={theme.colors.text} size={moderateScale(20, 0.2)} />
-          )}
-        </Pressable>
-      </View>
+      <GestureDetector gesture={openGesture}>
+        <View ref={anchorRef} style={styles.content}>
+          <Pressable
+            onPress={handlePress}
+            style={styles.body}
+            android_ripple={{color: 'rgba(0, 0, 0, 0.1)', borderless: false}}
+            accessibilityRole="button"
+            accessibilityLabel={`${getTrackDisplayTitle(currentTrack)}, ${getTrackArtistDisplay(currentTrack)}`}
+            accessibilityHint={t('a11y.openPlayer')}>
+            <View
+              ref={artworkRef}
+              collapsable={false}
+              style={styles.artworkWrap}>
+              <ReciterImage
+                reciterName={currentTrack.reciterName}
+                style={styles.artwork}
+              />
+            </View>
+            <View style={styles.trackInfo}>
+              <Text
+                style={[styles.title, {color: textColor}]}
+                numberOfLines={1}>
+                {getTrackDisplayTitle(currentTrack)}
+              </Text>
+              <Text
+                style={[styles.subtitle, {color: subtitleColor}]}
+                numberOfLines={1}>
+                {getTrackArtistDisplay(currentTrack)}
+              </Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={handlePlayPause}
+            style={styles.playButton}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t(
+              playbackState === 'playing'
+                ? 'common:actions.pause'
+                : 'common:actions.play',
+            )}>
+            {isLoadingNewTrack ? (
+              <LoadingIndicator color={theme.colors.text} />
+            ) : playbackState === 'playing' ? (
+              <PauseIcon
+                color={theme.colors.text}
+                size={moderateScale(20, 0.2)}
+              />
+            ) : (
+              <PlayIcon
+                color={theme.colors.text}
+                size={moderateScale(20, 0.2)}
+              />
+            )}
+          </Pressable>
+        </View>
+      </GestureDetector>
     </Container>
   );
 });
@@ -184,6 +201,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: moderateScale(10, 0.2),
+  },
+  artworkWrap: {
+    flexShrink: 0,
   },
   artwork: {
     width: moderateScale(36, 0.2),

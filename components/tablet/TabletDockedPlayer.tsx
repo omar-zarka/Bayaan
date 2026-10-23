@@ -54,7 +54,12 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
       return (trackLoading && isTrackChanging) || playbackState === 'buffering';
     }, [trackLoading, playbackState, currentTrack?.id]);
 
-    const anchorRef = useMiniPlayerAnchor(dockRadius);
+    // No artwork ref: the dock's card is small enough that the content fade
+    // reads fine, and swipe up doesn't fit a sidebar.
+    const {anchorRef} = useMiniPlayerAnchor({
+      radius: dockRadius,
+      artworkRadius: dockRadius,
+    });
 
     const handlePress = useCallback(() => {
       expandPlayerSheet();

@@ -1,10 +1,11 @@
 // @ai-generated
-import React, {useCallback, useEffect, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {
   Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
+  View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type ScrollViewProps,
@@ -28,11 +29,13 @@ import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
+import {ReciterImage} from '@/components/ReciterImage';
 import {
   measureMiniPlayerAnchor,
   registerPlayerSheetController,
   unregisterPlayerSheetController,
   type PlayerOrigin,
+  type PlayerRect,
   type PlayerSheetController,
 } from '@/services/player/sheetRef';
 import {appLayoutDirection, forceLTR} from '@/utils/rtl';
@@ -61,16 +64,15 @@ const SPRING = {
 
 const REDUCED_MOTION_DURATION = 200;
 
-// Release thresholds for drag-to-dismiss.
-const CLOSE_VELOCITY = 900; // px/s downward
-const CLOSE_DISTANCE_RATIO = 0.25; // of the screen height
+// On release, progress is projected this many seconds ahead at the finger's
+// velocity; past halfway it opens, otherwise it closes. A flick decides on
+// its own, a slow drag by how far it went.
+const RELEASE_PROJECTION_S = 0.2;
 const BACKDROP_OPACITY = 0.5;
 
 interface SurfaceMotion {
   /** Morph progress: 0 = on the mini player's rect, 1 = full screen. */
   progress: SharedValue<number>;
-  /** Interactive drag-down offset in px, applied on top of the morph. */
-  dragY: SharedValue<number>;
   onDragStart: () => void;
   onDragUpdate: (translationY: number) => void;
   onDragEnd: (velocityY: number) => void;
@@ -159,15 +161,21 @@ export const PlayerSurface = () => {
   const reducedMotion = useReducedMotion();
   const {setSheetMode, setImmersive} = usePlayerActions();
   const sheetMode = usePlayerStore(s => s.sheetMode);
+  const currentTrack = usePlayerStore(
+    s => s.queue.tracks?.[s.queue.currentIndex ?? -1],
+  );
 
   const progress = useSharedValue(0);
-  const dragY = useSharedValue(0);
-  const dragStartY = useSharedValue(0);
+  const dragStartProgress = useSharedValue(0);
   // Where progress is heading, so a JS-side sheetMode change doesn't restart
   // (and drop the velocity of) an animation a gesture already started.
   const target = useSharedValue(0);
   const origin = useSharedValue<PlayerOrigin | null>(null);
+  // False while a swipe-up from the mini player waits for its measurement.
+  const originReady = useSharedValue(true);
+  const artworkTarget = useSharedValue<PlayerRect | null>(null);
   const screen = useSharedValue({width: screenWidth, height: screenHeight});
+  const contentRef = useRef<View>(null);
 
   useEffect(() => {
     screen.value = {width: screenWidth, height: screenHeight};
@@ -177,15 +185,11 @@ export const PlayerSurface = () => {
     (to: 0 | 1, velocity: number) => {
       'worklet';
       target.value = to;
-      if (reducedMotion) {
-        progress.value = withTiming(to, {duration: REDUCED_MOTION_DURATION});
-        dragY.value = withTiming(0, {duration: REDUCED_MOTION_DURATION});
-        return;
-      }
-      progress.value = withSpring(to, {...SPRING, velocity});
-      dragY.value = withSpring(0, SPRING);
+      progress.value = reducedMotion
+        ? withTiming(to, {duration: REDUCED_MOTION_DURATION})
+        : withSpring(to, {...SPRING, velocity});
     },
-    [reducedMotion, target, progress, dragY],
+    [reducedMotion, target, progress],
   );
 
   const open = useCallback(
@@ -214,12 +218,6 @@ export const PlayerSurface = () => {
   }, [origin, settle, target]);
 
   useEffect(() => {
-    const controller: PlayerSheetController = {expand: open, close};
-    registerPlayerSheetController(controller);
-    return () => unregisterPlayerSheetController(controller);
-  }, [open, close]);
-
-  useEffect(() => {
     if (sheetMode === 'full') {
       open();
     } else {
@@ -228,49 +226,55 @@ export const PlayerSurface = () => {
     }
   }, [sheetMode, open, close, setImmersive]);
 
-  const markHidden = useCallback(() => {
-    if (usePlayerStore.getState().sheetMode !== 'hidden') {
-      setSheetMode('hidden');
-    }
-  }, [setSheetMode]);
+  const syncSheetMode = useCallback(
+    (to: 0 | 1) => {
+      const mode = to === 1 ? 'full' : 'hidden';
+      if (usePlayerStore.getState().sheetMode !== mode) setSheetMode(mode);
+    },
+    [setSheetMode],
+  );
+
+  // A drag drives the morph itself: the top edge follows the finger while
+  // the sides and the bottom close in on the mini player (and the reverse
+  // on a swipe up), so the card always shrinks toward where it will land.
+  const openDistance = useCallback(() => {
+    'worklet';
+    return Math.max(origin.value?.y ?? screen.value.height, 1);
+  }, [origin, screen]);
 
   const onDragStart = useCallback(() => {
     'worklet';
-    cancelAnimation(dragY);
-    dragStartY.value = dragY.value;
-  }, [dragY, dragStartY]);
+    cancelAnimation(progress);
+    dragStartProgress.value = progress.value;
+  }, [progress, dragStartProgress]);
 
   const onDragUpdate = useCallback(
     (translationY: number) => {
       'worklet';
-      dragY.value = Math.max(0, dragStartY.value + translationY);
+      if (!originReady.value) return;
+      const next = dragStartProgress.value - translationY / openDistance();
+      progress.value = Math.min(1, Math.max(0, next));
     },
-    [dragY, dragStartY],
+    [originReady, dragStartProgress, openDistance, progress],
   );
 
   const onDragEnd = useCallback(
     (velocityY: number) => {
       'worklet';
-      const shouldClose =
-        velocityY > CLOSE_VELOCITY ||
-        (dragY.value > screen.value.height * CLOSE_DISTANCE_RATIO &&
-          velocityY > -CLOSE_VELOCITY / 3);
-      if (shouldClose) {
-        // Progress is in units of the open distance; carry the finger's
-        // velocity into the morph so a flick finishes naturally.
-        const distance = Math.max(origin.value?.y ?? screen.value.height, 1);
-        settle(0, -velocityY / distance);
-        runOnJS(markHidden)();
-      } else {
-        settle(1, 0);
-      }
+      // Progress is in units of the open distance; carry the finger's
+      // velocity into the spring so a flick finishes naturally.
+      const velocity = -velocityY / openDistance();
+      const projected = progress.value + velocity * RELEASE_PROJECTION_S;
+      const to = projected > 0.5 ? 1 : 0;
+      settle(to, velocity);
+      runOnJS(syncSheetMode)(to);
     },
-    [dragY, screen, origin, settle, markHidden],
+    [openDistance, progress, settle, syncSheetMode],
   );
 
   const motion = useMemo<SurfaceMotion>(
-    () => ({progress, dragY, onDragStart, onDragUpdate, onDragEnd}),
-    [progress, dragY, onDragStart, onDragUpdate, onDragEnd],
+    () => ({progress, onDragStart, onDragUpdate, onDragEnd}),
+    [progress, onDragStart, onDragUpdate, onDragEnd],
   );
 
   const renderScrollComponent = useMemo(
@@ -290,9 +294,59 @@ export const PlayerSurface = () => {
     [motion],
   );
 
+  const measureOriginForDrag = useCallback(() => {
+    measureMiniPlayerAnchor(o => {
+      if (o) origin.value = o;
+      originReady.value = true;
+    });
+  }, [origin, originReady]);
+
+  // Swipe up on the mini player: the morph follows the finger from the
+  // mini player's rect, measured as the touch lands.
+  const createOpenGesture = useCallback(
+    () =>
+      Gesture.Pan()
+        .activeOffsetY(-10)
+        .failOffsetY(10)
+        .failOffsetX([-20, 20])
+        .onBegin(() => {
+          originReady.value = false;
+          runOnJS(measureOriginForDrag)();
+        })
+        .onStart(motion.onDragStart)
+        .onUpdate(e => motion.onDragUpdate(e.translationY))
+        .onEnd(e => motion.onDragEnd(e.velocityY))
+        .onFinalize(() => {
+          originReady.value = true;
+        })
+        .shouldCancelWhenOutside(false),
+    [motion, originReady, measureOriginForDrag],
+  );
+
+  useEffect(() => {
+    const controller: PlayerSheetController = {
+      expand: open,
+      close,
+      createOpenGesture,
+    };
+    registerPlayerSheetController(controller);
+    return () => unregisterPlayerSheetController(controller);
+  }, [open, close, createOpenGesture]);
+
+  const setArtworkTarget = useCallback(
+    (rect: PlayerRect | null) => {
+      artworkTarget.value = rect;
+    },
+    [artworkTarget],
+  );
+
   const dismissApi = useMemo<PlayerDismissApi>(
-    () => ({createDismissGesture, renderScrollComponent}),
-    [createDismissGesture, renderScrollComponent],
+    () => ({
+      createDismissGesture,
+      renderScrollComponent,
+      artworkFlight: {progress, contentRef, setTarget: setArtworkTarget},
+    }),
+    [createDismissGesture, renderScrollComponent, progress, setArtworkTarget],
   );
 
   const frameStyle = useAnimatedStyle(() => {
@@ -307,33 +361,19 @@ export const PlayerSurface = () => {
         transform: [{translateX: 0}, {translateY: 0}],
       };
     }
-    // No mini player to grow from (e.g. a deep link): slide up from below.
-    const o = origin.value ?? {
-      x: 0,
-      y: h,
-      width: w,
-      height: h,
-      radius: SCREEN_CORNER_RADIUS,
-    };
-    const morphRadius = interpolate(
-      p,
-      [0, 0.9, 1],
-      [o.radius, SCREEN_CORNER_RADIUS, 0],
-    );
-    const dragRadius = interpolate(
-      dragY.value,
-      [0, 40],
-      [0, SCREEN_CORNER_RADIUS],
-      Extrapolation.CLAMP,
-    );
+    const o = origin.value ?? fallbackOrigin(w, h);
     return {
       width: interpolate(p, [0, 1], [o.width, w]),
       height: interpolate(p, [0, 1], [o.height, h]),
-      borderRadius: Math.max(morphRadius, dragRadius * p),
+      borderRadius: interpolate(
+        p,
+        [0, 0.9, 1],
+        [o.radius, SCREEN_CORNER_RADIUS, 0],
+      ),
       opacity: 1,
       transform: [
         {translateX: interpolate(p, [0, 1], [o.x, 0])},
-        {translateY: interpolate(p, [0, 1], [o.y, 0]) + dragY.value * p},
+        {translateY: interpolate(p, [0, 1], [o.y, 0])},
       ],
     };
   });
@@ -351,6 +391,34 @@ export const PlayerSurface = () => {
       height: h,
       opacity: interpolate(p, [0.1, 0.45], [0, 1], Extrapolation.CLAMP),
       transform: [{scale: interpolate(p, [0, 1], [startScale, 1])}],
+    };
+  });
+
+  // The artwork flies from the mini player's artwork to where the full
+  // player's artwork is at this point of the morph (inside the moving,
+  // scaling content), landing exactly on it at 1. The real artwork is
+  // hidden while the copy is in flight (usePlayerArtworkTarget).
+  const flightStyle = useAnimatedStyle(() => {
+    const from = origin.value?.artwork;
+    const to = artworkTarget.value;
+    const p = progress.value;
+    if (reducedMotion || !from || !to || p <= 0.001 || p >= 0.999) {
+      return {opacity: 0, width: 0, height: 0};
+    }
+    const {width: w, height: h} = screen.value;
+    const o = origin.value ?? fallbackOrigin(w, h);
+    const scale = interpolate(p, [0, 1], [o.width / w, 1]);
+    const landX = interpolate(p, [0, 1], [o.x, 0]) + to.x * scale;
+    const landY = interpolate(p, [0, 1], [o.y, 0]) + to.y * scale;
+    return {
+      opacity: 1,
+      width: interpolate(p, [0, 1], [from.width, to.width * scale]),
+      height: interpolate(p, [0, 1], [from.height, to.height * scale]),
+      borderRadius: interpolate(p, [0, 1], [from.radius, to.radius]),
+      transform: [
+        {translateX: interpolate(p, [0, 1], [from.x, landX])},
+        {translateY: interpolate(p, [0, 1], [from.y, landY])},
+      ],
     };
   });
 
@@ -373,15 +441,9 @@ export const PlayerSurface = () => {
     ),
   }));
 
-  const backdropStyle = useAnimatedStyle(() => {
-    const dragFade = interpolate(
-      dragY.value,
-      [0, screen.value.height],
-      [1, 0],
-      Extrapolation.CLAMP,
-    );
-    return {opacity: progress.value * dragFade * BACKDROP_OPACITY};
-  });
+  const backdropStyle = useAnimatedStyle(() => ({
+    opacity: progress.value * BACKDROP_OPACITY,
+  }));
 
   const isOpen = sheetMode === 'full';
 
@@ -414,13 +476,29 @@ export const PlayerSurface = () => {
             backgroundStyle,
           ]}
         />
-        <Animated.View style={[styles.content, contentStyle]}>
+        <Animated.View
+          ref={contentRef}
+          collapsable={false}
+          style={[styles.content, contentStyle]}>
           <PlayerBody />
         </Animated.View>
+      </Animated.View>
+      <Animated.View pointerEvents="none" style={[styles.flight, flightStyle]}>
+        <ReciterImage
+          imageUrl={currentTrack?.artwork}
+          reciterName={currentTrack?.artist || ''}
+          style={styles.flightImage}
+        />
       </Animated.View>
     </PlayerDismissProvider>
   );
 };
+
+/** No mini player to grow from (e.g. a deep link): slide up from below. */
+function fallbackOrigin(width: number, height: number): PlayerOrigin {
+  'worklet';
+  return {x: 0, y: height, width, height, radius: SCREEN_CORNER_RADIUS};
+}
 
 const styles = StyleSheet.create({
   backdrop: {
@@ -447,5 +525,17 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     transformOrigin: 'left top',
+  },
+  flight: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    overflow: 'hidden',
+    zIndex: 2001,
+    elevation: 21,
+  },
+  flightImage: {
+    width: '100%',
+    height: '100%',
   },
 });

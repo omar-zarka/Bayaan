@@ -1,16 +1,22 @@
 import type BottomSheet from '@gorhom/bottom-sheet';
+import type {PanGesture} from 'react-native-gesture-handler';
 import {usePlayerStore} from './store/playerStore';
 
 /**
  * Window rect of the mini player the full player opens from. The morphing
  * player surface grows out of this rect and shrinks back onto it on close.
  */
-export interface PlayerOrigin {
+export interface PlayerRect {
   x: number;
   y: number;
   width: number;
   height: number;
   radius: number;
+}
+
+export interface PlayerOrigin extends PlayerRect {
+  /** Window rect of the mini player's artwork, for the flying artwork. */
+  artwork?: PlayerRect;
 }
 
 /**
@@ -20,6 +26,11 @@ export interface PlayerOrigin {
 export interface PlayerSheetController {
   expand: (origin?: PlayerOrigin) => void;
   close: () => void;
+  /**
+   * Swipe-up-to-open pan for the mini player, driving the open with the
+   * finger. Only the morphing surface supplies one.
+   */
+  createOpenGesture?: () => PanGesture;
 }
 
 type AnchorMeasurer = (done: (origin?: PlayerOrigin) => void) => void;
@@ -58,17 +69,38 @@ export function measureMiniPlayerAnchor(done: (origin?: PlayerOrigin) => void) {
  * never fires).
  */
 let _controller: PlayerSheetController | null = null;
+const _controllerListeners = new Set<() => void>();
+
+function notifyControllerChange() {
+  _controllerListeners.forEach(listener => listener());
+}
+
+/** For useSyncExternalStore: re-render when the active container changes. */
+export function subscribePlayerSheetController(listener: () => void) {
+  _controllerListeners.add(listener);
+  return () => {
+    _controllerListeners.delete(listener);
+  };
+}
+
+export function getPlayerSheetController() {
+  return _controller;
+}
 
 export function registerPlayerSheetController(
   controller: PlayerSheetController,
 ) {
   _controller = controller;
+  notifyControllerChange();
 }
 
 export function unregisterPlayerSheetController(
   controller: PlayerSheetController,
 ) {
-  if (_controller === controller) _controller = null;
+  if (_controller === controller) {
+    _controller = null;
+    notifyControllerChange();
+  }
 }
 
 /** Adapts the gorhom BottomSheet ref to the controller interface. */
