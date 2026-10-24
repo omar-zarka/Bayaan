@@ -108,9 +108,16 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
           ? state.queue.tracks[idx]
           : null;
       if (!currentTrack) return false;
+      // Match rewayatId too, as isCurrentTrack does, so that a different
+      // rewayah of the same reciter and surah does not read as playing.
+      const rewayatMatches =
+        rewayatId && currentTrack.rewayatId
+          ? rewayatId === currentTrack.rewayatId
+          : true;
       return (
         currentTrack.reciterId === reciterId &&
-        currentTrack.surahId === item.id.toString()
+        currentTrack.surahId === item.id.toString() &&
+        rewayatMatches
       );
     });
 
