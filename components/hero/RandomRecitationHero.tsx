@@ -54,7 +54,7 @@ export function RandomRecitationHero({
   const {theme} = useTheme();
   const {t} = useTranslation('home');
   const {updateQueue, play} = usePlayerActions();
-  const {startNewChain} = useRecentlyPlayedStore();
+  const startNewChain = useRecentlyPlayedStore(s => s.startNewChain);
 
   // Pick a copy variant per session (cycling)
   const copy = useMemo(() => {

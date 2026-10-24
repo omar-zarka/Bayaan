@@ -161,7 +161,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
   const {theme} = useTheme();
   const {t} = useTranslation(['collection', 'common']);
   const {updateQueue, addToQueue, play} = usePlayerActions();
-  const {startNewChain} = useRecentlyPlayedStore();
+  const startNewChain = useRecentlyPlayedStore(s => s.startNewChain);
   const navigation = useNavigation();
   const iosHeaderHeight = isGlass ? useHeaderHeight() : 0;
 

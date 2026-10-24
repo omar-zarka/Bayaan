@@ -132,7 +132,7 @@ export default function BrowseReciters({
   const router = useRouter();
   const {t} = useTranslation('home');
   const {updateQueue, play} = usePlayerActions();
-  const {startNewChain} = useRecentlyPlayedStore();
+  const startNewChain = useRecentlyPlayedStore(s => s.startNewChain);
   const {setReciterPreference} = useSettings();
   const insets = useSafeAreaInsets();
   const bottomInset = useBottomInset();
