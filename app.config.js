@@ -53,7 +53,6 @@ module.exports = {
           'This app uses Apple Music to play audio.',
         UILaunchStoryboardName: 'SplashScreen',
         LSRequiresIPhoneOS: true,
-        UIRequiresFullScreen: true,
         ITSAppUsesNonExemptEncryption: false,
         NSCameraUsageDescription: 'This app does not use the camera.',
         BGTaskSchedulerPermittedIdentifiers: ['com.bayaan.app.audio'],
@@ -173,7 +172,14 @@ module.exports = {
         'expo-localization',
         // Direction is controlled by the in-app language preference. Static
         // supportsRTL/forcesRTL resets I18nManager to the device locale on iOS.
-        {supportedLocales: {ios: ['en', 'ar']}},
+        // allowDynamicLocaleChangesAndroid: false keeps `locale|layoutDirection`
+        // out of MainActivity's configChanges, as in the committed manifest
+        // (the plugin default, true, adds both on the next prebuild). An
+        // in-app language change relaunches the process (modules/bayaan-restart).
+        {
+          supportedLocales: {ios: ['en', 'ar']},
+          allowDynamicLocaleChangesAndroid: false,
+        },
       ],
       '@bacons/apple-targets',
       // Playback only: nothing records audio. microphonePermission: false
