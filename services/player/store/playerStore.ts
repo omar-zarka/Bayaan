@@ -104,6 +104,28 @@ export function currentPlayOpId(): number {
 }
 
 /**
+ * @ai Stop the audio before a write that leaves the queue with no current
+ * track. The app shows no player without a current track, so audio that kept
+ * playing would have no control in the app to stop it.
+ *
+ * It ends the in-flight loads first, so none of them can start audio after
+ * the pause, then pauses the native player. A pause failure must not block
+ * the caller's write. Returns the op id that it claimed: a caller compares it
+ * after the await to learn if a newer load started during the pause.
+ */
+async function pauseForEmptyQueue(): Promise<number> {
+  invalidatePlayOps();
+  const opId = playOpId;
+  try {
+    await expoAudioService.pause();
+  } catch (error) {
+    if (__DEV__)
+      console.warn('[PlayerStore] Pause before an empty queue failed:', error);
+  }
+  return opId;
+}
+
+/**
  * Helper to load and optionally play a track from the queue.
  *
  * Returns `false` when the operation was superseded mid-flight (a cleanup() or
@@ -855,7 +877,10 @@ export const usePlayerStore = create<PlayerStoreState>()(
       // Cleanup method
       cleanup: async () => {
         // In-flight loads must not play()/write state into a cleaned service.
-        invalidatePlayOps();
+        // @ai Then pause the native player before the reset. Settings ->
+        // Clear cache calls this while audio can play, and the reset empties
+        // the queue (see pauseForEmptyQueue).
+        await pauseForEmptyQueue();
         const state = get();
         if (
           typeof state.settings.sleepTimerInterval === 'object' &&
