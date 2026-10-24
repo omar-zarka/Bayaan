@@ -145,6 +145,8 @@ interface SkiaPageProps {
   baseLineHeight?: number;
   paddingHorizontal?: number;
   paddingTop?: number;
+  /** @ai False in phone landscape; see `calculateLineYPositions`. */
+  centerShortPages?: boolean;
 }
 
 const SkiaPage: React.FC<SkiaPageProps> = ({
@@ -161,6 +163,7 @@ const SkiaPage: React.FC<SkiaPageProps> = ({
   baseLineHeight: propBaseLineHeight,
   paddingHorizontal: propPaddingHorizontal,
   paddingTop: propPaddingTop,
+  centerShortPages = true, // @ai
 }) => {
   const SCREEN_WIDTH = propScreenWidth ?? DEFAULT_SCREEN_WIDTH;
   const SCREEN_HEIGHT = propScreenHeight ?? DEFAULT_SCREEN_HEIGHT;
@@ -387,8 +390,9 @@ const SkiaPage: React.FC<SkiaPageProps> = ({
         pageNumber,
         CONTENT_HEIGHT,
         BASE_LINE_HEIGHT,
+        centerShortPages, // @ai
       ),
-    [pageLines, pageNumber, CONTENT_HEIGHT, BASE_LINE_HEIGHT],
+    [pageLines, pageNumber, CONTENT_HEIGHT, BASE_LINE_HEIGHT, centerShortPages],
   );
 
   // Tajweed char-to-rule maps per line (Hafs text only; see pageOverlays).
