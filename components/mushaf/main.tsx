@@ -38,6 +38,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   getJuzForPage,
   getPageEdgeLayout,
+  getPageLabelOffsets,
   useMushafLayout,
   type MushafLayoutMetrics,
 } from './constants';
@@ -217,10 +218,11 @@ const DKPageView: React.FC<{
       ? contentMarginLeft + 8
       : metrics.paddingHorizontal + 8;
 
-  // Center page number vertically between content bottom and bottom border
-  const pageNumberBottom = isBookLayout
-    ? insets.top + (metrics.paddingBottom - insets.top) / 2 - 8
-    : metrics.paddingBottom - 35;
+  // @ai The label offsets live next to the gutter floors in constants.ts.
+  const {labelTop, pageNumberBottom} = getPageLabelOffsets(metrics, {
+    isBookLayout,
+    insetTop: insets.top,
+  });
 
   return (
     <View
@@ -313,7 +315,7 @@ const DKPageView: React.FC<{
           styles.pageLabel,
           {
             color: labelColor,
-            top: metrics.paddingTop - 30,
+            top: labelTop,
             left: effectiveLabelLeft,
           },
         ]}
@@ -326,7 +328,7 @@ const DKPageView: React.FC<{
           styles.pageLabel,
           {
             color: labelColor,
-            top: metrics.paddingTop - 30,
+            top: labelTop,
             right: effectiveOuterMargin + 8,
             textAlign: 'right',
           },
