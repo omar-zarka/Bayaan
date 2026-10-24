@@ -44,14 +44,6 @@ export default function HomeLayout() {
         />
         <Stack.Screen name="playlist/[id]" options={{title: ''}} />
         <Stack.Screen name="adhkar" options={{headerShown: false}} />
-        <Stack.Screen name="settings/index" options={{}} />
-        <Stack.Screen name="settings/storage" options={{}} />
-        <Stack.Screen name="settings/about" options={{}} />
-        <Stack.Screen name="settings/credits" options={{}} />
-        <Stack.Screen name="settings/mushaf-settings" options={{}} />
-        <Stack.Screen name="settings/default-reciter" options={{}} />
-        <Stack.Screen name="settings/reciter-choice" options={{}} />
-        <Stack.Screen name="settings/account" options={{}} />
         <Stack.Screen
           name="translations"
           options={{title: t('translations.title')}}
