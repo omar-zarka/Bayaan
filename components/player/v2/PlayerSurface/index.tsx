@@ -336,8 +336,13 @@ export const PlayerSurface = () => {
         pointerEvents="none"
         style={[styles.backdrop, backdropStyle]}
       />
+      {/* Closed, the surface stays mounted off-screen: keep screen readers
+          out of it, and out of the app behind it while it's open. */}
       <Animated.View
         pointerEvents={isOpen ? 'auto' : 'none'}
+        accessibilityElementsHidden={!isOpen}
+        importantForAccessibility={isOpen ? 'auto' : 'no-hide-descendants'}
+        accessibilityViewIsModal={isOpen}
         style={[styles.frame, frameStyle]}>
         {USE_GLASS ? (
           <Animated.View style={[StyleSheet.absoluteFill, glassStyle]}>
