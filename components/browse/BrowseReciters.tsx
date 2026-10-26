@@ -707,6 +707,7 @@ export default function BrowseReciters({
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={() => Keyboard.dismiss()}
             getRewayatIdForReciter={getRewayatIdForReciter}
+            linkToProfile={!surahId}
             bottomInset={bottomInset}
           />
         </View>
