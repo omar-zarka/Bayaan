@@ -21,6 +21,7 @@ import {Feather} from '@expo/vector-icons';
 import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
 import {useHeaderHeight} from 'expo-router/react-navigation';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+import {layerVisibilityProps} from '@/utils/layerVisibility'; // @ai
 import {useNavigation} from 'expo-router';
 import TabSelector from '@/components/TabSelector';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
@@ -942,13 +943,14 @@ export default function TranslationsContent() {
     <View style={styles.container}>
       <View style={[styles.content, {paddingTop: headerHeight}]}>
         {/* Layered FlashLists — both stay mounted, toggle visibility */}
+        {/* The hidden one also leaves the accessibility tree. @ai */}
         <View style={{flex: 1}}>
           <View
             style={[
               StyleSheet.absoluteFill,
               {opacity: activeTab === 'Translations' ? 1 : 0},
             ]}
-            pointerEvents={activeTab === 'Translations' ? 'auto' : 'none'}>
+            {...layerVisibilityProps(activeTab === 'Translations')}>
             <FlashList
               data={translationData}
               renderItem={renderTranslationItem}
@@ -967,7 +969,7 @@ export default function TranslationsContent() {
               StyleSheet.absoluteFill,
               {opacity: activeTab === 'Tafaseer' ? 1 : 0},
             ]}
-            pointerEvents={activeTab === 'Tafaseer' ? 'auto' : 'none'}>
+            {...layerVisibilityProps(activeTab === 'Tafaseer')}>
             <FlashList
               data={tafseerData}
               renderItem={renderTafseerItem}
