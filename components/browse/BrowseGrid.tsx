@@ -4,6 +4,7 @@ import {
   StyleSheet,
   useWindowDimensions,
   ActivityIndicator,
+  type LayoutChangeEvent,
 } from 'react-native';
 import {moderateScale} from 'react-native-size-matters';
 import {moderateScale as moderateScaleCapped} from '@/utils/scale';
@@ -11,6 +12,7 @@ import {LegendList} from '@legendapp/list';
 import {Reciter} from '@/data/reciterData';
 import {Theme} from '@/utils/themeUtils';
 import {BrowseReciterCard} from './BrowseReciterCard';
+import {computeGridLayout} from '@/utils/gridLayout'; // @ai
 
 interface BrowseGridProps {
   reciters: Reciter[];
@@ -27,13 +29,19 @@ interface BrowseGridProps {
   bottomInset?: number;
 }
 
+// @ai-start
+// One source for the padding and gap so the column math matches the styles.
+const GRID_PADDING = moderateScale(10);
+const GRID_GAP = moderateScale(10);
+// @ai-end
+
 function createStyles(_theme: Theme, bottomInset = 0) {
   return StyleSheet.create({
     container: {
       flex: 1,
     },
     gridContainer: {
-      paddingHorizontal: moderateScale(10),
+      paddingHorizontal: GRID_PADDING, // @ai
       paddingBottom: Math.max(moderateScaleCapped(80), bottomInset),
       paddingTop: moderateScale(8),
     },
@@ -73,12 +81,28 @@ const BrowseGrid = React.memo(
   }: BrowseGridProps) => {
     const {width: windowWidth} = useWindowDimensions();
     const [isLoading] = useState(false);
+    // @ai-start
+    // Size the grid from its own container, not the window: on iPad it sits
+    // beside the sidebar inside a capped column. The window width is only a
+    // first guess until onLayout reports.
+    const [containerWidth, setContainerWidth] = useState<number | null>(null);
+    const handleLayout = useCallback((e: LayoutChangeEvent) => {
+      const next = e.nativeEvent.layout.width;
+      setContainerWidth(prev => (prev === next ? prev : next));
+    }, []);
+    const gridWidth = containerWidth ?? windowWidth;
 
-    // Calculate number of columns based on screen width
-    const numColumns = useMemo(() => {
-      const minCardWidth = moderateScale(120);
-      return Math.max(3, Math.floor(windowWidth / minCardWidth));
-    }, [windowWidth]);
+    const {numColumns, itemWidth} = useMemo(
+      () =>
+        computeGridLayout(gridWidth, {
+          minCardWidth: moderateScale(120),
+          horizontalPadding: GRID_PADDING,
+          gap: GRID_GAP,
+          minColumns: 3,
+        }),
+      [gridWidth],
+    );
+    // @ai-end
 
     // Convert flat list to rows for grid layout
     const itemRows = useMemo(() => {
@@ -90,19 +114,10 @@ const BrowseGrid = React.memo(
       [theme, bottomInset],
     );
 
-    // Calculate item dimensions
-    const itemDimensions = useMemo(() => {
-      const totalHorizontalPadding = moderateScale(16);
-      const gapSpace = moderateScale(10) * (numColumns - 1);
-      const availableWidth = windowWidth - totalHorizontalPadding - gapSpace;
-      const itemWidth = availableWidth / numColumns;
-      const itemHeight = itemWidth * 1.2;
-
-      return {
-        width: itemWidth,
-        height: itemHeight,
-      };
-    }, [windowWidth, numColumns]);
+    const itemDimensions = useMemo(
+      () => ({width: itemWidth, height: itemWidth * 1.2}),
+      [itemWidth],
+    ); // @ai
 
     // Render a row of items
     const renderRow = useCallback(
@@ -157,7 +172,7 @@ const BrowseGrid = React.memo(
     }, [isLoading, styles.loadingContainer, theme.colors.text]);
 
     return (
-      <View style={styles.container}>
+      <View style={styles.container} onLayout={handleLayout}>
         <LegendList
           data={itemRows}
           renderItem={renderRow}
@@ -181,7 +196,9 @@ const BrowseGrid = React.memo(
   (prevProps, nextProps) =>
     prevProps.theme === nextProps.theme &&
     prevProps.onReciterPress === nextProps.onReciterPress &&
-    prevProps.reciters.length === nextProps.reciters.length &&
+    // Compare the list itself: a filter can return different reciters with
+    // the same count (e.g. switching rāwī), which must re-render.
+    prevProps.reciters === nextProps.reciters && // @ai
     prevProps.getRewayatIdForReciter === nextProps.getRewayatIdForReciter &&
     prevProps.bottomInset === nextProps.bottomInset &&
     prevProps.keyboardShouldPersistTaps === nextProps.keyboardShouldPersistTaps,
