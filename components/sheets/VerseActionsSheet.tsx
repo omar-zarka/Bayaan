@@ -785,7 +785,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                     hideCurrentSheet();
                     usePlayerStore.getState().setSheetMode('hidden');
                     setTimeout(() => {
-                      router.push('/(tabs)/(a.home)/translations');
+                      router.push('/translations'); // @ai
                     }, 300);
                   }}
                   style={({pressed}) => [
