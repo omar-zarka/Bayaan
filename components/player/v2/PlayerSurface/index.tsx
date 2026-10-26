@@ -1,5 +1,5 @@
 // @ai-generated
-import React, {useCallback, useEffect, useMemo} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef} from 'react';
 import {Platform, StyleSheet, useWindowDimensions} from 'react-native';
 import Animated, {
   cancelAnimation,
@@ -75,10 +75,14 @@ export const PlayerSurface = () => {
 
   const progress = useSharedValue(0);
   const dragStartProgress = useSharedValue(0);
-  // Where progress is heading (0 or 1, or -1 mid-drag), so a JS-side
-  // sheetMode change doesn't restart (and drop the velocity of) an animation
-  // a gesture already started.
-  const target = useSharedValue(0);
+  // Where the player is heading, and a token for the latest open/close/drag
+  // request, kept on the JS thread: a shared value written on JS isn't
+  // readable back on JS right away, so it can't guard the async measurement.
+  // The token lets a stale measurement give way to a newer request, and the
+  // heading keeps a sheetMode change from restarting (and dropping the
+  // velocity of) an animation a gesture already started.
+  const headingRef = useRef<0 | 1>(0);
+  const requestRef = useRef(0);
   const origin = useSharedValue<PlayerOrigin | null>(null);
   // False while a swipe-up from the mini player waits for its measurement.
   const originReady = useSharedValue(true);
@@ -98,42 +102,43 @@ export const PlayerSurface = () => {
   const settle = useCallback(
     (to: 0 | 1, velocity: number) => {
       'worklet';
-      target.value = to;
       progress.value = reduceMotion.value
         ? withTiming(to, {duration: REDUCED_MOTION_DURATION})
         : withSpring(to, {...SPRING, velocity});
     },
-    [reduceMotion, target, progress],
+    [reduceMotion, progress],
   );
 
   const open = useCallback(
     (from?: PlayerOrigin) => {
-      if (target.value === 1) return;
-      target.value = 1;
+      if (headingRef.current === 1) return;
+      headingRef.current = 1;
+      const request = ++requestRef.current;
       const start = (o?: PlayerOrigin) => {
-        // A close may have been asked for while measuring.
-        if (target.value !== 1) return;
+        // A close or drag may have taken over while measuring.
+        if (requestRef.current !== request) return;
         origin.value = o ?? null;
         settle(1, 0);
       };
       if (from) start(from);
       else measureMiniPlayerAnchor(start);
     },
-    [origin, settle, target],
+    [origin, settle],
   );
 
   const close = useCallback(() => {
-    if (target.value === 0) return;
-    target.value = 0;
+    if (headingRef.current === 0) return;
+    headingRef.current = 0;
+    const request = ++requestRef.current;
     // Re-measure: the mini player may have moved while the player was open
     // (e.g. the iOS accessory switching between its two placements).
     measureMiniPlayerAnchor(o => {
-      // A reopen (e.g. a swipe up) may have started while measuring.
-      if (target.value !== 0) return;
+      // A reopen or drag (e.g. a swipe up) may have taken over meanwhile.
+      if (requestRef.current !== request) return;
       if (o) origin.value = o;
       settle(0, 0);
     });
-  }, [origin, settle, target]);
+  }, [origin, settle]);
 
   useEffect(() => {
     if (sheetMode === 'full') {
@@ -144,8 +149,13 @@ export const PlayerSurface = () => {
     }
   }, [sheetMode, open, close, setImmersive]);
 
+  const beginDrag = useCallback(() => {
+    requestRef.current++;
+  }, []);
+
   const syncSheetMode = useCallback(
     (to: 0 | 1) => {
+      headingRef.current = to;
       const mode = to === 1 ? 'full' : 'hidden';
       if (usePlayerStore.getState().sheetMode !== mode) setSheetMode(mode);
     },
@@ -165,9 +175,9 @@ export const PlayerSurface = () => {
     cancelAnimation(progress);
     // The finger owns progress now; a pending open or close measurement
     // must not settle it. The release settles to 0 or 1.
-    target.value = -1;
+    runOnJS(beginDrag)();
     dragStartProgress.value = progress.value;
-  }, [progress, dragStartProgress, target]);
+  }, [progress, dragStartProgress, beginDrag]);
 
   const onDragUpdate = useCallback(
     (translationY: number) => {
