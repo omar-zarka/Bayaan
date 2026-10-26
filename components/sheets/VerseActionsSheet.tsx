@@ -4,7 +4,7 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  Dimensions,
+  useWindowDimensions, // @ai
   BackHandler,
   Platform,
   LayoutAnimation,
@@ -130,7 +130,12 @@ const SCREEN_TITLE_KEYS = {
 } as const;
 // @ai-end
 
-const SHEET_HEIGHT = Dimensions.get('window').height * 0.85;
+// @ai-start
+// Share of the window height a sub-screen (translation, tafsir…) fills.
+// Read from useWindowDimensions at render, not once at import: the Mushaf
+// rotates, and a portrait height overflows the screen in landscape.
+const SHEET_HEIGHT_FRACTION = 0.85;
+// @ai-end
 
 // Enable LayoutAnimation on Android
 if (
@@ -197,6 +202,7 @@ const pendingStyles = StyleSheet.create({
 
 export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
   const {theme} = useTheme();
+  const {height: windowHeight} = useWindowDimensions(); // @ai
   const styles = createStyles(theme);
   const {t} = useTranslation(['sheets', 'common']);
   const [activeScreen, setActiveScreenRaw] = useState<ActiveScreen>(null);
@@ -744,7 +750,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
       id={props.sheetId}
       containerStyle={[
         styles.sheetContainer,
-        activeScreen && {height: SHEET_HEIGHT},
+        activeScreen && {height: windowHeight * SHEET_HEIGHT_FRACTION}, // @ai
       ]}
       indicatorStyle={activeScreen ? {height: 0} : styles.indicator}
       gestureEnabled={true}
