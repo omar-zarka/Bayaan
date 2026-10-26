@@ -28,6 +28,7 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+import {surahRowA11yKeys, type SurahRowPressAction} from '@/utils/surahRowA11y';
 // @ai-end
 
 interface SurahItemProps {
@@ -41,6 +42,8 @@ interface SurahItemProps {
   enableHaptics?: boolean;
   rewayatId?: string;
   rewayatName?: string;
+  /** What a tap does on this screen; sets the VoiceOver hint. @ai */
+  pressAction?: SurahRowPressAction;
 }
 
 // @ai-start
@@ -55,6 +58,7 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
     enableHaptics = false,
     rewayatId,
     rewayatName,
+    pressAction = 'play', // @ai
   }) => {
     const {theme} = useTheme();
     const {t} = useTranslation(['home', 'common']);
@@ -170,6 +174,13 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
       [item, onOptionsPress, enableHaptics],
     );
 
+    // @ai-start
+    const a11yKeys = surahRowA11yKeys({
+      pressAction,
+      hasLongPress: !!onLongPress,
+    });
+    // @ai-end
+
     const revelationPlace = item.revelation_place.toLowerCase() as
       | 'makkah'
       | 'madinah';
@@ -190,7 +201,15 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
           ]
             .filter(Boolean)
             .join(t('surahItem.a11ySeparator'))}
-          accessibilityHint={t('surahItem.a11yPlayHint')}>
+          accessibilityHint={t(a11yKeys.hintKey)}
+          accessibilityActions={
+            a11yKeys.longPressLabelKey
+              ? [{name: 'longpress', label: t(a11yKeys.longPressLabelKey)}]
+              : undefined
+          }
+          onAccessibilityAction={e => {
+            if (e.nativeEvent.actionName === 'longpress') handleLongPress();
+          }}>
           <View
             style={styles.surahGlyphContainer}
             accessibilityElementsHidden={true}>

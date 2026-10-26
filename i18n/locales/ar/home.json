@@ -141,7 +141,7 @@
     "a11yName": "سورة {{name}}",
     "a11yPlaying": "قيد التشغيل",
     "a11ySeparator": "، ",
-    "a11yPlayHint": "اضغط لتشغيل السورة",
+    "a11yPlayHint": "يشغّل السورة",
     "makkah": "مكية",
     "madinah": "مدنية",
     "moreOptions": "خيارات إضافية",
@@ -151,7 +151,10 @@
     "verses_two": "آيتان",
     "verses_few": "{{count}} آيات",
     "verses_many": "{{count}} آيةً",
-    "verses_other": "{{count}} آية"
+    "verses_other": "{{count}} آية",
+    "a11yReadHint": "يفتح السورة في المصحف",
+    "a11yPlayAction": "تشغيل",
+    "a11yMoreAction": "خيارات إضافية"
   },
   "sort": {
     "asc": "تصاعدي",

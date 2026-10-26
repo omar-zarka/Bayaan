@@ -905,7 +905,13 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
           </View>
         );
       }
-      return <SurahItem item={item.surah} onPress={handleSurahPress} />;
+      return (
+        <SurahItem
+          pressAction="read" // @ai
+          item={item.surah}
+          onPress={handleSurahPress}
+        />
+      );
     },
     [handleSurahPress, theme.colors],
   );

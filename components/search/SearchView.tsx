@@ -347,6 +347,7 @@ export function SearchView({
       if (item.type === 'surah') {
         return (
           <SurahItem
+            pressAction="read" // @ai
             item={item.item as Surah}
             onPress={() => handleResultPress(item)}
             onLongPress={() => handleSurahLongPress(item)}
@@ -376,7 +377,11 @@ export function SearchView({
 
       if (recentItem.type === 'surah') {
         return (
-          <SurahItem item={recentItem.item as Surah} onPress={handlePress} />
+          <SurahItem
+            pressAction="read" // @ai
+            item={recentItem.item as Surah}
+            onPress={handlePress}
+          />
         );
       } else {
         return (
