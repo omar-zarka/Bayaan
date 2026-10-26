@@ -21,7 +21,7 @@ interface BrowseGridProps {
   getRewayatIdForReciter?: (reciter: Reciter) => string | undefined;
   // False when tapping a card should call `onReciterPress` instead of
   // opening the reciter's profile (e.g. choosing a reciter for a surah).
-  linkToProfile?: boolean;
+  linkToProfile?: boolean; // @ai
   // Optional bottom inset to clear the floating mini-player + tab bar.
   // Callers compute via `useBottomInset` so the last grid row stays
   // tappable when the mini-player is visible. Defaults to 0 for callers
@@ -72,7 +72,7 @@ const BrowseGrid = React.memo(
     keyboardShouldPersistTaps = 'handled',
     onScrollBeginDrag,
     getRewayatIdForReciter,
-    linkToProfile = true,
+    linkToProfile = true, // @ai
     bottomInset = 0,
   }: BrowseGridProps) => {
     const {width: windowWidth} = useWindowDimensions();
@@ -143,7 +143,7 @@ const BrowseGrid = React.memo(
         numColumns,
         styles.row,
         getRewayatIdForReciter,
-        linkToProfile,
+        linkToProfile, // @ai
       ],
     );
 
@@ -189,7 +189,7 @@ const BrowseGrid = React.memo(
     prevProps.onReciterPress === nextProps.onReciterPress &&
     prevProps.reciters.length === nextProps.reciters.length &&
     prevProps.getRewayatIdForReciter === nextProps.getRewayatIdForReciter &&
-    prevProps.linkToProfile === nextProps.linkToProfile &&
+    prevProps.linkToProfile === nextProps.linkToProfile && // @ai
     prevProps.bottomInset === nextProps.bottomInset &&
     prevProps.keyboardShouldPersistTaps === nextProps.keyboardShouldPersistTaps,
 );

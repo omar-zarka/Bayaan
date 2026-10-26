@@ -25,12 +25,14 @@ interface BrowseReciterCardProps {
   theme: Theme;
   showFollowAlong?: boolean;
   rewayatId?: string;
+  // @ai-start
   /**
    * When true (default) the card links to the reciter's profile. Pass false
    * when the card is a choice, such as picking a reciter for a surah, so the
    * tap calls `onPress` instead of navigating.
    */
   linkToProfile?: boolean;
+  // @ai-end
 }
 
 // @ai-start
