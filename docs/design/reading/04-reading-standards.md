@@ -65,7 +65,7 @@ These follow [standards §8](../ipad-standards.md#8-sheets-menus-and-modals), wi
 
 ## 6. Keyboard, pointer and Pencil
 
-Reader shortcuts are added to the app-wide table in [standards §7.3](../ipad-standards.md#73-hardware-keyboard). Every action **MUST** also be reachable by touch.
+The app-wide shortcut table lives in [standards §7.3](../ipad-standards.md#73-hardware-keyboard). While the reader has focus, it **overrides** the app-wide meaning of Space and ← / → (which are play/pause and seek elsewhere) with the bindings below. Every action **MUST** also be reachable by touch.
 
 | Keys | Action |
 |---|---|
@@ -80,7 +80,7 @@ Reader shortcuts are added to the app-wide table in [standards §7.3](../ipad-st
 | ⌘C | Copy selected verse(s) |
 | Return | Open the selected search result |
 | Esc | Close the topmost overlay, then leave search, then leave immersive |
-| Space (audio active) | Play / pause (the mushaf page then turns with **⇧→** / **⇧←**) |
+| ⌥Space | Play / pause recitation (Space is page turn inside the reader) |
 
 * **SHOULD** give verses a hover tint (`text` at 4%) and toolbar buttons the system highlight effect.
 * **MUST** offer a right-click context menu wherever long-press does something.
