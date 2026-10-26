@@ -8,8 +8,8 @@ Width classes follow [ipad-standards §2](../ipad-standards.md#2-width-classes-a
 |---|---|
 | `compact` | < 600 |
 | `medium` | 600–899 |
-| `expanded` | 900–1199 |
-| `large` | ≥ 1200 |
+| `expanded` | 900–1279 |
+| `large` | ≥ 1280 |
 
 All values are in points.
 
