@@ -4,13 +4,13 @@ import type {ScrollViewProps} from 'react-native';
 import {Gesture, type PanGesture} from 'react-native-gesture-handler';
 
 /**
- * What the player content needs from whichever container hosts it (the gorhom
- * sheet or the morphing PlayerSurface): a drag-to-dismiss gesture for the
- * header and controls cards, and a scroll component for the Mushaf / queue
- * lists that hands a downward drag at the top of the list to the dismiss.
+ * What the player content needs from the container hosting it (the morphing
+ * PlayerSurface): a drag-to-dismiss gesture for the header and controls
+ * cards, and a scroll component for the Mushaf / queue lists that hands a
+ * downward drag at the top of the list to the dismiss.
  *
  * Keeping this behind a context lets PlayerContent, TabletPlayer and the
- * tablet controls column stay unaware of which container is active.
+ * tablet controls column render outside a player (no-op gesture) too.
  */
 export interface PlayerDismissApi {
   /** Builds a fresh pan gesture; each GestureDetector gets its own. */

@@ -32,8 +32,6 @@ export function DevMenu({whatsNewModalRef}: DevMenuProps) {
   const toggleForceNetworkBanner = useDevSettingsStore(
     s => s.toggleForceNetworkBanner,
   );
-  const useMorphPlayer = useDevSettingsStore(s => s.useMorphPlayer);
-  const toggleUseMorphPlayer = useDevSettingsStore(s => s.toggleUseMorphPlayer);
 
   function getRandomCardLabel() {
     if (randomCardVariantIndex < 0) return 'Auto (session seed)';
@@ -245,25 +243,6 @@ export function DevMenu({whatsNewModalRef}: DevMenuProps) {
             onPressOut={() => setPressedItem(null)}>
             <Text style={[styles.devMenuText, {color: theme.colors.text}]}>
               📡 Network Banner: {forceNetworkBanner ? 'ON' : 'OFF'}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            activeOpacity={1}
-            style={[
-              styles.devMenuItem,
-              {
-                backgroundColor:
-                  pressedItem === 'morphPlayer'
-                    ? Color(theme.colors.text).alpha(0.08).toString()
-                    : 'transparent',
-              },
-            ]}
-            onPress={toggleUseMorphPlayer}
-            onPressIn={() => setPressedItem('morphPlayer')}
-            onPressOut={() => setPressedItem(null)}>
-            <Text style={[styles.devMenuText, {color: theme.colors.text}]}>
-              🎬 Morph Player: {useMorphPlayer ? 'ON' : 'OFF'}
             </Text>
           </TouchableOpacity>
 

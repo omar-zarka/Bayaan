@@ -38,7 +38,7 @@ interface MiniPlayerAnchorOptions {
  * Registers a mini player as the rect the morphing player surface grows out
  * of. Attach `anchorRef` to the view whose bounds match the mini player's
  * visible shape. `openGesture` is the swipe-up-to-open pan; it is disabled
- * while the gorhom sheet hosts the player.
+ * until the player has mounted.
  */
 export function useMiniPlayerAnchor({radius}: MiniPlayerAnchorOptions) {
   const anchorRef = useRef<View>(null);
@@ -58,7 +58,7 @@ export function useMiniPlayerAnchor({radius}: MiniPlayerAnchorOptions) {
     getPlayerSheetController,
   );
   const openGesture = useMemo<PanGesture>(
-    () => controller?.createOpenGesture?.() ?? Gesture.Pan().enabled(false),
+    () => controller?.createOpenGesture() ?? Gesture.Pan().enabled(false),
     [controller],
   );
 

@@ -1,14 +1,6 @@
 // @ai-generated
 import React, {useCallback, useEffect, useMemo} from 'react';
-import {
-  Platform,
-  ScrollView,
-  StyleSheet,
-  useWindowDimensions,
-  type NativeScrollEvent,
-  type NativeSyntheticEvent,
-  type ScrollViewProps,
-} from 'react-native';
+import {Platform, StyleSheet, useWindowDimensions} from 'react-native';
 import Animated, {
   cancelAnimation,
   Extrapolation,
@@ -19,9 +11,8 @@ import Animated, {
   useSharedValue,
   withSpring,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
-import {Gesture, GestureDetector} from 'react-native-gesture-handler';
+import {Gesture} from 'react-native-gesture-handler';
 import {GlassView} from 'expo-glass-effect';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -35,8 +26,8 @@ import {
   type PlayerOrigin,
   type PlayerSheetController,
 } from '@/services/player/sheetRef';
-import {appLayoutDirection, forceLTR} from '@/utils/rtl';
 import {PlayerBody} from '../PlayerBody';
+import {createSurfaceScrollable, type SurfaceMotion} from './SurfaceScrollable';
 import {
   PlayerDismissProvider,
   type PlayerDismissApi,
@@ -66,83 +57,6 @@ const REDUCED_MOTION_DURATION = 200;
 // its own, a slow drag by how far it went.
 const RELEASE_PROJECTION_S = 0.2;
 const BACKDROP_OPACITY = 0.5;
-
-interface SurfaceMotion {
-  /** Morph progress: 0 = on the mini player's rect, 1 = full screen. */
-  progress: SharedValue<number>;
-  onDragStart: () => void;
-  onDragUpdate: (translationY: number) => void;
-  onDragEnd: (velocityY: number) => void;
-}
-
-/**
- * Scroll component for the Mushaf / queue FlashLists inside the surface. A
- * downward drag that starts with the list at its top hands off to the
- * surface's dismiss; any other drag scrolls the list as usual. Unlike gorhom's
- * scrollable it never intercepts imperative scrollToIndex / scrollToOffset.
- */
-function createSurfaceScrollable(motion: SurfaceMotion) {
-  const SurfaceScrollable = React.forwardRef<ScrollView, ScrollViewProps>(
-    (props, ref) => {
-      const {onScroll, style, contentContainerStyle} = props;
-      const scrollY = useSharedValue(0);
-      const touchStartY = useSharedValue(0);
-
-      const gesture = useMemo(() => {
-        const native = Gesture.Native();
-        const pan = Gesture.Pan()
-          .manualActivation(true)
-          .onTouchesDown(e => {
-            touchStartY.value = e.allTouches[0]?.absoluteY ?? 0;
-          })
-          .onTouchesMove((e, manager) => {
-            const touch = e.allTouches[0];
-            if (!touch) return;
-            const dy = touch.absoluteY - touchStartY.value;
-            if (Math.abs(dy) < 10) return;
-            if (dy > 0 && scrollY.value <= 0) {
-              manager.activate();
-            } else {
-              manager.fail();
-            }
-          })
-          .onStart(motion.onDragStart)
-          .onUpdate(e => motion.onDragUpdate(e.translationY))
-          .onEnd(e => motion.onDragEnd(e.velocityY))
-          .simultaneousWithExternalGesture(native);
-        return Gesture.Simultaneous(native, pan);
-      }, [scrollY, touchStartY]);
-
-      const handleScroll = useCallback(
-        (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-          scrollY.value = e.nativeEvent.contentOffset.y;
-          onScroll?.(e);
-        },
-        [onScroll, scrollY],
-      );
-
-      return (
-        <GestureDetector gesture={gesture}>
-          <ScrollView
-            ref={ref}
-            {...props}
-            // Keep the native viewport LTR and let the content inherit the
-            // app direction, matching the gorhom scrollable.
-            style={[style, forceLTR]}
-            contentContainerStyle={[contentContainerStyle, appLayoutDirection]}
-            onScroll={handleScroll}
-            scrollEventThrottle={16}
-            // The pull-down at the top belongs to the dismiss, not a bounce.
-            bounces={false}
-            overScrollMode="never"
-          />
-        </GestureDetector>
-      );
-    },
-  );
-  SurfaceScrollable.displayName = 'SurfaceScrollable';
-  return SurfaceScrollable;
-}
 
 /**
  * The full player as one always-mounted surface that morphs out of the mini

@@ -19,7 +19,7 @@ import TabletPlayer from './TabletPlayer';
 /**
  * The full player's contents and the handlers its controls open (speed, sleep
  * timer, options, follow along), independent of the container hosting it.
- * Rendered inside the gorhom PlayerSheet or the morphing PlayerSurface.
+ * Rendered inside the morphing PlayerSurface.
  */
 export const PlayerBody = () => {
   const {theme} = useTheme();

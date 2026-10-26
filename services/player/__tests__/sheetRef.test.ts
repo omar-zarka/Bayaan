@@ -21,7 +21,11 @@ const origin: PlayerOrigin = {x: 8, y: 700, width: 360, height: 56, radius: 28};
 beforeEach(() => mockSetSheetMode.mockClear());
 
 it('sets sheetMode and drives the registered controller', () => {
-  const controller = {expand: jest.fn(), close: jest.fn()};
+  const controller = {
+    expand: jest.fn(),
+    close: jest.fn(),
+    createOpenGesture: jest.fn(),
+  };
   registerPlayerSheetController(controller);
 
   expandPlayerSheet(origin);
@@ -36,8 +40,16 @@ it('sets sheetMode and drives the registered controller', () => {
 });
 
 it('keeps a newer controller when a stale one unregisters', () => {
-  const stale = {expand: jest.fn(), close: jest.fn()};
-  const current = {expand: jest.fn(), close: jest.fn()};
+  const stale = {
+    expand: jest.fn(),
+    close: jest.fn(),
+    createOpenGesture: jest.fn(),
+  };
+  const current = {
+    expand: jest.fn(),
+    close: jest.fn(),
+    createOpenGesture: jest.fn(),
+  };
   registerPlayerSheetController(stale);
   registerPlayerSheetController(current);
   unregisterPlayerSheetController(stale);

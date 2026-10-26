@@ -1,4 +1,3 @@
-import type BottomSheet from '@gorhom/bottom-sheet';
 import type {PanGesture} from 'react-native-gesture-handler';
 import {usePlayerStore} from './store/playerStore';
 
@@ -17,17 +16,17 @@ export interface PlayerRect {
 export type PlayerOrigin = PlayerRect;
 
 /**
- * Imperative handle the active player container registers. Either the gorhom
- * sheet (adapted below) or the morphing PlayerSurface.
+ * Imperative handle the player container (the morphing PlayerSurface)
+ * registers.
  */
 export interface PlayerSheetController {
   expand: (origin?: PlayerOrigin) => void;
   close: () => void;
   /**
    * Swipe-up-to-open pan for the mini player, driving the open with the
-   * finger. Only the morphing surface supplies one.
+   * finger.
    */
-  createOpenGesture?: () => PanGesture;
+  createOpenGesture: () => PanGesture;
 }
 
 type AnchorMeasurer = (done: (origin?: PlayerOrigin) => void) => void;
@@ -57,13 +56,8 @@ export function measureMiniPlayerAnchor(done: (origin?: PlayerOrigin) => void) {
 }
 
 /**
- * Module-scope holder for the active player container.
- *
- * This decouples the imperative expand/close calls from the Zustand
- * sheetMode state, fixing the gorhom v5 edge case where a gesture-driven
- * close skips the onChange callback (when the drag position exactly equals
- * the closed detent — no animation runs, so animateToPositionCompleted
- * never fires).
+ * Module-scope holder for the active player container, so the mini players
+ * and deep links can open and close it imperatively.
  */
 let _controller: PlayerSheetController | null = null;
 const _controllerListeners = new Set<() => void>();
@@ -100,23 +94,11 @@ export function unregisterPlayerSheetController(
   }
 }
 
-/** Adapts the gorhom BottomSheet ref to the controller interface. */
-export function registerPlayerSheetRef(
-  ref: React.RefObject<BottomSheet | null>,
-): PlayerSheetController {
-  const controller: PlayerSheetController = {
-    expand: () => ref.current?.expand(),
-    close: () => ref.current?.close(),
-  };
-  registerPlayerSheetController(controller);
-  return controller;
-}
-
 /**
  * Expand the player. Always calls the imperative expand() AND sets sheetMode
  * to 'full', so even if sheetMode was stale (stuck on 'full' from a missed
  * onChange), the player still opens. `origin` is the tapped mini player's
- * window rect; the gorhom sheet ignores it.
+ * window rect; without it the player measures the mounted mini player.
  */
 export function expandPlayerSheet(origin?: PlayerOrigin) {
   usePlayerStore.getState().setSheetMode('full');

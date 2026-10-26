@@ -6,15 +6,12 @@ import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useTheme} from '@/hooks/useTheme';
 import {usePlayingRewayahObserver} from '@/hooks/usePlayingRewayahObserver';
-import {useDevSettingsStore} from '@/store/devSettingsStore';
-import {PlayerSheet} from './PlayerSheet';
 import {PlayerSurface} from './PlayerSurface';
 
 /**
  * Root-level host for the full player. Owns what must not depend on the
- * container (rewayah toast, Android back, status bar) and picks the container:
- * the gorhom PlayerSheet (default) or the morphing PlayerSurface (dev menu
- * "Morph Player" toggle, while it is being tuned).
+ * container (rewayah toast, Android back, status bar) and renders the
+ * morphing PlayerSurface.
  */
 export const PlayerHost = () => {
   const {theme} = useTheme();
@@ -30,7 +27,6 @@ export const PlayerHost = () => {
   const loading = usePlayerStore(s => s.loading);
   const sheetMode = usePlayerStore(s => s.sheetMode);
   const isImmersive = usePlayerStore(s => s.isImmersive);
-  const useMorphPlayer = useDevSettingsStore(s => s.useMorphPlayer);
 
   // Handle Android hardware back button
   useEffect(() => {
@@ -75,7 +71,7 @@ export const PlayerHost = () => {
           animated
         />
       )}
-      {__DEV__ && useMorphPlayer ? <PlayerSurface /> : <PlayerSheet />}
+      <PlayerSurface />
     </>
   );
 };

@@ -404,7 +404,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
 
   // ==============================================================
   // BODY-ONLY: just render the mushaf pane (controls live in a
-  // sibling column owned by PlayerSheet). Used in portrait split.
+  // sibling column owned by PlayerBody). Used in portrait split.
   // ==============================================================
   if (bodyOnly) {
     return (
