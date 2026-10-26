@@ -10,6 +10,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import {GestureDetector} from 'react-native-gesture-handler';
 import {usePlayerDismissGesture} from '@/components/player/v2/PlayerDismissContext';
+import {usePlayerScrollable} from '@/hooks/usePlayerScrollable';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import Color from 'color';
@@ -121,6 +122,9 @@ export const TabletPlayerControlsColumn: React.FC<
     followAlongAvailable && followAlongEnabled && isLocked;
 
   const sheetDragGesture = usePlayerDismissGesture();
+  // The column scrolls, which would swallow the dismiss drag; the player's
+  // scrollable hands a pull-down at the top to it, as on the phone's cards.
+  const ColumnScrollView = usePlayerScrollable() ?? ScrollView;
 
   const chromeOpacity = useSharedValue(1);
   useEffect(() => {
@@ -289,7 +293,7 @@ export const TabletPlayerControlsColumn: React.FC<
           <Header onOptionsPress={onOptionsPress} />
         </View>
 
-        <ScrollView
+        <ColumnScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
@@ -531,7 +535,7 @@ export const TabletPlayerControlsColumn: React.FC<
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </ColumnScrollView>
       </Animated.View>
     </GestureDetector>
   );
