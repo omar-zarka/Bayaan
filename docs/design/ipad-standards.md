@@ -110,13 +110,14 @@ Reading text is user-sized. Tablet defaults are larger because the device is hel
 
 | Text | Phone default | Tablet default | Line height | User range |
 | --- | --- | --- | --- | --- |
-| Quran (verse-by-verse list) | 26 | 32 | 1.9–2.1× | 20–48 |
+| Quran (verse-by-verse list) | 26 | 32 | 2.0× minimum | 20–48 |
 | Translation | 15 | 18 | 1.55× | 13–26 |
 | Transliteration | 14 | 16 | 1.5×, italic | 12–22 |
 | Tafsir and long-form | 16 | 18 | 1.6× | 14–26 |
 
 - **MUST** keep reading text inside a readable column: **max 680pt** for verse-by-verse and translation views (matches `QuranView`), about 60–75 Latin characters per line for long-form.
 - **MUST** size the Mushaf page to fit the available pane, not with a font size; see [§9.1](#91-mushaf).
+- **MUST** keep Arabic line pitch at least **2.0× the font size** in every reading surface, the Mushaf page included, so tashkeel never collides.
 - **SHOULD** persist reading sizes separately for phone and tablet, so a size chosen on iPad does not shrink the phone.
 
 ### 4.3 Dynamic Type and font scaling
@@ -221,12 +222,12 @@ Rules:
 
 ### 7.3 Hardware keyboard
 
-Target shortcuts (needs a small native `UIKeyCommand` module; until then they are a goal, not a rule):
+Target shortcuts (needs a small native `UIKeyCommand` module; until then they are a goal, not a rule). The table below is app-wide; a screen MAY override a key while it has focus, and the reader does so as listed in [reading/04-reading-standards.md §6](reading/04-reading-standards.md) (Space and ←/→ turn pages, ⌘+/⌘− change size, and so on).
 
 | Keys | Action |
 | --- | --- |
-| Space | Play / pause |
-| ← / → | Previous / next ayah (reading) or seek 10s (listening) |
+| Space | Play / pause (outside the reader) |
+| ← / → | Seek 10s in the player; previous / next page or verse in the reader |
 | ⌘ ← / ⌘ → | Previous / next track |
 | ⌘ F | Focus search |
 | ⌘ 1–5 | Switch sidebar section |
@@ -256,6 +257,8 @@ Full-width bottom sheets look like a phone app on a 13" screen.
 ## 9. Reading surfaces
 
 Benchmarks: Tarteel (iPad), Quran.com, Apple Books.
+
+The detailed reading audit, benchmarks, designs, and reader-specific rules are in [reading/](reading/README.md); [reading/04-reading-standards.md](reading/04-reading-standards.md) extends this section and [§8](#8-sheets-menus-and-modals).
 
 ### 9.1 Mushaf
 
