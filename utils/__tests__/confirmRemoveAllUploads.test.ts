@@ -1,3 +1,4 @@
+// @ai-generated
 import {Alert} from 'react-native';
 import type {TFunction} from 'i18next';
 import enCollection from '../../i18n/locales/en/collection.json';
