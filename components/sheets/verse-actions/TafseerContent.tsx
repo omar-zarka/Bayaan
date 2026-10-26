@@ -114,7 +114,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
   const unitModel = unitStart?.model ?? null;
   const initialIndex = unitStart
     ? unitStart.unit.index
-    : verseKeyToIndex[initialVerseKey] ?? 0;
+    : (verseKeyToIndex[initialVerseKey] ?? 0);
   const total = unitModel ? unitModel.units.length : TOTAL_VERSES;
   // @ai-end
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
