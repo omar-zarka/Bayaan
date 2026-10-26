@@ -8,7 +8,7 @@
 > `utils/themeUtils.ts`, `app.config.js`, `app/mushaf.tsx`. Date: 2026-10-26.
 > Per-screen findings are in the sibling files of this folder. Rules referred
 > to as §N live in [`../ipad-standards.md`](../ipad-standards.md); width classes
-> (`compact` < 600, `medium` 600–899, `expanded` 900–1199, `large` ≥ 1200)
+> (`compact` < 600, `medium` 600–899, `expanded` 900–1279, `large` ≥ 1280)
 > are defined there in §2.
 
 ## Summary

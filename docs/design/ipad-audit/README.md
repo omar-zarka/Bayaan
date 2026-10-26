@@ -132,11 +132,13 @@ screens. Each step is meant to be its own PR.
 ## Proposed changes to the standard
 
 Each audit ends with gaps or conflicts it found in `ipad-standards.md`. The
-ones that matter most, for the standards owners to decide:
+ten below were all adopted into the standard in #393 (`large` now starts at
+1280pt, so every 11" iPad in landscape is `expanded`). They are kept here as
+the record of why each rule exists:
 
 1. **§2.1 table vs breakpoints.** iPad Pro 11" in landscape is 1210pt, which
-   is `large` by the 1200 breakpoint, though the table lists it under
-   `expanded`. Fix the table or move the breakpoint.
+   was `large` by the old 1200 breakpoint, though the table listed it under
+   `expanded`. Resolved by moving the breakpoint to 1280.
 2. **Grids measure their pane, not the window.** §10.1 uses `paneWidth` while
    §2.2 says to read the window. Say explicitly: the class comes from the
    window, grid math from the measured container. Window-based grid math is
@@ -161,6 +163,6 @@ ones that matter most, for the standards owners to decide:
    floating player on tablet; use `useBottomInset()`.
 10. **Shared components must not hard-code a tab route.**
 
-Smaller proposals (avatar `minCard` 140, multi-column row lists, Arabic
+Smaller proposals not yet decided (avatar `minCard` 140, multi-column row lists, Arabic
 preview sizes in rows, extra shortcuts, a feedback-surfaces rule, color from
 artwork) are in each file's last section.

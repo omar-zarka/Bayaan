@@ -7,7 +7,7 @@
 > Date: 2026-10-26. Method: code reading only. I could not run the simulator from this Linux container, so pixel values below come from the scaling formulas and have not been checked against screenshots.
 >
 > **Standards:** the proposals follow [../ipad-standards.md](../ipad-standards.md) and cite it as §N:
-> - width classes by **window** width (§2): `compact` <600, `medium` 600–899, `expanded` 900–1199, `large` ≥1200
+> - width classes by **window** width (§2): `compact` <600, `medium` 600–899, `expanded` 900–1279, `large` ≥1280
 > - page margins and gutters (§5.2)
 > - content widths (§5.3)
 > - type-ramp roles (§4.1)

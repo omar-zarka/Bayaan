@@ -4,7 +4,7 @@
 >
 > **Inflation numbers.** Raw `react-native-size-matters` `moderateScale` computes `ms(x) = x · (0.5 + shortSide/700)`. That is ×1.56 on iPad mini (744pt), ×1.67 on iPad and iPad Air 11" (820pt) and ×1.96 on 13" (1024pt).
 >
-> **Standards.** Proposals follow [the iPad standards](../ipad-standards.md) and [design system](../design-system.md). Rules are cited as §N. Layout is chosen by **width class**, which is based on window width (§2): `compact` < 600, `medium` 600–899, `expanded` 900–1199, `large` ≥ 1200. Margins and gutters follow §5.2 (24/16 at medium, 32/20 at expanded, 40/24 at large). Content widths follow §5.3 (grids uncapped, forms 640, sheets 560, reading 680). Text uses the §4.1 roles. Grid columns use the §10.1 formula `max(2, floor((pane + gutter) / (minCard + gutter)))` with `minCard` 160. Split views follow §6 (list 320–380, detail ≥ 420), and sheets follow the §8 policy.
+> **Standards.** Proposals follow [the iPad standards](../ipad-standards.md) and [design system](../design-system.md). Rules are cited as §N. Layout is chosen by **width class**, which is based on window width (§2): `compact` < 600, `medium` 600–899, `expanded` 900–1279, `large` ≥ 1280. Margins and gutters follow §5.2 (24/16 at medium, 32/20 at expanded, 40/24 at large). Content widths follow §5.3 (grids uncapped, forms 640, sheets 560, reading 680). Text uses the §4.1 roles. Grid columns use the §10.1 formula `max(2, floor((pane + gutter) / (minCard + gutter)))` with `minCard` 160. Split views follow §6 (list 320–380, detail ≥ 420), and sheets follow the §8 policy.
 >
 > **Worked pane widths** (window minus shell from §6, minus page margins):
 >
