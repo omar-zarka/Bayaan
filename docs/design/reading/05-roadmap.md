@@ -11,10 +11,12 @@ The steps are ordered so that each PR is small, ships on its own, and leaves `co
 |---|---|---|---|
 | 0.1 | Fix the surah-row VoiceOver hint ("Opens the reader") and add a *Play* `accessibilityAction` | E1 | — |
 | 0.2 | Make `SHEET_HEIGHT` (`VerseActionsSheet.tsx:133`) and `MushafLayoutSheet` height reactive with `useWindowDimensions` | A2 | — |
-| 0.3 | Feed `ReadingPageView` and `ContinuousListView` the measured pane width, centre them in a 680pt column, and pass `symmetric` edges on tablet | L1, L2, A2 | — |
+| 0.3 | Feed `ReadingPageView` and `ContinuousListView` the measured pane width, centre them in a 680pt column, and pass `symmetric` edges on tablet | L1, L2, A2, Q2 | — |
 | 0.4 | Stop re-locking portrait on reader exit on iPad, and reconcile `UIRequiresFullScreen` between `app.config.js` and `Info.plist` | A3, R7 | standards #1, #9 |
 | 0.5 | Add labels and roles to the glass-header share and settings buttons, the verse-sheet gear, and the swatches, chips, steppers and toggles in reader settings | H2, V7, S3, S6 | — |
 | 0.6 | Note rows: add *Open verse*. Make `/quran/{s}/{a}` open the reader at that verse | N4, E2 | — |
+| 0.7 | Keep the pager aligned on every width change: key the paged lists on the measured container width + spread mode (not orientation), `scrollToIndex` the current page after `onLayout`, and give `ContinuousMushafView` single-page metrics in landscape | Q1, Q3 | — |
+| 0.8 | Cap sheet height to the live window and make sheet content scroll, so verse actions and playback settings never push actions below the fold | Q4 | 0.2 |
 
 ## Phase 1 · Foundations (1–2 weeks)
 

@@ -25,6 +25,7 @@ The reader already does a few iPad things right: it caps page width, shows two f
 5. **There is no keyboard, pointer or context-menu support.** No arrow-key page turns, no ⌘F, no Esc, no hover, no right-click menus.
 6. **Translation and list modes use a frozen module-level `SCREEN_WIDTH`.** Text runs the full screen width, around 150 characters per line in landscape, and doesn't follow rotation or Split View.
 7. **Multitasking config has drifted.** `app.config.js` sets `UIRequiresFullScreen: true` and the committed `Info.plist` says `false`, while the app locks itself to portrait outside the reader.
+8. **The pager breaks whenever its width changes.** Confirmed in the simulator: rotating, resizing a Stage Manager window, or switching List → Mushaf leaves half-pages or the wrong spread on screen until you swipe. List mode in landscape is clipped mid-word, and vertical Mushaf in landscape sits shoved to the left ([01 §B12](01-audit.md#b12-verified-in-the-ipad-simulator)).
 
 The target experience is in [03-proposed-designs.md](03-proposed-designs.md). In short: a **three-pane reader**. The page (or two-page spread) sits in the centre. A collapsible **Contents** sidebar on the leading edge holds surahs, juz, bookmarks and notes. A collapsible **Study** inspector on the trailing edge holds translation, tafsir, word by word, notes and similar verses. Popovers replace sheets for short choices, everything has a keyboard shortcut, and it all collapses gracefully to today's phone UI in compact windows.
 
@@ -39,5 +40,5 @@ The target experience is in [03-proposed-designs.md](03-proposed-designs.md). In
 ## Method
 
 * Code read on `develop` at `2566b5c8` for every file the screen inventory tags *Reading*, plus the reader's entry points and settings.
-* Sizes marked "≈" are computed from the code (for example `react-native-size-matters` v0.4: `moderateScale(s) = s + (s·shortSide/350 − s)·0.5`). They are not measured from screenshots; confirm them in the simulator before treating a single pixel value as final.
+* Sizes marked "≈" are computed from the code (for example `react-native-size-matters` v0.4: `moderateScale(s) = s + (s·shortSide/350 − s)·0.5`). Section B12 of the audit adds findings from 54 simulator screenshots (iPad Pro 13" and iPad mini, iOS 26.2) that confirm the main code findings.
 * Benchmark claims are from public product docs and product knowledge and are labelled as such. They describe direction, not pixel specs.

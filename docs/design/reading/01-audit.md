@@ -37,6 +37,7 @@ These values are frozen at import time and are wrong after rotation, in Split Vi
 * `app/_layout.tsx:213-216` locks the **whole app to portrait**. `app/mushaf.tsx:105-113` unlocks only while the reader is open and **re-locks portrait on exit**.
   * On an iPad sitting in a landscape keyboard case, leaving the reader rotates the app to portrait.
   * If multitasking is enabled, iPadOS ignores the lock and the browse screens rotate anyway. Those paths were never designed for landscape.
+* **Simulator check (develop, current dev build):** the built `Info.plist` has `UIRequiresFullScreen=false`. Stage Manager windowing works, and the Home, Surahs and Settings tabs all rotate despite the portrait lock. So multitasking is effectively on today, and every reading surface must already cope with arbitrary window sizes (see Q1–Q3).
 
 ### A4. `isTablet` means device, not window · P1
 
@@ -194,12 +195,33 @@ Tagged *Reading* in the screen inventory. It shares the reading typography rules
 | D1 | **Font sizes are `moderateScale(arabicFontSize / translationFontSize)`** (`:132, 165, 183, 288-294`), which gives the same uncapped inflation as L3. | P1 |
 | D2 | **The reading measure depends on the Home stack.** The 720pt cap comes only from the Home stack's `MaxWidthContainer`, not from a reading-column rule. That is fine today, but it is fragile. | P2 |
 
+## B12. Verified in the iPad simulator
+
+Captured on `develop` (`2566b5c8`) on iPad Pro 13" (M4) and iPad mini (A17 Pro) simulators with iOS 26.2: 54 screenshots, portrait, landscape and a resized Stage Manager window. These confirm most of the code findings above and add the bugs below. Screenshot file names are given where known, so the same views can be captured again.
+
+| # | Finding | Evidence | Sev |
+|---|---|---|---|
+| Q1 | **The horizontal pager loses page alignment whenever its width changes.** After portrait → landscape → portrait, two half-pages show split down the middle. Rotating back shows pages 4–5 instead of 3–4. Switching List → Mushaf in landscape leaves the spread offset by about a third of a page with a third page peeking in. A Stage Manager resize leaves a grey gap mid-screen and cuts off the next page. Each one only recovers after a manual swipe. **Cause:** the list remounts only on an orientation flip (`orientationKey`, `main.tsx:606-613`), so a resize or a view-mode switch keeps the old pixel offset under new item widths; and on rotation the first frame lays out from window dims before `onLayout` reports the container (`:636-640`). | `13in-portrait-mushaf-after-rotate-from-landscape`, `13in-landscape-mushaf-spread-misaligned-p4-5-after-rotate`, `13in-landscape-mushaf-misaligned-after-list-to-mushaf`, `13in-landscape-windowed-resized-pager-misaligned` | P0 |
+| Q2 | **List view in landscape is clipped.** It shows as two pages side by side, each clipped at the left, with Arabic and translation cut mid-word and the surah header cut on the right. This is L1/A2 in practice: `ReadingPageView` is sized from the launch-time `SCREEN_WIDTH` (portrait), while the FlatList pages by `metrics.screenWidth` (landscape). | `13in-landscape-list-view-translation`, `…-settled` | P0 |
+| Q3 | **Vertical-scroll Mushaf in landscape is a single page shoved to the left,** with roughly 45% of the screen empty on the right and the surah header frame cut off at the top-left. **Cause:** `ContinuousMushafView` receives the landscape *facing-pages* metrics and offsets its single page by the spread's `pageOffsetX` (`ContinuousMushafView.tsx:95-105`). | `13in-landscape-mushaf-vertical-scroll` | P0 |
+| Q4 | **Sheets overflow in landscape.** The verse actions sheet fills the screen and *Copy* / *Share* sit below the fold, on both 13" and mini. In Playback Settings, *Play each verse* is pushed off the bottom and the Play button floats over the content. Rows stretch about 1300pt, with check marks and chevrons far from their labels. | `mini-landscape-verse-actions-sheet` and the 13" landscape verse-actions and playback-settings captures | P0 |
+| Q5 | **Tafsir and translation are phone layouts at tablet scale.** Body text runs about 1300pt per line, the Arabic verse is a tiny single line at the far right, and the verse pill floats in the centre. In portrait the Prev/Next footer is clipped at the bottom edge with two thirds of the sheet empty above it. The mini in landscape clips *Next*. | `13in-landscape-verse-tafseer`, `13in-landscape-verse-translation`, `13in-portrait-verse-translation`, and the mini landscape tafseer capture | P1 |
+| Q6 | **The word-by-word sheet is nearly empty.** One short row of words with gloss text of about 9pt, in a sheet that is about 85% empty. In landscape the row is centred with huge gutters. Tapping a word in Mushaf view does nothing, so word study is only reachable through verse actions. | `13in-portrait-verse-word-by-word`, `13in-landscape-verse-word-by-word` | P1 |
+| Q7 | **Portrait page 2 floats in the middle third** of the screen with large empty bands above and below (R1 in practice). With chrome visible, the floating title pill overlaps the first line of text. | `13in-portrait-mushaf-p2`, `13in-portrait-mushaf-p3` | P1 |
+| Q8 | **Spread labels are tiny.** The landscape spread itself looks right (a proper RTL spread, best seen in immersive mode). With chrome shown, the page-number labels are about 8pt and the toolbar buttons sit in the far corners. On iPad mini the spread's Arabic is about 10–11pt, which is small for sustained reading. | `13in-landscape-mushaf-spread-p3-4-immersive` and the mini landscape spread | P1 |
+| Q9 | **In-reader search wastes the screen:** one result row at the top of a blank full-screen page, and the "Find surahs, verses…" hint is tiny. | `13in-landscape-reader-search-results`, `13in-portrait-reader-search-results` | P1 |
+| Q10 | **The share popover is anchored mid-screen,** not to the share button (V9 in practice). | `13in-portrait-reader-share-popover` | P1 |
+| Q11 | **Theme settings don't fit.** Theme swatches wrap 4 + 3 with dead space, the live preview frame is cropped, and the "Changing appearance mode" note is small grey text. | 13" portrait and landscape reading-theme captures | P2 |
+| Q12 | **The Surahs tab doesn't use the width.** The column is capped at about 640pt with a big empty margin in landscape. List rows are small (≈ 15pt titles), and the grid has only 2 columns even at 13". | `13in-landscape-surahs-grid`, `13in-landscape-surahs-list`, `13in-portrait-surahs-list` | P2 |
+
+Not captured: the audio bar while playing. The timestamps CDN reset the TLS handshake from the capture machine (curl fails too), so every reciter showed "Playback unavailable". That is a network/CDN issue, not an iPad layout bug.
+
 ---
 
 ## C. Count
 
-| Severity | Foundations (A) | Screens (B) | Total |
-|---|---|---|---|
-| P0 | 3 (A1, A2, A3) | 3 (R7, L1, E1) | 6 |
-| P1 | 4 (A4–A7) | 32 | 36 |
-| P2 | 0 | 19 | 19 |
+| Severity | Foundations (A) | Screens (B1–B11) | Simulator (B12) | Total |
+|---|---|---|---|---|
+| P0 | 3 (A1, A2, A3) | 3 (R7, L1, E1) | 4 (Q1–Q4) | 10 |
+| P1 | 4 (A4–A7) | 32 | 6 | 42 |
+| P2 | 0 | 19 | 2 | 21 |
