@@ -31,6 +31,7 @@ import Color from 'color';
 import type {UploadedRecitation, RecordingType} from '@/types/uploads';
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 import {pickAndImportAudioFiles} from '@/utils/importAudio';
+import {confirmRemoveAllUploads} from '@/utils/confirmRemoveAllUploads';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {NowPlayingIndicator} from '@/components/NowPlayingIndicator';
 import {GradientText} from '@/components/GradientText';
@@ -310,7 +311,7 @@ export default function UploadsScreen() {
             label: t('uploadsScreen.removeAll'),
             icon: 'trash-2',
             destructive: true,
-            onPress: () => deleteAllRecitations(),
+            onPress: () => confirmRemoveAllUploads(t, deleteAllRecitations),
           },
         ],
       },
