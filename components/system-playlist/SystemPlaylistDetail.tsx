@@ -39,7 +39,7 @@ import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStor
 import {getFeaturedReciters} from '@/data/featuredReciters';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useNavigation} from 'expo-router';
-import {useHeaderHeight} from 'expo-router/react-navigation';
+import {useGlassHeaderHeight} from '@/hooks/useGlassHeaderHeight'; // @ai
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -163,7 +163,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
   const {updateQueue, addToQueue, play} = usePlayerActions();
   const {startNewChain} = useRecentlyPlayedStore();
   const navigation = useNavigation();
-  const iosHeaderHeight = isGlass ? useHeaderHeight() : 0;
+  const iosHeaderHeight = useGlassHeaderHeight(isGlass); // @ai
 
   const scrollY = useRef(new RNAnimated.Value(0)).current;
 

@@ -69,7 +69,7 @@ import {moderateScale} from 'react-native-size-matters';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {HAFS_REWAYAT_NAME} from '@/data/rewayat';
 import {useNavigation} from 'expo-router';
-import {useHeaderHeight} from 'expo-router/react-navigation';
+import {useGlassHeaderHeight} from '@/hooks/useGlassHeaderHeight'; // @ai
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {reciterShareUrl, shareUrl} from '@/utils/shareUtils';
 import branding from '@/config/branding';
@@ -218,7 +218,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   const bottomInset = useBottomInset();
   const {height: screenHeight, width: screenWidth} = useWindowDimensions();
   const navigation = useNavigation();
-  const headerHeight = isGlass ? useHeaderHeight() : 0;
+  const headerHeight = useGlassHeaderHeight(isGlass); // @ai
 
   // Synchronous reciter init — data available on first render, no deferred loading delay
   const initialReciter = useMemo(
