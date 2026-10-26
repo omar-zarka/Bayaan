@@ -256,6 +256,9 @@ export const ReadingThemeContent: React.FC<ReadingThemeContentProps> = ({
             <Pressable
               key={option.id}
               onPress={() => handleThemeSelect(option.id)}
+              accessibilityRole="radio" // @ai
+              accessibilityLabel={option.name} // @ai
+              accessibilityState={{checked: isSelected}} // @ai
               style={[
                 styles.colorChip,
                 {
@@ -314,7 +317,10 @@ const AndroidSegment: React.FC<{
               androidStyles.segmentButton,
               isActive && {backgroundColor: segActiveBg},
             ]}
-            onPress={() => onPress(seg)}>
+            onPress={() => onPress(seg)}
+            accessibilityRole="tab" // @ai
+            accessibilityState={{selected: isActive}} // @ai
+          >
             <Text
               style={[
                 androidStyles.segmentText,
