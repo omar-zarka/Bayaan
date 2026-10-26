@@ -1,7 +1,11 @@
 {
   "queue": {
     "empty": "Queue is empty",
-    "verseShort": "v{{verse}}"
+    "verseShort": "v{{verse}}",
+    "nowPlaying": "Now Playing",
+    "upNext": "Up Next",
+    "played": "Played",
+    "remove": "Remove {{title}} from queue"
   },
   "uploads": {
     "recordingType": {

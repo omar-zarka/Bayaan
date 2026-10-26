@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -10,17 +10,13 @@ import {
 import Slider from '@react-native-community/slider';
 import {GlassView} from 'expo-glass-effect';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import {Gesture, GestureDetector} from 'react-native-gesture-handler';
-import {
-  useBottomSheetGestureHandlers,
-  useBottomSheetInternal,
-} from '@gorhom/bottom-sheet';
+import {GestureDetector} from 'react-native-gesture-handler';
+import {usePlayerDismissGesture} from '@/components/player/v2/PlayerDismissContext';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import Color from 'color';
@@ -146,7 +142,6 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     toggleImmersive,
     setImmersive,
     updateSettings,
-    setSheetMode,
   } = usePlayerActions();
 
   const queue = usePlayerStore(s => s.queue);
@@ -229,39 +224,9 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     toggleImmersive();
   }, [toggleImmersive]);
 
-  const {handlePanGestureHandler} = useBottomSheetGestureHandlers();
-  const {animatedPosition, animatedLayoutState} = useBottomSheetInternal();
-  const syncSheetModeIfClosed = useCallback(() => {
-    const {sheetMode} = usePlayerStore.getState();
-    if (sheetMode !== 'hidden') setSheetMode('hidden');
-  }, [setSheetMode]);
-
-  const sheetDragGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .onStart(handlePanGestureHandler.handleOnStart)
-        .onChange(handlePanGestureHandler.handleOnChange)
-        .onEnd(handlePanGestureHandler.handleOnEnd)
-        .onFinalize(event => {
-          'worklet';
-          handlePanGestureHandler.handleOnFinalize(event);
-          const containerHeight = animatedLayoutState.get().containerHeight;
-          if (
-            containerHeight > 0 &&
-            animatedPosition.value >= containerHeight - 1
-          ) {
-            runOnJS(syncSheetModeIfClosed)();
-          }
-        })
-        .shouldCancelWhenOutside(false)
-        .runOnJS(false),
-    [
-      handlePanGestureHandler,
-      animatedPosition,
-      animatedLayoutState,
-      syncSheetModeIfClosed,
-    ],
-  );
+  // One gesture per GestureDetector: Gesture Handler can't share one.
+  const sheetDragGesture = usePlayerDismissGesture();
+  const dockDragGesture = usePlayerDismissGesture();
 
   const chromeOpacity = useSharedValue(1);
   useEffect(() => {
@@ -441,7 +406,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
 
   // ==============================================================
   // BODY-ONLY: just render the mushaf pane (controls live in a
-  // sibling column owned by PlayerSheet). Used in portrait split.
+  // sibling column owned by PlayerBody). Used in portrait split.
   // ==============================================================
   if (bodyOnly) {
     return (
@@ -801,7 +766,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
          - ScrollView inside → if content ever overflows (rotation, font
            scaling), user can scroll rather than have rows disappear
          - Rounded card with glass bg, padded from pane edges */}
-      <GestureDetector gesture={sheetDragGesture}>
+      <GestureDetector gesture={dockDragGesture}>
         <Animated.View
           style={[
             styles.pDockWrapper,

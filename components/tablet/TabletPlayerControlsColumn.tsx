@@ -1,19 +1,16 @@
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {View, Text, Pressable, StyleSheet, ScrollView} from 'react-native';
 import Slider from '@react-native-community/slider';
 import {GlassView} from 'expo-glass-effect';
 import Animated, {
-  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
   withTiming,
 } from 'react-native-reanimated';
-import {Gesture, GestureDetector} from 'react-native-gesture-handler';
-import {
-  useBottomSheetGestureHandlers,
-  useBottomSheetInternal,
-} from '@gorhom/bottom-sheet';
+import {GestureDetector} from 'react-native-gesture-handler';
+import {usePlayerDismissGesture} from '@/components/player/v2/PlayerDismissContext';
+import {usePlayerScrollable} from '@/hooks/usePlayerScrollable';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {Ionicons} from '@expo/vector-icons';
 import Color from 'color';
@@ -104,15 +101,8 @@ export const TabletPlayerControlsColumn: React.FC<
   const glassColorScheme = useGlassColorScheme();
   const insets = useSafeAreaInsets();
 
-  const {
-    play,
-    pause,
-    skipToNext,
-    skipToPrevious,
-    seekTo,
-    updateSettings,
-    setSheetMode,
-  } = usePlayerActions();
+  const {play, pause, skipToNext, skipToPrevious, seekTo, updateSettings} =
+    usePlayerActions();
 
   const queue = usePlayerStore(s => s.queue);
   const isImmersive = usePlayerStore(s => s.isImmersive);
@@ -131,39 +121,10 @@ export const TabletPlayerControlsColumn: React.FC<
   const followAlongActive =
     followAlongAvailable && followAlongEnabled && isLocked;
 
-  const {handlePanGestureHandler} = useBottomSheetGestureHandlers();
-  const {animatedPosition, animatedLayoutState} = useBottomSheetInternal();
-  const syncSheetModeIfClosed = useCallback(() => {
-    const {sheetMode} = usePlayerStore.getState();
-    if (sheetMode !== 'hidden') setSheetMode('hidden');
-  }, [setSheetMode]);
-
-  const sheetDragGesture = useMemo(
-    () =>
-      Gesture.Pan()
-        .onStart(handlePanGestureHandler.handleOnStart)
-        .onChange(handlePanGestureHandler.handleOnChange)
-        .onEnd(handlePanGestureHandler.handleOnEnd)
-        .onFinalize(event => {
-          'worklet';
-          handlePanGestureHandler.handleOnFinalize(event);
-          const containerHeight = animatedLayoutState.get().containerHeight;
-          if (
-            containerHeight > 0 &&
-            animatedPosition.value >= containerHeight - 1
-          ) {
-            runOnJS(syncSheetModeIfClosed)();
-          }
-        })
-        .shouldCancelWhenOutside(false)
-        .runOnJS(false),
-    [
-      handlePanGestureHandler,
-      animatedPosition,
-      animatedLayoutState,
-      syncSheetModeIfClosed,
-    ],
-  );
+  const sheetDragGesture = usePlayerDismissGesture();
+  // The column scrolls, which would swallow the dismiss drag; the player's
+  // scrollable hands a pull-down at the top to it, as on the phone's cards.
+  const ColumnScrollView = usePlayerScrollable() ?? ScrollView;
 
   const chromeOpacity = useSharedValue(1);
   useEffect(() => {
@@ -332,7 +293,7 @@ export const TabletPlayerControlsColumn: React.FC<
           <Header onOptionsPress={onOptionsPress} />
         </View>
 
-        <ScrollView
+        <ColumnScrollView
           style={styles.scroll}
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}>
@@ -574,7 +535,7 @@ export const TabletPlayerControlsColumn: React.FC<
               </Pressable>
             </View>
           </View>
-        </ScrollView>
+        </ColumnScrollView>
       </Animated.View>
     </GestureDetector>
   );

@@ -4,6 +4,7 @@ import {useTheme} from '@/hooks/useTheme';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {expandPlayerSheet} from '@/services/player/sheetRef';
+import {useMiniPlayerAnchor} from '@/components/player/v2/useMiniPlayerAnchor';
 import {PlayIcon, PauseIcon} from '@/components/Icons';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {ReciterImage} from '@/components/ReciterImage';
@@ -11,6 +12,9 @@ import Color from 'color';
 // @ai-start
 import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 // @ai-end
+
+// Both dock variants (compact and expanded) use a 14 pt card radius.
+const dockRadius = () => 14;
 
 interface TabletDockedPlayerProps {
   /** When true, shows artwork + title + subtitle + play. When false, artwork-only compact mode. */
@@ -50,6 +54,9 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
       return (trackLoading && isTrackChanging) || playbackState === 'buffering';
     }, [trackLoading, playbackState, currentTrack?.id]);
 
+    // No swipe up: it doesn't fit a sidebar.
+    const {anchorRef} = useMiniPlayerAnchor({radius: dockRadius});
+
     const handlePress = useCallback(() => {
       expandPlayerSheet();
     }, []);
@@ -74,6 +81,7 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
     if (!expanded) {
       return (
         <Pressable
+          ref={anchorRef}
           onPress={handlePress}
           style={[styles.compact, {backgroundColor: bg, borderColor: border}]}>
           <ReciterImage
@@ -98,6 +106,7 @@ export const TabletDockedPlayer: React.FC<TabletDockedPlayerProps> = React.memo(
 
     return (
       <Pressable
+        ref={anchorRef}
         onPress={handlePress}
         style={[styles.expanded, {backgroundColor: bg, borderColor: border}]}>
         <ReciterImage
