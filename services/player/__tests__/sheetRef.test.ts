@@ -75,3 +75,18 @@ it('measures the registered mini player, or reports none', () => {
   measureMiniPlayerAnchor(done);
   expect(done).toHaveBeenLastCalledWith(undefined);
 });
+
+it('skips a mounted mini player that is hidden', () => {
+  const done = jest.fn();
+  const visible = (cb: (o?: PlayerOrigin) => void) => cb(origin);
+  const hidden = (cb: (o?: PlayerOrigin) => void) => cb(undefined);
+  registerMiniPlayerAnchor(visible);
+  registerMiniPlayerAnchor(hidden);
+
+  measureMiniPlayerAnchor(done);
+  expect(done).toHaveBeenCalledTimes(1);
+  expect(done).toHaveBeenLastCalledWith(origin);
+
+  unregisterMiniPlayerAnchor(hidden);
+  unregisterMiniPlayerAnchor(visible);
+});

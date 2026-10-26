@@ -224,7 +224,9 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     toggleImmersive();
   }, [toggleImmersive]);
 
+  // One gesture per GestureDetector: Gesture Handler can't share one.
   const sheetDragGesture = usePlayerDismissGesture();
+  const dockDragGesture = usePlayerDismissGesture();
 
   const chromeOpacity = useSharedValue(1);
   useEffect(() => {
@@ -764,7 +766,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
          - ScrollView inside → if content ever overflows (rotation, font
            scaling), user can scroll rather than have rows disappear
          - Rounded card with glass bg, padded from pane edges */}
-      <GestureDetector gesture={sheetDragGesture}>
+      <GestureDetector gesture={dockDragGesture}>
         <Animated.View
           style={[
             styles.pDockWrapper,

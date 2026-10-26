@@ -37,7 +37,6 @@ export const PlayerBody = () => {
 
   const {setSheetMode, setRate, updateSettings} = usePlayerActions();
   const queue = usePlayerStore(s => s.queue);
-  const sheetMode = usePlayerStore(s => s.sheetMode);
   const playbackRate = usePlayerStore(s => s.playback.rate);
   const settings = usePlayerStore(s => s.settings);
 
@@ -203,7 +202,9 @@ export const PlayerBody = () => {
   // Landscape keeps the reciter-list split (only when there's a reciter).
   // Portrait always splits on iPad: mushaf on the left, player controls on
   // the right (replacing the reciter list in portrait).
-  const isTabletFull = isTablet && sheetMode === 'full';
+  // Not keyed on sheetMode: the layout would switch while the surface is
+  // still shrinking on close. Closed, the surface is off-screen anyway.
+  const isTabletFull = isTablet;
   const landscapeSplit =
     isTabletFull && orientation === 'landscape' && !!currentTrack?.reciterId;
   const portraitSplit = isTabletFull && orientation === 'portrait';

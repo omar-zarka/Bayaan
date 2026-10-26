@@ -75,7 +75,9 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
   const isImmersive = usePlayerStore(s => s.isImmersive);
   const insets = useSafeAreaInsets();
 
-  const sheetDragGesture = usePlayerDismissGesture();
+  // One gesture per GestureDetector: Gesture Handler can't share one.
+  const headerDragGesture = usePlayerDismissGesture();
+  const controlsDragGesture = usePlayerDismissGesture();
 
   // Overlay height measurement
   const [headerHeight, setHeaderHeight] = useState(DEFAULT_HEADER_HEIGHT);
@@ -247,7 +249,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
       </View>
 
       {/* Header overlay — floating glass card */}
-      <GestureDetector gesture={sheetDragGesture}>
+      <GestureDetector gesture={headerDragGesture}>
         <Animated.View
           style={[
             styles.headerOverlay,
@@ -274,7 +276,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
       </GestureDetector>
 
       {/* Controls overlay — floating glass card */}
-      <GestureDetector gesture={sheetDragGesture}>
+      <GestureDetector gesture={controlsDragGesture}>
         <Animated.View
           style={[
             styles.controlsOverlay,

@@ -32,27 +32,35 @@ export interface PlayerSheetController {
 type AnchorMeasurer = (done: (origin?: PlayerOrigin) => void) => void;
 
 /**
- * The mounted mini player (iOS bottom accessory, Android pill or tablet dock)
- * registers how to measure itself, so the morphing surface can open from and
- * close onto wherever it currently sits, whoever triggered the open.
+ * The mounted mini players (iOS bottom accessory, Android pill or tablet dock)
+ * register how to measure themselves, so the morphing surface can open from
+ * and close onto wherever the visible one currently sits, whoever triggered
+ * the open. More than one can be mounted (a hidden pill renders nothing and
+ * measures as undefined), so the newest one that measures wins.
  */
-let _anchor: AnchorMeasurer | null = null;
+const _anchors: AnchorMeasurer[] = [];
 
 export function registerMiniPlayerAnchor(measure: AnchorMeasurer) {
-  _anchor = measure;
+  unregisterMiniPlayerAnchor(measure);
+  _anchors.push(measure);
 }
 
 export function unregisterMiniPlayerAnchor(measure: AnchorMeasurer) {
-  if (_anchor === measure) _anchor = null;
+  const index = _anchors.indexOf(measure);
+  if (index !== -1) _anchors.splice(index, 1);
 }
 
-/** Measures the mounted mini player; `done()` gets undefined if none. */
+/** Measures the visible mini player; `done()` gets undefined if none. */
 export function measureMiniPlayerAnchor(done: (origin?: PlayerOrigin) => void) {
-  if (!_anchor) {
-    done(undefined);
-    return;
-  }
-  _anchor(done);
+  const candidates = [..._anchors].reverse();
+  const tryNext = (i: number) => {
+    if (i >= candidates.length) {
+      done(undefined);
+      return;
+    }
+    candidates[i](origin => (origin ? done(origin) : tryNext(i + 1)));
+  };
+  tryNext(0);
 }
 
 /**

@@ -244,7 +244,7 @@ export interface Branding {
    * RFC-014 — strategy for wiring the player Mushaf FlashList's scroll
    * handling.
    *
-   * `'gorhom'` — the player's dismiss-aware scroll component (see
+   * `'gorhom'`: the player's dismiss-aware scroll component (see
    *   `usePlayerScrollable`) is passed as `renderScrollComponent` on
    *   FlashList, so a downward drag at the top of the list dismisses the
    *   player. The name predates the move off the gorhom sheet and is kept

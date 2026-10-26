@@ -75,13 +75,21 @@ export const PlayerSurface = () => {
 
   const progress = useSharedValue(0);
   const dragStartProgress = useSharedValue(0);
-  // Where progress is heading, so a JS-side sheetMode change doesn't restart
-  // (and drop the velocity of) an animation a gesture already started.
+  // Where progress is heading (0 or 1, or -1 mid-drag), so a JS-side
+  // sheetMode change doesn't restart (and drop the velocity of) an animation
+  // a gesture already started.
   const target = useSharedValue(0);
   const origin = useSharedValue<PlayerOrigin | null>(null);
   // False while a swipe-up from the mini player waits for its measurement.
   const originReady = useSharedValue(true);
   const screen = useSharedValue({width: screenWidth, height: screenHeight});
+  // Read in worklets as a shared value, so toggling Reduce Motion doesn't
+  // rebuild the gestures and the lists' scroll component (a remount).
+  const reduceMotion = useSharedValue(reducedMotion);
+
+  useEffect(() => {
+    reduceMotion.value = reducedMotion;
+  }, [reduceMotion, reducedMotion]);
 
   useEffect(() => {
     screen.value = {width: screenWidth, height: screenHeight};
@@ -91,11 +99,11 @@ export const PlayerSurface = () => {
     (to: 0 | 1, velocity: number) => {
       'worklet';
       target.value = to;
-      progress.value = reducedMotion
+      progress.value = reduceMotion.value
         ? withTiming(to, {duration: REDUCED_MOTION_DURATION})
         : withSpring(to, {...SPRING, velocity});
     },
-    [reducedMotion, target, progress],
+    [reduceMotion, target, progress],
   );
 
   const open = useCallback(
@@ -103,6 +111,8 @@ export const PlayerSurface = () => {
       if (target.value === 1) return;
       target.value = 1;
       const start = (o?: PlayerOrigin) => {
+        // A close may have been asked for while measuring.
+        if (target.value !== 1) return;
         origin.value = o ?? null;
         settle(1, 0);
       };
@@ -118,6 +128,8 @@ export const PlayerSurface = () => {
     // Re-measure: the mini player may have moved while the player was open
     // (e.g. the iOS accessory switching between its two placements).
     measureMiniPlayerAnchor(o => {
+      // A reopen (e.g. a swipe up) may have started while measuring.
+      if (target.value !== 0) return;
       if (o) origin.value = o;
       settle(0, 0);
     });
@@ -151,8 +163,11 @@ export const PlayerSurface = () => {
   const onDragStart = useCallback(() => {
     'worklet';
     cancelAnimation(progress);
+    // The finger owns progress now; a pending open or close measurement
+    // must not settle it. The release settles to 0 or 1.
+    target.value = -1;
     dragStartProgress.value = progress.value;
-  }, [progress, dragStartProgress]);
+  }, [progress, dragStartProgress, target]);
 
   const onDragUpdate = useCallback(
     (translationY: number) => {

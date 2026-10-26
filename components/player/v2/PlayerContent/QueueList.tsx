@@ -28,6 +28,8 @@ import {
 } from '@/i18n/format';
 // @ai-end
 
+const EMPTY_TRACKS: Track[] = [];
+
 // @ai-start
 type QueueSection = 'nowPlaying' | 'upNext' | 'played';
 
@@ -261,7 +263,7 @@ export const QueueList: React.FC<QueueListProps> = ({
 }) => {
   const colors = useReadingThemeColors();
   const {t} = useTranslation(['player', 'common']);
-  const tracks = usePlayerStore(s => s.queue.tracks);
+  const tracks = usePlayerStore(s => s.queue.tracks) ?? EMPTY_TRACKS;
   const currentIndex = usePlayerStore(s => s.queue.currentIndex);
   const renderScrollComponent = usePlayerScrollable();
 

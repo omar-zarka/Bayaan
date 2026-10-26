@@ -18,8 +18,8 @@ export const PlayerHost = () => {
 
   // Fires a "Now reading <rewayah>" toast whenever the currently-playing
   // track's resolved rewayah transitions. Mounted here (not deeper) so the
-  // observation outlives the sheet's open/close cycles — the toast fires
-  // on track changes regardless of whether the sheet is visible.
+  // observation outlives the player's open/close cycles: the toast fires
+  // on track changes whether or not the player is open.
   usePlayingRewayahObserver();
 
   const {setSheetMode, setImmersive} = usePlayerActions();
