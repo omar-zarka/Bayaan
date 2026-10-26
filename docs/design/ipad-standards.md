@@ -222,7 +222,7 @@ Rules:
 
 ### 7.3 Hardware keyboard
 
-Target shortcuts (needs a small native `UIKeyCommand` module; until then they are a goal, not a rule). The table below is app-wide; a screen MAY override a key while it has focus, and the reader does so as listed in [reading/04-reading-standards.md §6](reading/04-reading-standards.md) (Space and ←/→ turn pages, ⌘+/⌘− change size, and so on).
+Target shortcuts (needs a small native `UIKeyCommand` module; until then they are a goal, not a rule). The table below is app-wide; a screen MAY override a key while it has focus, and the reader does so as listed in [reading/04-reading-standards.md §6](reading/04-reading-standards.md) (Space and ←/→ turn pages, ⌥Space plays or pauses, ⌘+/⌘− change size, and so on).
 
 | Keys | Action |
 | --- | --- |
