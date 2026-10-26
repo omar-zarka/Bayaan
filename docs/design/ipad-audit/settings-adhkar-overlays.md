@@ -393,7 +393,7 @@ One `ListSection` "When playing a surah": the switch row "Ask every time". The n
 ```
 
 ### Implementation notes
-- Add `hooks/useContainerWidth.ts` (an `onLayout`-based width, or a `MaxWidthContainer` context that publishes its inner width). Use it in `AdhkarView`. Replace `scale()`/`moderateScale` with `utils/scale.ts`. **S** (fixes the P0)
+- Add `hooks/useContainerWidth.ts` (an `onLayout`-based width, or a `MaxWidthContainer` context that publishes its inner width). Use it in `AdhkarView` with the §10.1 column formula and the §5.2 margins and gutters. Replace `scale()`/`moderateScale` with `utils/scale.ts`. **S** (fixes the P0). Lifting the 720 cap for this browse screen (§5.3, §13 step 5) is **M**, shared with the home audit.
 - Bento card: reserve space for 2 label lines, 12pt radius, hover, a `Link.Menu` context menu. Remove the dead `onPress`. **S**
 - Lay out the hero row horizontally on tablet. **S**
 

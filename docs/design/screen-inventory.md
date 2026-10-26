@@ -43,7 +43,7 @@ app/_layout.tsx                      Root Stack (fade), PlayerHost, WhatsNewModa
 
 | Route | File | Main components | What it is | Area |
 |---|---|---|---|---|
-| `/` | `index.tsx` | `components/hero/*`, `components/cards/*`, `RecentActivityCard` | Home feed: continue reading/listening, surah of the day, reciters, random recitation, saved adhkar | Browse |
+| `/` | `index.tsx` | `components/RecitersView` (`hero/RecitersHero`, `cards/*`, `adhkar/AdhkarBentoCard`) | Home feed: hero, then shelves for continue listening, new to Quran, favorites, featured reciters, adhkar, follow along, playlists, exclusives, tajweed, memorization, rewayat, from your collection | Browse |
 | `/browse-all` | `browse-all.tsx` | `components/browse/BrowseReciters`, `BrowseGrid`, `FilterModal` | All reciters grid with filters | Browse |
 | `/browse-all-surahs` | `browse-all-surahs.tsx` | `components/browse/BrowseSurahs` | All surahs browse | Browse |
 | `/reciter/browse` | `reciter/browse.tsx` | `components/browse/*` | Reciter browse by category | Browse |
@@ -136,7 +136,7 @@ anywhere; they are dead code.
 | Docked player (tablet) | `components/tablet/TabletDockedPlayer.tsx` in the sidebar footer | | Listening + Shell |
 | Tablet sidebar | `components/tablet/TabletSidebar.tsx` | Rail (portrait) / sidebar (landscape) | Shell |
 | Bottom tab bar (Android / older iOS) | `components/BottomTabBar.tsx` | | Shell |
-| What's New / onboarding | `components/modals/WhatsNewModal.tsx`, `components/modals/WhatsNewOnboarding/*` | | Browse |
+| What's New / onboarding | `components/modals/WhatsNewOnboarding/*` (exports `WhatsNewModal`) | | Browse |
 | Network banner | `components/NetworkStatusMonitor.tsx` | | Shell |
 | Dev menu | `components/DevMenu.tsx` | Dev builds only | — |
 
@@ -176,13 +176,14 @@ opened with `SheetManager.show('<id>')`.
 | `adhkar-layout` | `AdhkarLayoutSheet` | Dhikr reader | Reading |
 | `adhkar-copy-options` | `AdhkarCopyOptionsSheet` | Dhikr reader | Reading |
 
-`components/browse/FilterModal.tsx` and `components/BottomSheetModal.tsx` are
-modals outside the sheet registry.
+`components/browse/FilterModal.tsx` is a modal outside the sheet registry.
+`components/BottomSheetModal.tsx`, `components/modals/WhatsNewModal.tsx` and
+`components/SearchBar.tsx` are not imported anywhere.
 
 ## Counts
 
 - 49 route files plus 8 layouts: 40 Browse (including the reciter, browse
   and playlist screens that repeat across tab stacks, and `+not-found`),
   3 Reading, 6 Link.
-- 28 registered action sheets, 2 standalone modals.
+- 28 registered action sheets, 1 standalone modal.
 - 4 persistent player surfaces, 2 navigation chromes (sidebar, tab bar).
