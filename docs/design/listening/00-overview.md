@@ -125,8 +125,9 @@ Dynamic Type and Reduce Motion pass on each screen.
 
 ## Proposed changes to the standard
 
-Collected from the four docs, for the owners of
-[ipad-standards.md](../ipad-standards.md) to accept or reject.
+Collected from the four docs. All twelve were accepted into
+[ipad-standards.md](../ipad-standards.md) (#393), which also moved the start
+of `large` from 1200pt to 1280pt.
 
 | # | Section | Proposal | From |
 |---|---------|----------|------|

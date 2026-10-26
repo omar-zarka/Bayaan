@@ -8,7 +8,7 @@ is covered by the reading docs. This doc only treats it as a layout region.
 This doc follows the project standard, [ipad-standards.md](../ipad-standards.md).
 That standard defines:
 
-- width classes: `compact` < 600, `medium` 600-899, `expanded` 900-1199, `large` ≥ 1200 ([§2](../ipad-standards.md#2-width-classes-and-breakpoints))
+- width classes: `compact` < 600, `medium` 600-899, `expanded` 900-1279, `large` ≥ 1280 ([§2](../ipad-standards.md#2-width-classes-and-breakpoints))
 - the type ramp roles ([§4](../ipad-standards.md#4-typography))
 - spacing, margin and radius tokens ([§5](../ipad-standards.md#5-spacing-and-layout-grid))
 - sheets and popovers ([§8](../ipad-standards.md#8-sheets-menus-and-modals))
@@ -363,8 +363,8 @@ Orientation is never consulted.
 |---|---|---|---|
 | `compact` < 600 | Slide Over, ⅓ split, narrow Stage Manager | Phone accessory / pill | Phone `PlayerContent`, migrated to `utils/scale` (P-37) |
 | `medium` 600-899 | mini and 11" portrait, ½ split on 13" | **Bottom bar across the content area**, next to the 88pt rail | **Stacked**: top bar + reading column + transport card *(differs from §10.4, see the last section)* |
-| `expanded` 900-1199 | 11" landscape, 13" portrait, mini landscape | Card in the 240pt sidebar footer | **Two panes**: Now Playing column + switchable trailing pane (Text / Queue / Reciters) |
-| `large` ≥ 1200 | 13" landscape, big Stage Manager windows | Card in the 280pt sidebar footer | Same two panes, wider margins |
+| `expanded` 900-1279 | 11" landscape, 13" portrait, mini landscape | Card in the 240pt sidebar footer | **Two panes**: Now Playing column + switchable trailing pane (Text / Queue / Reciters) |
+| `large` ≥ 1280 | 13" landscape, big Stage Manager windows | Card in the 280pt sidebar footer | Same two panes, wider margins |
 
 Tokens used below are all from the standard:
 
