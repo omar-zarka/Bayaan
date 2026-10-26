@@ -66,7 +66,7 @@ The alpha-based system from `CONTRIBUTING.md`, using the `color` package:
 | Inactive icon / label | `Color(text).alpha(0.55)` | Unfocused sidebar and tab items |
 | Icon | `Color(text).alpha(0.7)` | Secondary icons |
 | Option label | `Color(text).alpha(0.85)` | Row labels |
-| Section header | `Color(textSecondary).alpha(0.5)` | ALL CAPS labels |
+| Section header | `Color(textSecondary).alpha(0.5)` | ALL CAPS labels. Fails contrast (about 3:1); new code uses 0.8 or more per [ipad-standards.md §12](ipad-standards.md#12-accessibility) |
 | Primary button bg | `text` | Action buttons |
 | Primary button text | `background` | Button labels |
 | Error | `theme.colors.error` | Destructive actions and errors only |

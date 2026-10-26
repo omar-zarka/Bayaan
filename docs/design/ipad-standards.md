@@ -31,8 +31,10 @@ Layout decisions use **width classes** computed from the **window** width (`useW
 | --- | --- | --- |
 | `compact` | < 600pt | Every phone; iPad Slide Over; ⅓ Split View; narrow Stage Manager windows |
 | `medium` | 600–899pt | iPad mini and 11" in portrait (744–834); ½ Split View on 13" |
-| `expanded` | 900–1199pt | 11" in landscape (1180–1210); 13" in portrait (1024–1032) |
-| `large` | ≥ 1200pt | 13" in landscape (1366–1376); large Stage Manager windows; external displays |
+| `expanded` | 900–1279pt | 11" in landscape (1180–1210); 13" in portrait (1024–1032) |
+| `large` | ≥ 1280pt | 13" in landscape (1366–1376); large Stage Manager windows; external displays |
+
+The `large` breakpoint sits at 1280 so every 11" iPad in landscape (up to 1210pt) gets the same class, and only 13" landscape and bigger windows are `large`.
 
 Reference sizes (portrait width × height, in points): iPad mini 744×1133, iPad / iPad Air 11" 820×1180, iPad Pro 11" 834×1210, iPad Air 13" 1024×1366, iPad Pro 13" 1032×1376.
 
@@ -40,6 +42,7 @@ Reference sizes (portrait width × height, in points): iPad mini 744×1133, iPad
 
 - **MUST** choose layout (columns, panes, sidebar style, sheet style) from the width class. `isTablet` answers "is this device an iPad", not "how wide is my window".
 - **MUST** read sizes with `useWindowDimensions()` or `useResponsive()` inside components, so layout updates on rotation and resize. Never compute layout from `Dimensions.get()` at module scope.
+- **MUST** size grids, column counts, and horizontal pagers from their **measured container** (`onLayout`), never from the window. The class comes from the window; the math comes from the pane the content actually sits in, after the sidebar, split panes, and margins. Window-based math is what caused the clipping bugs found in the audits.
 - **MAY** use `isTablet` for device capabilities only: hardware keyboard hints, Pencil, default font size for Quran text.
 - **SHOULD** use height too where it matters: an `expanded` window shorter than 700pt (landscape 11") should not stack two tall panels vertically.
 - `compact` on an iPad **MUST** render the phone layout and stay fully functional.
@@ -52,7 +55,7 @@ Add the class to `useResponsive()` so there is one source:
 // hooks/useResponsive.ts
 export type WidthClass = 'compact' | 'medium' | 'expanded' | 'large';
 
-export const WIDTH_BREAKPOINTS = {medium: 600, expanded: 900, large: 1200} as const;
+export const WIDTH_BREAKPOINTS = {medium: 600, expanded: 900, large: 1280} as const;
 
 export function getWidthClass(width: number): WidthClass {
   if (width >= WIDTH_BREAKPOINTS.large) return 'large';
@@ -90,12 +93,12 @@ One named ramp for all UI text. Phone sizes match today's most common values; ta
 | `display` | 28 | 34 | Bold | Hero titles (reciter profile name, surah header) |
 | `title1` | 24 | 28 | Bold | Screen titles |
 | `title2` | 20 | 22 | SemiBold | Section titles, card headings |
-| `headline` | 17 | 17 | SemiBold | List row titles, player track title |
+| `headline` | 17 | 17 | SemiBold | List row titles, player track title (`compact`, `medium`); the full player title uses `title2` at `expanded`+ |
 | `body` | 15 | 16 | Regular | Paragraphs, descriptions |
-| `callout` | 14 | 15 | Medium | Secondary row text, buttons |
+| `callout` | 14 | 15 | Medium (SemiBold for card titles) | Secondary row text, buttons, card titles |
 | `footnote` | 13 | 13 | Medium | Metadata, timestamps |
 | `caption` | 11 | 12 | Medium | Badges, tiny labels |
-| `overline` | 12 | 12 | SemiBold, uppercase, +0.5 letter spacing | Section headers (`textSecondary` at 0.5 alpha) |
+| `overline` | 12 | 12 | SemiBold, uppercase, +0.5 letter spacing | Section headers (`textSecondary` at 0.8 alpha or more; see §12) |
 
 Rules:
 
@@ -164,6 +167,7 @@ Width caps depend on the kind of content, not one number for the whole app.
 | --- | --- | --- |
 | Reading column (verses, translation, tafsir) | 680 | Centered |
 | Forms and settings lists | 640 | Centered, or leading in a split view detail pane |
+| Track and surah tables | 960 | Leading-aligned with the header |
 | Sheets and dialogs | 560 | Centered |
 | Grids, shelves, browse, search results | No cap; add columns | Full width inside page margins |
 | Player | Pane-based ([§10](#10-listening-surfaces)) | |
@@ -188,6 +192,8 @@ Artwork radius scales with artwork size: about 6% of the edge length, clamped to
 
 ## 6. Navigation and app shell
 
+The shell, home, search, collection, settings, and adhkar audits are in [ipad-audit/README.md](ipad-audit/README.md); every screen is listed in [screen-inventory.md](screen-inventory.md).
+
 Pattern: Apple Music and Spotify on iPad use a leading sidebar with the mini player docked at the bottom, and a content area that can split into list and detail.
 
 | Width class | Shell |
@@ -202,6 +208,10 @@ Rules:
 - **MUST** keep the current tab's navigation stack when the sidebar collapses or expands on resize.
 - **SHOULD** use list-detail split views where the phone pushes a detail screen from a list: settings (list left, page right), collection (playlists left, contents right), and reciter browse at `expanded`+. Detail pane minimum 420pt, list pane 320–380pt.
 - **SHOULD** let the user collapse the labeled sidebar to the rail (Apple Music behavior), and remember the choice.
+- **MAY** show sub-sections under Collection in the labeled sidebar at `expanded`+ (Loved, Downloads, Playlists, and a group of the user's playlists), as Apple Music does. In a list-detail Collection layout, the list pane holds these categories plus playlists, not only playlists.
+- **MUST** focus the search field when Search is chosen in the sidebar.
+- **MUST** reserve the docked mini player's height at the bottom of every tab screen at `medium` with `useBottomInset()` (or the mini-player inset it provides). Never add fixed padding for the floating player on tablet.
+- **MUST NOT** hard-code a tab route in a shared component; navigate relative to the current tab's stack so the component works under every tab.
 - **MUST** keep a visible back affordance in every pushed detail screen; do not rely on the swipe-back gesture alone.
 
 ---
@@ -218,6 +228,7 @@ Rules:
 
 - **SHOULD** give tappable rows, cards, and toolbar buttons a hover state using `Pressable`'s `onHoverIn` / `onHoverOut`: the pressed-state token at half strength (`Color(text).alpha(0.04)`).
 - **SHOULD** support secondary click (right-click) wherever long-press opens a menu.
+- **MUST NOT** make long-press the only path to an action. Every long-press menu item is also reachable from a visible button (a ••• button on the row or in the toolbar).
 - **MUST NOT** hide functionality behind swipe-only gestures; give a visible button or menu item too (pointer users cannot swipe comfortably).
 
 ### 7.3 Hardware keyboard
@@ -227,7 +238,7 @@ Target shortcuts (needs a small native `UIKeyCommand` module; until then they ar
 | Keys | Action |
 | --- | --- |
 | Space | Play / pause (outside the reader) |
-| ← / → | Seek 10s in the player; previous / next page or verse in the reader |
+| ← / → | Seek 15s in the player (matches the on-screen skip buttons); previous / next page or verse in the reader |
 | ⌘ ← / ⌘ → | Previous / next track |
 | ⌘ F | Focus search |
 | ⌘ 1–5 | Switch sidebar section |
@@ -250,6 +261,12 @@ Full-width bottom sheets look like a phone app on a 13" screen.
 - **MUST** cap sheet width at 560pt and center it on `medium`+ when a bottom sheet is still used.
 - **SHOULD** show reading-adjacent panels (tafsir, notes, verse actions, translations picker, Mushaf settings) as a trailing side panel on `expanded`+, so the page stays visible. This is how Tarteel and Quran.com handle tafsir on wide screens.
 - **SHOULD** show player sub-sheets (speed, sleep timer, ambient) as popovers anchored to their button on `medium`+.
+- **SHOULD** show reading settings as a popover anchored to its button from `medium` up.
+- **SHOULD** split menus with more than 6 items into sections or submenus.
+- **MAY** use a large form sheet (max 704pt wide) for multi-step tasks such as creating a playlist or importing uploads.
+- **SHOULD** make each item's action sheet double as that item's context menu (long-press and right-click), with the same items in the same order.
+- **SHOULD** show filter panels (browse filters, search scopes) as a trailing side panel at `expanded`+ and as a form sheet at `medium`.
+- **MUST** confirm bulk or irreversible deletes (delete a playlist, clear downloads, remove an upload) with an Alert. **SHOULD** use an undo toast instead of an Alert for single, reversible removals (unlove a track, remove one item from a queue or playlist).
 - **MUST** dismiss with a tap outside, the Esc key, and a visible close control.
 
 ---
@@ -282,17 +299,18 @@ The detailed reading audit, benchmarks, designs, and reader-specific rules are i
 
 ## 10. Listening surfaces
 
-Benchmarks: Apple Music and Spotify on iPad.
+Benchmarks: Apple Music and Spotify on iPad. The listening audit, wireframes per width class, and implementation steps are in [listening/00-overview.md](listening/00-overview.md).
 
 ### 10.1 Browse, home, search
 
-- **MUST** derive grid columns from available width: `columns = max(2, floor((paneWidth + gutter) / (minCard + gutter)))`, with `minCard` = 160pt for reciter and playlist cards, 120pt for surah tiles.
-- **SHOULD** use horizontal shelves with a visible partial next card (peek) and a "See all" link, with shelf items sized from the same column math so they line up with grids below.
+- **MUST** derive grid columns from available width: `columns = max(2, floor((paneWidth + gutter) / (minCard + gutter)))`, with `paneWidth` measured as in [§2.2](#22-rules). `minCard` is 160pt for reciter and playlist cards (150pt at `large`, so a 13" landscape window gets six columns as in Apple Music), 120pt for surah tiles and round avatar shelves, and 200pt for Library category tiles.
+- **SHOULD** use horizontal shelves with a visible partial next card (peek) and a "See all" link, with shelf items sized from the same column math so they line up with grids below. **MAY** drop the peek and page whole columns at `expanded`+ when a pointer is present, with arrow buttons on the shelf header.
 - **SHOULD** show artwork at a minimum of 140pt and up to 200pt on `large`.
 
 ### 10.2 Reciter and playlist detail
 
-- **SHOULD** at `expanded`+, use a two-column header: artwork (240–280pt) on the leading side, title, metadata, and primary actions (Play, Shuffle, Download, Follow) beside it; tracks below at full width.
+- **SHOULD** from `medium` up, use a two-column header: artwork on the leading side (200pt at `medium`, 240–280pt at `expanded`+), with the title, metadata, and primary actions (Play, Shuffle, Download, Follow) beside it, and tracks below (capped as in [§5.3](#53-content-width)).
+- **MAY** pin the header as a leading column at `large`, with the tracks scrolling beside it.
 - **MUST** keep primary actions visible without scrolling.
 
 ### 10.3 Mini player
@@ -304,13 +322,14 @@ Benchmarks: Apple Music and Spotify on iPad.
 
 | Window | Layout |
 | --- | --- |
-| `medium` portrait | Two panes: Mushaf / ayah text on the leading side, artwork and controls on the trailing side (current `TabletPlayer` portrait split) |
-| `expanded`+ landscape | Two panes: artwork and controls on the leading side (about 40%), and a switchable trailing pane for Mushaf / follow-along text, queue, or reciter list (Apple Music's lyrics/queue pattern) |
+| `medium` | Stacked: the text in a reading column (≤ 680pt) with the transport card docked at the bottom. This replaces the current portrait split, which leaves the verses only 409–459pt wide |
+| `expanded`+ | Two panes: artwork and controls on the leading side, and a switchable trailing pane for Mushaf / follow-along text, queue, or reciter list (Apple Music's lyrics/queue pattern) |
 | `compact` | Phone player |
 
 - **MUST** keep transport controls in the same place across the pane switch.
 - **SHOULD** use a segmented control at the top of the trailing pane to switch between Text, Queue, and Reciters, instead of separate sheets.
-- **SHOULD** cap artwork at 420pt in landscape so controls are not pushed off-screen on 11".
+- **SHOULD** size the leading column at 40% of the window, clamped to 380–520pt, and the artwork at `min(column − 2 × margin, 420, windowHeight − 420)` so the controls stay on screen on iPad mini in landscape.
+- **SHOULD** collapse the leading column when the user hides chrome, rather than leaving it empty.
 
 ---
 
@@ -327,7 +346,7 @@ Benchmarks: Apple Music and Spotify on iPad.
 ## 12. Accessibility
 
 - **MUST** give every icon-only button an `accessibilityLabel` (via `t()`) and an `accessibilityRole`.
-- **MUST** meet WCAG AA contrast: 4.5:1 for text under 18pt, 3:1 for large text and icons. Alpha tokens below 0.55 on text are for decoration only; check `overline` section headers (0.5 alpha) against every reading theme.
+- **MUST** meet WCAG AA contrast: 4.5:1 for text under 18pt, 3:1 for large text and icons. Secondary text (metadata, section headers, inactive labels) **MUST** use at least 0.8 alpha of `text` or `textSecondary`; the old 0.5 section-header token measures about 3:1 and fails. Lower alphas are for decoration only (borders, fills, dividers).
 - **MUST** respect Reduce Motion (`useReducedMotion` from Reanimated): replace the player morph and page-curl animations with fades.
 - **SHOULD** group row content for VoiceOver (`accessible` on the row with a combined label) so a surah row reads as one item.
 - **SHOULD** make the reading order match visual order in split views (leading pane first).
@@ -348,7 +367,7 @@ Ordered by impact. Each step is its own PR and updates this table.
 | 5 | Replace stack-level `MaxWidthContainer` with per-content widths; widen grids | §5.3, §10.1 | Not started |
 | 6 | Width-capped sheets, popovers for player sub-sheets, side panels for reading | §8 | Not started |
 | 7 | Mushaf two-page spread in landscape | §9.1 | Shipped (`components/mushaf/main.tsx`); move gate to width class |
-| 8 | Full player switchable trailing pane | §10.4 | Not started |
+| 8 | Full player: stacked layout at `medium`, switchable trailing pane at `expanded`+ | §10.4 | Not started |
 | 9 | Remove `UIRequiresFullScreen`; verify compact iPad windows | §11 | Not started |
 | 10 | Hover states, secondary click, keyboard shortcuts | §7 | Not started |
 | 11 | Accessibility pass: labels, contrast, reduce motion | §12 | Not started |

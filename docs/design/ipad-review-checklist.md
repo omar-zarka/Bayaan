@@ -13,6 +13,7 @@ Run this before opening any PR that adds or changes UI. Paste the checked list i
 
 - [ ] Layout is chosen from the window width class, not from `isTablet` alone ([§2](ipad-standards.md#2-width-classes-and-breakpoints))
 - [ ] No layout values from `Dimensions.get()` at module scope; rotation updates the screen ([§2.2](ipad-standards.md#22-rules))
+- [ ] Grids, column counts, and pagers are sized from their measured container, not the window ([§2.2](ipad-standards.md#22-rules))
 - [ ] Reading and form content is width-capped; grids and shelves use the full width with more columns ([§5.3](ipad-standards.md#53-content-width))
 - [ ] Page margins match the width class ([§5.2](ipad-standards.md#52-page-margins-and-gutters-by-width-class))
 - [ ] Nothing stretches edge to edge on a 13" landscape screen without a reason
@@ -28,7 +29,7 @@ Run this before opening any PR that adds or changes UI. Paste the checked list i
 
 - [ ] Every target is at least 44×44pt ([§7.1](ipad-standards.md#71-targets))
 - [ ] Rows and buttons have a hover state; long-press menus also open on right-click ([§7.2](ipad-standards.md#72-pointer-trackpad-and-mouse))
-- [ ] No swipe-only actions
+- [ ] No swipe-only or long-press-only actions
 - [ ] On `medium`+ widths, sheets are width-capped, popovers, or side panels rather than full-width bottom sheets ([§8](ipad-standards.md#8-sheets-menus-and-modals))
 
 ## Orientation and multitasking

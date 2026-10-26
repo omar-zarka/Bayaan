@@ -23,5 +23,5 @@ Screen-by-screen audits of the current iPad experience live next to these docs a
 | Area | Benchmarks | Document |
 | --- | --- | --- |
 | Reading (Mushaf, translation view, verse actions) | Tarteel, Quran.com, Apple Books | [reading/README.md](reading/README.md) |
-| Listening (player, queue, reciters, browse) | Apple Music, Spotify | _in progress_ |
-| Navigation and shell (sidebar, tabs, settings, search) | Apple Music, Files, Settings on iPadOS | _in progress_ |
+| Listening (player, queue, reciters, browse) | Apple Music, Spotify | [listening/00-overview.md](listening/00-overview.md) |
+| Navigation, shell, and other screens (sidebar, home, search, collection, settings, adhkar) | Apple Music, Files, Settings on iPadOS | [ipad-audit/README.md](ipad-audit/README.md) |
