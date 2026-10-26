@@ -1,8 +1,12 @@
 // @ai-generated
 import {Alert} from 'react-native';
-import type {TFunction} from 'i18next';
 import enCollection from '../../i18n/locales/en/collection.json';
 import arCollection from '../../i18n/locales/ar/collection.json';
+
+jest.mock('@/i18n', () => ({
+  __esModule: true,
+  default: {t: (key: string) => key},
+}));
 
 import {confirmRemoveAllUploads} from '../confirmRemoveAllUploads';
 
@@ -16,10 +20,10 @@ const mockAlert = jest.spyOn(Alert, 'alert').mockImplementation(() => {
   // Alert is native; tests read the buttons from the recorded call.
 });
 
-const t = ((key: string) => key) as unknown as TFunction;
-
 function lastButtons(): AlertButton[] {
-  return mockAlert.mock.calls[mockAlert.mock.calls.length - 1][2];
+  return mockAlert.mock.calls[
+    mockAlert.mock.calls.length - 1
+  ][2] as AlertButton[];
 }
 
 describe('confirmRemoveAllUploads', () => {
@@ -30,7 +34,7 @@ describe('confirmRemoveAllUploads', () => {
   it('asks for confirmation instead of deleting immediately', () => {
     const deleteAll = jest.fn(() => Promise.resolve());
 
-    confirmRemoveAllUploads(t, deleteAll);
+    confirmRemoveAllUploads(deleteAll);
 
     expect(deleteAll).not.toHaveBeenCalled();
     expect(mockAlert).toHaveBeenCalledWith(
@@ -43,7 +47,7 @@ describe('confirmRemoveAllUploads', () => {
   it('does nothing when the user cancels', () => {
     const deleteAll = jest.fn(() => Promise.resolve());
 
-    confirmRemoveAllUploads(t, deleteAll);
+    confirmRemoveAllUploads(deleteAll);
     const cancel = lastButtons().find(b => b.style === 'cancel');
     cancel?.onPress?.();
 
@@ -54,7 +58,7 @@ describe('confirmRemoveAllUploads', () => {
   it('deletes all uploads only after the destructive button is pressed', () => {
     const deleteAll = jest.fn(() => Promise.resolve());
 
-    confirmRemoveAllUploads(t, deleteAll);
+    confirmRemoveAllUploads(deleteAll);
     const remove = lastButtons().find(b => b.style === 'destructive');
     expect(remove?.text).toBe('common:actions.remove');
     remove?.onPress?.();
@@ -69,7 +73,7 @@ describe('confirmRemoveAllUploads', () => {
       // Silence the expected error log.
     });
 
-    confirmRemoveAllUploads(t, deleteAll);
+    confirmRemoveAllUploads(deleteAll);
     lastButtons()
       .find(b => b.style === 'destructive')
       ?.onPress?.();

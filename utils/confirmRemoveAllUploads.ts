@@ -1,23 +1,20 @@
 // @ai-generated
 import {Alert} from 'react-native';
-import type {TFunction} from 'i18next';
+import i18n from '@/i18n';
 
 /**
  * Ask before wiping every imported recitation. Uploads are the user's own
  * audio files and can't be re-downloaded, so this must never run on a single
  * tap from the options sheet.
  */
-export function confirmRemoveAllUploads(
-  t: TFunction,
-  deleteAll: () => Promise<void>,
-): void {
+export function confirmRemoveAllUploads(deleteAll: () => Promise<void>): void {
   Alert.alert(
-    t('collection:uploadsScreen.removeAllTitle'),
-    t('collection:uploadsScreen.removeAllConfirm'),
+    i18n.t('collection:uploadsScreen.removeAllTitle'),
+    i18n.t('collection:uploadsScreen.removeAllConfirm'),
     [
-      {text: t('common:actions.cancel'), style: 'cancel'},
+      {text: i18n.t('common:actions.cancel'), style: 'cancel'},
       {
-        text: t('common:actions.remove'),
+        text: i18n.t('common:actions.remove'),
         style: 'destructive',
         onPress: () => {
           deleteAll().catch(error => {

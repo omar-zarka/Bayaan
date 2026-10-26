@@ -314,7 +314,7 @@ export default function UploadsScreen() {
             icon: 'trash-2',
             destructive: true,
             // @ai-start
-            onPress: () => confirmRemoveAllUploads(t, deleteAllRecitations),
+            onPress: () => confirmRemoveAllUploads(deleteAllRecitations),
             // @ai-end
           },
         ],
