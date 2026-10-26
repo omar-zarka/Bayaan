@@ -126,6 +126,17 @@ const QueueRow: React.FC<QueueRowProps> = React.memo(
 
     const subtle = Color(colors.text).alpha(0.06).toString();
     const pressed = Color(colors.text).alpha(0.05).toString();
+    // Keeps artwork (and its placeholder) visible on dark backgrounds.
+    const edge = Color(colors.text).alpha(0.12).toString();
+    const tags = display.tags.map(tag => (
+      <View key={tag} style={[styles.tag, {backgroundColor: subtle}]}>
+        <Text
+          style={[styles.tagText, {color: colors.textSecondary}]}
+          numberOfLines={1}>
+          {tag}
+        </Text>
+      </View>
+    ));
     const showArtwork =
       !!track.reciterName && track.reciterName !== 'My Recitations';
 
@@ -148,7 +159,12 @@ const QueueRow: React.FC<QueueRowProps> = React.memo(
             <ReciterImage
               reciterName={track.reciterName}
               imageUrl={track.artwork || undefined}
-              style={[styles.artwork, isCurrent && styles.currentArtwork]}
+              style={[
+                styles.artwork,
+                isCurrent && styles.currentArtwork,
+                styles.artworkEdge,
+                {borderColor: edge},
+              ]}
             />
           ) : (
             <View
@@ -185,16 +201,13 @@ const QueueRow: React.FC<QueueRowProps> = React.memo(
                 numberOfLines={1}>
                 {display.subtitle}
               </Text>
-              {display.tags.map(tag => (
-                <View key={tag} style={[styles.tag, {backgroundColor: subtle}]}>
-                  <Text
-                    style={[styles.tagText, {color: colors.textSecondary}]}
-                    numberOfLines={1}>
-                    {tag}
-                  </Text>
-                </View>
-              ))}
+              {!isCurrent && tags}
             </View>
+            {/* The current row has room for its tags on their own line, so
+                the reciter's name isn't cut short. */}
+            {isCurrent && tags.length > 0 && (
+              <View style={styles.metaRow}>{tags}</View>
+            )}
           </View>
         </Pressable>
         {isCurrent ? (
@@ -382,7 +395,7 @@ export const QueueList: React.FC<QueueListProps> = ({
         ListHeaderComponent={renderHeader}
         contentContainerStyle={{
           paddingTop: contentPaddingTop + moderateScale(8),
-          paddingBottom: contentPaddingBottom + moderateScale(16),
+          paddingBottom: contentPaddingBottom + moderateScale(28),
         }}
         renderScrollComponent={renderScrollComponent}
         showsVerticalScrollIndicator={false}
@@ -463,6 +476,9 @@ const styles = StyleSheet.create({
     height: moderateScale(48),
     borderRadius: moderateScale(10),
     borderCurve: 'continuous',
+  },
+  artworkEdge: {
+    borderWidth: StyleSheet.hairlineWidth,
   },
   currentArtwork: {
     width: moderateScale(56),

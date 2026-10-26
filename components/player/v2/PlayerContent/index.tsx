@@ -26,6 +26,7 @@ import {useReadingThemeColors} from '@/hooks/useReadingThemeColors';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Color from 'color';
+import {LinearGradient} from 'expo-linear-gradient';
 import {useTimestampLoader} from '@/hooks/useTimestampLoader';
 import {useAyahTracker} from '@/hooks/useAyahTracker';
 import {useTimestampStore} from '@/store/timestampStore';
@@ -211,6 +212,18 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
               contentPaddingTop={insets.top + moderateScale(4) + headerHeight}
               contentPaddingBottom={controlsHeight}
             />
+            {/* Fades rows out under the status bar as the queue scrolls. */}
+            <LinearGradient
+              pointerEvents="none"
+              colors={[
+                readingColors.background,
+                Color(readingColors.background).alpha(0).toString(),
+              ]}
+              style={[
+                styles.statusBarScrim,
+                {height: insets.top + moderateScale(12)},
+              ]}
+            />
           </View>
         ) : (
           <View style={styles.fullArea}>
@@ -312,6 +325,12 @@ const styles = StyleSheet.create({
   fullArea: {
     flex: 1,
     paddingHorizontal: moderateScale(8),
+  },
+  statusBarScrim: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
   },
   headerOverlay: {
     position: 'absolute',
