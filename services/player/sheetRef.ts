@@ -50,7 +50,17 @@ export function unregisterMiniPlayerAnchor(measure: AnchorMeasurer) {
   if (index !== -1) _anchors.splice(index, 1);
 }
 
-/** Measures the visible mini player; `done()` gets undefined if none. */
+/**
+ * A view that is mounted in React but not attached natively (e.g. inside a
+ * tab accessory the OS doesn't show) never answers measureInWindow, so each
+ * candidate gets this long before the next one is tried.
+ */
+const ANCHOR_MEASURE_TIMEOUT_MS = 100;
+
+/**
+ * Measures the visible mini player; `done()` gets undefined if none. Always
+ * calls `done()` exactly once.
+ */
 export function measureMiniPlayerAnchor(done: (origin?: PlayerOrigin) => void) {
   const candidates = [..._anchors].reverse();
   const tryNext = (i: number) => {
@@ -58,7 +68,16 @@ export function measureMiniPlayerAnchor(done: (origin?: PlayerOrigin) => void) {
       done(undefined);
       return;
     }
-    candidates[i](origin => (origin ? done(origin) : tryNext(i + 1)));
+    let answered = false;
+    const next = (origin?: PlayerOrigin) => {
+      if (answered) return;
+      answered = true;
+      clearTimeout(timer);
+      if (origin) done(origin);
+      else tryNext(i + 1);
+    };
+    const timer = setTimeout(() => next(undefined), ANCHOR_MEASURE_TIMEOUT_MS);
+    candidates[i](next);
   };
   tryNext(0);
 }

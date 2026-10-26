@@ -90,3 +90,22 @@ it('skips a mounted mini player that is hidden', () => {
   unregisterMiniPlayerAnchor(hidden);
   unregisterMiniPlayerAnchor(visible);
 });
+
+it('moves past a mini player that never answers', () => {
+  jest.useFakeTimers();
+  const done = jest.fn();
+  const visible = (cb: (o?: PlayerOrigin) => void) => cb(origin);
+  const detached = () => undefined;
+  registerMiniPlayerAnchor(visible);
+  registerMiniPlayerAnchor(detached);
+
+  measureMiniPlayerAnchor(done);
+  expect(done).not.toHaveBeenCalled();
+  jest.advanceTimersByTime(100);
+  expect(done).toHaveBeenCalledTimes(1);
+  expect(done).toHaveBeenLastCalledWith(origin);
+
+  unregisterMiniPlayerAnchor(detached);
+  unregisterMiniPlayerAnchor(visible);
+  jest.useRealTimers();
+});
