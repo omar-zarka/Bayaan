@@ -25,6 +25,7 @@
   "notesScreen": {
     "count_one": "{{count}} note",
     "count_other": "{{count}} notes",
+    "openVerse": "Open Verse",
     "editNote": "Edit Note",
     "deleteNote": "Delete Note",
     "emptySubtitle": "Add notes to verses to see them here"
