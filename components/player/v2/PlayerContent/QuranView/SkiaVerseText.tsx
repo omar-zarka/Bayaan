@@ -35,6 +35,7 @@ import {
   getArabicTextWeightStrokeWidth,
 } from '@/utils/skiaTextWeight';
 import {computeVerseCharRuleMap, computeVerseDiffRanges} from './verseOverlays';
+import {disposeAfterPendingDraws} from '@/utils/skiaDispose';
 
 const paragraphStyle: SkParagraphStyle = {
   textHeightBehavior: TextHeightBehavior.DisableAll,
@@ -272,8 +273,7 @@ const SkiaVerseText: React.FC<SkiaVerseTextProps> = ({
   // frame is never disposed early.
   useEffect(() => {
     return () => {
-      built.paragraph?.dispose();
-      built.strokeParagraph?.dispose();
+      disposeAfterPendingDraws(built.paragraph, built.strokeParagraph);
     };
   }, [built]);
 

@@ -45,6 +45,7 @@ import {
 import {useTranslation} from 'react-i18next';
 import {forceLTR} from '@/utils/rtl';
 // @ai-end
+import {disposeAfterPendingDraws} from '@/utils/skiaDispose';
 
 // --- Constants ---
 
@@ -596,10 +597,12 @@ export const WBWVerseView = memo<WBWVerseViewProps>(
     useEffect(() => {
       return () => {
         if (!computedLayout) return;
-        for (const item of computedLayout.items) {
-          item.paragraph?.dispose();
-          item.strokeParagraph?.dispose();
-        }
+        disposeAfterPendingDraws(
+          ...computedLayout.items.flatMap(item => [
+            item.paragraph,
+            item.strokeParagraph,
+          ]),
+        );
       };
     }, [computedLayout]);
 
