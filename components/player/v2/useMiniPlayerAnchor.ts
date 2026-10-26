@@ -32,39 +32,22 @@ function measureRect(
 interface MiniPlayerAnchorOptions {
   /** Corner radius of the mini player for its measured height. */
   radius: (height: number) => number;
-  /** Corner radius of the artwork for its measured height. */
-  artworkRadius: (height: number) => number;
 }
 
 /**
  * Registers a mini player as the rect the morphing player surface grows out
  * of. Attach `anchorRef` to the view whose bounds match the mini player's
- * visible shape and `artworkRef` to its artwork (the start of the flying
- * artwork). `openGesture` is the swipe-up-to-open pan; it is disabled while
- * the gorhom sheet hosts the player.
+ * visible shape. `openGesture` is the swipe-up-to-open pan; it is disabled
+ * while the gorhom sheet hosts the player.
  */
-export function useMiniPlayerAnchor({
-  radius,
-  artworkRadius,
-}: MiniPlayerAnchorOptions) {
+export function useMiniPlayerAnchor({radius}: MiniPlayerAnchorOptions) {
   const anchorRef = useRef<View>(null);
-  const artworkRef = useRef<View>(null);
-  const optionsRef = useRef({radius, artworkRadius});
-  optionsRef.current = {radius, artworkRadius};
+  const radiusRef = useRef(radius);
+  radiusRef.current = radius;
 
   useEffect(() => {
     const measure = (done: (origin?: PlayerOrigin) => void) => {
-      measureRect(anchorRef.current, optionsRef.current.radius, rect => {
-        if (!rect) {
-          done(undefined);
-          return;
-        }
-        measureRect(
-          artworkRef.current,
-          optionsRef.current.artworkRadius,
-          artwork => done({...rect, artwork}),
-        );
-      });
+      measureRect(anchorRef.current, radiusRef.current, done);
     };
     registerMiniPlayerAnchor(measure);
     return () => unregisterMiniPlayerAnchor(measure);
@@ -79,5 +62,5 @@ export function useMiniPlayerAnchor({
     [controller],
   );
 
-  return {anchorRef, artworkRef, openGesture};
+  return {anchorRef, openGesture};
 }

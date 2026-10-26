@@ -20,7 +20,6 @@ import {appLayoutDirection} from '@/utils/rtl';
 // @ai-end
 
 const capsuleRadius = (height: number) => height / 2;
-const artworkCornerRadius = () => 8;
 
 // @ai-start
 function MiniPlayerInner() {
@@ -56,9 +55,8 @@ function MiniPlayerInner() {
   }, [playbackState, pause, play]);
 
   // The bottom accessory is a capsule; the player surface grows out of it.
-  const {anchorRef, artworkRef, openGesture} = useMiniPlayerAnchor({
+  const {anchorRef, openGesture} = useMiniPlayerAnchor({
     radius: capsuleRadius,
-    artworkRadius: artworkCornerRadius,
   });
 
   const handlePress = useCallback(() => {
@@ -84,15 +82,10 @@ function MiniPlayerInner() {
             accessibilityRole="button"
             accessibilityLabel={`${getTrackDisplayTitle(currentTrack)}, ${getTrackArtistDisplay(currentTrack)}`}
             accessibilityHint={t('a11y.openPlayer')}>
-            <View
-              ref={artworkRef}
-              collapsable={false}
-              style={styles.artworkWrap}>
-              <ReciterImage
-                reciterName={currentTrack.reciterName}
-                style={styles.artwork}
-              />
-            </View>
+            <ReciterImage
+              reciterName={currentTrack.reciterName}
+              style={styles.artwork}
+            />
 
             <View style={styles.trackInfo}>
               <Text
@@ -163,9 +156,6 @@ const styles = StyleSheet.create({
   // centred, and makes the row's bounds the capsule the player morphs from.
   gestureRoot: {
     flex: 1,
-  },
-  artworkWrap: {
-    flexShrink: 0,
   },
   artwork: {
     width: 36,

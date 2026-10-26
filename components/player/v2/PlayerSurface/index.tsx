@@ -1,11 +1,10 @@
 // @ai-generated
-import React, {useCallback, useEffect, useMemo, useRef} from 'react';
+import React, {useCallback, useEffect, useMemo} from 'react';
 import {
   Platform,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
-  View,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   type ScrollViewProps,
@@ -29,13 +28,11 @@ import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
-import {ReciterImage} from '@/components/ReciterImage';
 import {
   measureMiniPlayerAnchor,
   registerPlayerSheetController,
   unregisterPlayerSheetController,
   type PlayerOrigin,
-  type PlayerRect,
   type PlayerSheetController,
 } from '@/services/player/sheetRef';
 import {appLayoutDirection, forceLTR} from '@/utils/rtl';
@@ -161,9 +158,6 @@ export const PlayerSurface = () => {
   const reducedMotion = useReducedMotion();
   const {setSheetMode, setImmersive} = usePlayerActions();
   const sheetMode = usePlayerStore(s => s.sheetMode);
-  const currentTrack = usePlayerStore(
-    s => s.queue.tracks?.[s.queue.currentIndex ?? -1],
-  );
 
   const progress = useSharedValue(0);
   const dragStartProgress = useSharedValue(0);
@@ -173,9 +167,7 @@ export const PlayerSurface = () => {
   const origin = useSharedValue<PlayerOrigin | null>(null);
   // False while a swipe-up from the mini player waits for its measurement.
   const originReady = useSharedValue(true);
-  const artworkTarget = useSharedValue<PlayerRect | null>(null);
   const screen = useSharedValue({width: screenWidth, height: screenHeight});
-  const contentRef = useRef<View>(null);
 
   useEffect(() => {
     screen.value = {width: screenWidth, height: screenHeight};
@@ -333,25 +325,27 @@ export const PlayerSurface = () => {
     return () => unregisterPlayerSheetController(controller);
   }, [open, close, createOpenGesture]);
 
-  const setArtworkTarget = useCallback(
-    (rect: PlayerRect | null) => {
-      artworkTarget.value = rect;
-    },
-    [artworkTarget],
-  );
-
   const dismissApi = useMemo<PlayerDismissApi>(
-    () => ({
-      createDismissGesture,
-      renderScrollComponent,
-      artworkFlight: {progress, contentRef, setTarget: setArtworkTarget},
-    }),
-    [createDismissGesture, renderScrollComponent, progress, setArtworkTarget],
+    () => ({createDismissGesture, renderScrollComponent}),
+    [createDismissGesture, renderScrollComponent],
   );
 
+  // At rest the surface is parked below the screen, fully opaque and at scale
+  // 1, rather than hidden with opacity. GlassView installs its effect once,
+  // the first time it and its ancestors are visible; installed mid-morph
+  // (faded, scaled down) the header and controls cards lose their glass shape.
   const frameStyle = useAnimatedStyle(() => {
     const {width: w, height: h} = screen.value;
     const p = progress.value;
+    if (p === 0) {
+      return {
+        width: w,
+        height: h,
+        borderRadius: 0,
+        opacity: 1,
+        transform: [{translateX: 0}, {translateY: h * 2}],
+      };
+    }
     if (reducedMotion) {
       return {
         width: w,
@@ -384,6 +378,9 @@ export const PlayerSurface = () => {
   const contentStyle = useAnimatedStyle(() => {
     const {width: w, height: h} = screen.value;
     const p = progress.value;
+    if (p === 0) {
+      return {width: w, height: h, opacity: 1, transform: [{scale: 1}]};
+    }
     const startScale =
       reducedMotion || !origin.value ? 1 : origin.value.width / w;
     return {
@@ -391,34 +388,6 @@ export const PlayerSurface = () => {
       height: h,
       opacity: interpolate(p, [0.1, 0.45], [0, 1], Extrapolation.CLAMP),
       transform: [{scale: interpolate(p, [0, 1], [startScale, 1])}],
-    };
-  });
-
-  // The artwork flies from the mini player's artwork to where the full
-  // player's artwork is at this point of the morph (inside the moving,
-  // scaling content), landing exactly on it at 1. The real artwork is
-  // hidden while the copy is in flight (usePlayerArtworkTarget).
-  const flightStyle = useAnimatedStyle(() => {
-    const from = origin.value?.artwork;
-    const to = artworkTarget.value;
-    const p = progress.value;
-    if (reducedMotion || !from || !to || p <= 0.001 || p >= 0.999) {
-      return {opacity: 0, width: 0, height: 0};
-    }
-    const {width: w, height: h} = screen.value;
-    const o = origin.value ?? fallbackOrigin(w, h);
-    const scale = interpolate(p, [0, 1], [o.width / w, 1]);
-    const landX = interpolate(p, [0, 1], [o.x, 0]) + to.x * scale;
-    const landY = interpolate(p, [0, 1], [o.y, 0]) + to.y * scale;
-    return {
-      opacity: 1,
-      width: interpolate(p, [0, 1], [from.width, to.width * scale]),
-      height: interpolate(p, [0, 1], [from.height, to.height * scale]),
-      borderRadius: interpolate(p, [0, 1], [from.radius, to.radius]),
-      transform: [
-        {translateX: interpolate(p, [0, 1], [from.x, landX])},
-        {translateY: interpolate(p, [0, 1], [from.y, landY])},
-      ],
     };
   });
 
@@ -476,19 +445,9 @@ export const PlayerSurface = () => {
             backgroundStyle,
           ]}
         />
-        <Animated.View
-          ref={contentRef}
-          collapsable={false}
-          style={[styles.content, contentStyle]}>
+        <Animated.View style={[styles.content, contentStyle]}>
           <PlayerBody />
         </Animated.View>
-      </Animated.View>
-      <Animated.View pointerEvents="none" style={[styles.flight, flightStyle]}>
-        <ReciterImage
-          imageUrl={currentTrack?.artwork}
-          reciterName={currentTrack?.artist || ''}
-          style={styles.flightImage}
-        />
       </Animated.View>
     </PlayerDismissProvider>
   );
@@ -525,17 +484,5 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     transformOrigin: 'left top',
-  },
-  flight: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    overflow: 'hidden',
-    zIndex: 2001,
-    elevation: 21,
-  },
-  flightImage: {
-    width: '100%',
-    height: '100%',
   },
 });

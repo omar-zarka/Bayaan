@@ -18,7 +18,6 @@ import {getShortLabel} from '@/services/rewayah/RewayahIdentity';
 import {useCurrentTrackResolvedRewayah} from '@/hooks/useCurrentTrackRewayah';
 // @ai-start
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
-import {usePlayerArtworkTarget} from '@/components/player/v2/usePlayerArtworkTarget';
 // @ai-end
 import Animated, {
   useSharedValue,
@@ -78,11 +77,6 @@ export const TrackInfo = () => {
     currentTrack?.isUserUpload && !currentTrack?.reciterId;
   const isUploadWithoutArtwork =
     currentTrack?.isUserUpload && !currentTrack?.artwork;
-  // Landing spot of the morphing player's flying artwork (a circle).
-  const artworkTarget = usePlayerArtworkTarget(
-    !isUploadWithoutArtwork,
-    circleRadius,
-  );
 
   const handleReciterPress = useCallback(() => {
     if (currentTrack && !isUploadWithoutReciter) {
@@ -109,10 +103,7 @@ export const TrackInfo = () => {
         <Pressable
           style={styles.trackInfoTouchable}
           onPress={handleReciterPress}>
-          <Animated.View
-            ref={artworkTarget.ref}
-            onLayout={artworkTarget.onLayout}
-            style={[styles.imageContainer, artworkTarget.style]}>
+          <View style={styles.imageContainer}>
             {isUploadWithoutArtwork ? (
               <View
                 style={[
@@ -133,7 +124,7 @@ export const TrackInfo = () => {
                 profileIconSize={moderateScale(20)}
               />
             )}
-          </Animated.View>
+          </View>
           <View style={styles.trackInfoTextContainer}>
             <Text
               style={[styles.surahName, {color: theme.colors.text}]}
@@ -204,8 +195,6 @@ export const TrackInfo = () => {
   );
 };
 // @ai-end
-
-const circleRadius = (height: number) => height / 2;
 
 const styles = StyleSheet.create({
   container: {

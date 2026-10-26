@@ -247,7 +247,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
           {/* Glass/blur background */}
           {USE_GLASS ? (
             <GlassView
-              style={StyleSheet.absoluteFill}
+              style={styles.cardGlass}
               glassEffectStyle="regular"
               colorScheme={glassColorScheme}
             />
@@ -273,7 +273,7 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
           {/* Glass/blur background */}
           {USE_GLASS ? (
             <GlassView
-              style={StyleSheet.absoluteFill}
+              style={styles.cardGlass}
               glassEffectStyle="regular"
               colorScheme={glassColorScheme}
             />
@@ -321,6 +321,17 @@ const styles = StyleSheet.create({
     borderCurve: 'continuous',
     borderWidth: StyleSheet.hairlineWidth,
     overflow: 'hidden',
+  },
+  // The glass gets the card's shape itself: UIGlassEffect draws its own
+  // edge, which the card's clipping alone doesn't round.
+  cardGlass: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    borderRadius: moderateScale(38),
+    borderCurve: 'continuous',
   },
   controlsOverlay: {
     position: 'absolute',

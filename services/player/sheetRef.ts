@@ -14,10 +14,7 @@ export interface PlayerRect {
   radius: number;
 }
 
-export interface PlayerOrigin extends PlayerRect {
-  /** Window rect of the mini player's artwork, for the flying artwork. */
-  artwork?: PlayerRect;
-}
+export type PlayerOrigin = PlayerRect;
 
 /**
  * Imperative handle the active player container registers. Either the gorhom

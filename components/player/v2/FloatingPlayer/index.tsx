@@ -27,7 +27,6 @@ import {getTrackDisplayTitle, getTrackArtistDisplay} from '@/i18n/format';
 // @ai-end
 
 const capsuleRadius = (height: number) => height / 2;
-const artworkCornerRadius = () => moderateScale(8, 0.2);
 
 // @ai-start
 export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
@@ -64,9 +63,8 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
     !stateRestoring && !!currentTrack && !isMushafActive && !isTablet;
 
   // The pill is a capsule; the player surface grows out of it.
-  const {anchorRef, artworkRef, openGesture} = useMiniPlayerAnchor({
+  const {anchorRef, openGesture} = useMiniPlayerAnchor({
     radius: capsuleRadius,
-    artworkRadius: artworkCornerRadius,
   });
 
   const handlePress = useCallback(() => {
@@ -130,15 +128,10 @@ export const FloatingPlayer: React.FC = React.memo(function FloatingPlayer() {
             accessibilityRole="button"
             accessibilityLabel={`${getTrackDisplayTitle(currentTrack)}, ${getTrackArtistDisplay(currentTrack)}`}
             accessibilityHint={t('a11y.openPlayer')}>
-            <View
-              ref={artworkRef}
-              collapsable={false}
-              style={styles.artworkWrap}>
-              <ReciterImage
-                reciterName={currentTrack.reciterName}
-                style={styles.artwork}
-              />
-            </View>
+            <ReciterImage
+              reciterName={currentTrack.reciterName}
+              style={styles.artwork}
+            />
             <View style={styles.trackInfo}>
               <Text
                 style={[styles.title, {color: textColor}]}
@@ -201,9 +194,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: moderateScale(10, 0.2),
-  },
-  artworkWrap: {
-    flexShrink: 0,
   },
   artwork: {
     width: moderateScale(36, 0.2),
