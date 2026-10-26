@@ -80,17 +80,21 @@ screens that have no files behind them. They are dead entries.
 
 | Route | File | Main components | What it is | Area |
 |---|---|---|---|---|
-| `/` | `index.tsx` | `components/CollectionView`, `components/collection/*` | Library hub: grid of sections and recent items | Browse |
-| `/collection/loved` | `collection/loved.tsx` | `playlist-detail/LovedHeader` | Loved tracks | Browse |
-| `/collection/favorite-reciters` | `collection/favorite-reciters.tsx` | `ReciterItem` | Favorite reciters | Browse |
-| `/collection/playlists` | `collection/playlists.tsx` | `PlaylistItem`, `PlaylistCard` | User playlists | Browse |
-| `/collection/downloads` | `collection/downloads.tsx` | `DownloadCard`, `ReciterDownloadsStackCard` | Downloaded recitations | Browse |
-| `/collection/reciter-downloads/[reciterId]` | `collection/reciter-downloads/[reciterId].tsx` | `playlist-detail/ReciterDownloadsHeader` | Downloads for one reciter | Browse |
-| `/collection/uploads` | `collection/uploads.tsx` | `UploadCard` | User-imported audio | Browse |
-| `/collection/bookmarks` | `collection/bookmarks.tsx` | `BookmarkItem`, `CollectionVersePreview` | Bookmarked verses | Browse |
-| `/collection/notes` | `collection/notes.tsx` | `NoteItem` | Verse notes | Browse |
+| `/` | `index.tsx` | Inline in the route file (section links, counts) | Library hub: links to each section with counts | Browse |
+| `/collection/loved` | `collection/loved.tsx` | `playlist-detail/LovedHeader`, `TrackItem`, `collection/CollectionStickyHeader` | Loved tracks | Browse |
+| `/collection/favorite-reciters` | `collection/favorite-reciters.tsx` | `ReciterItem`, `SearchInput`, `CollectionStickyHeader` | Favorite reciters | Browse |
+| `/collection/playlists` | `collection/playlists.tsx` | `PlaylistItem`, `CollectionStickyHeader` | User playlists | Browse |
+| `/collection/downloads` | `collection/downloads.tsx` | `TrackItem`, `ReciterDownloadsListItem`, `CollectionStickyHeader` | Downloaded recitations | Browse |
+| `/collection/reciter-downloads/[reciterId]` | `collection/reciter-downloads/[reciterId].tsx` | `reciter-downloads/ReciterDownloadsList` | Downloads for one reciter | Browse |
+| `/collection/uploads` | `collection/uploads.tsx` | `ReciterImage`, `NowPlayingIndicator`, `CollectionStickyHeader` | User-imported audio | Browse |
+| `/collection/bookmarks` | `collection/bookmarks.tsx` | `collection/BookmarkItem`, `CollectionStickyHeader` | Bookmarked verses | Browse |
+| `/collection/notes` | `collection/notes.tsx` | `collection/NoteItem`, `CollectionStickyHeader` | Verse notes | Browse |
 | `/playlist/[id]` | `playlist/[id].tsx` | `playlist-detail/*` | Same as Home's | Browse |
 | `/reciter/[id]` | `reciter/[id].tsx` | `components/reciter-profile/*` | Same as Home's | Browse |
+
+`components/CollectionView.tsx` and `components/collection/{CollectionGrid,
+CollectionHeader,FilterBar,PlaylistModal,SectionHeader}.tsx` are not imported
+anywhere; they are dead code.
 
 ### Settings tab: `app/(tabs)/(d.settings)/`
 
@@ -172,13 +176,13 @@ opened with `SheetManager.show('<id>')`.
 | `adhkar-layout` | `AdhkarLayoutSheet` | Dhikr reader | Reading |
 | `adhkar-copy-options` | `AdhkarCopyOptionsSheet` | Dhikr reader | Reading |
 
-`components/browse/FilterModal.tsx`, `components/collection/PlaylistModal.tsx`
-and `components/BottomSheetModal.tsx` are modals outside the sheet registry.
+`components/browse/FilterModal.tsx` and `components/BottomSheetModal.tsx` are
+modals outside the sheet registry.
 
 ## Counts
 
 - 49 route files plus 8 layouts: 40 Browse (including the reciter, browse
   and playlist screens that repeat across tab stacks, and `+not-found`),
   3 Reading, 6 Link.
-- 28 registered action sheets, 3 standalone modals.
+- 28 registered action sheets, 2 standalone modals.
 - 4 persistent player surfaces, 2 navigation chromes (sidebar, tab bar).
