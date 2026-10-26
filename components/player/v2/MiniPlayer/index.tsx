@@ -141,11 +141,11 @@ export const MiniPlayer: React.FC = React.memo(MiniPlayerInner);
 // @ai-start
 const styles = StyleSheet.create({
   row: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 14,
-    paddingTop: 8,
-    paddingBottom: 20,
+    paddingVertical: 4,
     gap: 10,
   },
   body: {
@@ -157,9 +157,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  // Explicit (empty) style: GestureHandlerRootView defaults to flex: 1,
-  // which would change how the accessory sizes the row.
-  gestureRoot: {},
+  // The accessory doesn't size to its content: react-native-screens gives it
+  // a fixed native frame (about 46 pt on iOS 26.5) with absoluteFill views.
+  // Filling that frame and centring the row keeps the artwork vertically
+  // centred, and makes the row's bounds the capsule the player morphs from.
+  gestureRoot: {
+    flex: 1,
+  },
   artworkWrap: {
     flexShrink: 0,
   },
