@@ -30,6 +30,7 @@ import {Feather} from '@expo/vector-icons';
 // @ai-start
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
 import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+import {usePlayerA11y} from '@/hooks/usePlayerA11y'; // @ai
 // @ai-end
 
 function sortRewayat(rewayat: Rewayat[]): Rewayat[] {
@@ -73,6 +74,7 @@ export const TabletPlayerReciterColumn: React.FC<{
   initialRewayatId?: string;
 }> = ({reciterId, initialRewayatId}) => {
   const {theme} = useTheme();
+  const a11y = usePlayerA11y(); // @ai
   const insets = useSafeAreaInsets();
   const {updateQueue} = usePlayerActions();
   const {navigateToReciterProfile} = useReciterNavigation();
@@ -253,6 +255,7 @@ export const TabletPlayerReciterColumn: React.FC<{
           </View>
           <Pressable
             onPress={handleOpenFullProfile}
+            {...a11y.openFullProfile}
             style={({pressed}) => [styles.openFull, pressed && {opacity: 0.6}]}
             hitSlop={12}>
             <Feather
@@ -274,6 +277,8 @@ export const TabletPlayerReciterColumn: React.FC<{
                 <Pressable
                   key={r.id}
                   onPress={() => setSelectedRewayatId(r.id)}
+                  accessibilityRole="button" // @ai
+                  accessibilityState={{selected: active}} // @ai
                   style={[
                     styles.chip,
                     {

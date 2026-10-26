@@ -72,6 +72,7 @@ import {
 } from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
 import {getRecitationStyleLabel} from './recitationStyle';
+import {usePlayerA11y} from '@/hooks/usePlayerA11y'; // @ai
 // @ai-end
 
 interface TabletPlayerProps {
@@ -115,6 +116,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
   onQueueToggle,
 }) => {
   const {theme} = useTheme();
+  const a11y = usePlayerA11y(); // @ai
   const readingColors = useReadingThemeColors();
   const glassColorScheme = useGlassColorScheme();
   const insets = useSafeAreaInsets();
@@ -427,7 +429,11 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
   const renderTrackMeta = (artSize: number, stacked: boolean) => (
     <Pressable
       style={stacked ? styles.trackMetaStacked : styles.trackMetaRow}
-      onPress={handleReciterPress}>
+      onPress={handleReciterPress}
+      {...a11y.nowPlaying(
+        currentTrack ? getTrackDisplayTitle(currentTrack) : '',
+        currentTrack ? getTrackArtistDisplay(currentTrack) : '',
+      )}>
       {currentTrack?.isUserUpload && !currentTrack?.artwork ? (
         <View
           style={[
@@ -494,7 +500,10 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
   );
 
   const renderHeart = () => (
-    <Pressable onPress={handleToggleLoved} style={styles.heartBtn}>
+    <Pressable
+      onPress={handleToggleLoved}
+      {...a11y.love(isLoved)}
+      style={styles.heartBtn}>
       <Animated.View style={loveAnimStyle}>
         <HeartIcon
           size={moderateScale(22)}
@@ -538,6 +547,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     <View style={[styles.transport, forceLTR]}>
       <Pressable
         onPress={handleSeekBack}
+        {...a11y.skipBack(SEEK_INTERVAL, trackLoading)}
         disabled={trackLoading}
         style={[styles.transportSide, trackLoading && styles.disabled]}>
         <View style={styles.seekWrap}>
@@ -557,6 +567,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         onPress={handlePrev}
+        {...a11y.previous(trackLoading)}
         disabled={trackLoading}
         style={[styles.transportSide, trackLoading && styles.disabled]}>
         <PreviousIcon
@@ -566,6 +577,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         onPress={handlePlayPause}
+        {...a11y.playPause(optimisticIsPlaying, trackLoading)}
         disabled={trackLoading}
         style={[
           styles.playButton,
@@ -579,6 +591,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         onPress={handleNext}
+        {...a11y.next(trackLoading || isLastTrack)}
         disabled={trackLoading || isLastTrack}
         style={[
           styles.transportSide,
@@ -591,6 +604,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         onPress={handleSeekFwd}
+        {...a11y.skipForward(SEEK_INTERVAL, trackLoading)}
         disabled={trackLoading}
         style={[styles.transportSide, trackLoading && styles.disabled]}>
         <View style={styles.seekWrap}>
@@ -613,7 +627,10 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
 
   const renderTools = () => (
     <View style={styles.tools}>
-      <Pressable style={styles.tool} onPress={onMushafLayoutPress}>
+      <Pressable
+        style={styles.tool}
+        onPress={onMushafLayoutPress}
+        {...a11y.displayOptions}>
         <Ionicons
           name="options-outline"
           size={moderateScale(20)}
@@ -625,7 +642,8 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
           styles.tool,
           playbackRate !== 1 && {backgroundColor: toolActiveBg},
         ]}
-        onPress={onSpeedPress}>
+        onPress={onSpeedPress}
+        {...a11y.speed(playbackRate)}>
         <Text style={[styles.toolLabel, {color: textColor}]}>
           {localizeDigits(`${playbackRate}x`)}
         </Text>
@@ -635,7 +653,8 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
           styles.tool,
           settings.repeatMode !== 'none' && {backgroundColor: toolActiveBg},
         ]}
-        onPress={handleRepeatPress}>
+        onPress={handleRepeatPress}
+        {...a11y.repeat(settings.repeatMode)}>
         {settings.repeatMode === 'track' ? (
           <RepeatOneIcon size={moderateScale(20)} color={textColor} />
         ) : (
@@ -644,7 +663,8 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         style={[styles.tool, isTimerActive && {backgroundColor: toolActiveBg}]}
-        onPress={onSleepTimerPress}>
+        onPress={onSleepTimerPress}
+        {...a11y.sleepTimer(isTimerActive)}>
         <TimerIcon
           size={moderateScale(20)}
           color={textColor}
@@ -653,7 +673,8 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         style={[styles.tool, ambientEnabled && {backgroundColor: toolActiveBg}]}
-        onPress={onAmbientPress}>
+        onPress={onAmbientPress}
+        {...a11y.ambient(ambientEnabled)}>
         <AmbientIcon
           size={moderateScale(20)}
           color={textColor}
@@ -667,6 +688,7 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
           !followAlongAvailable && {opacity: 0.35},
         ]}
         onPress={onFollowAlongPress}
+        {...a11y.followAlong(followAlongActive)}
         disabled={!followAlongAvailable}>
         <Ionicons
           name="locate-outline"
@@ -676,7 +698,8 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
       </Pressable>
       <Pressable
         style={[styles.tool, showQueue && {backgroundColor: toolActiveBg}]}
-        onPress={handleQueueTap}>
+        onPress={handleQueueTap}
+        {...a11y.queue(showQueue)}>
         <QueueIcon size={moderateScale(20)} color={textColor} />
       </Pressable>
     </View>
