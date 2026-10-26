@@ -44,14 +44,6 @@ export default function HomeLayout() {
         />
         <Stack.Screen name="playlist/[id]" options={{title: ''}} />
         <Stack.Screen name="adhkar" options={{headerShown: false}} />
-        <Stack.Screen name="settings/index" options={{}} />
-        <Stack.Screen name="settings/storage" options={{}} />
-        <Stack.Screen name="settings/about" options={{}} />
-        <Stack.Screen name="settings/credits" options={{}} />
-        <Stack.Screen name="settings/mushaf-settings" options={{}} />
-        <Stack.Screen name="settings/default-reciter" options={{}} />
-        <Stack.Screen name="settings/reciter-choice" options={{}} />
-        <Stack.Screen name="settings/account" options={{}} />
         <Stack.Screen
           name="translations"
           options={{title: t('translations.title')}}
@@ -61,6 +53,14 @@ export default function HomeLayout() {
           options={{
             title: t('browse.browseAll'),
             // Non-glass devices use custom Header component; hide native header to avoid clash
+            headerShown: USE_GLASS,
+          }}
+        />
+        <Stack.Screen
+          name="browse-all-surahs"
+          options={{
+            title: t('browse.allSurahs'),
+            // Non-glass devices use the custom Header inside BrowseSurahs
             headerShown: USE_GLASS,
           }}
         />
