@@ -68,6 +68,9 @@
     "surahsDownloaded_many": "{{count}} سورةً منزّلة",
     "surahsDownloaded_other": "{{count}} سورة منزّلة",
     "removeAll": "إزالة كل التنزيلات",
+    "removeAllTitle": "إزالة كل التنزيلات؟",
+    "removeAllConfirm": "سيؤدي هذا إلى حذف جميع السور المنزّلة من هذا الجهاز. يمكنك تنزيلها مرة أخرى لاحقًا.",
+    "removeReciterConfirm": "سيؤدي هذا إلى حذف جميع السور المنزّلة للقارئ {{reciter}} من هذا الجهاز. يمكنك تنزيلها مرة أخرى لاحقًا.",
     "playAll": "تشغيل الكل",
     "emptySubtitle": "نزّل السور لتظهر هنا"
   },
@@ -75,6 +78,8 @@
     "allDownloaded": "تم تنزيل الكل",
     "downloadAll": "تنزيل الكل",
     "unloveAll": "إزالة كل السور المحبّبة",
+    "unloveAllTitle": "إزالة كل السور المحبّبة؟",
+    "unloveAllConfirm": "سيؤدي هذا إلى إزالة جميع السور من قائمة المحبّبة. لا يمكن التراجع عن ذلك.",
     "emptySubtitle": "أضف السور إلى المحبّبة لتظهر هنا",
     "alreadyDownloadedTitle": "منزّلة مسبقًا",
     "alreadyDownloadedMessage": "جميع السور المحبّبة منزّلة مسبقًا.",
