@@ -44,7 +44,6 @@ import {
   createTextStrokePaint,
   getArabicTextWeightStrokeWidth,
 } from '@/utils/skiaTextWeight';
-import {disposeAfterPendingDraws} from '@/utils/skiaDispose';
 
 const lineParStyle = {
   textHeightBehavior: TextHeightBehavior.DisableAll,
@@ -322,10 +321,8 @@ const SkiaLine: React.FC<SkiaLineProps> = ({
       if (paragraphs) {
         onParagraphDisposed?.(lineIndex);
       }
-      disposeAfterPendingDraws(
-        paragraphs?.paragraph,
-        paragraphs?.strokeParagraph,
-      );
+      paragraphs?.paragraph?.dispose();
+      paragraphs?.strokeParagraph?.dispose();
     };
   }, [paragraphs, lineIndex, onParagraphDisposed]);
 
