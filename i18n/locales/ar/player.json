@@ -1,7 +1,11 @@
 {
   "queue": {
     "empty": "قائمة الانتظار فارغة",
-    "verseShort": "آية {{verse}}"
+    "verseShort": "آية {{verse}}",
+    "nowPlaying": "قيد التشغيل",
+    "upNext": "التالي",
+    "played": "تم تشغيلها",
+    "remove": "إزالة {{title}} من قائمة الانتظار"
   },
   "uploads": {
     "recordingType": {

@@ -208,6 +208,8 @@ const PlayerContent: React.FC<PlayerContentProps> = ({
             <QueueList
               onQueueItemPress={handleQueueItemPress}
               onRemoveQueueItem={handleRemoveQueueItem}
+              contentPaddingTop={insets.top + moderateScale(4) + headerHeight}
+              contentPaddingBottom={controlsHeight}
             />
           </View>
         ) : (
