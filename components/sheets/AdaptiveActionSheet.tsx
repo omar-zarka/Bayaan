@@ -3,6 +3,7 @@ import React, {
   forwardRef,
   useCallback,
   useContext,
+  useEffect,
   useRef,
   useState,
 } from 'react';
@@ -33,11 +34,17 @@ export const MENU_WIDTH = 340;
 export const SHEET_MAX_HEIGHT = 760;
 /** Closest an iPad sheet comes to the window edges. */
 const EDGE_MARGIN = 24;
-/** Space between the tap and the menu it opened. */
-const MENU_GAP = 8;
+/**
+ * Space between a tap and the menu it opened. The tap lands somewhere on
+ * the button, so this keeps the menu clear of a 44pt button tapped near its
+ * middle instead of covering it.
+ */
+const ANCHOR_CLEARANCE = 24;
 /** Phone sheets reserve this space for the drag handle and home indicator. */
 const CARD_TOP_PADDING = 12;
 const CARD_BOTTOM_PADDING = 16;
+/** Menus end on their content's own bottom padding, like a popover. */
+const MENU_BOTTOM_PADDING = 0;
 const DEFAULT_RADIUS = 20;
 /** Menus dim the screen less than cards, like an iPad popover. */
 const MENU_OVERLAY_OPACITY = 0.12;
@@ -84,8 +91,10 @@ export function placeMenu(
 ): TouchPoint {
   const x = anchor.x > area.width / 2 ? anchor.x - menu.width : anchor.x;
   const fitsBelow =
-    anchor.y + MENU_GAP + menu.height <= area.height - EDGE_MARGIN;
-  const y = fitsBelow ? anchor.y + MENU_GAP : anchor.y - MENU_GAP - menu.height;
+    anchor.y + ANCHOR_CLEARANCE + menu.height <= area.height - EDGE_MARGIN;
+  const y = fitsBelow
+    ? anchor.y + ANCHOR_CLEARANCE
+    : anchor.y - ANCHOR_CLEARANCE - menu.height;
   return {
     x: clamp(x, EDGE_MARGIN, area.width - menu.width - EDGE_MARGIN),
     y: clamp(y, EDGE_MARGIN, area.height - menu.height - EDGE_MARGIN),
@@ -102,7 +111,10 @@ const extraPadding = (base: unknown, extra: number) =>
  * Turns a phone sheet style (rounded and bordered on top only, padded for
  * the drag handle and home indicator) into a floating card's.
  */
-export function toCardStyle(style: StyleProp<ViewStyle>): ViewStyle {
+export function toCardStyle(
+  style: StyleProp<ViewStyle>,
+  bottomPadding: number = CARD_BOTTOM_PADDING,
+): ViewStyle {
   const flat = StyleSheet.flatten(style) ?? {};
   const radius =
     flat.borderTopLeftRadius ?? flat.borderRadius ?? DEFAULT_RADIUS;
@@ -120,10 +132,17 @@ export function toCardStyle(style: StyleProp<ViewStyle>): ViewStyle {
     ),
     paddingBottom: extraPadding(
       flat.paddingBottom ?? flat.paddingVertical ?? flat.padding,
-      CARD_BOTTOM_PADDING,
+      bottomPadding,
     ),
   };
 }
+
+/**
+ * Hides each iPad menu showing now. Any sheet that opens closes them, the
+ * way choosing an item closes a menu on iPad, so a menu item that opens
+ * another sheet does not leave the menu behind it.
+ */
+const openMenus = new Set<() => void>();
 
 type TabletSheetProps = Omit<AdaptiveActionSheetProps, 'tabletPresentation'> & {
   presentation: TabletPresentation;
@@ -156,6 +175,20 @@ const TabletSheet = forwardRef<ActionSheetRef, TabletSheetProps>(
     const [area, setArea] = useState<Size | null>(null);
     const [menu, setMenu] = useState<Size | null>(null);
     const asMenu = presentation === 'menu' && touch !== null;
+
+    useEffect(() => {
+      openMenus.forEach(hideMenu => hideMenu());
+    }, []);
+    useEffect(() => {
+      if (!asMenu) {
+        return;
+      }
+      const hideMenu = () => sheetRef.current?.hide();
+      openMenus.add(hideMenu);
+      return () => {
+        openMenus.delete(hideMenu);
+      };
+    }, [asMenu]);
 
     const {closable, closeOnTouchBackdrop, onTouchBackdrop} = props;
     const handleBackdropPress = useCallback(
@@ -209,7 +242,10 @@ const TabletSheet = forwardRef<ActionSheetRef, TabletSheetProps>(
             onLayout={asMenu ? handleMenuLayout : undefined}
             onStartShouldSetResponder={claimTouch}
             style={[
-              toCardStyle(containerStyle),
+              toCardStyle(
+                containerStyle,
+                asMenu ? MENU_BOTTOM_PADDING : CARD_BOTTOM_PADDING,
+              ),
               styles.shadow,
               appLayoutDirection,
               asMenu
