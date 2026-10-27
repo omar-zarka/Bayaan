@@ -11,11 +11,15 @@ type SheetProps = {
   children?: React.ReactNode;
 };
 const mockSheetProps: SheetProps[] = [];
+const mockHide = jest.fn();
 jest.mock('react-native-actions-sheet', () => {
   const ReactActual = jest.requireActual('react');
   return {
     __esModule: true,
-    default: ReactActual.forwardRef((props: SheetProps, _ref: unknown) => {
+    default: ReactActual.forwardRef((props: SheetProps, ref: unknown) => {
+      ReactActual.useImperativeHandle(ref, () => ({
+        hide: () => mockHide(props.id),
+      }));
       mockSheetProps.push(props);
       return ReactActual.createElement(
         ReactActual.Fragment,
@@ -58,18 +62,21 @@ const base = {
   paddingTop: 8,
 };
 
-function render(tabletPresentation?: TabletPresentation) {
+const mounted: TestRenderer.ReactTestRenderer[] = [];
+
+function render(tabletPresentation?: TabletPresentation, id = 'surah-options') {
   let renderer!: TestRenderer.ReactTestRenderer;
   act(() => {
     renderer = TestRenderer.create(
       <ActionSheet
-        id="surah-options"
+        id={id}
         containerStyle={base}
         tabletPresentation={tabletPresentation}>
         <Text>options</Text>
       </ActionSheet>,
     );
   });
+  mounted.push(renderer);
   const view: unknown = View;
   // The card is the view the sheet's own background color lands on.
   const card = renderer.root.findAll(
@@ -85,6 +92,11 @@ function render(tabletPresentation?: TabletPresentation) {
 
 beforeEach(() => {
   mockTouch = null;
+  mockHide.mockClear();
+});
+
+afterEach(() => {
+  act(() => mounted.splice(0).forEach(renderer => renderer.unmount()));
 });
 
 it('passes the sheet through untouched on phones', () => {
@@ -115,12 +127,29 @@ it('floats a menu beside the tap that opened it', () => {
   mockTouch = {x: 900, y: 400};
   const {sheet, card} = render('menu');
   expect(sheet.animated).toBe(false);
-  // Hidden until it has been measured and placed.
+  // Hidden until it has been measured and placed, and no extra padding
+  // below the content.
   expect(card).toMatchObject({
     position: 'absolute',
     width: MENU_WIDTH,
     opacity: 0,
+    paddingBottom: 0,
   });
+});
+
+it('closes an open menu when another sheet opens over it', () => {
+  Object.assign(mockResponsive, {width: 1032, isTablet: true});
+  mockTouch = {x: 900, y: 400};
+  render('menu', 'surah-options');
+  render('card', 'select-playlist');
+  expect(mockHide.mock.calls).toEqual([['surah-options']]);
+});
+
+it('leaves an open card under the sheet that opens over it', () => {
+  Object.assign(mockResponsive, {width: 1032, isTablet: true});
+  render('card', 'select-playlist');
+  render('card', 'create-playlist');
+  expect(mockHide).not.toHaveBeenCalled();
 });
 
 it('falls back to a card when no recent tap opened the menu', () => {
@@ -135,20 +164,21 @@ describe('placeMenu', () => {
   const menu = {width: 340, height: 400};
 
   it('opens below the tap, away from the nearer side', () => {
-    expect(placeMenu({x: 900, y: 300}, menu, area)).toEqual({x: 560, y: 308});
-    expect(placeMenu({x: 100, y: 300}, menu, area)).toEqual({x: 100, y: 308});
+    // 24pt below the tap, clear of the button that was tapped.
+    expect(placeMenu({x: 900, y: 300}, menu, area)).toEqual({x: 560, y: 324});
+    expect(placeMenu({x: 100, y: 300}, menu, area)).toEqual({x: 100, y: 324});
   });
 
   it('opens above the tap when there is no room below', () => {
     expect(placeMenu({x: 900, y: 1100}, menu, area)).toEqual({
       x: 560,
-      y: 692,
+      y: 676,
     });
   });
 
   it('stays clear of the edges', () => {
-    expect(placeMenu({x: 1030, y: 2}, menu, area)).toEqual({x: 668, y: 24});
-    expect(placeMenu({x: 5, y: 300}, menu, area)).toEqual({x: 24, y: 308});
+    expect(placeMenu({x: 1030, y: 0}, menu, area)).toEqual({x: 668, y: 24});
+    expect(placeMenu({x: 5, y: 300}, menu, area)).toEqual({x: 24, y: 324});
     // Taller than the window: pinned to the top margin.
     expect(
       placeMenu({x: 100, y: 600}, {width: 340, height: 1400}, area).y,
