@@ -38,6 +38,7 @@ import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {flipX, forceLTR, latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+import {useLibraryListBottomPadding} from '@/hooks/useBottomInset'; // @ai
 // @ai-end
 
 interface DownloadDataItem {
@@ -56,6 +57,7 @@ interface GroupedItem {
 // @ai-start
 export default function DownloadsScreen() {
   const {theme} = useTheme();
+  const listBottomPadding = useLibraryListBottomPadding(); // @ai
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {t} = useTranslation(['collection', 'common']);
@@ -209,7 +211,6 @@ export default function DownloadsScreen() {
         },
         listContentContainer: {
           flexGrow: 1,
-          paddingBottom: moderateScale(65),
         },
         fixedBackButton: {
           position: 'absolute',
@@ -678,7 +679,10 @@ export default function DownloadsScreen() {
             : `single-${item.reciterId}-${item.downloadData!.download.surahId}`
         }
         ListHeaderComponent={ListHeaderComponent}
-        contentContainerStyle={styles.listContentContainer}
+        contentContainerStyle={[
+          styles.listContentContainer,
+          {paddingBottom: listBottomPadding}, // @ai
+        ]}
         onScroll={RNAnimated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
           {useNativeDriver: true},

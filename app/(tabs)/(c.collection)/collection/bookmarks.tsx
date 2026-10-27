@@ -36,6 +36,7 @@ import {flipX} from '@/utils/rtl';
 import {savedVerseOpenParams} from '@/services/verse-annotations/openSavedVerse';
 import {describeSavedVerseNow} from '@/hooks/useSavedVerseDescription';
 import {savedVerseSubtitle} from '@/services/verse-annotations/unitAnnotations';
+import {useLibraryListBottomPadding} from '@/hooks/useBottomInset'; // @ai
 // @ai-end
 
 interface BookmarkData {
@@ -46,6 +47,7 @@ interface BookmarkData {
 // @ai-start
 const BookmarksScreen = () => {
   const {theme} = useTheme();
+  const listBottomPadding = useLibraryListBottomPadding(); // @ai
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {t} = useTranslation(['collection', 'common']);
@@ -299,7 +301,10 @@ const BookmarksScreen = () => {
         renderItem={renderItem}
         keyExtractor={getItemKey}
         ListHeaderComponent={ListHeaderComponent}
-        contentContainerStyle={styles.listContentContainer}
+        contentContainerStyle={[
+          styles.listContentContainer,
+          {paddingBottom: listBottomPadding}, // @ai
+        ]}
         onScroll={RNAnimated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
           {useNativeDriver: true},
@@ -358,7 +363,6 @@ const styles = StyleSheet.create({
   },
   listContentContainer: {
     flexGrow: 1,
-    paddingBottom: moderateScale(65),
   },
   fixedBackButton: {
     position: 'absolute',

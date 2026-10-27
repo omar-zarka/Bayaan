@@ -3,7 +3,13 @@ jest.mock('@/services/player/store/playerStore', () => ({
   usePlayerStore: jest.fn(),
 }));
 
-import {computeBottomInset} from '@/hooks/useBottomInset';
+import {
+  computeBottomInset,
+  libraryListBottomPadding,
+  PHONE_LIBRARY_LIST_BOTTOM_PADDING,
+} from '@/hooks/useBottomInset';
+import fs from 'fs';
+import path from 'path';
 import {
   FLOATING_PLAYER_BOTTOM_MARGIN,
   FLOATING_PLAYER_HEIGHT,
@@ -44,3 +50,42 @@ describe('computeBottomInset', () => {
     );
   });
 });
+
+// @ai-start
+describe('libraryListBottomPadding', () => {
+  it('keeps the floating-player gap on phones', () => {
+    expect(
+      libraryListBottomPadding({isTablet: false, safeAreaBottom: 34}),
+    ).toBe(PHONE_LIBRARY_LIST_BOTTOM_PADDING);
+  });
+
+  it('only clears the home indicator on tablets', () => {
+    expect(libraryListBottomPadding({isTablet: true, safeAreaBottom: 20})).toBe(
+      20,
+    );
+  });
+
+  it('is used by every Library list instead of a fixed phone gap', () => {
+    const root = path.resolve(__dirname, '../..');
+    const files = [
+      'app/(tabs)/(c.collection)/collection/bookmarks.tsx',
+      'app/(tabs)/(c.collection)/collection/downloads.tsx',
+      'app/(tabs)/(c.collection)/collection/favorite-reciters.tsx',
+      'app/(tabs)/(c.collection)/collection/loved.tsx',
+      'app/(tabs)/(c.collection)/collection/notes.tsx',
+      'app/(tabs)/(c.collection)/collection/playlists.tsx',
+      'app/(tabs)/(c.collection)/collection/uploads.tsx',
+      'components/playlist-detail/PlaylistDetail.tsx',
+      'components/reciter-downloads/ReciterDownloadsList.tsx',
+    ];
+    for (const file of files) {
+      const source = fs.readFileSync(path.join(root, file), 'utf8');
+      expect({file, fixedGap: source.includes('moderateScale(65)')}).toEqual({
+        file,
+        fixedGap: false,
+      });
+      expect(source).toContain('useLibraryListBottomPadding()');
+    }
+  });
+});
+// @ai-end

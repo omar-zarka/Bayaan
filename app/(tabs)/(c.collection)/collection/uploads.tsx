@@ -48,6 +48,7 @@ import {
   getSurahDisplayName,
   localizeDigits,
 } from '@/i18n/format';
+import {useLibraryListBottomPadding} from '@/hooks/useBottomInset'; // @ai
 // @ai-end
 
 // @ai-start
@@ -281,6 +282,7 @@ UploadListItem.displayName = 'UploadListItem';
 // @ai-start
 export default function UploadsScreen() {
   const {theme} = useTheme();
+  const listBottomPadding = useLibraryListBottomPadding(); // @ai
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {t} = useTranslation(['collection', 'common']);
@@ -630,7 +632,10 @@ export default function UploadsScreen() {
         renderItem={renderItem}
         keyExtractor={keyExtractor}
         ListHeaderComponent={ListHeaderComponent}
-        contentContainerStyle={styles.listContentContainer}
+        contentContainerStyle={[
+          styles.listContentContainer,
+          {paddingBottom: listBottomPadding}, // @ai
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={RNAnimated.event(
           [{nativeEvent: {contentOffset: {y: scrollY}}}],
@@ -752,7 +757,6 @@ const createStyles = (theme: {colors: any; fonts: any}) =>
     },
     listContentContainer: {
       flexGrow: 1,
-      paddingBottom: moderateScale(65),
     },
     fixedBackButton: {
       position: 'absolute',
