@@ -117,9 +117,10 @@ describe('ScaledSheet', () => {
         width: '-3.5@s',
         flex: 1,
         color: 'red',
+        // Nested values are scaled too, as in the library.
         transform: [{translateY: '4@vs'}],
       },
-    } as const;
+    } as unknown as Parameters<ScaleModule['ScaledSheet']['create']>[0];
     expect(ours.ScaledSheet.create(styles)).toEqual(
       lib.ScaledSheet.create(styles),
     );
