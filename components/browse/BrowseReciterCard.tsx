@@ -14,6 +14,7 @@ import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity';
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
 import {getReciterDisplayName} from '@/i18n/format';
+import type {ReciterProfilePathname} from '@/hooks/useTabReciterPath'; // @ai
 // @ai-end
 
 interface BrowseReciterCardProps {
@@ -32,6 +33,8 @@ interface BrowseReciterCardProps {
    * tap calls `onPress` instead of navigating.
    */
   linkToProfile?: boolean;
+  /** Profile route of the tab showing the card. Defaults to Home. */
+  profilePathname?: ReciterProfilePathname;
   // @ai-end
 }
 
@@ -105,6 +108,7 @@ const BrowseReciterCard = React.memo(
     rewayatId,
     showFollowAlong,
     linkToProfile = true,
+    profilePathname = '/(tabs)/(a.home)/reciter/[id]', // @ai
   }: BrowseReciterCardProps) => {
     const {t} = useTranslation('home');
     const glassColorScheme = useGlassColorScheme();
@@ -148,7 +152,7 @@ const BrowseReciterCard = React.memo(
     );
 
     const linkHref = {
-      pathname: '/(tabs)/(a.home)/reciter/[id]' as const,
+      pathname: profilePathname, // @ai
       params: {id: reciter.id, ...(rewayatId ? {rewayatId} : {})},
     };
 
@@ -217,6 +221,7 @@ const BrowseReciterCard = React.memo(
     prevProps.showFollowAlong === nextProps.showFollowAlong &&
     prevProps.rewayatId === nextProps.rewayatId &&
     prevProps.linkToProfile === nextProps.linkToProfile &&
+    prevProps.profilePathname === nextProps.profilePathname &&
     prevProps.onLongPress === nextProps.onLongPress,
 );
 // @ai-end
