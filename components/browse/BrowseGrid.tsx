@@ -13,6 +13,7 @@ import {Reciter} from '@/data/reciterData';
 import {Theme} from '@/utils/themeUtils';
 import {BrowseReciterCard} from './BrowseReciterCard';
 import {computeGridLayout} from '@/utils/gridLayout'; // @ai
+import type {ReciterProfilePathname} from '@/hooks/useTabReciterPath'; // @ai
 
 interface BrowseGridProps {
   reciters: Reciter[];
@@ -24,6 +25,8 @@ interface BrowseGridProps {
   // False when tapping a card should call `onReciterPress` instead of
   // opening the reciter's profile (e.g. choosing a reciter for a surah).
   linkToProfile?: boolean; // @ai
+  // Profile route for the tab showing the grid (Home when omitted). @ai
+  profilePathname?: ReciterProfilePathname;
   // Optional bottom inset to clear the floating mini-player + tab bar.
   // Callers compute via `useBottomInset` so the last grid row stays
   // tappable when the mini-player is visible. Defaults to 0 for callers
@@ -81,6 +84,7 @@ const BrowseGrid = React.memo(
     onScrollBeginDrag,
     getRewayatIdForReciter,
     linkToProfile = true, // @ai
+    profilePathname, // @ai
     bottomInset = 0,
   }: BrowseGridProps) => {
     const {width: windowWidth} = useWindowDimensions();
@@ -137,6 +141,7 @@ const BrowseGrid = React.memo(
               theme={theme}
               rewayatId={getRewayatIdForReciter?.(reciter)}
               linkToProfile={linkToProfile}
+              profilePathname={profilePathname} // @ai
             />
           ))}
           {/* Add empty placeholders for the last row if needed */}
@@ -159,6 +164,7 @@ const BrowseGrid = React.memo(
         styles.row,
         getRewayatIdForReciter,
         linkToProfile, // @ai
+        profilePathname, // @ai
       ],
     );
 
@@ -207,6 +213,7 @@ const BrowseGrid = React.memo(
     prevProps.reciters === nextProps.reciters && // @ai
     prevProps.getRewayatIdForReciter === nextProps.getRewayatIdForReciter &&
     prevProps.linkToProfile === nextProps.linkToProfile && // @ai
+    prevProps.profilePathname === nextProps.profilePathname && // @ai
     prevProps.bottomInset === nextProps.bottomInset &&
     prevProps.keyboardShouldPersistTaps === nextProps.keyboardShouldPersistTaps,
 );

@@ -45,6 +45,7 @@ import {useGlassHeaderHeight} from '@/hooks/useGlassHeaderHeight'; // @ai
 import branding from '@/config/branding';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useBottomInset} from '@/hooks/useBottomInset';
+import {useReciterProfilePathname} from '@/hooks/useTabReciterPath'; // @ai
 // @ai-start
 import {useTranslation} from 'react-i18next';
 // @ai-end
@@ -130,6 +131,7 @@ export default function BrowseReciters({
   initialHasPhoto = false,
 }: BrowseRecitersProps) {
   const router = useRouter();
+  const profilePathname = useReciterProfilePathname(); // @ai
   const {t} = useTranslation('home');
   const {updateQueue, play} = usePlayerActions();
   const {startNewChain} = useRecentlyPlayedStore();
@@ -493,7 +495,7 @@ export default function BrowseReciters({
         }
       } else {
         router.push({
-          pathname: '/(tabs)/(a.home)/reciter/[id]',
+          pathname: profilePathname, // @ai
           params: {
             id: reciter.id,
             ...(selectedRewayatId ? {rewayatId: selectedRewayatId} : {}),
@@ -501,7 +503,15 @@ export default function BrowseReciters({
         });
       }
     },
-    [setReciterPreference, surahId, updateQueue, play, router, startNewChain],
+    [
+      setReciterPreference,
+      surahId,
+      updateQueue,
+      play,
+      router,
+      startNewChain,
+      profilePathname,
+    ],
   );
 
   const handleOutsidePress = useCallback(() => {
@@ -708,6 +718,7 @@ export default function BrowseReciters({
             onScrollBeginDrag={() => Keyboard.dismiss()}
             getRewayatIdForReciter={getRewayatIdForReciter}
             linkToProfile={!surahId}
+            profilePathname={profilePathname} // @ai
             bottomInset={bottomInset}
           />
         </View>

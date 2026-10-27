@@ -100,3 +100,14 @@ it('labels the choice button with the reciter name', () => {
   expect(button.props.accessibilityRole).toBe('button');
   expect(button.props.accessibilityLabel).toBe('Test Reciter');
 });
+
+// @ai-start
+it('links to the profile in the tab it is shown in', () => {
+  const r = render({profilePathname: '/(tabs)/(b.search)/reciter/[id]'});
+  const link = r.root.findByProps({testID: 'profile-link'});
+  expect(link.props.href).toEqual({
+    pathname: '/(tabs)/(b.search)/reciter/[id]',
+    params: {id: 'reciter-1'},
+  });
+});
+// @ai-end
