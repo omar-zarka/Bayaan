@@ -102,6 +102,7 @@ export const reciterImages: {[key: string]: ImageSourcePropType} = {
   'ibrahim-al-akdar': require('@/assets/reciter-images/Ibrahim-Al-Akdar.png'),
   'ibrahim-al-asiri': require('@/assets/reciter-images/Ibrahim-Al-Asiri.jpeg'),
   'ibrahim-al-jebreen': require('@/assets/reciter-images/Ibrahim-Al-Jebreen.jpeg'),
+  'ibrahim-al-shahri': require('@/assets/reciter-images/Ibrahim-Al-Shahri.jpeg'),
   'ibrahim-aldosari': require('@/assets/reciter-images/Ibrahim-Aldosari.jpeg'),
   'ibrahim-aljormy': require('@/assets/reciter-images/Ibrahim-Aljormy.jpeg'),
   'ibrahim-kshidan': require('@/assets/reciter-images/Ibrahim-Kshidan.jpeg'),
@@ -126,6 +127,7 @@ export const reciterImages: {[key: string]: ImageSourcePropType} = {
   'mahmoud-abdul-hakam': require('@/assets/reciter-images/Mahmoud-Abdul-Hakam.jpeg'),
   'mahmoud-ali-albanna': require('@/assets/reciter-images/Mahmoud-Ali--Albanna.jpeg'),
   'mahmoud-el-sheimy': require('@/assets/reciter-images/Mahmoud-El-Sheimy.jpeg'),
+  'mahmoud-harfoush': require('@/assets/reciter-images/Mahmoud-Harfoush.jpeg'),
   'mahmoud-khalil-al-hussary': require('@/assets/reciter-images/Mahmoud-Khalil-Al-Hussary.jpeg'),
   'majed-al-enezi': require('@/assets/reciter-images/Majed-Al-Enezi.jpeg'),
   'majed-al-zamil': require('@/assets/reciter-images/Majed-Al-Zamil.jpeg'),
@@ -214,6 +216,7 @@ export const reciterImages: {[key: string]: ImageSourcePropType} = {
   'yousef-alshoaey': require('@/assets/reciter-images/Yousef-Alshoaey.jpeg'),
   'yousef-bin-noah-ahmad': require('@/assets/reciter-images/Yousef-Bin-Noah-Ahmad.jpg'),
   'youssef-edghouch': require('@/assets/reciter-images/Youssef-Edghouch.jpeg'),
+  'yusuf-al-aidroos': require('@/assets/reciter-images/Yusuf-Al-Aidroos.jpeg'),
   'zakaria-hamamah': require('@/assets/reciter-images/Zakaria-Hamamah.png'),
   'zaki-daghistani': require('@/assets/reciter-images/Zaki-Daghistani.jpeg'),
 };
