@@ -35,3 +35,38 @@ export function computeGridLayout(
   );
   return {numColumns, itemWidth};
 }
+
+export interface ShelfLayoutOptions {
+  /** Smallest card width before a card is dropped from view. */
+  minCardWidth: number;
+  /** Padding before the first card. The shelf scrolls to the trailing edge. */
+  leadingPadding: number;
+  /** Space between two cards. */
+  gap: number;
+  /** Fraction of the next card left showing at the trailing edge. */
+  peek: number;
+  /** Never show fewer whole cards than this. */
+  minColumns?: number;
+}
+
+/**
+ * Card width for a horizontal shelf: whole cards across `containerWidth`
+ * plus a `peek` of the next one, so the shelf reads as scrollable.
+ *
+ * As with `computeGridLayout`, pass the shelf's own container width.
+ */
+export function computeShelfLayout(
+  containerWidth: number,
+  {minCardWidth, leadingPadding, gap, peek, minColumns = 1}: ShelfLayoutOptions,
+): GridLayout {
+  const visibleWidth = Math.max(0, containerWidth - leadingPadding);
+  const fit = Math.floor(
+    (visibleWidth - peek * minCardWidth) / (minCardWidth + gap),
+  );
+  const numColumns = Math.max(minColumns, fit, 1);
+  const itemWidth = Math.max(
+    0,
+    (visibleWidth - gap * numColumns) / (numColumns + peek),
+  );
+  return {numColumns, itemWidth};
+}

@@ -38,8 +38,11 @@ export function sessionRemaining(session: AdhkarSession): number {
 
 export function AdhkarSessionCard({
   session,
+  width, // @ai
 }: {
   session: AdhkarSession;
+  /** Card width. Defaults to RECENT_CARD_WIDTH; iPad shelves pass their own. */
+  width?: number; // @ai
 }): React.JSX.Element {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
@@ -76,7 +79,11 @@ export function AdhkarSessionCard({
   return (
     <CardWrapper
       testID="adhkar-session-card"
-      style={[styles.container, USE_GLASS && styles.glassContainer]}
+      style={[
+        styles.container,
+        USE_GLASS && styles.glassContainer,
+        width != null && {width}, // @ai
+      ]}
       {...(USE_GLASS
         ? {glassEffectStyle: 'regular', colorScheme: glassColorScheme}
         : {})}>
