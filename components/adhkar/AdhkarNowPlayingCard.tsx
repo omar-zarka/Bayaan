@@ -2,7 +2,7 @@
 // head of Home's Continue Listening (AdhkarSessionCard) and a player on the
 // Adhkar screen (AdhkarSessionPlayer).
 import React, {useEffect} from 'react';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
 import {dropStaleSession} from '@/services/adhkar/playback/sessionPersistence';
 import {AdhkarSessionCard} from '@/components/adhkar/AdhkarSessionCard';

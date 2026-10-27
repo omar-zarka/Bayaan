@@ -13,7 +13,7 @@ import {
   ScrollView as RNScrollView,
   StyleSheet,
 } from 'react-native';
-import {ScaledSheet, moderateScale as ms} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale as ms} from '@/utils/scale';
 import {Ionicons} from '@expo/vector-icons';
 import Animated, {
   useSharedValue,

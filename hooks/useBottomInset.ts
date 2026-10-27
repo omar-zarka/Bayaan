@@ -1,5 +1,5 @@
 import {Platform} from 'react-native';
-import {moderateScale} from 'react-native-size-matters'; // @ai
+import {moderateScale} from '@/utils/scale'; // @ai
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useResponsive} from '@/hooks/useResponsive'; // @ai

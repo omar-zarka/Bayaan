@@ -15,7 +15,7 @@ import {
   ViewToken,
 } from 'react-native';
 import {useRouter, useNavigation, useFocusEffect, Link} from 'expo-router';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {Ionicons} from '@expo/vector-icons';
 // @ai-start
 import {useTranslation} from 'react-i18next';

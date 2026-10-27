@@ -1,6 +1,6 @@
 import React, {useCallback} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import Slider from '@react-native-community/slider';
 import Svg, {Line, Circle, Path, Rect, Polygon} from 'react-native-svg';
 import {useTheme} from '@/hooks/useTheme';

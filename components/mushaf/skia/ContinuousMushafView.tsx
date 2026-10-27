@@ -20,7 +20,7 @@ import {useMushafFontMgr} from '@/hooks/useMushafFontMgr';
 import {Gesture, GestureDetector} from 'react-native-gesture-handler';
 import {runOnJS} from 'react-native-worklets';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {verticalScale} from 'react-native-size-matters';
+import {verticalScale} from '@/utils/scale';
 import Color from 'color';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import type {MushafArabicTextWeight} from '@/store/mushafSettingsStore';

@@ -6,8 +6,7 @@ import {
   ActivityIndicator,
   type LayoutChangeEvent,
 } from 'react-native';
-import {moderateScale} from 'react-native-size-matters';
-import {moderateScale as moderateScaleCapped} from '@/utils/scale';
+import {moderateScale} from '@/utils/scale';
 import {LegendList} from '@legendapp/list';
 import {Reciter} from '@/data/reciterData';
 import {Theme} from '@/utils/themeUtils';
@@ -48,7 +47,7 @@ function createStyles(_theme: Theme, bottomInset = 0) {
     },
     gridContainer: {
       paddingHorizontal: GRID_PADDING, // @ai
-      paddingBottom: Math.max(moderateScaleCapped(80), bottomInset),
+      paddingBottom: Math.max(moderateScale(80), bottomInset),
       paddingTop: moderateScale(8),
     },
     row: {

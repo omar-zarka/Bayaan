@@ -7,7 +7,7 @@ import {
   StyleSheet,
   LayoutAnimation,
 } from 'react-native';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import ActionSheet, {SheetProps, ScrollView} from 'react-native-actions-sheet';

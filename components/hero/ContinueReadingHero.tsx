@@ -1,6 +1,6 @@
 import React, {useCallback, useMemo, useState} from 'react';
 import {View, ViewStyle} from 'react-native';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {useFocusEffect} from 'expo-router';
 import {Surah} from '@/data/surahData';
 import {useTranslation} from 'react-i18next';

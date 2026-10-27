@@ -1,6 +1,6 @@
 import React, {useMemo} from 'react';
 import {View, Text, StyleSheet, Pressable, ViewStyle} from 'react-native';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Ionicons} from '@expo/vector-icons';
 import {useTheme} from '@/hooks/useTheme';

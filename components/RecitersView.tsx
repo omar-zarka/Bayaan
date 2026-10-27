@@ -8,7 +8,7 @@ import {
   Pressable,
 } from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
-import {moderateScale, verticalScale} from 'react-native-size-matters';
+import {moderateScale, verticalScale} from '@/utils/scale';
 import {Reciter, RECITERS} from '@/data/reciterData';
 import {BrowseReciterCard} from './browse/BrowseReciterCard';
 import {CircularReciterCard} from './cards/CircularReciterCard';

@@ -9,7 +9,7 @@ import {
   Dimensions,
   type ListRenderItemInfo,
 } from 'react-native';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import ActionSheet, {FlatList} from 'react-native-actions-sheet';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';

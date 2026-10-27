@@ -13,7 +13,7 @@ import {Slider} from '@miblanchard/react-native-slider';
 import {SheetManager} from 'react-native-actions-sheet';
 import {useReducedMotion} from 'react-native-reanimated';
 import {useTranslation} from 'react-i18next';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {PauseIcon, PlayIcon} from '@/components/Icons';

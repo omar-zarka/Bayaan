@@ -2,7 +2,7 @@ import React, {useMemo, useCallback} from 'react';
 import {View, Text, StyleSheet, Pressable, Platform} from 'react-native';
 import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
 import {useTheme} from '@/hooks/useTheme';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {SurahCard} from './cards/SurahCard';
 import {SurahItem} from './SurahItem';
 import {SURAHS, Surah} from '@/data/surahData';

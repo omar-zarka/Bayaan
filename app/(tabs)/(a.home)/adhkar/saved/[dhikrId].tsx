@@ -20,7 +20,7 @@ import {
   useFocusEffect,
 } from 'expo-router';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useAdhkar} from '@/hooks/useAdhkar';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';

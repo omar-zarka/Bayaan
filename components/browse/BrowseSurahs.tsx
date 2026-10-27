@@ -5,11 +5,7 @@ import {Stack, useRouter, useNavigation} from 'expo-router';
 import {SearchInput} from '@/components/SearchInput';
 import {rankSurahs} from '@/utils/search/catalog'; // @ai
 // @ai-end
-import {
-  moderateScale,
-  verticalScale,
-  ScaledSheet,
-} from 'react-native-size-matters';
+import {moderateScale, verticalScale, ScaledSheet} from '@/utils/scale';
 import {SURAHS, Surah} from '@/data/surahData';
 import {SurahCard} from '@/components/cards/SurahCard';
 import {SurahItem} from '@/components/SurahItem';
