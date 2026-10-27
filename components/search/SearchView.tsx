@@ -29,6 +29,8 @@ import {moderateScale} from 'react-native-size-matters';
 import {LoadingIndicator} from '@/components/LoadingIndicator';
 import {useSettings} from '@/hooks/useSettings';
 import {useReciterStore} from '@/store/reciterStore';
+import {useReciterSelection} from '@/hooks/useReciterSelection'; // @ai
+import {resolveSurahPlaybackAction} from '@/utils/surahPlaybackChoice'; // @ai
 import {StyleSheet} from 'react-native';
 import Color from 'color';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -93,6 +95,7 @@ export function SearchView({
   const {t} = useTranslation(['home', 'common']);
   const {askEveryTime, defaultReciterSelection} = useSettings();
   const defaultReciter = useReciterStore(state => state.defaultReciter);
+  const {playWithReciter, playWithRandomReciter} = useReciterSelection();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
 
@@ -295,43 +298,43 @@ export function SearchView({
       await addToRecentSearches(result);
 
       const surah = result.item as Surah;
-      if (askEveryTime) {
-        SheetManager.show('select-reciter', {
-          payload: {surahId: surah.id.toString(), source: 'search'},
-        });
-        return;
-      }
+      // @ai-start
+      const surahId = surah.id.toString();
+      const action = resolveSurahPlaybackAction({
+        askEveryTime,
+        defaultReciterSelection,
+        hasDefaultReciter: !!defaultReciter,
+      });
 
-      switch (defaultReciterSelection) {
+      switch (action) {
         case 'browseAll':
+        case 'browseFavorites':
           router.push({
             pathname: '/(tabs)/(b.search)/reciter/browse',
-            params: {view: 'all', surahId: surah.id},
+            params: {
+              view: action === 'browseAll' ? 'all' : 'favorites',
+              surahId: surah.id,
+            },
           });
           break;
-        case 'searchFavorites':
-          router.push({
-            pathname: '/(tabs)/(b.search)/reciter/browse',
-            params: {view: 'favorites', surahId: surah.id},
-          });
-          break;
-        case 'useDefault':
+        case 'playDefault':
           if (defaultReciter) {
-            router.push({
-              pathname: '/player',
-              params: {reciterImageUrl: defaultReciter.image_url},
-            });
-          } else {
-            SheetManager.show('select-reciter', {
-              payload: {surahId: surah.id.toString(), source: 'search'},
+            playWithReciter(defaultReciter, surahId).catch(error => {
+              console.error('Error playing with default reciter:', error);
             });
           }
           break;
+        case 'playRandom':
+          playWithRandomReciter(surahId).catch(error => {
+            console.error('Error playing with random reciter:', error);
+          });
+          break;
         default:
           SheetManager.show('select-reciter', {
-            payload: {surahId: surah.id.toString(), source: 'search'},
+            payload: {surahId, source: 'search'},
           });
       }
+      // @ai-end
     },
     [
       router,
@@ -339,6 +342,8 @@ export function SearchView({
       askEveryTime,
       defaultReciterSelection,
       defaultReciter,
+      playWithReciter,
+      playWithRandomReciter,
     ],
   );
 
@@ -347,6 +352,7 @@ export function SearchView({
       if (item.type === 'surah') {
         return (
           <SurahItem
+            pressAction="read" // @ai
             item={item.item as Surah}
             onPress={() => handleResultPress(item)}
             onLongPress={() => handleSurahLongPress(item)}
@@ -376,7 +382,11 @@ export function SearchView({
 
       if (recentItem.type === 'surah') {
         return (
-          <SurahItem item={recentItem.item as Surah} onPress={handlePress} />
+          <SurahItem
+            pressAction="read" // @ai
+            item={recentItem.item as Surah}
+            onPress={handlePress}
+          />
         );
       } else {
         return (

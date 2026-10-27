@@ -46,8 +46,6 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useAdhkarStore} from '@/store/adhkarStore';
 import {AdhkarBentoCard} from '@/components/adhkar/AdhkarBentoCard';
 import {
-  ADHKAR_TILE_GAP,
-  ADHKAR_TILE_WIDTH,
   AdhkarNowPlayingCard,
   useHasAdhkarSession,
 } from '@/components/adhkar/AdhkarNowPlayingCard';
@@ -146,37 +144,13 @@ const MemoizedFlatList = React.memo(
       maxToRenderPerBatch={5}
       windowSize={3}
       initialNumToRender={5}
-      getItemLayout={(_, index) => ({
-        length:
-          variant === 'circular'
-            ? 80
-            : variant === 'recent'
-              ? 200
-              : variant === 'featured'
-                ? 140
-                : variant === 'rewayat'
-                  ? 130
-                  : variant === 'playlist'
-                    ? 120
-                    : 140,
-        offset:
-          (variant === 'circular'
-            ? 80
-            : variant === 'recent'
-              ? 200
-              : variant === 'featured'
-                ? 140
-                : variant === 'rewayat'
-                  ? 130
-                  : variant === 'playlist'
-                    ? 120
-                    : 140) *
-            index +
-          (showAdhkarTile && variant === 'recent'
-            ? ADHKAR_TILE_WIDTH + ADHKAR_TILE_GAP
-            : 0),
-        index,
-      })}
+      // @ai-start
+      // No getItemLayout: card widths differ per variant, scale with the
+      // device and include the gap and content padding, so any fixed length
+      // mis-predicts offsets and, with removeClippedSubviews, can leave
+      // cards blank while scrolling. These shelves are short, so measuring
+      // is cheap.
+      // @ai-end
     />
   ),
   (prevProps, nextProps) =>

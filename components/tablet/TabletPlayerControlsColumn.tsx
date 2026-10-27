@@ -540,9 +540,12 @@ export const TabletPlayerControlsColumn: React.FC<
                   followAlongActive && {backgroundColor: toolActiveBg},
                   !followAlongAvailable && {opacity: 0.35},
                 ]}
+                // Stays tappable when unavailable: the handler opens the Follow
+                // Along explainer sheet, as on the phone player. @ai
                 onPress={onFollowAlongPress}
-                {...a11y.followAlong(followAlongActive)}
-                disabled={!followAlongAvailable}>
+                {...a11y.followAlong(
+                  followAlongAvailable && followAlongActive,
+                )}>
                 <Ionicons
                   name="locate-outline"
                   size={moderateScale(20)}

@@ -27,6 +27,9 @@ import {moderateScale} from 'react-native-size-matters';
 import {Feather} from '@expo/vector-icons';
 import {DownloadIcon, PlayIcon, ShuffleIcon} from '@/components/Icons';
 import {SheetManager} from 'react-native-actions-sheet';
+// @ai-start
+import {confirmDestructive} from '@/utils/confirmDestructive';
+// @ai-end
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 import {shuffleArray} from '@/utils/arrayUtils';
 import Color from 'color';
@@ -76,7 +79,16 @@ export default function DownloadsScreen() {
             label: t('downloadsScreen.removeAll'),
             icon: 'trash-2',
             destructive: true,
-            onPress: () => clearAllDownloads(),
+            // @ai-start
+            onPress: () =>
+              confirmDestructive({
+                title: t('downloadsScreen.removeAllTitle'),
+                message: t('downloadsScreen.removeAllConfirm'),
+                confirmText: t('common:actions.remove'),
+                cancelText: t('common:actions.cancel'),
+                onConfirm: clearAllDownloads,
+              }),
+            // @ai-end
           },
         ],
       },
@@ -408,15 +420,26 @@ export default function DownloadsScreen() {
               label: t('downloadsScreen.removeAll'),
               icon: 'trash-2',
               destructive: true,
-              onPress: async () => {
-                for (const item of reciterDownloads) {
-                  await removeDownload(
-                    item.download.reciterId,
-                    item.download.surahId,
-                    item.download.rewayatId || undefined,
-                  );
-                }
-              },
+              // @ai-start
+              onPress: () =>
+                confirmDestructive({
+                  title: t('downloadsScreen.removeAllTitle'),
+                  message: t('downloadsScreen.removeReciterConfirm', {
+                    reciter: reciterName,
+                  }),
+                  confirmText: t('common:actions.remove'),
+                  cancelText: t('common:actions.cancel'),
+                  onConfirm: async () => {
+                    for (const item of reciterDownloads) {
+                      await removeDownload(
+                        item.download.reciterId,
+                        item.download.surahId,
+                        item.download.rewayatId || undefined,
+                      );
+                    }
+                  },
+                }),
+              // @ai-end
             },
           ],
         },

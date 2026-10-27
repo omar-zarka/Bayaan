@@ -34,6 +34,9 @@ import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useTranslation} from 'react-i18next';
 import i18n from '@/i18n';
 import {getReciterDisplayName} from '@/i18n/format';
+// @ai-start
+import {confirmDestructive} from '@/utils/confirmDestructive';
+// @ai-end
 // @ai-end
 
 // @ai-start
@@ -372,15 +375,28 @@ export const ReciterDownloadsList: React.FC<ReciterDownloadsListProps> = ({
             label: t('downloadsScreen.removeAll'),
             icon: 'trash-2',
             destructive: true,
-            onPress: async () => {
-              for (const d of reciterDownloads) {
-                await removeDownload(
-                  d.reciterId,
-                  d.surahId,
-                  d.rewayatId || undefined,
-                );
-              }
-            },
+            // @ai-start
+            onPress: () =>
+              confirmDestructive({
+                title: t('downloadsScreen.removeAllTitle'),
+                message: reciterDisplayName
+                  ? t('downloadsScreen.removeReciterConfirm', {
+                      reciter: reciterDisplayName,
+                    })
+                  : t('downloadsScreen.removeAllConfirm'),
+                confirmText: t('common:actions.remove'),
+                cancelText: t('common:actions.cancel'),
+                onConfirm: async () => {
+                  for (const d of reciterDownloads) {
+                    await removeDownload(
+                      d.reciterId,
+                      d.surahId,
+                      d.rewayatId || undefined,
+                    );
+                  }
+                },
+              }),
+            // @ai-end
           },
         ],
       },

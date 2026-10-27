@@ -535,6 +535,28 @@ function RootLayout() {
                           fullScreenGestureEnabled: false,
                         }}
                       />
+                      {/* @ai-start */}
+                      <Stack.Screen
+                        name="translations"
+                        options={{
+                          title: i18n.t('home:translations.title'),
+                          headerShown: true,
+                          headerTintColor: theme.colors.text,
+                          ...(USE_GLASS
+                            ? {
+                                headerTransparent: true,
+                                headerStyle: {backgroundColor: 'transparent'},
+                              }
+                            : {
+                                headerStyle: {
+                                  backgroundColor: theme.colors.background,
+                                },
+                              }),
+                          headerShadowVisible: false,
+                          headerBackButtonDisplayMode: 'minimal',
+                        }}
+                      />
+                      {/* @ai-end */}
                     </Stack>
                     <PlayerHost />
                     <WhatsNewModal ref={whatsNewModalRef} />

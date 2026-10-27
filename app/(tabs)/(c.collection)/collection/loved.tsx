@@ -38,6 +38,9 @@ import {downloadSurah} from '@/services/downloadService';
 import {useCollectionDownloadState} from '@/hooks/useCollectionDownloadState';
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 import {SheetManager} from 'react-native-actions-sheet';
+// @ai-start
+import {confirmDestructive} from '@/utils/confirmDestructive';
+// @ai-end
 import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 // @ai-start
 import {useTranslation} from 'react-i18next';
@@ -552,7 +555,16 @@ const LovedScreen = () => {
                 filled={true}
               />
             ),
-            onPress: () => unloveAll(),
+            // @ai-start
+            onPress: () =>
+              confirmDestructive({
+                title: t('lovedScreen.unloveAllTitle'),
+                message: t('lovedScreen.unloveAllConfirm'),
+                confirmText: t('common:actions.remove'),
+                cancelText: t('common:actions.cancel'),
+                onConfirm: unloveAll,
+              }),
+            // @ai-end
           },
         ],
       },

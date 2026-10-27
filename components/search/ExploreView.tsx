@@ -186,6 +186,23 @@ const BentoTileComponent = React.memo(
       [dimensions.width, dimensions.height],
     );
 
+    // Non-glass fallback: keep the thin tinted hollow border so Android /
+    // pre-iOS-26 still get a recognizable card shape.
+    // @ai-start
+    // Computed before the glass branch returns so the hook order never
+    // changes.
+    // @ai-end
+    const fallbackStyle = useMemo(
+      () => ({
+        ...outerStyle,
+        borderRadius: OUTER_RADIUS,
+        borderWidth: BORDER_WIDTH,
+        borderColor,
+        backgroundColor: 'transparent' as const,
+      }),
+      [outerStyle, borderColor],
+    );
+
     if (USE_GLASS) {
       return (
         <Link href={tile.route as any} asChild>
@@ -204,19 +221,6 @@ const BentoTileComponent = React.memo(
         </Link>
       );
     }
-
-    // Non-glass fallback: keep the thin tinted hollow border so Android /
-    // pre-iOS-26 still get a recognizable card shape.
-    const fallbackStyle = useMemo(
-      () => ({
-        ...outerStyle,
-        borderRadius: OUTER_RADIUS,
-        borderWidth: BORDER_WIDTH,
-        borderColor,
-        backgroundColor: 'transparent' as const,
-      }),
-      [outerStyle, borderColor],
-    );
 
     return (
       <Link href={tile.route as any} asChild>

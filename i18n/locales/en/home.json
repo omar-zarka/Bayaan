@@ -69,7 +69,6 @@
     "number": "Number"
   },
   "randomHero": {
-    "finding": "Finding random recitations from different reciters...",
     "findFailed": "Failed to find random recitations. Please try again.",
     "playing": "Playing {{surah}} by {{reciter}}",
     "playFailed": "Failed to play random recitation. Please try again.",
@@ -121,13 +120,16 @@
     "a11yName": "Surah {{name}}",
     "a11yPlaying": "currently playing",
     "a11ySeparator": ", ",
-    "a11yPlayHint": "Tap to play Surah",
+    "a11yPlayHint": "Plays the surah",
     "makkah": "Makkah",
     "madinah": "Madinah",
     "moreOptions": "More options",
     "moreOptionsHint": "Opens menu with additional actions for this Surah",
     "verses_one": "{{count}} verse",
-    "verses_other": "{{count}} verses"
+    "verses_other": "{{count}} verses",
+    "a11yReadHint": "Opens the surah in the reader",
+    "a11yPlayAction": "Play",
+    "a11yMoreAction": "More options"
   },
   "sort": {
     "asc": "Asc",

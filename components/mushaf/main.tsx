@@ -877,7 +877,12 @@ export default function MushafViewer({
             gap: moderateScale(20),
             paddingHorizontal: moderateScale(6),
           }}>
-          <Pressable onPress={handleSharePage} hitSlop={8}>
+          <Pressable
+            onPress={handleSharePage}
+            hitSlop={8}
+            accessibilityRole="button" // @ai
+            accessibilityLabel={t('mushaf.sharePage')} // @ai
+          >
             <Feather
               name="share"
               size={moderateScale(20)}
@@ -890,7 +895,10 @@ export default function MushafViewer({
                 payload: {context: 'mushaf'},
               })
             }
-            hitSlop={8}>
+            hitSlop={8}
+            accessibilityRole="button" // @ai
+            accessibilityLabel={t('mushaf.settings')} // @ai
+          >
             <Ionicons
               name="options-outline"
               size={moderateScale(22)}

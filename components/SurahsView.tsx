@@ -189,6 +189,7 @@ export default function SurahsView({
 
       return (
         <SurahItem
+          pressAction="read" // @ai
           item={surahs[0]}
           onPress={onSurahPress}
           onLongPress={onSurahLongPress}

@@ -240,7 +240,7 @@ export const TafseerContent: React.FC<TafseerContentProps> = ({
               SheetManager.hideAll();
               usePlayerStore.getState().setSheetMode('hidden');
               setTimeout(() => {
-                router.push('/(tabs)/(a.home)/translations');
+                router.push('/translations'); // @ai
               }, 300);
             }}>
             <StackedVolumesIcon

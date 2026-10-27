@@ -41,7 +41,7 @@ import {rankReciters} from '@/utils/search/catalog'; // @ai
 // @ai-end
 import {resolveRewayahFromName} from '@/services/rewayah/RewayahIdentity';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {useHeaderHeight} from 'expo-router/react-navigation';
+import {useGlassHeaderHeight} from '@/hooks/useGlassHeaderHeight'; // @ai
 import branding from '@/config/branding';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useBottomInset} from '@/hooks/useBottomInset';
@@ -140,7 +140,7 @@ export default function BrowseReciters({
 
   // On iOS, the native Stack header handles the top area; on Android, use custom Header
   const useNativeHeader = USE_GLASS;
-  const iosHeaderHeight = useNativeHeader ? useHeaderHeight() : 0;
+  const iosHeaderHeight = useGlassHeaderHeight(useNativeHeader); // @ai
 
   const [selectedTeacher, setSelectedTeacher] = useState<string | null>(
     initialTeacher || null,
@@ -707,6 +707,7 @@ export default function BrowseReciters({
             keyboardShouldPersistTaps="handled"
             onScrollBeginDrag={() => Keyboard.dismiss()}
             getRewayatIdForReciter={getRewayatIdForReciter}
+            linkToProfile={!surahId}
             bottomInset={bottomInset}
           />
         </View>

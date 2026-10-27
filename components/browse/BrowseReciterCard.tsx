@@ -25,6 +25,14 @@ interface BrowseReciterCardProps {
   theme: Theme;
   showFollowAlong?: boolean;
   rewayatId?: string;
+  // @ai-start
+  /**
+   * When true (default) the card links to the reciter's profile. Pass false
+   * when the card is a choice, such as picking a reciter for a surah, so the
+   * tap calls `onPress` instead of navigating.
+   */
+  linkToProfile?: boolean;
+  // @ai-end
 }
 
 // @ai-start
@@ -96,6 +104,7 @@ const BrowseReciterCard = React.memo(
     theme,
     rewayatId,
     showFollowAlong,
+    linkToProfile = true,
   }: BrowseReciterCardProps) => {
     const {t} = useTranslation('home');
     const glassColorScheme = useGlassColorScheme();
@@ -143,6 +152,35 @@ const BrowseReciterCard = React.memo(
       params: {id: reciter.id, ...(rewayatId ? {rewayatId} : {})},
     };
 
+    if (!linkToProfile) {
+      return (
+        <Pressable
+          onPress={onPress}
+          onLongPress={onLongPress}
+          accessibilityRole="button"
+          accessibilityLabel={getReciterDisplayName(reciter)}
+          style={({pressed}) =>
+            USE_GLASS
+              ? undefined
+              : [styles.container, pressed && styles.pressed]
+          }>
+          {USE_GLASS ? (
+            <GlassView
+              style={StyleSheet.flatten([
+                styles.container,
+                styles.glassContainer,
+              ])}
+              glassEffectStyle="regular"
+              colorScheme={glassColorScheme}>
+              {content}
+            </GlassView>
+          ) : (
+            content
+          )}
+        </Pressable>
+      );
+    }
+
     if (USE_GLASS) {
       return (
         <Link href={linkHref} asChild>
@@ -177,6 +215,8 @@ const BrowseReciterCard = React.memo(
     prevProps.height === nextProps.height &&
     prevProps.theme === nextProps.theme &&
     prevProps.showFollowAlong === nextProps.showFollowAlong &&
+    prevProps.rewayatId === nextProps.rewayatId &&
+    prevProps.linkToProfile === nextProps.linkToProfile &&
     prevProps.onLongPress === nextProps.onLongPress,
 );
 // @ai-end
