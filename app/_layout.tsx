@@ -36,6 +36,7 @@ import {
 import {DevMenu} from '@/components/DevMenu';
 import {SheetProvider} from 'react-native-actions-sheet';
 import {recordTouch} from '@/utils/lastTouch'; // @ai
+import {useResponsive} from '@/hooks/useResponsive'; // @ai
 import '@/components/sheets/sheets'; // Register action sheets
 import {
   configureReanimatedLogger,
@@ -174,6 +175,7 @@ function RootLayout() {
   const initializationRef = useRef(false);
   const whatsNewModalRef = useRef<WhatsNewModalRef>(null);
   const {theme, isDarkMode} = useTheme();
+  const {isTablet} = useResponsive(); // @ai
   useNetworkMonitor();
 
   // Build React Navigation theme so card/background colors match during transitions
@@ -540,23 +542,40 @@ function RootLayout() {
                       {/* @ai-start */}
                       <Stack.Screen
                         name="translations"
-                        options={{
-                          title: i18n.t('home:translations.title'),
-                          headerShown: true,
-                          headerTintColor: theme.colors.text,
-                          ...(USE_GLASS
+                        options={
+                          isTablet
                             ? {
-                                headerTransparent: true,
-                                headerStyle: {backgroundColor: 'transparent'},
+                                // iPad: a centered card over the reader
+                                // (TabletDialog), not a full page.
+                                presentation: 'transparentModal',
+                                animation: 'fade',
+                                headerShown: false,
+                                contentStyle: {
+                                  direction: appDirection,
+                                  backgroundColor: 'transparent',
+                                },
                               }
                             : {
-                                headerStyle: {
-                                  backgroundColor: theme.colors.background,
-                                },
-                              }),
-                          headerShadowVisible: false,
-                          headerBackButtonDisplayMode: 'minimal',
-                        }}
+                                title: i18n.t('home:translations.title'),
+                                headerShown: true,
+                                headerTintColor: theme.colors.text,
+                                ...(USE_GLASS
+                                  ? {
+                                      headerTransparent: true,
+                                      headerStyle: {
+                                        backgroundColor: 'transparent',
+                                      },
+                                    }
+                                  : {
+                                      headerStyle: {
+                                        backgroundColor:
+                                          theme.colors.background,
+                                      },
+                                    }),
+                                headerShadowVisible: false,
+                                headerBackButtonDisplayMode: 'minimal',
+                              }
+                        }
                       />
                       {/* @ai-end */}
                     </Stack>
