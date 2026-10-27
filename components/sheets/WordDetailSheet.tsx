@@ -9,7 +9,8 @@ import {
 import {ScaledSheet, moderateScale, verticalScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
-import ActionSheet, {SheetProps} from 'react-native-actions-sheet';
+import {SheetProps} from 'react-native-actions-sheet';
+import ActionSheet from '@/components/sheets/AdaptiveActionSheet';
 import Color from 'color';
 import {wbwDataService, type WBWWord} from '@/services/wbw/WBWDataService';
 import {createAudioPlayer, AudioPlayer} from 'expo-audio';

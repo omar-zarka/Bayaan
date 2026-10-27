@@ -9,10 +9,8 @@ import {
 } from 'react-native';
 import {moderateScale} from '@/utils/scale';
 import {Feather} from '@expo/vector-icons';
-import ActionSheet, {
-  SheetProps,
-  SheetManager,
-} from 'react-native-actions-sheet';
+import {SheetProps, SheetManager} from 'react-native-actions-sheet';
+import ActionSheet from '@/components/sheets/AdaptiveActionSheet';
 import {useTheme} from '@/hooks/useTheme';
 import {usePlaylistsStore} from '@/store/playlistsStore';
 import {downloadSurah} from '@/services/downloadService';

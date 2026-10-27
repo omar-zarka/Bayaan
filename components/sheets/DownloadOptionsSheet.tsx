@@ -4,7 +4,6 @@ import {
   Text,
   Pressable,
   StyleSheet,
-  useWindowDimensions,
   Dimensions,
   Alert,
 } from 'react-native';
@@ -12,11 +11,10 @@ import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
 import {QueueIcon, HeartIcon, PlayIcon} from '@/components/Icons';
+import {SheetProps, SheetManager, ScrollView} from 'react-native-actions-sheet';
 import ActionSheet, {
-  SheetProps,
-  SheetManager,
-  ScrollView,
-} from 'react-native-actions-sheet';
+  useSheetWidth,
+} from '@/components/sheets/AdaptiveActionSheet';
 import {Feather} from '@expo/vector-icons';
 import {useLoved} from '@/hooks/useLoved';
 import Color from 'color';
@@ -58,7 +56,8 @@ export const DownloadOptionsSheet = (props: SheetProps<'download-options'>) => {
   const {theme} = useTheme();
   const styles = createStyles(theme);
   const {t} = useTranslation(['sheets', 'common']);
-  const {width} = useWindowDimensions();
+  // Size HTML from the sheet, which stops at 560pt on iPad. @ai
+  const width = useSheetWidth(); // @ai
   const [showSurahInfo, setShowSurahInfo] = useState(false);
 
   const payload = props.payload;
