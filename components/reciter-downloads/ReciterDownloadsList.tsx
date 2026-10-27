@@ -36,6 +36,7 @@ import i18n from '@/i18n';
 import {getReciterDisplayName} from '@/i18n/format';
 // @ai-start
 import {confirmDestructive} from '@/utils/confirmDestructive';
+import {useLibraryListBottomPadding} from '@/hooks/useBottomInset'; // @ai
 // @ai-end
 // @ai-end
 
@@ -67,6 +68,7 @@ export const ReciterDownloadsList: React.FC<ReciterDownloadsListProps> = ({
   reciterId,
 }) => {
   const {theme} = useTheme();
+  const listBottomPadding = useLibraryListBottomPadding(); // @ai
   const {t} = useTranslation(['collection', 'common']);
   const downloads = useDownloads();
   const {removeDownload} = useDownloadActions();
@@ -93,7 +95,6 @@ export const ReciterDownloadsList: React.FC<ReciterDownloadsListProps> = ({
     },
     listContentContainer: {
       flexGrow: 1,
-      paddingBottom: moderateScale(65),
     },
     emptyText: {
       fontSize: moderateScale(16),
@@ -492,7 +493,10 @@ export const ReciterDownloadsList: React.FC<ReciterDownloadsListProps> = ({
         renderItem={renderItem}
         keyExtractor={getItemKey}
         ListHeaderComponent={ListHeaderComponent}
-        contentContainerStyle={styles.listContentContainer}
+        contentContainerStyle={[
+          styles.listContentContainer,
+          {paddingBottom: listBottomPadding}, // @ai
+        ]}
         contentInsetAdjustmentBehavior="automatic"
         ListEmptyComponent={
           <Text style={styles.emptyText}>{t('reciterDownloads.empty')}</Text>

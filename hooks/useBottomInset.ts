@@ -1,4 +1,5 @@
 import {Platform} from 'react-native';
+import {moderateScale} from 'react-native-size-matters'; // @ai
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
@@ -74,3 +75,30 @@ export function useBottomInset(): number {
     hasTrack,
   }); // @ai
 }
+
+// @ai-start
+/** Phone gap under Library lists for the floating mini player. */
+export const PHONE_LIBRARY_LIST_BOTTOM_PADDING = moderateScale(65);
+
+/**
+ * Bottom padding for Library list screens. Phones keep the gap for the
+ * floating mini player; tablets dock the player in the sidebar, so only the
+ * home-indicator safe area is needed (the phone gap was 109–128pt of dead
+ * space on iPad).
+ */
+export function libraryListBottomPadding({
+  isTablet,
+  safeAreaBottom,
+}: {
+  isTablet: boolean;
+  safeAreaBottom: number;
+}): number {
+  return isTablet ? safeAreaBottom : PHONE_LIBRARY_LIST_BOTTOM_PADDING;
+}
+
+export function useLibraryListBottomPadding(): number {
+  const insets = useSafeAreaInsets();
+  const {isTablet} = useResponsive();
+  return libraryListBottomPadding({isTablet, safeAreaBottom: insets.bottom});
+}
+// @ai-end
