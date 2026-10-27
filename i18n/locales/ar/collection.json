@@ -91,6 +91,8 @@
     "recitationsCount_many": "{{count}} تلاوةً",
     "recitationsCount_other": "{{count}} تلاوة",
     "removeAll": "إزالة كل الملفات المستوردة",
+    "removeAllTitle": "إزالة كل الملفات المستوردة؟",
+    "removeAllConfirm": "سيؤدي هذا إلى حذف جميع التلاوات المستوردة من هذا الجهاز نهائيًا. لا يمكن التراجع عن ذلك.",
     "emptySubtitle": "استورد تلاوات لتظهر هنا",
     "opening": "جارٍ الفتح…",
     "addRecitation": "إضافة تلاوة",

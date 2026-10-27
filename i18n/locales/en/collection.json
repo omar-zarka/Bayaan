@@ -67,6 +67,8 @@
     "recitationsCount_one": "{{count}} recitation",
     "recitationsCount_other": "{{count}} recitations",
     "removeAll": "Remove All Uploads",
+    "removeAllTitle": "Remove All Uploads?",
+    "removeAllConfirm": "This permanently deletes all your imported recitations from this device. This can't be undone.",
     "emptySubtitle": "Upload recitations to see them here",
     "opening": "Opening...",
     "addRecitation": "Add Recitation",
