@@ -41,6 +41,7 @@ export const SleepTimerSheet = (props: SheetProps<'sleep-timer'>) => {
   return (
     <ActionSheet
       id={props.sheetId}
+      tabletPresentation="menu"
       containerStyle={styles.sheetContainer}
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>

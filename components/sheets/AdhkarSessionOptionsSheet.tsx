@@ -28,6 +28,7 @@ export function AdhkarSessionOptionsSheet(
   return (
     <ActionSheet
       id={sheetId}
+      tabletPresentation="menu" // @ai
       containerStyle={styles.sheetContainer}
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>

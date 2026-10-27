@@ -26,6 +26,7 @@ export const CollectionOptionsSheet = (
   return (
     <ActionSheet
       id={props.sheetId}
+      tabletPresentation="menu" // @ai
       containerStyle={styles.sheetContainer}
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>
