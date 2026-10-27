@@ -69,7 +69,6 @@
     "number": "Number"
   },
   "randomHero": {
-    "finding": "Finding random recitations from different reciters...",
     "findFailed": "Failed to find random recitations. Please try again.",
     "playing": "Playing {{surah}} by {{reciter}}",
     "playFailed": "Failed to play random recitation. Please try again.",
