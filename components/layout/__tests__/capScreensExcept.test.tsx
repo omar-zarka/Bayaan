@@ -15,15 +15,21 @@ function render(routeName: string) {
   let renderer!: TestRenderer.ReactTestRenderer;
   act(() => {
     renderer = TestRenderer.create(
-      layout({route: {name: routeName}, children: <Text>screen</Text>}),
+      <>{layout({route: {name: routeName}, children: <Text>screen</Text>})}</>,
     );
   });
   return renderer;
 }
 
+// Compared by identity: react-test-renderer's own React types do not
+// accept React Native component classes in findAllByType.
+function views(renderer: TestRenderer.ReactTestRenderer) {
+  const view: unknown = View;
+  return renderer.root.findAll(node => node.type === view);
+}
+
 function columnWidths(renderer: TestRenderer.ReactTestRenderer) {
-  return renderer.root
-    .findAllByType(View)
+  return views(renderer)
     .map(view => StyleSheet.flatten(view.props.style)?.maxWidth)
     .filter(Boolean);
 }
@@ -45,7 +51,7 @@ describe('capScreensExcept on tablets', () => {
 describe('capScreensExcept on phones', () => {
   it('leaves every route unwrapped', () => {
     mockResponsive.isTablet = false;
-    expect(render('reciter/[id]').root.findAllByType(View)).toHaveLength(0);
-    expect(render('index').root.findAllByType(View)).toHaveLength(0);
+    expect(views(render('reciter/[id]'))).toHaveLength(0);
+    expect(views(render('index'))).toHaveLength(0);
   });
 });
