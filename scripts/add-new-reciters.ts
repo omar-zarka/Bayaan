@@ -95,7 +95,7 @@ const RECITERS: NewReciter[] = [
     ],
   },
   {
-    slug: 'yusuf-alaidroos',
+    slug: 'yusuf-al-aidroos',
     name: 'Yusuf Al-Aidroos',
     name_arabic: 'يوسف العيدروس',
     rewayat: [
@@ -143,7 +143,7 @@ const RECITERS: NewReciter[] = [
     ],
   },
   {
-    slug: 'khalid-alziyadi',
+    slug: 'khalid-al-ziyadi',
     name: 'Khalid Al-Ziyadi',
     name_arabic: 'خالد الزيادي',
     rewayat: [
@@ -287,7 +287,7 @@ const RECITERS: NewReciter[] = [
     ],
   },
   {
-    slug: 'alwaleed-alshamsan',
+    slug: 'alwaleed-al-shamsan',
     name: 'Alwaleed Al-Shamsan',
     name_arabic: 'الوليد الشمسان',
     rewayat: [
