@@ -11,11 +11,26 @@
  * Usage: npm run add:new-reciters -- [--dry-run]
  */
 
-const ADMIN_URL = process.env.BAYAAN_ADMIN_URL || process.env.EXPO_PUBLIC_BAYAAN_API_URL;
-const ADMIN_TOKEN = process.env.BAYAAN_ADMIN_TOKEN;
+const ADMIN_URL =
+  process.env.BAYAAN_ADMIN_URL || process.env.BAYAAN_API_URL || process.env.EXPO_PUBLIC_BAYAAN_API_URL;
+// Either a ready-made admin token, or the same email/password login the
+// other catalogue scripts use.
+let ADMIN_TOKEN = process.env.BAYAAN_ADMIN_TOKEN;
+const {ADMIN_EMAIL, ADMIN_PASSWORD} = process.env;
 
-if (!ADMIN_URL || !ADMIN_TOKEN) {
-  throw new Error('Set BAYAAN_ADMIN_URL and BAYAAN_ADMIN_TOKEN.');
+if (!ADMIN_URL || (!ADMIN_TOKEN && !(ADMIN_EMAIL && ADMIN_PASSWORD))) {
+  throw new Error('Set BAYAAN_ADMIN_URL plus BAYAAN_ADMIN_TOKEN, or ADMIN_EMAIL and ADMIN_PASSWORD.');
+}
+
+async function login(): Promise<string> {
+  const res = await fetch(`${ADMIN_URL}/admin/auth/login`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: ADMIN_EMAIL, password: ADMIN_PASSWORD}),
+  });
+  if (!res.ok) throw new Error(`admin login ${res.status}: ${await res.text()}`);
+  const json = (await res.json()) as {data: {token: string}};
+  return json.data.token;
 }
 
 const dryRun = process.argv.includes('--dry-run');
@@ -408,6 +423,7 @@ async function addToExisting(r: NewReciter): Promise<void> {
 }
 
 async function main(): Promise<void> {
+  if (!dryRun && !ADMIN_TOKEN) ADMIN_TOKEN = await login();
   for (const r of RECITERS) {
     if (dryRun) {
       const action = r.existing ? 'add to existing' : 'create';
