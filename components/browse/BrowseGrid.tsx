@@ -185,23 +185,32 @@ const BrowseGrid = React.memo(
 
     return (
       <View style={styles.container} onLayout={handleLayout}>
-        <LegendList
-          data={itemRows}
-          renderItem={renderRow}
-          keyExtractor={keyExtractor}
-          contentContainerStyle={styles.gridContainer}
-          scrollIndicatorInsets={{bottom: bottomInset}}
-          estimatedItemSize={itemDimensions.height}
-          recycleItems
-          drawDistance={2000}
-          showsVerticalScrollIndicator={false}
-          ListFooterComponent={renderFooter}
-          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
-          waitForInitialLayout
-          onEndReachedThreshold={0.5}
-          maintainVisibleContentPosition
-          onScrollBeginDrag={onScrollBeginDrag}
-        />
+        {/* @ai-start */}
+        {/* Wait for the measured width: LegendList recycles rows drawn at the
+            window-width guess and keeps them stale after onLayout reports.
+            extraData redraws rows when the width changes later (rotation,
+            Split View). */}
+        {containerWidth !== null && (
+          <LegendList
+            data={itemRows}
+            extraData={itemDimensions}
+            renderItem={renderRow}
+            keyExtractor={keyExtractor}
+            contentContainerStyle={styles.gridContainer}
+            scrollIndicatorInsets={{bottom: bottomInset}}
+            estimatedItemSize={itemDimensions.height}
+            recycleItems
+            drawDistance={2000}
+            showsVerticalScrollIndicator={false}
+            ListFooterComponent={renderFooter}
+            keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+            waitForInitialLayout
+            onEndReachedThreshold={0.5}
+            maintainVisibleContentPosition
+            onScrollBeginDrag={onScrollBeginDrag}
+          />
+        )}
+        {/* @ai-end */}
       </View>
     );
   },
