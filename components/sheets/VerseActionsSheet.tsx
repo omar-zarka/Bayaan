@@ -768,6 +768,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
             <View style={styles.backRowContainer}>
               <Pressable
                 onPress={handleBack}
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.backRow,
                   pressed && {opacity: 0.6},
@@ -798,7 +799,10 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                     styles.settingsButton,
                     pressed && {opacity: 0.6},
                   ]}
-                  hitSlop={8}>
+                  hitSlop={8}
+                  // @ai
+                  accessibilityRole="button"
+                  accessibilityLabel={t('sheets:verseActions.contentSettings')}>
                   <Feather
                     name="settings"
                     size={moderateScale(16)}
@@ -917,6 +921,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
             {/* LISTEN */}
             <View style={styles.card}>
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -937,6 +942,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
               </Pressable>
               <View style={styles.divider} />
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -961,6 +967,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
             {/* STUDY */}
             <View style={styles.card}>
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -979,6 +986,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
               </Pressable>
               <View style={styles.divider} />
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -1004,6 +1012,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
               </Pressable>
               <View style={styles.divider} />
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -1022,6 +1031,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
             {/* EXPLORE */}
             <View style={styles.card}>
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -1040,6 +1050,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                 <>
                   <View style={styles.divider} />
                   <Pressable
+                    accessibilityRole="button" // @ai
                     style={({pressed}) => [
                       styles.option,
                       pressed && styles.optionPressed,
@@ -1059,6 +1070,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                 <>
                   <View style={styles.divider} />
                   <Pressable
+                    accessibilityRole="button" // @ai
                     style={({pressed}) => [
                       styles.option,
                       pressed && styles.optionPressed,
@@ -1078,6 +1090,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                 <>
                   <View style={styles.divider} />
                   <Pressable
+                    accessibilityRole="button" // @ai
                     style={({pressed}) => [
                       styles.option,
                       pressed && styles.optionPressed,
@@ -1101,6 +1114,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                 <>
                   <View style={styles.divider} />
                   <Pressable
+                    accessibilityRole="button" // @ai
                     style={({pressed}) => [
                       styles.option,
                       pressed && styles.optionPressed,
@@ -1121,6 +1135,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                 <>
                   <View style={styles.divider} />
                   <Pressable
+                    accessibilityRole="button" // @ai
                     style={({pressed}) => [
                       styles.option,
                       pressed && styles.optionPressed,
@@ -1140,6 +1155,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
                 <>
                   <View style={styles.divider} />
                   <Pressable
+                    accessibilityRole="button" // @ai
                     style={({pressed}) => [
                       styles.option,
                       pressed && styles.optionPressed,
@@ -1160,6 +1176,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
             {/* SHARE */}
             <View style={styles.card}>
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
@@ -1187,6 +1204,7 @@ export const VerseActionsSheet = (props: SheetProps<'verse-actions'>) => {
               </Pressable>
               <View style={styles.divider} />
               <Pressable
+                accessibilityRole="button" // @ai
                 style={({pressed}) => [
                   styles.option,
                   pressed && styles.optionPressed,
