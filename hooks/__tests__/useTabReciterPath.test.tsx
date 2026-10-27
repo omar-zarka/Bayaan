@@ -10,8 +10,8 @@ jest.mock('expo-router', () => ({
   useRouter: () => ({push: mockPush}),
 }));
 jest.mock('@/services/player/store/playerStore', () => ({
-  usePlayerStore: (select: (s: {setSheetMode: () => void}) => unknown) =>
-    select({setSheetMode: () => {}}),
+  usePlayerStore: (select: (s: {setSheetMode: jest.Mock}) => unknown) =>
+    select({setSheetMode: jest.fn()}),
 }));
 
 import {
