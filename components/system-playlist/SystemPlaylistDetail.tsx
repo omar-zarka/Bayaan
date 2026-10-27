@@ -28,6 +28,8 @@ import {Reciter} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTrack} from '@/utils/track';
+import {queueFromIndex} from '@/utils/queueFromIndex'; // @ai
+import {shuffleArray} from '@/utils/arrayUtils'; // @ai
 import {moderateScale} from 'react-native-size-matters';
 import {SystemPlaylistHeader} from './SystemPlaylistHeader';
 import {SystemPlaylist} from '@/data/systemPlaylists';
@@ -308,6 +310,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
       startIndex = 0,
     ): Promise<{
       tracks: Awaited<ReturnType<typeof createTrack>>[];
+      startIndex: number; // @ai
       reciter: Reciter;
       rewayatId: string;
     } | null> => {
@@ -330,19 +333,17 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
           );
         });
 
-        const allTracks = (await Promise.all(trackPromises)).filter(
-          (track): track is NonNullable<typeof track> => track !== null,
+        // @ai-start
+        const queue = queueFromIndex(
+          await Promise.all(trackPromises),
+          startIndex,
         );
-
-        if (allTracks.length === 0) return null;
-
-        const reorderedTracks = [
-          ...allTracks.slice(startIndex),
-          ...allTracks.slice(0, startIndex),
-        ];
+        if (queue.tracks.length === 0) return null;
+        // @ai-end
 
         return {
-          tracks: reorderedTracks,
+          tracks: queue.tracks,
+          startIndex: queue.startIndex, // @ai
           reciter: selectedReciter,
           rewayatId: selectedRewayatId,
         };
@@ -360,6 +361,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
       startIndex = 0,
     ): Promise<{
       tracks: Awaited<ReturnType<typeof createTrack>>[];
+      startIndex: number; // @ai
       reciter: Reciter;
       rewayatId?: string;
     } | null> => {
@@ -375,22 +377,20 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
           );
         });
 
-        const allTracks = (await Promise.all(trackPromises)).filter(
-          (track): track is NonNullable<typeof track> => track !== null,
+        // @ai-start
+        const queue = queueFromIndex(
+          await Promise.all(trackPromises),
+          startIndex,
         );
-
-        if (allTracks.length === 0) return null;
-
-        const reorderedTracks = [
-          ...allTracks.slice(startIndex),
-          ...allTracks.slice(0, startIndex),
-        ];
+        if (queue.tracks.length === 0) return null;
+        // @ai-end
 
         const firstItem = playlistData[startIndex] || playlistData[0];
         if (!firstItem?.reciter) return null;
 
         return {
-          tracks: reorderedTracks,
+          tracks: queue.tracks,
+          startIndex: queue.startIndex, // @ai
           reciter: firstItem.reciter,
           rewayatId: firstItem.track.rewayatId,
         };
@@ -408,6 +408,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
     try {
       let result: {
         tracks: Awaited<ReturnType<typeof createTrack>>[];
+        startIndex: number; // @ai
         reciter: Reciter;
         rewayatId?: string;
       } | null;
@@ -458,6 +459,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
     try {
       let result: {
         tracks: Awaited<ReturnType<typeof createTrack>>[];
+        startIndex: number; // @ai
         reciter: Reciter;
         rewayatId?: string;
       } | null;
@@ -471,7 +473,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
       if (!result || result.tracks.length === 0) return;
 
       // Shuffle the tracks
-      const shuffledTracks = [...result.tracks].sort(() => Math.random() - 0.5);
+      const shuffledTracks = shuffleArray(result.tracks); // @ai
 
       await updateQueue(shuffledTracks, 0);
       await play();
@@ -519,6 +521,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
       try {
         let result: {
           tracks: Awaited<ReturnType<typeof createTrack>>[];
+          startIndex: number; // @ai
           reciter: Reciter;
           rewayatId?: string;
         } | null;
@@ -532,7 +535,7 @@ const SystemPlaylistDetail: React.FC<SystemPlaylistDetailProps> = ({
 
         if (!result || result.tracks.length === 0) return;
 
-        await updateQueue(result.tracks, 0);
+        await updateQueue(result.tracks, result.startIndex); // @ai
         await play();
 
         // Add the selected track to recent history
