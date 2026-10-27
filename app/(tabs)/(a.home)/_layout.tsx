@@ -53,10 +53,6 @@ export default function HomeLayout() {
         <Stack.Screen name="settings/reciter-choice" options={{}} />
         <Stack.Screen name="settings/account" options={{}} />
         <Stack.Screen
-          name="translations"
-          options={{title: t('translations.title')}}
-        />
-        <Stack.Screen
           name="browse-all"
           options={{
             title: t('browse.browseAll'),
