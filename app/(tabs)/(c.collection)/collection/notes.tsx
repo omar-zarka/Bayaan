@@ -31,6 +31,7 @@ import {getSurahDisplayName} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
 import {describeSavedVerseNow} from '@/hooks/useSavedVerseDescription';
 import {savedVerseSubtitle} from '@/services/verse-annotations/unitAnnotations';
+import {savedVerseOpenParams} from '@/services/verse-annotations/openSavedVerse'; // @ai
 // @ai-end
 
 interface NoteData {
@@ -109,6 +110,25 @@ const NotesScreen = () => {
     });
   }, []);
 
+  // @ai-start
+  const openingRef = useRef(false);
+  const handleOpenVerse = useCallback(
+    async (note: VerseNote) => {
+      if (openingRef.current) return;
+      openingRef.current = true;
+      try {
+        router.push({
+          pathname: '/mushaf',
+          params: await savedVerseOpenParams(note),
+        });
+      } finally {
+        openingRef.current = false;
+      }
+    },
+    [router],
+  );
+  // @ai-end
+
   const handleOptionsPress = useCallback(
     (item: NoteData) => {
       SheetManager.show('collection-options', {
@@ -121,6 +141,13 @@ const NotesScreen = () => {
             number => t('common:labels.ayahNumber', {number}),
           ),
           options: [
+            // @ai-start
+            {
+              label: t('notesScreen.openVerse'),
+              icon: 'book-open',
+              onPress: () => handleOpenVerse(item.note),
+            },
+            // @ai-end
             {
               label: t('notesScreen.editNote'),
               icon: 'edit-2',
@@ -136,7 +163,7 @@ const NotesScreen = () => {
         },
       });
     },
-    [handleDeleteNote, handleNotePress, t],
+    [handleDeleteNote, handleNotePress, handleOpenVerse, t],
   );
 
   const heroOuterBg = Color(theme.colors.textSecondary).alpha(0.1).toString();

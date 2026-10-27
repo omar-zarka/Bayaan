@@ -18,7 +18,6 @@ import {ListRenderItem} from 'react-native';
 import {getSurahById} from '@/services/dataService';
 import {verseAnnotationService} from '@/services/verse-annotations/VerseAnnotationService';
 import {useVerseAnnotationsStore} from '@/store/verseAnnotationsStore';
-import {digitalKhattDataService} from '@/services/mushaf/DigitalKhattDataService';
 import {BookmarkItem} from '@/components/collection/BookmarkItem';
 import {CollectionStickyHeader} from '@/components/collection/CollectionStickyHeader';
 import {SheetManager} from 'react-native-actions-sheet';
@@ -34,12 +33,9 @@ import i18n from '@/i18n';
 import {getSurahDisplayName} from '@/i18n/format';
 import {flipX} from '@/utils/rtl';
 // @ai-start
-import {restoreSavedRewayah} from '@/services/verse-annotations/restoreSavedRewayah';
+import {savedVerseOpenParams} from '@/services/verse-annotations/openSavedVerse';
 import {describeSavedVerseNow} from '@/hooks/useSavedVerseDescription';
-import {
-  savedVerseRouteParams,
-  savedVerseSubtitle,
-} from '@/services/verse-annotations/unitAnnotations';
+import {savedVerseSubtitle} from '@/services/verse-annotations/unitAnnotations';
 // @ai-end
 
 interface BookmarkData {
@@ -108,20 +104,9 @@ const BookmarksScreen = () => {
       if (openingRef.current) return;
       openingRef.current = true;
       try {
-        const verseKey = `${bookmark.surahNumber}:${bookmark.ayahNumber}`;
-        const surahStartPages = digitalKhattDataService.getSurahStartPages();
-        const fallbackPage = surahStartPages[bookmark.surahNumber] || 1;
-        // Restore the rewayah the bookmark was saved in so the opened verse
-        // matches what the user was reading at save time.
-        await restoreSavedRewayah(bookmark.rewayahId);
-        const page = digitalKhattDataService.getPageForVerse(verseKey);
-        // The page of the anchor's Hafs verse is the page the saved verse
-        // starts on. A bookmark saved in a non-Hafs rewayah also passes its
-        // anchor, so the mushaf selects exactly that rewayah verse (the two
-        // parts of a split Hafs verse are different bookmarks).
         router.push({
           pathname: '/mushaf',
-          params: savedVerseRouteParams(bookmark, page || fallbackPage),
+          params: await savedVerseOpenParams(bookmark),
         });
       } finally {
         openingRef.current = false;
