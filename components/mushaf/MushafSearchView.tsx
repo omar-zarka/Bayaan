@@ -16,7 +16,7 @@ import {
   FlashList,
   type ListRenderItemInfo as FlashListRenderItemInfo,
 } from '@shopify/flash-list';
-import {moderateScale as ms} from 'react-native-size-matters';
+import {moderateScale as ms} from '@/utils/scale';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '@/hooks/useTheme';
 import {Feather} from '@expo/vector-icons';

@@ -3,7 +3,7 @@ import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {GestureDetector} from 'react-native-gesture-handler';
 import {usePathname} from 'expo-router';
 import {useTheme} from '@/hooks/useTheme';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {expandPlayerSheet} from '@/services/player/sheetRef';

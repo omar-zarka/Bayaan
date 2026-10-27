@@ -23,7 +23,7 @@ import {
   Link,
 } from 'expo-router';
 import {Ionicons, Feather} from '@expo/vector-icons';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useAdhkar} from '@/hooks/useAdhkar';
 import {useTheme} from '@/hooks/useTheme';

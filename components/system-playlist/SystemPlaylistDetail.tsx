@@ -30,7 +30,7 @@ import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTrack} from '@/utils/track';
 import {queueFromIndex} from '@/utils/queueFromIndex'; // @ai
 import {shuffleArray} from '@/utils/arrayUtils'; // @ai
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {SystemPlaylistHeader} from './SystemPlaylistHeader';
 import {SystemPlaylist} from '@/data/systemPlaylists';
 // @ai-start

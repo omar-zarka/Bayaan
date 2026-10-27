@@ -16,7 +16,7 @@ import {Surah} from '@/data/surahData';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTrack, createUserUploadTrack} from '@/utils/track';
 import {useUploadsStore} from '@/store/uploadsStore';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {Feather} from '@expo/vector-icons';
 import {PlaylistHeader} from './PlaylistHeader';
 import {SheetManager} from 'react-native-actions-sheet';

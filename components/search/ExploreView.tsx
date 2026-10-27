@@ -8,7 +8,7 @@ import {
   LayoutChangeEvent,
 } from 'react-native';
 import {Link} from 'expo-router';
-import {moderateScale, scale} from 'react-native-size-matters';
+import {moderateScale, scale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {useWindowDimensions} from 'react-native';
 import Color from 'color';

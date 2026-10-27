@@ -1,6 +1,6 @@
 import React, {useState} from 'react';
 import {View, Text, Pressable, Dimensions, StyleSheet} from 'react-native';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import ActionSheet, {
   SheetProps,

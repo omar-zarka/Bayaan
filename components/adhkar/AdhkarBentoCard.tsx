@@ -2,7 +2,7 @@ import React from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {LinearGradient} from 'expo-linear-gradient';
 import {Image} from 'expo-image';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import Color from 'color';
 import {useTheme} from '@/hooks/useTheme';
 import {SuperCategory} from '@/types/adhkar';

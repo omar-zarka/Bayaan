@@ -9,7 +9,7 @@ import {
 import {useTheme} from '@/hooks/useTheme';
 import {SurahItem} from '@/components/SurahItem';
 import {getReciterById, getSurahById} from '@/services/dataService';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {ListRenderItem} from 'react-native';
 import {Reciter} from '@/data/reciterData';
 import {Surah} from '@/data/surahData';

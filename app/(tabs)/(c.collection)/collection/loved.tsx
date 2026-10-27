@@ -14,7 +14,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useRouter} from 'expo-router';
 import {TrackItem} from '@/components/TrackItem';
 import {getReciterById, getSurahById} from '@/services/dataService';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {Feather} from '@expo/vector-icons';
 import {ListRenderItem} from 'react-native';
 import {Reciter} from '@/data/reciterData';

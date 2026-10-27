@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   type ScrollViewProps,
 } from 'react-native';
-import {moderateScale, verticalScale} from 'react-native-size-matters';
+import {moderateScale, verticalScale} from '@/utils/scale';
 import SegmentedControl from '@react-native-segmented-control/segmented-control';
 import {
   Canvas,

@@ -7,7 +7,7 @@ import ActionSheet, {
   type SheetProps,
 } from 'react-native-actions-sheet';
 import {Feather} from '@expo/vector-icons';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
 import {useAdhkarSessionStore} from '@/store/adhkarSessionStore';
