@@ -1,10 +1,11 @@
-import React, {useMemo} from 'react';
+import React, {useCallback, useMemo, useState} from 'react'; // @ai
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
+  type LayoutChangeEvent, // @ai
 } from 'react-native';
 import {moderateScale, scale} from 'react-native-size-matters';
 import {useTheme} from '@/hooks/useTheme';
@@ -92,6 +93,23 @@ const CategoryGrid = React.memo(function CategoryGrid({
 });
 
 // @ai-start
+// @ai-start
+/**
+ * Two-column tile size for a grid `width` wide (the measured container).
+ * Cards are 3:2, wider than tall.
+ */
+export function adhkarTileDimensions(width: number, gap: number) {
+  const horizontalPadding = scale(width < 375 ? 12 : 16);
+  const availableWidth = Math.max(0, width - horizontalPadding * 2);
+  const columnWidth = Math.max(0, (availableWidth - gap) / 2);
+  return {
+    columnWidth,
+    cardHeight: columnWidth * (2 / 3),
+    horizontalPadding,
+  };
+}
+// @ai-end
+
 export const AdhkarView: React.FC<AdhkarViewProps> = ({
   onCategoryPress,
   onSavedPress,
@@ -107,24 +125,24 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({
     superCategoriesLoaded,
     savedIds,
   } = useAdhkar();
-  const {width} = useWindowDimensions();
+  const {width: windowWidth} = useWindowDimensions();
   const hasAdhkarSession = useHasAdhkarSession();
+  // @ai-start
+  // Size the grid from the scroll view's own width, not the window: on iPad
+  // it sits in a capped column beside the sidebar, where window-sized cards
+  // no longer fit two per row. The window is only a first guess.
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    const next = e.nativeEvent.layout.width;
+    if (next > 0) setContainerWidth(prev => (prev === next ? prev : next));
+  }, []);
+  const width = containerWidth ?? windowWidth;
 
-  // Calculate column dimensions
-  const tileDimensions = useMemo(() => {
-    const horizontalPadding = scale(width < 375 ? 12 : 16);
-    const gap = CARD_GAP;
-    const availableWidth = width - horizontalPadding * 2;
-    const columnWidth = (availableWidth - gap) / 2;
-    // 3:2 aspect ratio — cards are wider than tall
-    const cardHeight = columnWidth * (2 / 3);
-
-    return {
-      columnWidth,
-      cardHeight,
-      horizontalPadding,
-    };
-  }, [width]);
+  const tileDimensions = useMemo(
+    () => adhkarTileDimensions(width, CARD_GAP),
+    [width],
+  );
+  // @ai-end
 
   // Interleave categories for row-major grid order
   const mainCategories = useMemo(
@@ -167,6 +185,7 @@ export const AdhkarView: React.FC<AdhkarViewProps> = ({
         },
       ]}
       contentInsetAdjustmentBehavior="never"
+      onLayout={handleLayout} // @ai
       showsVerticalScrollIndicator={false}>
       {/* Saved Hero Section - only shows when there are saved adhkar */}
       {hasAdhkarSession && (
