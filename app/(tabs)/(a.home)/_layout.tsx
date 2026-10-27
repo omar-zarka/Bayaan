@@ -42,7 +42,14 @@ export default function HomeLayout() {
             headerShown: USE_GLASS,
           }}
         />
-        <Stack.Screen name="playlist/[id]" options={{title: ''}} />
+        <Stack.Screen
+          name="playlist/[id]"
+          options={{
+            title: '',
+            // Non-glass devices use CollectionStickyHeader's own back button
+            headerShown: USE_GLASS,
+          }}
+        />
         <Stack.Screen name="adhkar" options={{headerShown: false}} />
         <Stack.Screen
           name="browse-all"
