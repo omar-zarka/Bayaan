@@ -57,7 +57,7 @@ it('sizes the two columns from the measured container, not the window', () => {
       />,
     );
   });
-  const scroll = r!.root.findByType(ScrollView);
+  const [scroll] = r!.root.findAll(n => (n.type as unknown) === ScrollView);
   mockCards.length = 0;
   act(() => {
     scroll.props.onLayout({nativeEvent: {layout: {width: 720, height: 900}}});
