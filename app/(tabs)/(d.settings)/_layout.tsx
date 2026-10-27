@@ -57,7 +57,6 @@ export default function SettingsLayout() {
           name="reciter-choice"
           options={{title: t('layout.reciterChoice')}}
         />
-        <Stack.Screen name="account" options={{title: t('layout.account')}} />
         <Stack.Screen
           name="translations"
           options={{title: t('layout.translations')}}
