@@ -8,6 +8,7 @@ type SheetProps = {
   id?: string;
   gestureEnabled?: boolean;
   animated?: boolean;
+  overlayColor?: string;
   children?: React.ReactNode;
 };
 const mockSheetProps: SheetProps[] = [];
@@ -64,6 +65,22 @@ const base = {
 
 const mounted: TestRenderer.ReactTestRenderer[] = [];
 
+/** The view the sheet's own background color lands on. */
+function findCard(renderer: TestRenderer.ReactTestRenderer) {
+  const view: unknown = View;
+  const card = renderer.root.findAll(
+    node =>
+      node.type === view &&
+      StyleSheet.flatten(node.props.style)?.backgroundColor === 'white',
+  )[0];
+  return card ? (StyleSheet.flatten(card.props.style) as ViewStyle) : null;
+}
+
+/** Props the library sheet with this id last rendered with. */
+function latestSheetProps(id: string) {
+  return mockSheetProps.filter(sheet => sheet.id === id).at(-1);
+}
+
 function render(tabletPresentation?: TabletPresentation, id = 'surah-options') {
   let renderer!: TestRenderer.ReactTestRenderer;
   act(() => {
@@ -77,17 +94,16 @@ function render(tabletPresentation?: TabletPresentation, id = 'surah-options') {
     );
   });
   mounted.push(renderer);
-  const view: unknown = View;
-  // The card is the view the sheet's own background color lands on.
-  const card = renderer.root.findAll(
-    node =>
-      node.type === view &&
-      StyleSheet.flatten(node.props.style)?.backgroundColor === 'white',
-  )[0];
   return {
-    sheet: mockSheetProps[mockSheetProps.length - 1],
-    card: card ? (StyleSheet.flatten(card.props.style) as ViewStyle) : null,
+    renderer,
+    sheet: latestSheetProps(id) as SheetProps,
+    card: findCard(renderer),
   };
+}
+
+function close(renderer: TestRenderer.ReactTestRenderer) {
+  act(() => renderer.unmount());
+  mounted.splice(mounted.indexOf(renderer), 1);
 }
 
 beforeEach(() => {
@@ -137,18 +153,39 @@ it('floats a menu beside the tap that opened it', () => {
   });
 });
 
-it('closes an open menu when another sheet opens over it', () => {
+it('hides a menu under the sheet its item opens, and closes it after', () => {
+  Object.assign(mockResponsive, {width: 1032, isTablet: true});
+  mockTouch = {x: 900, y: 400};
+  const menu = render('menu', 'surah-options');
+  const playlists = render('card', 'select-playlist');
+  // The menu stays open, because the new sheet renders inside it.
+  expect(mockHide).not.toHaveBeenCalled();
+  expect(findCard(menu.renderer)).toMatchObject({opacity: 0});
+  expect(latestSheetProps('surah-options')?.overlayColor).toBe('transparent');
+  expect(latestSheetProps('select-playlist')?.overlayColor).toBeUndefined();
+
+  close(playlists.renderer);
+  expect(mockHide.mock.calls).toEqual([['surah-options']]);
+});
+
+it('keeps the menu open until the sheet over it closes', () => {
   Object.assign(mockResponsive, {width: 1032, isTablet: true});
   mockTouch = {x: 900, y: 400};
   render('menu', 'surah-options');
-  render('card', 'select-playlist');
+  const playlists = render('card', 'select-playlist');
+  const create = render('card', 'create-playlist');
+  close(create.renderer);
+  expect(mockHide).not.toHaveBeenCalled();
+  close(playlists.renderer);
   expect(mockHide.mock.calls).toEqual([['surah-options']]);
 });
 
 it('leaves an open card under the sheet that opens over it', () => {
   Object.assign(mockResponsive, {width: 1032, isTablet: true});
-  render('card', 'select-playlist');
-  render('card', 'create-playlist');
+  const playlists = render('card', 'select-playlist');
+  const create = render('card', 'create-playlist');
+  expect(findCard(playlists.renderer)?.opacity).toBeUndefined();
+  close(create.renderer);
   expect(mockHide).not.toHaveBeenCalled();
 });
 

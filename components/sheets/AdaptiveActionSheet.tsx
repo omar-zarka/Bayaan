@@ -137,12 +137,20 @@ export function toCardStyle(
   };
 }
 
+interface OpenMenu {
+  /** Hides the menu from view while it stays open. */
+  cover: () => void;
+  hide: () => void;
+}
+
 /**
- * Hides each iPad menu showing now. Any sheet that opens closes them, the
- * way choosing an item closes a menu on iPad, so a menu item that opens
- * another sheet does not leave the menu behind it.
+ * iPad menus showing now. A sheet that opens over a menu covers it and
+ * closes it once the sheet itself closes, so choosing an item that opens
+ * another sheet looks like an iPad menu closing as the sheet appears. The
+ * menu cannot close right away: a sheet shown from inside another sheet
+ * renders in that sheet's nested provider and would close along with it.
  */
-const openMenus = new Set<() => void>();
+const openMenus = new Set<OpenMenu>();
 
 type TabletSheetProps = Omit<AdaptiveActionSheetProps, 'tabletPresentation'> & {
   presentation: TabletPresentation;
@@ -174,19 +182,30 @@ const TabletSheet = forwardRef<ActionSheetRef, TabletSheetProps>(
     const [touch] = useState(getRecentTouch);
     const [area, setArea] = useState<Size | null>(null);
     const [menu, setMenu] = useState<Size | null>(null);
+    const [covered, setCovered] = useState(false);
     const asMenu = presentation === 'menu' && touch !== null;
 
     useEffect(() => {
-      openMenus.forEach(hideMenu => hideMenu());
+      // Only the first sheet over a menu owns it, so a sheet stacked on top
+      // of that one does not close the menu early when it closes.
+      const coveredMenus = [...openMenus];
+      coveredMenus.forEach(openMenu => {
+        openMenus.delete(openMenu);
+        openMenu.cover();
+      });
+      return () => coveredMenus.forEach(openMenu => openMenu.hide());
     }, []);
     useEffect(() => {
       if (!asMenu) {
         return;
       }
-      const hideMenu = () => sheetRef.current?.hide();
-      openMenus.add(hideMenu);
+      const openMenu: OpenMenu = {
+        cover: () => setCovered(true),
+        hide: () => sheetRef.current?.hide(),
+      };
+      openMenus.add(openMenu);
       return () => {
-        openMenus.delete(hideMenu);
+        openMenus.delete(openMenu);
       };
     }, [asMenu]);
 
@@ -232,7 +251,8 @@ const TabletSheet = forwardRef<ActionSheetRef, TabletSheetProps>(
         animated={asMenu ? false : props.animated}
         defaultOverlayOpacity={
           asMenu ? MENU_OVERLAY_OPACITY : props.defaultOverlayOpacity
-        }>
+        }
+        overlayColor={covered ? 'transparent' : props.overlayColor}>
         <Pressable
           accessible={false}
           onLayout={handleAreaLayout}
@@ -241,6 +261,9 @@ const TabletSheet = forwardRef<ActionSheetRef, TabletSheetProps>(
           <View
             onLayout={asMenu ? handleMenuLayout : undefined}
             onStartShouldSetResponder={claimTouch}
+            pointerEvents={covered ? 'none' : 'auto'}
+            accessibilityElementsHidden={covered}
+            importantForAccessibility={covered ? 'no-hide-descendants' : 'auto'}
             style={[
               toCardStyle(
                 containerStyle,
@@ -257,6 +280,7 @@ const TabletSheet = forwardRef<ActionSheetRef, TabletSheetProps>(
                   ]
                 : styles.card,
               {maxHeight},
+              covered && styles.covered,
             ]}>
             {children}
           </View>
@@ -310,6 +334,9 @@ const styles = StyleSheet.create({
     width: MENU_WIDTH,
   },
   measuring: {
+    opacity: 0,
+  },
+  covered: {
     opacity: 0,
   },
   shadow: {
