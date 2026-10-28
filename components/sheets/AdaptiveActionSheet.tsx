@@ -80,16 +80,24 @@ const clamp = (value: number, min: number, max: number) =>
   Math.max(min, Math.min(value, max));
 
 /**
- * Top-left corner for a menu opened by a tap at `anchor`. It opens away from
- * the nearer side edge, below the tap when it fits and above it otherwise,
- * and never closer than `EDGE_MARGIN` to the edges of `area`.
+ * Top-left corner for a menu opened by a tap at `anchor`. A tap in the outer
+ * thirds opens it away from the nearer side edge; a tap in the middle third
+ * (a wide button or row) centers it under the tap, so it does not spill
+ * over a sidebar. It opens below the tap when it fits and above it
+ * otherwise, and never closer than `EDGE_MARGIN` to the edges of `area`.
  */
 export function placeMenu(
   anchor: TouchPoint,
   menu: Size,
   area: Size,
 ): TouchPoint {
-  const x = anchor.x > area.width / 2 ? anchor.x - menu.width : anchor.x;
+  const third = area.width / 3;
+  const x =
+    anchor.x < third
+      ? anchor.x
+      : anchor.x > 2 * third
+        ? anchor.x - menu.width
+        : anchor.x - menu.width / 2;
   const fitsBelow =
     anchor.y + ANCHOR_CLEARANCE + menu.height <= area.height - EDGE_MARGIN;
   const y = fitsBelow
