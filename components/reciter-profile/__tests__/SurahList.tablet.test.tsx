@@ -2,7 +2,7 @@
 import React from 'react';
 import {InteractionManager, StyleSheet} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
-import {SurahList} from '../components/SurahList';
+import {SurahList, SurahListTableHeader} from '../components/SurahList';
 import {SURAHS} from '@/data/surahData';
 
 jest.mock('@/hooks/useTheme', () => ({
@@ -56,7 +56,11 @@ beforeEach(() => {
     });
 });
 
-function render(props: {viewMode: 'list' | 'card'; tabletMargin?: number}) {
+function render(props: {
+  viewMode: 'list' | 'card';
+  tabletMargin?: number;
+  hideTableHeader?: boolean;
+}) {
   let renderer!: TestRenderer.ReactTestRenderer;
   act(() => {
     renderer = TestRenderer.create(
@@ -128,7 +132,39 @@ describe('SurahList on iPad', () => {
       .map(n => StyleSheet.flatten(n.props.style).width as number);
     expect(widths).toHaveLength(10);
     expect(new Set(widths).size).toBe(1);
+    // Whole points, so rounding to the pixel grid never wraps a row early.
+    expect(Number.isInteger(widths[0])).toBe(true);
     // More than the phone's two columns.
     expect(widths[0]).toBeLessThan((944 - 64) / 3);
+  });
+
+  it('leaves the header to the screen when it pins its own', () => {
+    const renderer = render({
+      viewMode: 'list',
+      tabletMargin: 32,
+      hideTableHeader: true,
+    });
+    layout(renderer, 944);
+    expect(hasHeader(renderer)).toBe(false);
+    expect(rows(renderer).every(r => r.endsWith(':table'))).toBe(true);
+  });
+
+  it('lines the pinned header up with the list rows', () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(<SurahListTableHeader margin={32} />);
+    });
+    expect(hasHeader(renderer)).toBe(true);
+    const list = render({viewMode: 'list', tabletMargin: 32});
+    const listPadding = StyleSheet.flatten(
+      list.root.find(
+        n =>
+          typeof n.type === 'string' && typeof n.props.onLayout === 'function',
+      ).props.style,
+    ).paddingHorizontal;
+    const headerPadding = StyleSheet.flatten(
+      renderer.root.findAll(n => typeof n.type === 'string')[0].props.style,
+    ).paddingHorizontal;
+    expect(headerPadding).toBe(listPadding);
   });
 });

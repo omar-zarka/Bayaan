@@ -44,15 +44,38 @@ interface UpdatedSurahListProps extends SurahListProps {
   inline?: boolean;
   /** iPad page margin; turns on the table rows and card grid. @ai */
   tabletMargin?: number;
+  /**
+   * Leave out the Surah / Revelation / Verses header because the screen
+   * pins its own `SurahListTableHeader` above the list. @ai
+   */
+  hideTableHeader?: boolean;
 }
 
 // @ai-start
 /** Lists at least this wide show the Revelation and Verses columns. */
-const TABLE_MIN_WIDTH = 720;
+export const TABLE_MIN_WIDTH = 720;
 /** SurahItem's leading padding, so the table lines up with the margin. */
 const ROW_INSET = moderateScale(12);
 const TABLET_MIN_CARD_WIDTH = moderateScale(150);
 const TABLET_CARD_GAP = moderateScale(12);
+
+/**
+ * The table's column header, lined up with a `SurahList` that has the same
+ * `tabletMargin`, for screens that pin it while the list scrolls.
+ */
+export function SurahListTableHeader({
+  margin,
+  withOptions = true,
+}: {
+  margin: number;
+  withOptions?: boolean;
+}) {
+  return (
+    <View style={{paddingHorizontal: margin - ROW_INSET}}>
+      <SurahTableHeader withOptions={withOptions} />
+    </View>
+  );
+}
 // @ai-end
 
 // Shared ItemSeparator component
@@ -91,6 +114,7 @@ export const SurahList = React.forwardRef<
       rewayatId,
       inline,
       tabletMargin,
+      hideTableHeader = false, // @ai
     },
     ref,
   ) => {
@@ -367,9 +391,14 @@ export const SurahList = React.forwardRef<
                     styles.tabletCardGrid,
                     {paddingHorizontal: tabletMargin},
                   ]}>
+                  {/* Whole points: a width rounded up to the pixel grid
+                      would push the last card of each row to the next. */}
                   {visibleSurahs.map(surah => (
                     <React.Fragment key={`card-${surah.id}`}>
-                      {renderCardItem({item: surah}, tabletGrid.itemWidth)}
+                      {renderCardItem(
+                        {item: surah},
+                        Math.floor(tabletGrid.itemWidth),
+                      )}
                     </React.Fragment>
                   ))}
                 </View>
@@ -416,7 +445,7 @@ export const SurahList = React.forwardRef<
             </Text>
           ) : (
             <>
-              {showColumns && (
+              {showColumns && !hideTableHeader && (
                 <SurahTableHeader withOptions={!!onOptionsPress} />
               )}
               {visibleData.map((item, index) => (

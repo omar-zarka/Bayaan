@@ -61,7 +61,11 @@ import Animated, {
 import {ActionButtons} from './components/ActionButtons';
 import {ReciterHeader} from './components/ReciterHeader';
 import {NavigationButtons} from './components/NavigationButtons';
-import {SurahList} from './components/SurahList';
+import {
+  SurahList,
+  SurahListTableHeader,
+  TABLE_MIN_WIDTH,
+} from './components/SurahList'; // @ai
 import {SearchView} from './components/SearchView';
 import {RewayatTabBar} from './components/RewayatTabBar';
 import {UploadsTabContent} from './components/UploadsTabContent';
@@ -368,6 +372,13 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   );
   const [showLovedOnly, setShowLovedOnly] = useState(showLoved);
   const [activeTab, setActiveTab] = useState<string>(initialRewayatId ?? '');
+  // iPad list tables pin their column header in the sticky section, so it
+  // must use the same width test as SurahList (the page is the list). @ai
+  const showPinnedTableHeader =
+    isTablet &&
+    viewMode === 'list' &&
+    activeTab !== 'uploads' &&
+    pageWidth >= TABLE_MIN_WIDTH;
   const [neighborsReady, setNeighborsReady] = useState(false);
   const outerScrollRef = useRef<ScrollView>(null);
   const horizontalRef = useRef<ScrollView>(null);
@@ -1247,6 +1258,11 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                     </Pressable>
                   </View>
                 </View>
+                {/* @ai: the table's column labels stay on screen while the
+                    surahs scroll under them. */}
+                {showPinnedTableHeader && (
+                  <SurahListTableHeader margin={pageMargin} />
+                )}
               </View>
             </View>
 
@@ -1327,6 +1343,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                             getColorForSurah={getColorForSurah}
                             rewayatId={tab.id}
                             tabletMargin={isTablet ? pageMargin : undefined}
+                            hideTableHeader={isTablet} // @ai
                           />
                         )
                       ) : null}
