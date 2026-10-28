@@ -78,6 +78,7 @@ interface MockListProps {
   keyExtractor: (item: unknown) => string;
   renderItem: (params: object) => React.ReactNode;
   onDragEnd: (params: {from: number; to: number}) => void;
+  scrollEnabled?: boolean;
   ListHeaderComponent: React.ReactNode;
   ListFooterComponent: React.ReactNode;
 }
@@ -87,7 +88,10 @@ jest.mock('react-native-draggable-flatlist', () => {
   return {
     __esModule: true,
     default: (props: MockListProps) => (
-      <MockView testID="list" onDragEnd={props.onDragEnd}>
+      <MockView
+        testID="list"
+        onDragEnd={props.onDragEnd}
+        scrollEnabled={props.scrollEnabled}>
         {props.ListHeaderComponent}
         {props.data.map((item, i) => (
           <MockView key={props.keyExtractor(item)}>
@@ -228,10 +232,19 @@ describe('QueuePane', () => {
         typeof n.props.onLongPress === 'function',
     );
     const inner = handle[handle.length - 1];
-    expect(inner.props.onPressIn).toBeUndefined();
+    const list = () => r.root.findByProps({testID: 'list'});
     expect(inner.props.delayLongPress).toBeGreaterThan(0);
+    expect(list().props.scrollEnabled).toBe(true);
+
+    // A finger on the handle stops the list scrolling but lifts nothing yet.
+    act(() => inner.props.onPressIn());
+    expect(mockDrag).not.toHaveBeenCalled();
+    expect(list().props.scrollEnabled).toBe(false);
+
     act(() => inner.props.onLongPress());
     expect(mockDrag).toHaveBeenCalled();
+    act(() => inner.props.onPressOut());
+    expect(list().props.scrollEnabled).toBe(true);
   });
 
   it('offers VoiceOver move actions that stay inside Up Next', () => {

@@ -46,6 +46,12 @@ const EMPTY_TRACKS: Track[] = [];
  */
 const DRAG_HOLD_MS = 150;
 
+/**
+ * How close to the list's top or bottom edge a lifted row starts scrolling
+ * the list. The library's 30pt sits under the finger at the screen's edge.
+ */
+const AUTOSCROLL_EDGE = 72;
+
 type RowSection = 'nowPlaying' | 'upNext' | 'played';
 
 interface UpNextItem {
@@ -72,6 +78,12 @@ interface QueueRowProps {
   onMore?: (track: Track, index: number) => void;
   /** Starts a drag; only Up Next rows have a handle. */
   drag?: () => void;
+  /**
+   * The handle is touched or released. The list stops scrolling while a
+   * finger is on a handle, so a swipe that starts there can't take the
+   * touch from the drag (which left the row lifted).
+   */
+  onHandleTouch?: (down: boolean) => void;
   isDragging?: boolean;
   onMove?: (index: number, by: -1 | 1) => void;
   canMoveUp?: boolean;
@@ -85,6 +97,7 @@ const QueueRow = React.memo(function QueueRow({
   onPress,
   onMore,
   drag,
+  onHandleTouch,
   isDragging = false,
   onMove,
   canMoveUp = false,
@@ -186,6 +199,8 @@ const QueueRow = React.memo(function QueueRow({
       ) : null}
       {drag ? (
         <Pressable
+          onPressIn={() => onHandleTouch?.(true)}
+          onPressOut={() => onHandleTouch?.(false)}
           onLongPress={drag}
           delayLongPress={DRAG_HOLD_MS}
           style={styles.rowButton}
@@ -280,6 +295,7 @@ export function QueuePane({bottomInset}: {bottomInset: number}) {
   const currentIndex = usePlayerStore(s => s.queue.currentIndex);
   const repeatMode = usePlayerStore(s => s.settings.repeatMode);
   const [showPlayed, setShowPlayed] = useState(false);
+  const [handleTouched, setHandleTouched] = useState(false);
 
   const current = tracks[currentIndex];
   const upNext = useMemo(
@@ -383,6 +399,7 @@ export function QueuePane({bottomInset}: {bottomInset: number}) {
         onPress={playAt}
         onMore={openMenu}
         drag={drag}
+        onHandleTouch={setHandleTouched}
         isDragging={isActive}
         onMove={move}
         canMoveUp={item.index > currentIndex + 1}
@@ -492,6 +509,8 @@ export function QueuePane({bottomInset}: {bottomInset: number}) {
   return (
     <DraggableFlatList
       data={upNext}
+      scrollEnabled={!handleTouched}
+      autoscrollThreshold={AUTOSCROLL_EDGE}
       keyExtractor={item => item.key}
       renderItem={renderItem}
       onDragEnd={({from, to}) => {
