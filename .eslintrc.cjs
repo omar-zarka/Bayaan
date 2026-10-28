@@ -43,6 +43,12 @@ module.exports = {
             message:
               "Import from '@/utils/scale' instead. It matches the library on phones and stops tablets inflating.",
           },
+          {
+            name: 'react-native-actions-sheet',
+            importNames: ['default'],
+            message:
+              "Import ActionSheet from '@/components/sheets/AdaptiveActionSheet' so sheets stop at 560pt on iPad (ipad-standards §5.3).",
+          },
         ],
       },
     ],

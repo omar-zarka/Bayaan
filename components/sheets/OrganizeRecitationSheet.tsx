@@ -12,11 +12,8 @@ import {
 import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
-import ActionSheet, {
-  SheetProps,
-  SheetManager,
-  ScrollView,
-} from 'react-native-actions-sheet';
+import {SheetProps, SheetManager, ScrollView} from 'react-native-actions-sheet';
+import ActionSheet from '@/components/sheets/AdaptiveActionSheet';
 import Color from 'color';
 import {Feather} from '@expo/vector-icons';
 import {useUploadsStore} from '@/store/uploadsStore';
