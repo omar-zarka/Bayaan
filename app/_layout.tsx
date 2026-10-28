@@ -37,6 +37,10 @@ import {DevMenu} from '@/components/DevMenu';
 import {SheetProvider} from 'react-native-actions-sheet';
 import {recordTouch} from '@/utils/lastTouch'; // @ai
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
+// @ai-start
+import {AppKeyCommands} from '@/components/keyboard/AppKeyCommands';
+import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
+// @ai-end
 import '@/components/sheets/sheets'; // Register action sheets
 import {
   configureReanimatedLogger,
@@ -580,6 +584,7 @@ function RootLayout() {
                       {/* @ai-end */}
                     </Stack>
                     <PlayerHost />
+                    {keyCommandsSupported() && <AppKeyCommands />}
                     <WhatsNewModal ref={whatsNewModalRef} />
                     <DevMenu whatsNewModalRef={whatsNewModalRef} />
                   </SheetProvider>

@@ -129,5 +129,23 @@
     "confirmTitle": "Restart the app?",
     "confirmMessage": "The app will close and reopen in the new language.",
     "restart": "Restart"
+  },
+  "keyboard": {
+    "menus": {
+      "playback": "Playback",
+      "go": "Go",
+      "reader": "Mushaf"
+    },
+    "playPause": "Play/Pause",
+    "skipBack": "Back {{seconds}} Seconds",
+    "skipForward": "Forward {{seconds}} Seconds",
+    "previousTrack": "Previous Track",
+    "nextTrack": "Next Track",
+    "followAlong": "Follow Along",
+    "search": "Search",
+    "close": "Close",
+    "nextPage": "Next Page",
+    "previousPage": "Previous Page",
+    "playPauseRecitation": "Play/Pause Recitation"
   }
 }

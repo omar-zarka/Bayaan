@@ -153,5 +153,23 @@
     "confirmTitle": "إعادة تشغيل التطبيق؟",
     "confirmMessage": "سيُغلَق التطبيق ويُعاد فتحه باللغة الجديدة.",
     "restart": "إعادة التشغيل"
+  },
+  "keyboard": {
+    "menus": {
+      "playback": "التشغيل",
+      "go": "انتقال",
+      "reader": "المصحف"
+    },
+    "playPause": "تشغيل/إيقاف مؤقت",
+    "skipBack": "رجوع {{seconds}} ثانية",
+    "skipForward": "تقديم {{seconds}} ثانية",
+    "previousTrack": "المقطع السابق",
+    "nextTrack": "المقطع التالي",
+    "followAlong": "المتابعة مع التلاوة",
+    "search": "بحث",
+    "close": "إغلاق",
+    "nextPage": "الصفحة التالية",
+    "previousPage": "الصفحة السابقة",
+    "playPauseRecitation": "تشغيل/إيقاف التلاوة"
   }
 }

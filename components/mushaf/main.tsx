@@ -87,6 +87,11 @@ import {getSurahDisplayName, localizeDigits} from '@/i18n/format';
 // @ai-end
 import {useHeaderHeight} from 'expo-router/react-navigation'; // @ai
 import {RewayahFallbackBanner} from '@/components/MushafSettingsContent'; // @ai
+// @ai-start
+import {ReaderKeyCommands} from '@/components/keyboard/ReaderKeyCommands';
+import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
+import {closeTopSheet} from '@/services/keyboard/keyActions';
+// @ai-end
 
 const TOTAL_PAGES = 604;
 const ANIMATION_DURATION = 300;
@@ -957,10 +962,11 @@ export default function MushafViewer({
 
   // Convert a logical page number to the current FlatList's item index
   // (spread index when facing-pages is active, page index otherwise).
+  // The List view pages singly even where the Mushaf shows spreads. @ai
+  const showsSpreads = metrics.facingPages && viewMode === 'mushaf'; // @ai
   const pageToFlatListIndex = useCallback(
-    (page: number) =>
-      metrics.facingPages ? pageToSpreadIndex(page) : page - 1,
-    [metrics.facingPages],
+    (page: number) => (showsSpreads ? pageToSpreadIndex(page) : page - 1), // @ai
+    [showsSpreads], // @ai
   );
 
   const navigateToPage = useCallback(
@@ -1179,6 +1185,16 @@ export default function MushafViewer({
     return () => sub.remove();
   }, [isSearchMode]);
 
+  // @ai-start
+  // Esc on an iPad keyboard (reading standards §6): the topmost overlay,
+  // then search, then immersive mode.
+  const handleEscapeKey = useCallback(() => {
+    if (closeTopSheet()) return;
+    if (isSearchMode) setIsSearchMode(false);
+    else if (isImmersive) toggleImmersive();
+  }, [isSearchMode, isImmersive, setIsSearchMode, toggleImmersive]);
+  // @ai-end
+
   return (
     <View
       onLayout={onContainerLayout}
@@ -1192,6 +1208,18 @@ export default function MushafViewer({
               : readingColors.card,
         },
       ]}>
+      {/* @ai-start */}
+      {keyCommandsSupported() && (
+        <ReaderKeyCommands
+          currentPage={currentPage}
+          pageStep={!isVertical && showsSpreads ? 2 : 1}
+          canTurnPage={!isSearchMode}
+          turnTo={navigateToPageAnimated}
+          openSearch={openSearchWithFocus}
+          onEscape={handleEscapeKey}
+        />
+      )}
+      {/* @ai-end */}
       {/* Content area: horizontal FlatList or vertical continuous view */}
       {isVertical && viewMode === 'mushaf' ? (
         <ContinuousMushafView

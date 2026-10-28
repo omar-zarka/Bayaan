@@ -11,6 +11,8 @@ import {useReciterNavigation} from '@/hooks/useReciterNavigation';
 import {useTimestampStore} from '@/store/timestampStore';
 import {useRewayatFollowAlong} from '@/hooks/useFollowAlong';
 import {useResponsive} from '@/hooks/useResponsive';
+import {PlayerKeyCommands} from '@/components/keyboard/PlayerKeyCommands';
+import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
 import {TabletPlayerReciterColumn} from '@/components/tablet/TabletPlayerReciterColumn';
 import {TabletPlayerControlsColumn} from '@/components/tablet/TabletPlayerControlsColumn';
 import PlayerContent from './PlayerContent';
@@ -234,7 +236,7 @@ export const PlayerBody = () => {
     />
   );
 
-  return showTabletSplit ? (
+  const body = showTabletSplit ? (
     <View style={styles.tabletSplitRoot}>
       <View
         style={styles.tabletSplitPlayerPane}
@@ -271,6 +273,15 @@ export const PlayerBody = () => {
     </View>
   ) : (
     playerContentEl
+  );
+
+  return (
+    <>
+      {keyCommandsSupported() && (
+        <PlayerKeyCommands onFollowAlongPress={handleFollowAlongPress} />
+      )}
+      {body}
+    </>
   );
 };
 

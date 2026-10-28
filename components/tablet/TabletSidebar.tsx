@@ -47,11 +47,19 @@ import {
   sidebarWidth,
   type SidebarItemId,
 } from '@/components/tablet/sidebarNav';
+import {useIsFocused} from 'expo-router';
+import {useHover} from '@/hooks/useHover';
+import {useKeyCommands} from '@/hooks/useKeyCommands';
+import type {KeyBinding} from '@/services/keyboard/keyCommands';
+import {requestSearchFocus} from '@/services/keyboard/searchFocus';
 // @ai-end
 
 // Text in the sidebar grows with Dynamic Type only this far, so the labels
 // still fit its width. @ai
 const MAX_FONT_SCALE = 1.3; // @ai
+
+// ⌘1–⌘4 for the items at the top, ⌘5 for Collection (ipad-standards §7.3). @ai
+const NUMBER_KEYS = ['cmd-1', 'cmd-2', 'cmd-3', 'cmd-4'] as const; // @ai
 
 // @ai-start
 function ItemIcon({
@@ -114,8 +122,10 @@ const SidebarItem = React.memo(function SidebarItem({
   theme,
   showLabel,
 }: SidebarItemProps) {
+  const {hovered, hoverProps} = useHover();
   const activeBg = Color(theme.colors.text).alpha(0.08).toString();
   const pressedBg = Color(theme.colors.text).alpha(0.06).toString();
+  const hoverBg = Color(theme.colors.text).alpha(0.04).toString();
   const iconColor = selected
     ? theme.colors.text
     : Color(theme.colors.text).alpha(0.55).toString();
@@ -128,6 +138,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
   return (
     <Pressable
+      {...hoverProps}
       onPress={() => onPress(id)}
       accessibilityRole="tab"
       accessibilityLabel={label}
@@ -136,6 +147,7 @@ const SidebarItem = React.memo(function SidebarItem({
         styles.item,
         showLabel ? styles.itemRow : styles.itemCol,
         selected && {backgroundColor: activeBg},
+        hovered && !selected && {backgroundColor: hoverBg},
         pressed && !selected && {backgroundColor: pressedBg},
       ]}>
       <View style={showLabel ? styles.iconBox : styles.iconBoxRail}>
@@ -187,21 +199,24 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
     return tracks.length > 0 && tracks[index] != null;
   });
 
-  const labels: Record<SidebarItemId, string> = {
-    home: t('tabs.home'),
-    quran: t('tabs.surahs'),
-    search: t('tabs.search'),
-    adhkar: t('terms.adhkar'),
-    library: t('tabs.collection'),
-    settings: t('tabs.settings'),
-    loved: t('collection:collectionScreen.loved'),
-    downloads: t('terms.downloads'),
-    bookmarks: t('terms.bookmarks'),
-    notes: t('collection:collectionScreen.notes'),
-    playlists: t('terms.playlists'),
-    reciters: t('terms.reciters'),
-    uploads: t('terms.uploads'),
-  };
+  const labels = useMemo<Record<SidebarItemId, string>>(
+    () => ({
+      home: t('tabs.home'),
+      quran: t('tabs.surahs'),
+      search: t('tabs.search'),
+      adhkar: t('terms.adhkar'),
+      library: t('tabs.collection'),
+      settings: t('tabs.settings'),
+      loved: t('collection:collectionScreen.loved'),
+      downloads: t('terms.downloads'),
+      bookmarks: t('terms.bookmarks'),
+      notes: t('collection:collectionScreen.notes'),
+      playlists: t('terms.playlists'),
+      reciters: t('terms.reciters'),
+      uploads: t('terms.uploads'),
+    }),
+    [t],
+  );
 
   // A short window (the iPad mini in landscape) can't fit every section, and
   // a list cut off between two rows looks complete. Flash the scroll
@@ -245,6 +260,39 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
     [state, navigation],
   );
 
+  // Keyboard: ⌘1–⌘5 press the items, ⌘F opens Search with the cursor in
+  // its field. Only while the tabs are on show, not under the reader.
+  const tabsOnShow = useIsFocused();
+  const keyBindings = useMemo<KeyBinding[]>(
+    () => [
+      ...TOP_ITEMS.map(
+        (id, i): KeyBinding => ({
+          key: NUMBER_KEYS[i],
+          title: labels[id],
+          menu: 'go',
+          run: () => handlePress(id),
+        }),
+      ),
+      {
+        key: 'cmd-5',
+        title: labels.library,
+        menu: 'go',
+        run: () => handlePress('library'),
+      },
+      {
+        key: 'cmd-f',
+        title: t('keyboard.search'),
+        menu: 'go',
+        run: () => {
+          handlePress('search');
+          requestSearchFocus();
+        },
+      },
+    ],
+    [labels, t, handlePress],
+  );
+  useKeyCommands(keyBindings, tabsOnShow);
+
   const containerStyle = useMemo(
     () => [
       styles.container,
@@ -273,8 +321,10 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
   );
 
   const mutedColor = Color(theme.colors.text).alpha(0.55).toString();
+  const toggleHover = useHover();
   const toggleButton = canShowSidebar(width) ? (
     <Pressable
+      {...toggleHover.hoverProps}
       onPress={toggleCollapsed}
       accessibilityRole="button"
       accessibilityLabel={
@@ -283,6 +333,9 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       hitSlop={4}
       style={({pressed}) => [
         styles.toggle,
+        toggleHover.hovered && {
+          backgroundColor: Color(theme.colors.text).alpha(0.04).toString(),
+        },
         pressed && {
           backgroundColor: Color(theme.colors.text).alpha(0.06).toString(),
         },
