@@ -102,8 +102,9 @@ export function SearchView({
   const {playWithReciter, playWithRandomReciter} = useReciterSelection();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  // Explore fills the iPad pane, but results and recents stay in the 720pt
-  // reading column (ipad-standards §5.3).
+  // Explore and the results fill the iPad pane, but recent searches and the
+  // loading and empty states stay in the 720pt reading column
+  // (ipad-standards §5.3).
   const {isTablet} = useResponsive();
   const listStyle = isTablet
     ? [styles.flexFill, styles.tabletColumn]
@@ -361,6 +362,18 @@ export function SearchView({
     ],
   );
 
+  // The iPad results' options button. The menu acts on the default reciter
+  // and names it in its header.
+  const handleSurahOptions = useCallback(
+    (result: SearchResult) => {
+      Keyboard.dismiss();
+      SheetManager.show('surah-options', {
+        payload: {surah: result.item as Surah, reciterId: defaultReciter?.id},
+      });
+    },
+    [defaultReciter],
+  );
+
   const renderSearchResult = useCallback(
     ({item}: ListRenderItemInfo<SearchResult>) => {
       if (item.type === 'surah') {
@@ -534,8 +547,9 @@ export function SearchView({
             results={searchResults}
             onResultPress={handleResultPress}
             onSurahPlay={handleSurahLongPress}
+            onSurahOptions={handleSurahOptions}
             bottomPadding={Math.max(keyboardHeight, bottomInset)}
-            style={listStyle}
+            style={styles.tabletFullWidth}
           />
         ) : (
           <FlatList
@@ -619,6 +633,9 @@ const styles = StyleSheet.create({
   tabletColumn: {
     width: '100%',
     maxWidth: 720,
+  },
+  tabletFullWidth: {
+    alignSelf: 'stretch',
   },
   scrollContent: {},
   sectionHeader: {

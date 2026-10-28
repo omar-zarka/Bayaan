@@ -14,8 +14,10 @@ import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
+import {useResponsive} from '@/hooks/useResponsive';
 import {moderateScale} from '@/utils/scale';
 import {flipX, latinLetterSpacing} from '@/utils/rtl';
+import {surahGlyphMap} from '@/utils/surahGlyphMap';
 import {SurahItem} from '@/components/SurahItem';
 import {ReciterImage} from '@/components/ReciterImage';
 import type {Surah} from '@/data/surahData';
@@ -34,9 +36,19 @@ export type SearchScope = 'all' | 'reciters' | 'surahs';
 /** Surahs listed beside the top result in the All scope. */
 const ALL_SURAH_COUNT = 4;
 /** Reciters in the All scope's shelf before "See all". */
-const ALL_RECITER_COUNT = 10;
-const TOP_CARD_WIDTH = moderateScale(260);
-const RECITER_TILE_WIDTH = moderateScale(112);
+const ALL_RECITER_COUNT = 12;
+/**
+ * Windows at least this wide (the `expanded` class, ipad-standards §2) put
+ * the top result beside the surahs. Narrower iPads stack them.
+ */
+export const TWO_COLUMN_MIN_WIDTH = 900;
+const PANE_MARGIN = moderateScale(24);
+const COLUMN_GAP = moderateScale(28);
+const TOP_COLUMN_MAX_WIDTH = moderateScale(380);
+const TALL_ART_SIZE = moderateScale(108);
+const WIDE_ART_SIZE = moderateScale(64);
+const ROW_BUTTON_SIZE = moderateScale(38);
+const RECITER_TILE_WIDTH = moderateScale(104);
 
 type SurahResult = CatalogSearchResult & {type: 'surah'};
 type ReciterResult = CatalogSearchResult & {type: 'reciter'};
@@ -68,6 +80,8 @@ interface TabletSearchResultsProps {
   onResultPress: (result: CatalogSearchResult) => void;
   /** Plays a surah the way a long press does (default or chosen reciter). */
   onSurahPlay: (result: CatalogSearchResult) => void;
+  /** Opens the surah options menu. */
+  onSurahOptions: (result: CatalogSearchResult) => void;
   bottomPadding: number;
   style?: StyleProp<ViewStyle>;
 }
@@ -75,18 +89,21 @@ interface TabletSearchResultsProps {
 /**
  * Search results on iPad (mockup L7): All / Reciters / Surahs scopes, and in
  * All a top result card beside the first surah matches, then a reciters
- * shelf. Surah rows carry a visible play button so audio is never
+ * shelf. Surah rows carry visible play and options buttons so audio is never
  * long-press only.
  */
 export function TabletSearchResults({
   results,
   onResultPress,
   onSurahPlay,
+  onSurahOptions,
   bottomPadding,
   style,
 }: TabletSearchResultsProps) {
   const {theme} = useTheme();
   const {t} = useTranslation(['home', 'common']);
+  const {width} = useResponsive();
+  const twoColumn = width >= TWO_COLUMN_MIN_WIDTH;
   const styles = useMemo(() => createStyles(theme), [theme]);
   const [scope, setScope] = useState<SearchScope>('all');
   const grouped = useMemo(() => groupResults(results), [results]);
@@ -111,6 +128,7 @@ export function TabletSearchResults({
       result={result}
       onPress={onResultPress}
       onPlay={onSurahPlay}
+      onOptions={onSurahOptions}
       styles={styles}
       theme={theme}
     />
@@ -186,11 +204,12 @@ export function TabletSearchResults({
 
       {scope === 'all' && grouped.top && (
         <>
-          <View style={styles.topRow}>
-            <View style={styles.topColumn}>
+          <View style={twoColumn ? styles.topRow : undefined}>
+            <View style={twoColumn ? styles.topColumn : styles.section}>
               {sectionHeader(t('search.topResult'))}
               <TopResultCard
                 result={grouped.top}
+                tall={twoColumn}
                 onPress={onResultPress}
                 onPlay={onSurahPlay}
                 styles={styles}
@@ -198,7 +217,7 @@ export function TabletSearchResults({
               />
             </View>
             {topSurahs.length > 0 && (
-              <View style={styles.surahColumn}>
+              <View style={twoColumn ? styles.surahColumn : styles.section}>
                 {sectionHeader(
                   t('common:terms.surahs'),
                   grouped.surahs.length > topSurahs.length
@@ -221,6 +240,7 @@ export function TabletSearchResults({
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 keyboardShouldPersistTaps="handled"
+                style={styles.shelfScroller}
                 contentContainerStyle={styles.shelf}>
                 {shelfReciters.map(reciterTile)}
               </ScrollView>
@@ -250,12 +270,14 @@ function PlayButton({
   size,
   styles,
   theme,
+  style,
 }: {
   onPress: () => void;
   hint: string;
   size: number;
   styles: Styles;
   theme: Theme;
+  style?: StyleProp<ViewStyle>;
 }) {
   const {t} = useTranslation('common');
   return (
@@ -268,6 +290,7 @@ function PlayButton({
       style={[
         styles.playButton,
         {width: size, height: size, borderRadius: size / 2},
+        style,
       ]}>
       <Feather
         name="play"
@@ -283,15 +306,18 @@ function SurahResultRow({
   result,
   onPress,
   onPlay,
+  onOptions,
   styles,
   theme,
 }: {
   result: SurahResult;
   onPress: (result: CatalogSearchResult) => void;
   onPlay: (result: CatalogSearchResult) => void;
+  onOptions: (result: CatalogSearchResult) => void;
   styles: Styles;
   theme: Theme;
 }) {
+  const {t} = useTranslation('home');
   return (
     <View style={styles.surahRow}>
       <View style={styles.fill}>
@@ -305,10 +331,23 @@ function SurahResultRow({
       <PlayButton
         onPress={() => onPlay(result)}
         hint={getSurahDisplayName(result.item as Surah)}
-        size={moderateScale(34)}
+        size={ROW_BUTTON_SIZE}
         styles={styles}
         theme={theme}
       />
+      <Pressable
+        onPress={() => onOptions(result)}
+        hitSlop={6}
+        accessibilityRole="button"
+        accessibilityLabel={t('surahItem.moreOptions')}
+        accessibilityHint={t('surahItem.moreOptionsHint')}
+        style={styles.moreButton}>
+        <Feather
+          name="more-horizontal"
+          size={moderateScale(18)}
+          color={theme.colors.text}
+        />
+      </Pressable>
     </View>
   );
 }
@@ -341,91 +380,155 @@ function ReciterTile({
   );
 }
 
+/**
+ * The best match. `tall` is the card beside the surah list on wide windows;
+ * otherwise it is a full-width row. The play button sits outside the card's
+ * pressable so VoiceOver can reach both.
+ */
 function TopResultCard({
   result,
+  tall,
   onPress,
   onPlay,
   styles,
   theme,
 }: {
   result: CatalogSearchResult;
+  tall: boolean;
   onPress: (result: CatalogSearchResult) => void;
   onPlay: (result: CatalogSearchResult) => void;
   styles: Styles;
   theme: Theme;
 }) {
   const {t} = useTranslation(['home', 'common']);
-  if (result.type === 'reciter') {
-    const reciter = result.item as Reciter;
+  const artSize = tall ? TALL_ART_SIZE : WIDE_ART_SIZE;
+  const isReciter = result.type === 'reciter';
+  const reciter = result.item as Reciter;
+  const surah = result.item as Surah;
+
+  let art: React.ReactNode;
+  let title: string;
+  let meta: string | null = null;
+  if (isReciter) {
+    title = getReciterDisplayName(reciter);
+    art = (
+      <ReciterImage
+        imageUrl={reciter.image_url || undefined}
+        reciterName={reciter.name}
+        style={{width: artSize, height: artSize, borderRadius: artSize / 2}}
+        profileIconSize={artSize * 0.4}
+      />
+    );
+  } else {
+    title = `${localizeDigits(surah.id)} · ${getSurahDisplayName(surah)}`;
+    const meaning = getSurahMeaning(surah);
+    const verses = t('surahItem.verses', {count: surah.verses_count});
+    meta = meaning ? `${meaning} · ${verses}` : verses;
+    art = (
+      <View
+        style={[
+          styles.surahArt,
+          {width: artSize, height: artSize, borderRadius: artSize * 0.18},
+        ]}>
+        <Text
+          style={[styles.surahArtGlyph, {fontSize: artSize * 0.36}]}
+          numberOfLines={1}
+          adjustsFontSizeToFit>
+          {surahGlyphMap[surah.id]}
+        </Text>
+      </View>
+    );
+  }
+  const kind = (
+    <Text style={styles.kindChip}>
+      {t(isReciter ? 'common:terms.reciter' : 'common:terms.surah')}
+    </Text>
+  );
+  const play = isReciter ? null : (
+    <PlayButton
+      onPress={() => onPlay(result)}
+      hint={getSurahDisplayName(surah)}
+      size={tall ? moderateScale(47) : moderateScale(42)}
+      styles={styles}
+      theme={theme}
+      style={tall ? styles.tallPlay : undefined}
+    />
+  );
+  const chevron = isReciter ? (
+    <Feather
+      name="chevron-right"
+      size={moderateScale(22)}
+      color={theme.colors.textSecondary}
+      style={flipX}
+    />
+  ) : null;
+
+  if (tall) {
     return (
+      <View style={[styles.topCard, styles.topCardTall]}>
+        <Pressable
+          onPress={() => onPress(result)}
+          accessibilityRole="button"
+          style={styles.topCardTallBody}>
+          {art}
+          <View style={styles.topText}>
+            <Text style={styles.topTitle} numberOfLines={2}>
+              {title}
+            </Text>
+            {meta && (
+              <Text style={styles.topMeta} numberOfLines={1}>
+                {meta}
+              </Text>
+            )}
+          </View>
+          <View style={styles.topFooter}>
+            {kind}
+            {chevron}
+          </View>
+        </Pressable>
+        {play}
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.topCard, styles.topCardWide]}>
       <Pressable
         onPress={() => onPress(result)}
         accessibilityRole="button"
-        style={styles.topCard}>
-        <ReciterImage
-          imageUrl={reciter.image_url || undefined}
-          reciterName={reciter.name}
-          style={styles.topImage}
-          profileIconSize={moderateScale(40)}
-        />
-        <Text style={styles.topTitle} numberOfLines={2}>
-          {getReciterDisplayName(reciter)}
-        </Text>
-        <View style={styles.topFooter}>
-          <Text style={styles.kindChip}>{t('common:terms.reciter')}</Text>
-          <Feather
-            name="chevron-right"
-            size={moderateScale(22)}
-            color={theme.colors.textSecondary}
-            style={flipX}
-          />
+        style={styles.topCardWideBody}>
+        {art}
+        <View style={[styles.fill, styles.topText]}>
+          <Text style={styles.topTitleWide} numberOfLines={1}>
+            {title}
+          </Text>
+          {meta && (
+            <Text style={styles.topMeta} numberOfLines={1}>
+              {meta}
+            </Text>
+          )}
+          <View style={styles.kindRow}>{kind}</View>
         </View>
+        {chevron}
       </Pressable>
-    );
-  }
-  const surah = result.item as Surah;
-  const meaning = getSurahMeaning(surah);
-  return (
-    <Pressable
-      onPress={() => onPress(result)}
-      accessibilityRole="button"
-      style={styles.topCard}>
-      <Text style={styles.topNumber}>{localizeDigits(surah.id)}</Text>
-      <Text style={styles.topTitle} numberOfLines={2}>
-        {getSurahDisplayName(surah)}
-      </Text>
-      <Text style={styles.topMeta} numberOfLines={1}>
-        {meaning
-          ? `${meaning} · ${t('surahItem.verses', {count: surah.verses_count})}`
-          : t('surahItem.verses', {count: surah.verses_count})}
-      </Text>
-      <View style={styles.topFooter}>
-        <Text style={styles.kindChip}>{t('common:terms.surah')}</Text>
-        <PlayButton
-          onPress={() => onPlay(result)}
-          hint={getSurahDisplayName(surah)}
-          size={moderateScale(48)}
-          styles={styles}
-          theme={theme}
-        />
-      </View>
-    </Pressable>
+      {play}
+    </View>
   );
 }
 
 const createStyles = (theme: Theme) => {
   const faint = Color(theme.colors.text).alpha(0.06).toString();
+  const divider = Color(theme.colors.text).alpha(0.08).toString();
   return StyleSheet.create({
     fill: {
       flex: 1,
     },
     content: {
       paddingTop: moderateScale(8),
+      paddingHorizontal: PANE_MARGIN,
     },
     scopes: {
       flexDirection: 'row',
       gap: moderateScale(8),
-      paddingHorizontal: moderateScale(16),
       paddingBottom: moderateScale(8),
     },
     chip: {
@@ -453,17 +556,16 @@ const createStyles = (theme: Theme) => {
       opacity: 0.6,
     },
     section: {
-      marginTop: moderateScale(16),
+      marginTop: moderateScale(20),
     },
     sectionHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingHorizontal: moderateScale(16),
-      marginBottom: moderateScale(8),
+      marginBottom: moderateScale(10),
     },
     sectionTitle: {
-      fontSize: moderateScale(18),
+      fontSize: moderateScale(20),
       fontFamily: theme.fonts.bold,
       color: theme.colors.text,
       letterSpacing: latinLetterSpacing(-0.2),
@@ -475,37 +577,69 @@ const createStyles = (theme: Theme) => {
     },
     topRow: {
       flexDirection: 'row',
-      marginTop: moderateScale(12),
-      gap: moderateScale(8),
+      marginTop: moderateScale(20),
+      gap: COLUMN_GAP,
     },
     topColumn: {
-      width: TOP_CARD_WIDTH + moderateScale(32),
+      width: '40%',
+      maxWidth: TOP_COLUMN_MAX_WIDTH,
     },
     surahColumn: {
       flex: 1,
       minWidth: 0,
     },
     topCard: {
-      marginHorizontal: moderateScale(16),
-      padding: moderateScale(20),
       borderRadius: moderateScale(18),
       backgroundColor: faint,
-      gap: moderateScale(6),
     },
-    topImage: {
-      width: moderateScale(96),
-      height: moderateScale(96),
-      borderRadius: moderateScale(48),
-      marginBottom: moderateScale(8),
+    topCardTall: {
+      minHeight: moderateScale(250),
     },
-    topNumber: {
-      fontSize: moderateScale(15),
-      fontFamily: theme.fonts.semiBold,
-      color: theme.colors.textSecondary,
+    topCardTallBody: {
+      flex: 1,
+      padding: moderateScale(20),
+      gap: moderateScale(12),
+    },
+    tallPlay: {
+      position: 'absolute',
+      bottom: moderateScale(20),
+      end: moderateScale(20),
+    },
+    topCardWide: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingEnd: moderateScale(16),
+    },
+    topCardWideBody: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: moderateScale(14),
+      gap: moderateScale(16),
+    },
+    topText: {
+      gap: moderateScale(4),
+    },
+    surahArt: {
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: faint,
+    },
+    surahArtGlyph: {
+      fontFamily: 'SurahNames',
+      color: theme.colors.text,
+      textAlign: 'center',
+      width: '100%',
     },
     topTitle: {
-      fontSize: moderateScale(26),
-      lineHeight: moderateScale(32),
+      fontSize: moderateScale(25),
+      lineHeight: moderateScale(31),
+      fontFamily: theme.fonts.bold,
+      color: theme.colors.text,
+    },
+    topTitleWide: {
+      fontSize: moderateScale(19),
+      lineHeight: moderateScale(25),
       fontFamily: theme.fonts.bold,
       color: theme.colors.text,
     },
@@ -518,7 +652,11 @@ const createStyles = (theme: Theme) => {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
-      marginTop: moderateScale(10),
+      marginTop: 'auto',
+    },
+    kindRow: {
+      flexDirection: 'row',
+      marginTop: moderateScale(2),
     },
     kindChip: {
       fontSize: moderateScale(12),
@@ -533,7 +671,9 @@ const createStyles = (theme: Theme) => {
     surahRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingEnd: moderateScale(16),
+      gap: moderateScale(4),
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: divider,
     },
     playButton: {
       alignItems: 'center',
@@ -545,15 +685,23 @@ const createStyles = (theme: Theme) => {
       // of its box.
       marginLeft: moderateScale(2),
     },
+    moreButton: {
+      width: ROW_BUTTON_SIZE,
+      height: ROW_BUTTON_SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    shelfScroller: {
+      marginHorizontal: -PANE_MARGIN,
+    },
     shelf: {
-      paddingHorizontal: moderateScale(16),
-      gap: moderateScale(16),
+      paddingHorizontal: PANE_MARGIN,
+      gap: moderateScale(20),
     },
     reciterGrid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      paddingHorizontal: moderateScale(16),
-      gap: moderateScale(16),
+      gap: moderateScale(20),
     },
     reciterTile: {
       width: RECITER_TILE_WIDTH,

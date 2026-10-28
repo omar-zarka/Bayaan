@@ -1,12 +1,16 @@
 // @ai-generated
 import React from 'react';
-import {Text} from 'react-native';
+import {StyleSheet, Text} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
 import {TabletSearchResults, groupResults} from '../TabletSearchResults';
 import type {CatalogSearchResult} from '@/utils/search/catalog';
 import type {Surah} from '@/data/surahData';
 import type {Reciter} from '@/data/reciterData';
 
+let mockWindowWidth = 1032;
+jest.mock('@/hooks/useResponsive', () => ({
+  useResponsive: () => ({width: mockWindowWidth, isTablet: true}),
+}));
 jest.mock('@/hooks/useTheme', () => ({
   useTheme: () => ({
     theme: {
@@ -69,6 +73,7 @@ function render() {
         results={results}
         onResultPress={jest.fn()}
         onSurahPlay={jest.fn()}
+        onSurahOptions={jest.fn()}
         bottomPadding={0}
       />,
     );
@@ -99,6 +104,22 @@ function pressTab(renderer: TestRenderer.ReactTestRenderer, label: string) {
       n.findAll(c => c.props.children === label).length > 0,
   );
   act(() => tab.props.onPress());
+}
+
+beforeEach(() => {
+  mockWindowWidth = 1032;
+});
+
+/** Whether the top result and the surah list share one row. */
+function topLayout(renderer: TestRenderer.ReactTestRenderer) {
+  const sharedRows = renderer.root.findAll(
+    n =>
+      (n.type as unknown) === 'View' &&
+      StyleSheet.flatten(n.props.style)?.flexDirection === 'row' &&
+      n.findAll(c => c.props.children === 'search.topResult').length > 0 &&
+      n.findAll(c => c.props.testID === 'surah-row').length > 0,
+  );
+  return sharedRows.length > 0 ? 'side-by-side' : 'stacked';
 }
 
 describe('groupResults', () => {
@@ -151,6 +172,7 @@ describe('TabletSearchResults', () => {
           results={[surah(1), surah(2)]}
           onResultPress={jest.fn()}
           onSurahPlay={onSurahPlay}
+          onSurahOptions={jest.fn()}
           bottomPadding={0}
         />,
       );
@@ -164,6 +186,41 @@ describe('TabletSearchResults', () => {
     expect(plays.length).toBeGreaterThanOrEqual(2);
     act(() => plays[plays.length - 1].props.onPress());
     expect(onSurahPlay).toHaveBeenCalledWith(
+      expect.objectContaining({item: expect.objectContaining({id: 2})}),
+    );
+  });
+
+  it('puts the top result beside the surahs on a 13-inch iPad', () => {
+    expect(topLayout(render())).toBe('side-by-side');
+  });
+
+  it('stacks the top result above the surahs on an iPad mini', () => {
+    mockWindowWidth = 744;
+    expect(topLayout(render())).toBe('stacked');
+  });
+
+  it('opens the options for a surah row', () => {
+    const onSurahOptions = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <TabletSearchResults
+          results={[surah(1), surah(2)]}
+          onResultPress={jest.fn()}
+          onSurahPlay={jest.fn()}
+          onSurahOptions={onSurahOptions}
+          bottomPadding={0}
+        />,
+      );
+    });
+    const more = renderer.root.findAll(
+      n =>
+        n.props.accessibilityLabel === 'surahItem.moreOptions' &&
+        typeof n.props.onPress === 'function',
+    );
+    expect(more.length).toBeGreaterThan(0);
+    act(() => more[0].props.onPress());
+    expect(onSurahOptions).toHaveBeenCalledWith(
       expect.objectContaining({item: expect.objectContaining({id: 2})}),
     );
   });
