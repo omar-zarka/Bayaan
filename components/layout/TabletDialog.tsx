@@ -1,6 +1,13 @@
 // @ai-generated
-import React from 'react';
-import {Pressable, StyleSheet, View, useWindowDimensions} from 'react-native';
+import React, {useEffect, useState} from 'react';
+import {
+  Keyboard,
+  Platform,
+  Pressable,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTranslation} from 'react-i18next';
 import Color from 'color';
@@ -23,19 +30,42 @@ export interface TabletDialogProps {
   children: React.ReactNode;
 }
 
+/** Height of the on-screen keyboard, or 0 while it is hidden. */
+function useKeyboardHeight(): number {
+  const [height, setHeight] = useState(0);
+  useEffect(() => {
+    const showEvent =
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent =
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSub = Keyboard.addListener(showEvent, e =>
+      setHeight(e.endCoordinates.height),
+    );
+    const hideSub = Keyboard.addListener(hideEvent, () => setHeight(0));
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+  return height;
+}
+
 /**
  * An iPad form or picker that would be a full-screen page or a full-width
  * sheet on a phone: a centered card, the same size as the iPad sheet cards
- * (AdaptiveActionSheet), over a dimmed screen. A tap outside closes it.
- * Render it in a transparent modal or a `transparentModal` route.
+ * (AdaptiveActionSheet), over a dimmed screen. A tap outside closes it, and
+ * it moves up and shrinks to stay above the keyboard. Render it in a
+ * transparent modal, a `transparentModal` route or a full-screen layer.
  */
 export function TabletDialog({onClose, height, children}: TabletDialogProps) {
   const {theme} = useTheme();
   const {t} = useTranslation('common');
   const insets = useSafeAreaInsets();
   const {height: windowHeight} = useWindowDimensions();
+  const keyboardHeight = useKeyboardHeight();
+  const bottomInset = Math.max(insets.bottom, keyboardHeight);
   const maxHeight = Math.min(
-    windowHeight - insets.top - insets.bottom - 2 * EDGE_MARGIN,
+    windowHeight - insets.top - bottomInset - 2 * EDGE_MARGIN,
     SHEET_MAX_HEIGHT,
   );
 
@@ -43,7 +73,7 @@ export function TabletDialog({onClose, height, children}: TabletDialogProps) {
     <View
       style={[
         styles.root,
-        {paddingTop: insets.top, paddingBottom: insets.bottom},
+        {paddingTop: insets.top, paddingBottom: bottomInset},
       ]}>
       <Pressable
         accessibilityRole="button"

@@ -206,6 +206,13 @@ describe('placeMenu', () => {
     expect(placeMenu({x: 100, y: 300}, menu, area)).toEqual({x: 100, y: 324});
   });
 
+  it('centers under a tap in the middle third, like a wide button', () => {
+    // The iPad mini's Add to Collection button, tapped in its middle.
+    expect(
+      placeMenu({x: 415, y: 60}, menu, {width: 744, height: 1133}),
+    ).toEqual({x: 245, y: 84});
+  });
+
   it('opens above the tap when there is no room below', () => {
     expect(placeMenu({x: 900, y: 1100}, menu, area)).toEqual({
       x: 560,

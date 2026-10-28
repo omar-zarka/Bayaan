@@ -222,9 +222,18 @@ const TabletPlayer: React.FC<TabletPlayerProps> = ({
     [removeFromQueue],
   );
 
+  // A verse tap hides the controls only where they sit over the text. In
+  // the portrait split and the landscape sidebar they sit beside it, so
+  // hiding them would only leave that part of the screen blank.
+  const controlsBesideText = bodyOnly || useSidebarLayout;
+  useEffect(() => {
+    if (controlsBesideText) setImmersive(false);
+  }, [controlsBesideText, setImmersive]);
+
   const handleVersePress = useCallback(() => {
+    if (controlsBesideText) return;
     toggleImmersive();
-  }, [toggleImmersive]);
+  }, [controlsBesideText, toggleImmersive]);
 
   // One gesture per GestureDetector: Gesture Handler can't share one.
   const sheetDragGesture = usePlayerDismissGesture();
