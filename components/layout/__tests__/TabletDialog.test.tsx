@@ -1,6 +1,6 @@
 // @ai-generated
 import React from 'react';
-import {StyleSheet, Text, View, type ViewStyle} from 'react-native';
+import {Keyboard, StyleSheet, Text, View, type ViewStyle} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
 
 jest.mock('react-native-safe-area-context', () => ({
@@ -23,6 +23,14 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 
 import {TabletDialog} from '@/components/layout/TabletDialog';
 
+function cardStyle(renderer: TestRenderer.ReactTestRenderer): ViewStyle {
+  const view: unknown = View;
+  const card = renderer.root.findAll(
+    node => node.type === view && node.props.accessibilityViewIsModal,
+  )[0];
+  return StyleSheet.flatten(card.props.style) as ViewStyle;
+}
+
 function render(height?: number) {
   const onClose = jest.fn();
   let renderer!: TestRenderer.ReactTestRenderer;
@@ -33,15 +41,7 @@ function render(height?: number) {
       </TabletDialog>,
     );
   });
-  const view: unknown = View;
-  const card = renderer.root.findAll(
-    node => node.type === view && node.props.accessibilityViewIsModal,
-  )[0];
-  return {
-    renderer,
-    onClose,
-    card: StyleSheet.flatten(card.props.style) as ViewStyle,
-  };
+  return {renderer, onClose, card: cardStyle(renderer)};
 }
 
 it('centers the content in a card no wider than an iPad sheet', () => {
@@ -70,4 +70,25 @@ it('closes on a tap outside the card', () => {
   act(() => backdrop.props.onPress());
   expect(onClose).toHaveBeenCalledTimes(1);
   expect(backdrop.props.accessibilityLabel).toBe('actions.close');
+});
+
+it('stays above the keyboard', () => {
+  const listeners: Record<string, (event?: unknown) => void> = {};
+  const addListener = jest
+    .spyOn(Keyboard, 'addListener')
+    .mockImplementation((event, listener) => {
+      listeners[event] = listener as (event?: unknown) => void;
+      return {remove: jest.fn()} as unknown as ReturnType<
+        typeof Keyboard.addListener
+      >;
+    });
+  const {renderer} = render(2000);
+
+  act(() => listeners.keyboardWillShow({endCoordinates: {height: 400}}));
+  // 1133 less the top inset, the keyboard and the margins.
+  expect(cardStyle(renderer)).toMatchObject({maxHeight: 661, height: 661});
+
+  act(() => listeners.keyboardWillHide());
+  expect(cardStyle(renderer)).toMatchObject({maxHeight: 760, height: 760});
+  addListener.mockRestore();
 });
