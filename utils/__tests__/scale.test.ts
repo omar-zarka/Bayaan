@@ -34,8 +34,11 @@ const PHONES: Array<[number, number]> = [
   [430, 932], // iPhone Pro Max
   [440, 956], // iPhone 16/17 Pro Max
   [412, 915], // common Android
+  [466, 678], // iPhone Duo folded
 ];
 const TABLETS: Array<[number, number]> = [
+  [626, 890], // iPhone Duo unfolded, upright
+  [890, 626], // iPhone Duo unfolded, sideways
   [744, 1133], // iPad mini portrait
   [1133, 744], // iPad mini landscape
   [834, 1194], // iPad Pro 11"
