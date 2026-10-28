@@ -80,8 +80,10 @@ interface QueueRowProps {
   drag?: () => void;
   /**
    * The handle is touched or released. The list stops scrolling while a
-   * finger is on a handle, so a swipe that starts there can't take the
-   * touch from the drag (which left the row lifted).
+   * finger rests on a handle, so the list can't take the touch from the
+   * hold that lifts the row (which left the row lifted). A quick swipe from
+   * a handle still scrolls, because it starts before the lock lands, and
+   * no row lifts.
    */
   onHandleTouch?: (down: boolean) => void;
   isDragging?: boolean;
