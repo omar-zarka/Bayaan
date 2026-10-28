@@ -64,6 +64,7 @@
   "hero": {
     "surahOfTheDay": "SURAH OF THE DAY",
     "continueReading": "CONTINUE READING",
+    "continueListening": "CONTINUE LISTENING",
     "browseAllSurahs": "Browse all {{total}} surahs",
     "verses": "Verses",
     "number": "Number"
