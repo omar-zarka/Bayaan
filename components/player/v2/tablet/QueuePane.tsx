@@ -39,6 +39,13 @@ import {useRowDisplay} from '../PlayerContent/QueueList';
 
 const EMPTY_TRACKS: Track[] = [];
 
+/**
+ * How long the handle is held before a row lifts. Starting on touch down let
+ * a quick swipe begin scrolling the list before the drag took over, which
+ * dropped the row in the wrong place and left it lifted.
+ */
+const DRAG_HOLD_MS = 150;
+
 type RowSection = 'nowPlaying' | 'upNext' | 'played';
 
 interface UpNextItem {
@@ -179,7 +186,8 @@ const QueueRow = React.memo(function QueueRow({
       ) : null}
       {drag ? (
         <Pressable
-          onPressIn={drag}
+          onLongPress={drag}
+          delayLongPress={DRAG_HOLD_MS}
           style={styles.rowButton}
           accessibilityRole="button"
           accessibilityLabel={t('queue.reorder', {title: display.title})}

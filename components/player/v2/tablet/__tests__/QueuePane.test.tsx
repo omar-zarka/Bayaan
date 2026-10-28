@@ -81,6 +81,7 @@ interface MockListProps {
   ListHeaderComponent: React.ReactNode;
   ListFooterComponent: React.ReactNode;
 }
+const mockDrag = jest.fn();
 jest.mock('react-native-draggable-flatlist', () => {
   const {View: MockView} = jest.requireActual('react-native');
   return {
@@ -92,7 +93,7 @@ jest.mock('react-native-draggable-flatlist', () => {
           <MockView key={props.keyExtractor(item)}>
             {props.renderItem({
               item,
-              drag: jest.fn(),
+              drag: mockDrag,
               isActive: false,
               getIndex: () => i,
             })}
@@ -217,6 +218,20 @@ describe('QueuePane', () => {
     mockActions.moveInQueue.mockClear();
     act(() => list.props.onDragEnd({from: 1, to: 1}));
     expect(mockActions.moveInQueue).not.toHaveBeenCalled();
+  });
+
+  it('lifts a row when its handle is held, not on touch down', () => {
+    const r = render();
+    const handle = r.root.findAll(
+      n =>
+        n.props.accessibilityLabel === 'Reorder Surah c' &&
+        typeof n.props.onLongPress === 'function',
+    );
+    const inner = handle[handle.length - 1];
+    expect(inner.props.onPressIn).toBeUndefined();
+    expect(inner.props.delayLongPress).toBeGreaterThan(0);
+    act(() => inner.props.onLongPress());
+    expect(mockDrag).toHaveBeenCalled();
   });
 
   it('offers VoiceOver move actions that stay inside Up Next', () => {
