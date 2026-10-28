@@ -5,7 +5,7 @@
  * a tabPress like the native stack does.
  */
 import React, {act, useEffect, useRef} from 'react';
-import {View} from 'react-native';
+import {ScrollView, View} from 'react-native';
 import TestRenderer, {type ReactTestRenderer} from 'react-test-renderer';
 import {
   BaseNavigationContainer,
@@ -369,6 +369,32 @@ describe('labelled sidebar', () => {
     const show = r.root.findByProps({accessibilityLabel: 'Show sidebar'});
     act(() => show.props.onPress());
     expect(flatWidth()).toBe(280);
+  });
+
+  it('flashes the scroll indicator once when the sections overflow', () => {
+    const r = renderApp();
+    const scroll = r.root.findByType(ScrollView);
+    const flash = scroll.instance.flashScrollIndicators as jest.Mock;
+    flash.mockClear();
+    const layout = (height: number) =>
+      act(() => scroll.props.onLayout({nativeEvent: {layout: {height}}}));
+    const content = (height: number) =>
+      act(() => scroll.props.onContentSizeChange(240, height));
+
+    layout(500);
+    content(480);
+    expect(flash).not.toHaveBeenCalled();
+
+    // The iPad mini in landscape: the list no longer fits.
+    layout(420);
+    expect(flash).toHaveBeenCalledTimes(1);
+    content(484);
+    expect(flash).toHaveBeenCalledTimes(1);
+
+    // Fits again, then overflows again.
+    layout(700);
+    layout(420);
+    expect(flash).toHaveBeenCalledTimes(2);
   });
 });
 

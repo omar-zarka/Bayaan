@@ -1,5 +1,12 @@
-import React, {useCallback, useMemo} from 'react';
-import {View, Pressable, Text, StyleSheet, ScrollView} from 'react-native';
+import React, {useCallback, useMemo, useRef} from 'react';
+import {
+  View,
+  Pressable,
+  Text,
+  StyleSheet,
+  ScrollView,
+  type LayoutChangeEvent, // @ai
+} from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
 import {useResponsive} from '@/hooks/useResponsive';
 import {
@@ -196,6 +203,32 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
     uploads: t('terms.uploads'),
   };
 
+  // A short window (the iPad mini in landscape) can't fit every section, and
+  // a list cut off between two rows looks complete. Flash the scroll
+  // indicator whenever the list gets taller than the space it has.
+  const scrollRef = useRef<ScrollView>(null);
+  const scrollSize = useRef({viewport: 0, content: 0, flashed: false});
+  const checkOverflow = useCallback(() => {
+    const size = scrollSize.current;
+    const overflows = size.viewport > 0 && size.content > size.viewport + 1;
+    if (overflows && !size.flashed) scrollRef.current?.flashScrollIndicators();
+    size.flashed = overflows;
+  }, []);
+  const handleScrollLayout = useCallback(
+    (e: LayoutChangeEvent) => {
+      scrollSize.current.viewport = e.nativeEvent.layout.height;
+      checkOverflow();
+    },
+    [checkOverflow],
+  );
+  const handleContentSizeChange = useCallback(
+    (_width: number, height: number) => {
+      scrollSize.current.content = height;
+      checkOverflow();
+    },
+    [checkOverflow],
+  );
+
   const handlePress = useCallback(
     (item: SidebarItemId) => {
       const press = sidebarPress(state, item);
@@ -299,9 +332,11 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       )}
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={styles.items}
-        showsVerticalScrollIndicator={false}>
+        onLayout={handleScrollLayout}
+        onContentSizeChange={handleContentSizeChange}>
         {TOP_ITEMS.map(item)}
         {labelled ? (
           <>
