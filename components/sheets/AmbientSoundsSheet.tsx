@@ -510,8 +510,13 @@ const createStyles = (theme: Theme) =>
       flexDirection: 'row',
       gap: 8,
     },
+    // Matches a tile's side padding and border: a flex item never shrinks
+    // below those, so a bare spacer left the last row's tiles wider.
     tabletSpacer: {
       flex: 1,
+      paddingHorizontal: 6,
+      borderWidth: 1,
+      borderColor: 'transparent',
     },
     soundCardTablet: {
       width: 'auto',
