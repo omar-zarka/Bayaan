@@ -501,7 +501,8 @@ const createStyles = (theme: Theme) =>
     // @ai-start
     containerTablet: {
       paddingHorizontal: 16,
-      paddingVertical: 16,
+      paddingTop: 16,
+      paddingBottom: 12,
     },
     tabletGrid: {
       gap: 8,
