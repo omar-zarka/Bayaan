@@ -192,6 +192,8 @@ interface ContinuousListViewProps {
    * width.
    */
   width?: number;
+  /** Whether a tap on the status bar scrolls back to the start. Default on. */
+  scrollsToTop?: boolean;
   // @ai-end
 }
 
@@ -210,6 +212,7 @@ const ContinuousListView = forwardRef<
       onCurrentSurahChange,
       onCurrentPageChange,
       width,
+      scrollsToTop = true,
     },
     ref,
   ) => {
@@ -540,6 +543,7 @@ const ContinuousListView = forwardRef<
           paddingHorizontal: sidePadding,
         }}
         showsVerticalScrollIndicator={false}
+        scrollsToTop={scrollsToTop}
         onViewableItemsChanged={onViewableItemsChanged}
         viewabilityConfig={{itemVisiblePercentThreshold: 50}}
       />

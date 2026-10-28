@@ -12,6 +12,7 @@ interface MockFlashListProps {
   data: unknown[];
   renderItem: (info: {item: unknown; index: number}) => React.ReactNode;
   contentContainerStyle?: {paddingHorizontal?: number};
+  scrollsToTop?: boolean;
 }
 
 const mockRecorded = {
@@ -242,7 +243,7 @@ describe('ReadingPageView on iPad', () => {
 });
 
 describe('ContinuousListView on iPad', () => {
-  function renderList(width: number) {
+  function renderList(width: number, scrollsToTop?: boolean) {
     act(() => {
       TestRenderer.create(
         <ContinuousListView
@@ -251,6 +252,7 @@ describe('ContinuousListView on iPad', () => {
           borderColor="#cccccc"
           initialPage={1}
           width={width}
+          scrollsToTop={scrollsToTop}
         />,
       );
     });
@@ -270,5 +272,12 @@ describe('ContinuousListView on iPad', () => {
       mockRecorded.flashList?.contentContainerStyle?.paddingHorizontal,
     ).toBe(moderateScale(8));
     expect(mockRecorded.dividerWidths[0]).toBeCloseTo(690 - moderateScale(16));
+  });
+
+  it('scrolls to the start on a status bar tap unless told not to', () => {
+    renderList(1376);
+    expect(mockRecorded.flashList?.scrollsToTop).toBe(true);
+    renderList(1376, false);
+    expect(mockRecorded.flashList?.scrollsToTop).toBe(false);
   });
 });

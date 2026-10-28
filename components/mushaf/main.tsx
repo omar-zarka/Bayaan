@@ -667,6 +667,10 @@ export default function MushafViewer({
         : undefined,
     [isTablet, metrics.screenWidth, metrics.screenHeight],
   );
+  // A tap on the status bar scrolls a vertical reader back to page 1. On
+  // iPad the toolbar sits close enough to the status bar (the mini in
+  // landscape) that tapping its buttons did that too, so iPads turn it off.
+  const scrollsToTop = !isTablet;
   // @ai-end
 
   // Reanimated overlay animation (same pattern as PlayerContent)
@@ -1218,6 +1222,7 @@ export default function MushafViewer({
           initialPage={currentPage}
           onCurrentPageChange={handleContinuousPageChange}
           metrics={scrollMetrics} // @ai
+          scrollsToTop={scrollsToTop} // @ai
         />
       ) : isVertical && viewMode === 'list' ? (
         <ContinuousListView
@@ -1230,6 +1235,7 @@ export default function MushafViewer({
           initialPage={currentPage}
           onCurrentPageChange={handleContinuousPageChange}
           width={readingPageSize?.width} // @ai
+          scrollsToTop={scrollsToTop} // @ai
         />
       ) : metrics.facingPages && viewMode === 'mushaf' ? (
         <FlatList
