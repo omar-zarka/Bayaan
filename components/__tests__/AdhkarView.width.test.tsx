@@ -61,7 +61,7 @@ import {
 } from '@/components/AdhkarView';
 
 function renderAt(paneWidth: number) {
-  let r: TestRenderer.ReactTestRenderer | undefined;
+  let r = {} as TestRenderer.ReactTestRenderer;
   act(() => {
     r = TestRenderer.create(
       <AdhkarView
@@ -71,7 +71,7 @@ function renderAt(paneWidth: number) {
       />,
     );
   });
-  const [scroll] = r!.root.findAll(n => (n.type as unknown) === ScrollView);
+  const [scroll] = r.root.findAll(n => (n.type as unknown) === ScrollView);
   mockCards.length = 0;
   mockHeroes.length = 0;
   act(() => {
@@ -79,7 +79,7 @@ function renderAt(paneWidth: number) {
       nativeEvent: {layout: {width: paneWidth, height: 900}},
     });
   });
-  return r!;
+  return r;
 }
 
 beforeEach(() => {
@@ -100,10 +100,9 @@ it('sizes the iPad grid from the measured pane, not the window', () => {
   expect(first.width).toBeCloseTo(layout.columnWidth);
   // A 3:2 image plus room for a two-line label.
   expect(first.height).toBeCloseTo((layout.columnWidth * 2) / 3 + 48);
-  // The saved hero spans two columns of the grid.
-  expect(mockHeroes[mockHeroes.length - 1].width).toBeCloseTo(
-    layout.columnWidth * 2 + 20,
-  );
+  // The saved hero spans the grid, so no empty gap sits beside it.
+  expect(mockHeroes[mockHeroes.length - 1].width).toBeCloseTo(944 - 32 * 2);
+  expect(layout.heroWidth).toBeCloseTo(layout.columnWidth * 5 + layout.gap * 4);
   act(() => r.unmount());
 });
 

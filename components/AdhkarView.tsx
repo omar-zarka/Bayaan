@@ -126,7 +126,7 @@ const TABLET_MIN_CARD_WIDTH = 160;
 /**
  * The iPad grid for a pane `paneWidth` wide in a window `windowWidth` wide:
  * the window's page margin and gutter, columns from the pane, 3:2 images
- * with two label lines under them, and the width of a two-column hero.
+ * with two label lines under them, and the hero cards span the grid.
  */
 export function adhkarTabletLayout(paneWidth: number, windowWidth: number) {
   const {margin, gap} = pageSpacing(windowWidth);
@@ -142,7 +142,7 @@ export function adhkarTabletLayout(paneWidth: number, windowWidth: number) {
     numColumns,
     columnWidth: itemWidth,
     cardHeight: itemWidth * (2 / 3) + TABLET_LABEL_OVERHEAD,
-    heroWidth: itemWidth * 2 + gap,
+    heroWidth: paneWidth - margin * 2,
   };
 }
 // @ai-end
