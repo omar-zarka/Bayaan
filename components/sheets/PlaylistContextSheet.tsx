@@ -403,6 +403,7 @@ export const PlaylistContextSheet = (props: SheetProps<'playlist-context'>) => {
   return (
     <ActionSheet
       id={props.sheetId}
+      tabletPresentation="menu"
       containerStyle={[
         styles.sheetContainer,
         {

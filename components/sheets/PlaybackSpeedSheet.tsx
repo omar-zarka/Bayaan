@@ -32,6 +32,7 @@ export const PlaybackSpeedSheet = (props: SheetProps<'playback-speed'>) => {
   return (
     <ActionSheet
       id={props.sheetId}
+      tabletPresentation="menu"
       containerStyle={styles.sheetContainer}
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>

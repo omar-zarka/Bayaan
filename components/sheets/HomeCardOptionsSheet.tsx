@@ -215,6 +215,7 @@ const HomeCardOptionsContent = ({
   return (
     <ActionSheet
       id={sheetId}
+      tabletPresentation="menu"
       containerStyle={styles.sheetContainer}
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>

@@ -1,5 +1,5 @@
 // @ai-generated
-import {computeGridLayout} from '../gridLayout';
+import {computeGridLayout, computeShelfLayout} from '../gridLayout';
 
 const opts = {minCardWidth: 120, horizontalPadding: 10, gap: 10, minColumns: 3};
 
@@ -36,5 +36,35 @@ describe('computeGridLayout', () => {
 
   it('handles an unmeasured (zero) width', () => {
     expect(computeGridLayout(0, opts)).toEqual({numColumns: 3, itemWidth: 0});
+  });
+});
+
+describe('computeShelfLayout', () => {
+  const shelf = {minCardWidth: 150, leadingPadding: 18, gap: 13, peek: 0.3};
+
+  it('shows whole cards and the chosen peek of the next one', () => {
+    for (const width of [656, 746, 944, 1136]) {
+      const {numColumns, itemWidth} = computeShelfLayout(width, shelf);
+      const shown =
+        shelf.leadingPadding +
+        numColumns * (itemWidth + shelf.gap) +
+        shelf.peek * itemWidth;
+      expect(shown).toBeCloseTo(width, 5);
+      expect(itemWidth).toBeGreaterThanOrEqual(shelf.minCardWidth);
+    }
+  });
+
+  it('adds cards as the pane widens', () => {
+    // iPad mini, 11" and 13" portrait panes beside the 88pt rail.
+    expect(computeShelfLayout(656, shelf).numColumns).toBe(3);
+    expect(computeShelfLayout(746, shelf).numColumns).toBe(4);
+    expect(computeShelfLayout(944, shelf).numColumns).toBe(5);
+  });
+
+  it('keeps minColumns and handles an unmeasured width', () => {
+    expect(computeShelfLayout(200, {...shelf, minColumns: 2}).numColumns).toBe(
+      2,
+    );
+    expect(computeShelfLayout(0, shelf).itemWidth).toBe(0);
   });
 });
