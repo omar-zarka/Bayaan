@@ -36,7 +36,7 @@ import PageEdgeDecoration, {
   EDGE_BORDER_RADIUS,
   EDGE_HORIZONTAL_INSET,
 } from '../PageEdgeDecoration';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {
   SCREEN_WIDTH,
   SCREEN_HEIGHT,

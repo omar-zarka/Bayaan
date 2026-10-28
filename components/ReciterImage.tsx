@@ -2,7 +2,7 @@ import React, {useMemo} from 'react';
 import {View, StyleSheet, ViewStyle, StyleProp} from 'react-native';
 import {Image} from 'expo-image';
 import {useTheme} from '@/hooks/useTheme';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {ProfileIcon} from '@/components/Icons';
 import {reciterImages} from '@/utils/reciterImages';
 

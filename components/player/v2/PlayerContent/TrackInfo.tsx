@@ -5,7 +5,7 @@ import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
 import {SymbolView} from 'expo-symbols';
 import {Pressable} from 'react-native-gesture-handler';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useReciterNavigation} from '@/hooks/useReciterNavigation';

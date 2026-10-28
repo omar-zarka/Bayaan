@@ -3,7 +3,7 @@ import React, {useMemo, useState} from 'react';
 import {View, Text, Pressable, ScrollView, Platform, Alert} from 'react-native';
 import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {Theme} from '@/utils/themeUtils';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';

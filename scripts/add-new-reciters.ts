@@ -358,16 +358,29 @@ interface ExistingReciter {
   rewayat?: Array<{name: string; style: string}>;
 }
 
-async function findBySlug(slug: string): Promise<ExistingReciter | null> {
-  const res = await fetch(`${ADMIN_URL}/admin/reciters?q=${encodeURIComponent(slug)}&limit=10`, {
-    headers: {Authorization: `Bearer ${ADMIN_TOKEN}`},
-  });
-  if (!res.ok) throw new Error(`list reciters ${res.status}`);
-  const json = (await res.json()) as {data: ExistingReciter[]};
-  return json.data.find(r => r.slug === slug) ?? null;
+// The admin list's `q` only matches names, so load every active reciter once
+// and match slugs exactly.
+let catalogue: Map<string, ExistingReciter> | null = null;
+
+async function loadCatalogue(): Promise<Map<string, ExistingReciter>> {
+  const bySlug = new Map<string, ExistingReciter>();
+  for (let page = 1; ; page++) {
+    const res = await fetch(`${ADMIN_URL}/admin/reciters?page=${page}&limit=200`, {
+      headers: {Authorization: `Bearer ${ADMIN_TOKEN}`},
+    });
+    if (!res.ok) throw new Error(`list reciters ${res.status}`);
+    const json = (await res.json()) as {data: ExistingReciter[]; meta: {total_pages: number}};
+    for (const r of json.data) if (r.slug) bySlug.set(r.slug, r);
+    if (page >= json.meta.total_pages) return bySlug;
+  }
 }
 
-async function createReciter(r: NewReciter): Promise<string> {
+async function findBySlug(slug: string): Promise<ExistingReciter | null> {
+  catalogue ??= await loadCatalogue();
+  return catalogue.get(slug) ?? null;
+}
+
+async function createReciter(r: NewReciter): Promise<string | null> {
   const res = await fetch(`${ADMIN_URL}/admin/reciters`, {
     method: 'POST',
     headers: {
@@ -380,6 +393,8 @@ async function createReciter(r: NewReciter): Promise<string> {
       slug: r.slug,
     }),
   });
+  // A hidden (inactive) reciter keeps its slug but isn't in the admin list.
+  if (res.status === 409) return null;
   if (!res.ok) throw new Error(`create reciter ${res.status}: ${await res.text()}`);
   const json = (await res.json()) as {data: {id: string}};
   return json.data.id;
@@ -423,14 +438,23 @@ async function addToExisting(r: NewReciter): Promise<void> {
 }
 
 async function main(): Promise<void> {
-  if (!dryRun && !ADMIN_TOKEN) ADMIN_TOKEN = await login();
+  // Dry runs also log in: the catalogue lookup is read-only and makes the
+  // preview show exactly what would be created or skipped.
+  if (!ADMIN_TOKEN) ADMIN_TOKEN = await login();
   for (const r of RECITERS) {
-    if (dryRun) {
-      const action = r.existing ? 'add to existing' : 'create';
-      console.log(`DRY would ${action} ${r.slug} with ${r.rewayat.length} rewayat`);
-      continue;
-    }
     if (r.existing) {
+      if (dryRun) {
+        const found = await findBySlug(r.slug);
+        const missing = r.rewayat.filter(
+          rw => !found?.rewayat?.some(e => e.name === rw.name && e.style === rw.style),
+        );
+        console.log(
+          found
+            ? `DRY would add ${missing.length} rewayat to existing ${r.slug} (${missing.map(m => m.style).join(', ') || 'none'})`
+            : `DRY MISSING ${r.slug} — expected an existing reciter`,
+        );
+        continue;
+      }
       await addToExisting(r);
       continue;
     }
@@ -439,7 +463,15 @@ async function main(): Promise<void> {
       console.log(`SKIP ${r.slug} (exists as ${existing.id})`);
       continue;
     }
+    if (dryRun) {
+      console.log(`DRY would create ${r.slug} with ${r.rewayat.length} rewayat`);
+      continue;
+    }
     const reciterId = await createReciter(r);
+    if (!reciterId) {
+      console.log(`SKIP ${r.slug} (slug already taken, likely a hidden reciter)`);
+      continue;
+    }
     console.log(`OK reciter ${r.slug} -> ${reciterId}`);
     for (const rw of r.rewayat) {
       const rewayatId = await createRewayat(reciterId, rw);

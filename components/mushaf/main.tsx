@@ -32,7 +32,11 @@ import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
 import {FrostedView} from '@/components/FrostedView';
 import {BackButton} from '@/components/BackButton';
 import MushafSearchView from './MushafSearchView';
-import {moderateScale} from 'react-native-size-matters';
+// @ai-start
+import {TabletDialog} from '@/components/layout/TabletDialog';
+import {SHEET_MAX_HEIGHT} from '@/components/sheets/AdaptiveActionSheet';
+// @ai-end
+import {moderateScale} from '@/utils/scale';
 import Color from 'color';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
@@ -1463,7 +1467,29 @@ export default function MushafViewer({
       {/* ================================================================ */}
       {/* Search mode overlay                                               */}
       {/* ================================================================ */}
-      {isSearchMode && (
+      {/* @ai-start */}
+      {/* iPad: a centered card over the dimmed page, not a full screen */}
+      {isSearchMode && isTablet && (
+        <View style={styles.searchCardLayer}>
+          <TabletDialog
+            onClose={() => setIsSearchMode(false)}
+            height={SHEET_MAX_HEIGHT}>
+            <MushafSearchView
+              onNavigateToPage={navigateToPage}
+              onResumeChain={resumeChain}
+              onNavigateToSurah={navigateToSurah}
+              onNavigateToVerse={navigateToVerse}
+              onClose={() => setIsSearchMode(false)}
+              surahStartPages={surahStartPages}
+              pageToSurah={pageToSurah}
+              autoFocusSearch={autoFocusSearch}
+              inCard={true}
+            />
+          </TabletDialog>
+        </View>
+      )}
+      {/* @ai-end */}
+      {isSearchMode && !isTablet /* @ai */ && (
         <MushafSearchView
           onNavigateToPage={navigateToPage}
           onResumeChain={resumeChain}
@@ -1484,6 +1510,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
+  // @ai-start
+  searchCardLayer: {
+    ...StyleSheet.absoluteFill,
+    zIndex: 20,
+  },
+  // @ai-end
   page: {
     // width and height are provided inline per-page so pages stay in sync
     // with live window dimensions (rotation / iPad split-view aware).

@@ -1,7 +1,7 @@
 import React, {useCallback, useMemo} from 'react';
 import {View, Text, StyleSheet, Pressable} from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
-import {moderateScale, verticalScale} from 'react-native-size-matters';
+import {moderateScale, verticalScale} from '@/utils/scale';
 import {pickRandomRecitations} from '@/utils/randomRecitation';
 import {showToast} from '@/utils/toastUtils'; // @ai
 import * as Haptics from 'expo-haptics';

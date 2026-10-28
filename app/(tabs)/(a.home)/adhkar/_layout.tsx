@@ -1,7 +1,7 @@
 import {Pressable} from 'react-native';
 import {Stack, useRouter} from 'expo-router';
 import {Ionicons} from '@expo/vector-icons';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 // @ai-start
 import {useTranslation} from 'react-i18next';
 // @ai-end

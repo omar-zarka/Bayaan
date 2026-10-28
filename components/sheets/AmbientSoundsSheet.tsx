@@ -1,11 +1,12 @@
 import React, {useCallback} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
-import {ScaledSheet, moderateScale} from 'react-native-size-matters';
+import {ScaledSheet, moderateScale} from '@/utils/scale';
 import Slider from '@react-native-community/slider';
 import Svg, {Line, Circle, Path, Rect, Polygon} from 'react-native-svg';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
-import ActionSheet, {SheetProps} from 'react-native-actions-sheet';
+import {SheetProps} from 'react-native-actions-sheet';
+import ActionSheet from '@/components/sheets/AdaptiveActionSheet';
 import Color from 'color';
 import {useAmbientStore} from '@/store/ambientStore';
 import {ambientAudioService} from '@/services/audio/AmbientAudioService';

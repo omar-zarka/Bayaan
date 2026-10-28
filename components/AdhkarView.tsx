@@ -7,7 +7,7 @@ import {
   useWindowDimensions,
   type LayoutChangeEvent, // @ai
 } from 'react-native';
-import {moderateScale, scale} from 'react-native-size-matters';
+import {moderateScale, scale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {useAdhkar} from '@/hooks/useAdhkar';
 import {AdhkarBentoCard} from '@/components/adhkar/AdhkarBentoCard';
