@@ -40,6 +40,8 @@ import {useBottomInset} from '@/hooks/useBottomInset';
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
 import {useHeaderHeight} from 'expo-router/react-navigation'; // @ai
 import {USE_GLASS} from '@/hooks/useGlassProps'; // @ai
+import {usePlayerActions} from '@/hooks/usePlayerActions'; // @ai
+import {createTracksForReciter} from '@/utils/track'; // @ai
 import {TabletSearchResults} from '@/components/search/TabletSearchResults'; // @ai
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 // @ai-start
@@ -100,6 +102,7 @@ export function SearchView({
   const {askEveryTime, defaultReciterSelection} = useSettings();
   const defaultReciter = useReciterStore(state => state.defaultReciter);
   const {playWithReciter, playWithRandomReciter} = useReciterSelection();
+  const {addToQueue} = usePlayerActions();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   // Explore and the results fill the iPad pane, but recent searches and the
@@ -363,15 +366,31 @@ export function SearchView({
   );
 
   // The iPad results' options button. The menu acts on the default reciter
-  // and names it in its header.
+  // and the rewayah its play button uses, and names the reciter in its
+  // header.
   const handleSurahOptions = useCallback(
     (result: SearchResult) => {
       Keyboard.dismiss();
+      const rewayatId = defaultReciter?.rewayat[0]?.id;
       SheetManager.show('surah-options', {
-        payload: {surah: result.item as Surah, reciterId: defaultReciter?.id},
+        payload: {
+          surah: result.item as Surah,
+          reciterId: defaultReciter?.id,
+          rewayatId,
+          onAddToQueue: defaultReciter
+            ? async (surah: Surah) => {
+                const tracks = await createTracksForReciter(
+                  defaultReciter,
+                  [surah],
+                  rewayatId,
+                );
+                await addToQueue(tracks);
+              }
+            : undefined,
+        },
       });
     },
-    [defaultReciter],
+    [defaultReciter, addToQueue],
   );
 
   const renderSearchResult = useCallback(

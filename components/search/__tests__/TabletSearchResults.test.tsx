@@ -157,6 +157,10 @@ describe('TabletSearchResults', () => {
   it('lists every reciter in the Reciters scope', () => {
     const renderer = render();
     pressTab(renderer, 'common:terms.reciters');
+    const grid = renderer.root.find(
+      n => typeof n.type === 'string' && typeof n.props.onLayout === 'function',
+    );
+    act(() => grid.props.onLayout({nativeEvent: {layout: {width: 896}}}));
     expect(surahRows(renderer)).toHaveLength(0);
     expect(texts(renderer)).toEqual(
       expect.arrayContaining(['Reciter a', 'Reciter b']),
@@ -191,7 +195,8 @@ describe('TabletSearchResults', () => {
   });
 
   it('puts the top result beside the surahs on a 13-inch iPad', () => {
-    expect(topLayout(render())).toBe('side-by-side');
+    const renderer = render();
+    expect(topLayout(renderer)).toBe('side-by-side');
   });
 
   it('stacks the top result above the surahs on an iPad mini', () => {
@@ -218,10 +223,58 @@ describe('TabletSearchResults', () => {
         n.props.accessibilityLabel === 'surahItem.moreOptions' &&
         typeof n.props.onPress === 'function',
     );
-    expect(more.length).toBeGreaterThan(0);
+    // One on the top result card, one on the other surah's row.
+    expect(more).toHaveLength(2);
     act(() => more[0].props.onPress());
-    expect(onSurahOptions).toHaveBeenCalledWith(
-      expect.objectContaining({item: expect.objectContaining({id: 2})}),
+    act(() => more[1].props.onPress());
+    expect(onSurahOptions.mock.calls.map(([r]) => r.item.id)).toEqual([1, 2]);
+  });
+
+  it('gives a lone result the full width on a 13-inch iPad', () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      renderer = TestRenderer.create(
+        <TabletSearchResults
+          results={[surah(18)]}
+          onResultPress={jest.fn()}
+          onSurahPlay={jest.fn()}
+          onSurahOptions={jest.fn()}
+          bottomPadding={0}
+        />,
+      );
+    });
+    // The tall card pins its buttons in its corner; the full-width row
+    // keeps them inline.
+    const pinned = renderer.root.findAll(
+      n =>
+        (n.type as unknown) === 'View' &&
+        StyleSheet.flatten(n.props.style)?.position === 'absolute',
     );
+    expect(pinned).toHaveLength(0);
+    expect(texts(renderer)).toContain('search.topResult');
+  });
+
+  it('flows the Surahs scope into two columns on a 13-inch iPad', () => {
+    const renderer = render();
+    pressTab(renderer, 'common:terms.surahs');
+    const cells = renderer.root.findAll(
+      n =>
+        (n.type as unknown) === 'View' &&
+        StyleSheet.flatten(n.props.style)?.width === '50%',
+    );
+    expect(cells).toHaveLength(6);
+  });
+
+  it('keeps the Surahs scope in one column on an iPad mini', () => {
+    mockWindowWidth = 744;
+    const renderer = render();
+    pressTab(renderer, 'common:terms.surahs');
+    const cells = renderer.root.findAll(
+      n =>
+        (n.type as unknown) === 'View' &&
+        StyleSheet.flatten(n.props.style)?.width === '50%',
+    );
+    expect(cells).toHaveLength(0);
+    expect(surahRows(renderer)).toHaveLength(6);
   });
 });
