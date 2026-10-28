@@ -128,6 +128,14 @@ describe('TabletCollectionHome', () => {
     expect(texts(button(r, 'Notes'))).toEqual(['Notes', 'No notes yet']);
   });
 
+  it('lets an empty hint wrap instead of cutting it off', () => {
+    const r = render();
+    const hint = button(r, 'Notes').find(
+      n => (n.type as unknown) === Text && n.props.children === 'No notes yet',
+    );
+    expect(hint.props.numberOfLines).toBe(2);
+  });
+
   it('opens a category route', () => {
     const r = render();
     act(() => button(r, 'Notes').props.onPress());

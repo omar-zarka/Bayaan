@@ -163,9 +163,11 @@ export function TabletCollectionHome({
                       numberOfLines={1}>
                       {category.label}
                     </Text>
+                    {/* Two lines: an empty tile's hint ("No loved surahs
+                        yet") is wider than a 4-column tile on the 13". */}
                     <Text
                       style={[styles.tileCount, {color: secondary}]}
-                      numberOfLines={1}>
+                      numberOfLines={2}>
                       {subtitle}
                     </Text>
                   </View>
