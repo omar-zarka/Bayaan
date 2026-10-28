@@ -5,12 +5,13 @@ import {useTranslation} from 'react-i18next';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {capScreensExcept} from '@/components/layout/MaxWidthContainer';
 
-// Grids and shelves take the whole pane on iPad; other screens stay in the
-// 720pt column for now (ipad-standards §5.3). @ai
+// Grids, shelves and the reciter page take the whole pane on iPad; other
+// screens stay in the 720pt column for now (ipad-standards §5.3). @ai
 const SCREEN_LAYOUT = capScreensExcept([
   'index',
   'browse-all',
   'reciter/browse',
+  'reciter/[id]',
 ]); // @ai
 
 // A deep link (widget, Live Activity, App Link) that opens a screen in this

@@ -1,5 +1,11 @@
 import React from 'react';
-import {Text, View, InteractionManager} from 'react-native';
+import {
+  Text,
+  View,
+  InteractionManager,
+  StyleSheet,
+  type LayoutChangeEvent,
+} from 'react-native';
 import {
   FlashList,
   type FlashListRef,
@@ -9,13 +15,15 @@ import {moderateScale, ScaledSheet} from '@/utils/scale';
 import {Theme} from '@/utils/themeUtils';
 import {useTheme} from '@/hooks/useTheme';
 import {SurahListProps} from '@/components/reciter-profile/types';
-import {SurahItem} from '@/components/SurahItem';
+import {SurahItem, SurahTableHeader} from '@/components/SurahItem'; // @ai
 import {SurahCard} from '@/components/cards/SurahCard';
 import {Surah} from '@/data/surahData';
 // @ai-start
 import {getJuzForSurah} from '@/data/juzData';
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+import Color from 'color';
+import {computeGridLayout} from '@/utils/gridLayout';
 // @ai-end
 
 // Define types matching useSettings and ReciterProfile
@@ -34,7 +42,18 @@ interface UpdatedSurahListProps extends SurahListProps {
   sortOption: ReciterProfileSortOption;
   rewayatId?: string;
   inline?: boolean;
+  /** iPad page margin; turns on the table rows and card grid. @ai */
+  tabletMargin?: number;
 }
+
+// @ai-start
+/** Lists at least this wide show the Revelation and Verses columns. */
+const TABLE_MIN_WIDTH = 720;
+/** SurahItem's leading padding, so the table lines up with the margin. */
+const ROW_INSET = moderateScale(12);
+const TABLET_MIN_CARD_WIDTH = moderateScale(150);
+const TABLET_CARD_GAP = moderateScale(12);
+// @ai-end
 
 // Shared ItemSeparator component
 const ItemSeparator = React.memo(() => {
@@ -71,6 +90,7 @@ export const SurahList = React.forwardRef<
       sortOption,
       rewayatId,
       inline,
+      tabletMargin,
     },
     ref,
   ) => {
@@ -133,7 +153,7 @@ export const SurahList = React.forwardRef<
 
     // Render a card item (used by inline mode)
     const renderCardItem = React.useCallback(
-      ({item}: {item: Surah}) => (
+      ({item}: {item: Surah}, width?: number) => (
         <SurahCard
           id={item.id}
           name={item.name}
@@ -142,7 +162,7 @@ export const SurahList = React.forwardRef<
           revelationPlace={item.revelation_place}
           color={getColorForSurah(item.id)}
           onPress={() => onSurahPress(item)}
-          style={styles.surahCard}
+          style={width === undefined ? styles.surahCard : {width}}
           isLoved={isLoved(reciterId, item.id.toString())}
           isDownloaded={isDownloaded(reciterId, item.id.toString())}
           onOptionsPress={() => onOptionsPress && onOptionsPress(item)}
@@ -236,12 +256,37 @@ export const SurahList = React.forwardRef<
       ],
     );
 
+    // iPad (mockup L9): rows become a table with Revelation and Verses
+    // columns once the list is wide enough, and cards flow into as many
+    // columns as fit. Both use the list's own measured width.
+    const isTabletLayout = tabletMargin !== undefined;
+    const [tabletWidth, setTabletWidth] = React.useState<number | null>(null);
+    const handleTabletLayout = React.useCallback((e: LayoutChangeEvent) => {
+      const next = e.nativeEvent.layout.width;
+      setTabletWidth(prev => (prev === next ? prev : next));
+    }, []);
+    const showColumns =
+      isTabletLayout && tabletWidth !== null && tabletWidth >= TABLE_MIN_WIDTH;
+    const tabletGrid =
+      tabletMargin !== undefined && tabletWidth !== null
+        ? computeGridLayout(tabletWidth, {
+            minCardWidth: TABLET_MIN_CARD_WIDTH,
+            horizontalPadding: tabletMargin,
+            gap: TABLET_CARD_GAP,
+            minColumns: 2,
+          })
+        : null;
+
     // Render a list item for inline mode
     const renderInlineListItem = React.useCallback(
       (item: FlatItem) => {
         if (item.type === 'juz-header') {
           return (
-            <View style={styles.juzHeader}>
+            <View
+              style={[
+                styles.juzHeader,
+                tabletMargin !== undefined && styles.tabletJuzHeader,
+              ]}>
               <Text
                 style={[
                   styles.juzHeaderText,
@@ -261,10 +306,14 @@ export const SurahList = React.forwardRef<
             isDownloaded={isDownloaded(reciterId, item.surahs[0].id.toString())}
             onOptionsPress={onOptionsPress}
             rewayatId={rewayatId}
+            tableColumns={showColumns}
           />
         );
       },
       [
+        showColumns,
+        tabletMargin,
+        styles.tabletJuzHeader,
         onSurahPress,
         reciterId,
         isLoved,
@@ -304,11 +353,27 @@ export const SurahList = React.forwardRef<
           ? surahs
           : surahs.slice(0, INITIAL_CARD_BATCH);
         return (
-          <View style={styles.surahsContainer}>
+          <View
+            style={styles.surahsContainer}
+            onLayout={isTabletLayout ? handleTabletLayout : undefined}>
             {surahs.length === 0 ? (
               <Text style={styles.emptyText}>
                 {t('reciterProfile.noSurahsAvailable')}
               </Text>
+            ) : isTabletLayout ? (
+              tabletGrid && (
+                <View
+                  style={[
+                    styles.tabletCardGrid,
+                    {paddingHorizontal: tabletMargin},
+                  ]}>
+                  {visibleSurahs.map(surah => (
+                    <React.Fragment key={`card-${surah.id}`}>
+                      {renderCardItem({item: surah}, tabletGrid.itemWidth)}
+                    </React.Fragment>
+                  ))}
+                </View>
+              )
             ) : (
               <View style={styles.cardGrid}>
                 {visibleSurahs.map(surah => (
@@ -325,19 +390,42 @@ export const SurahList = React.forwardRef<
       const visibleData = expandedList
         ? data
         : data.slice(0, INITIAL_LIST_BATCH);
+      // In the table, a hairline separates two surah rows; Juz labels
+      // stand on their own.
+      const separatorAfter = (index: number) =>
+        showColumns ? (
+          visibleData[index].type === 'surah-row' &&
+          visibleData[index + 1].type === 'surah-row' && (
+            <View style={styles.tableSeparator} />
+          )
+        ) : (
+          <ItemSeparator />
+        );
       return (
-        <View style={styles.surahsContainer}>
+        <View
+          style={[
+            styles.surahsContainer,
+            tabletMargin !== undefined && {
+              paddingHorizontal: tabletMargin - ROW_INSET,
+            },
+          ]}
+          onLayout={isTabletLayout ? handleTabletLayout : undefined}>
           {data.length === 0 ? (
             <Text style={styles.emptyText}>
               {t('reciterProfile.noSurahsAvailable')}
             </Text>
           ) : (
-            visibleData.map((item, index) => (
-              <React.Fragment key={item.key}>
-                {renderInlineListItem(item)}
-                {index < visibleData.length - 1 && <ItemSeparator />}
-              </React.Fragment>
-            ))
+            <>
+              {showColumns && (
+                <SurahTableHeader withOptions={!!onOptionsPress} />
+              )}
+              {visibleData.map((item, index) => (
+                <React.Fragment key={item.key}>
+                  {renderInlineListItem(item)}
+                  {index < visibleData.length - 1 && separatorAfter(index)}
+                </React.Fragment>
+              ))}
+            </>
           )}
         </View>
       );
@@ -411,6 +499,20 @@ const createStyles = (theme: Theme) =>
       paddingHorizontal: moderateScale(16),
       paddingTop: moderateScale(14),
       paddingBottom: moderateScale(6),
+    },
+    tabletJuzHeader: {
+      paddingHorizontal: ROW_INSET,
+    },
+    tabletCardGrid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: TABLET_CARD_GAP,
+    },
+    tableSeparator: {
+      height: StyleSheet.hairlineWidth,
+      // Inset to the title column: SurahItem's padding, glyph and gaps.
+      marginStart: ROW_INSET + moderateScale(68),
+      backgroundColor: Color(theme.colors.text).alpha(0.1).toString(),
     },
     juzHeaderText: {
       fontSize: moderateScale(12),

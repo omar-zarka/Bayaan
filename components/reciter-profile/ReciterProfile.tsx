@@ -86,6 +86,8 @@ import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 import {rankSurahs} from '@/utils/search/catalog'; // @ai
 // @ai-end
 import {hasPagerReachedInitialPage} from './utils/pagerLayout'; // @ai
+import {TabletReciterHero} from './components/TabletReciterHero'; // @ai
+import {useResponsive} from '@/hooks/useResponsive'; // @ai
 
 interface ReciterProfileProps {
   id: string;
@@ -218,6 +220,10 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   const insets = useSafeAreaInsets();
   const bottomInset = useBottomInset();
   const {height: screenHeight, width: windowWidth} = useWindowDimensions();
+  // iPad (mockup L9): a photo hero and a surah table across the pane, with
+  // the page margin for the window's width class (ipad-standards §5.2).
+  const {isTablet} = useResponsive();
+  const pageMargin = windowWidth >= 900 ? 32 : 24;
   // @ai-start
   // The pager pages must match the pager's own width, not the window: on
   // iPad the profile sits beside the sidebar inside a capped column, so
@@ -1101,13 +1107,11 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
               onLayout={e => setCollapsibleHeight(e.nativeEvent.layout.height)}
               style={{marginBottom: -stickyPinOffset, zIndex: 11}}
               pointerEvents="box-none">
-              <ReciterHeader
-                reciter={reciter}
-                showSearch={showSearch}
-                insets={insets}
-              />
-              <View style={styles.contentContainer}>
-                <ActionButtons
+              {isTablet ? (
+                <TabletReciterHero
+                  reciter={reciter}
+                  paddingTop={showSearch ? 16 : isGlass ? 8 : insets.top + 56}
+                  margin={pageMargin}
                   onFavoritePress={handleToggleFavorite}
                   onShufflePress={handleShuffleAll}
                   onPlayPress={handlePlayAll}
@@ -1117,7 +1121,27 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                   downloadAllProgress={downloadAllProgress}
                   allDownloaded={allDownloaded}
                 />
-              </View>
+              ) : (
+                <>
+                  <ReciterHeader
+                    reciter={reciter}
+                    showSearch={showSearch}
+                    insets={insets}
+                  />
+                  <View style={styles.contentContainer}>
+                    <ActionButtons
+                      onFavoritePress={handleToggleFavorite}
+                      onShufflePress={handleShuffleAll}
+                      onPlayPress={handlePlayAll}
+                      isFavoriteReciter={isFavoriteReciter(reciter.id)}
+                      onDownloadAllPress={handleDownloadAll}
+                      isDownloadingAll={isDownloadingAll}
+                      downloadAllProgress={downloadAllProgress}
+                      allDownloaded={allDownloaded}
+                    />
+                  </View>
+                </>
+              )}
             </View>
 
             {/* Child 1: Sticky section — sticks at top when header collapses */}
@@ -1137,7 +1161,11 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                     screenWidth={pageWidth}
                   />
                 )}
-                <View style={styles.controlsRow}>
+                <View
+                  style={[
+                    styles.controlsRow,
+                    isTablet && {marginHorizontal: pageMargin},
+                  ]}>
                   {activeTab !== 'uploads' && (
                     <View style={styles.sortOptionsContainer}>
                       <Pressable
@@ -1298,6 +1326,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                             sortOption={sortOption}
                             getColorForSurah={getColorForSurah}
                             rewayatId={tab.id}
+                            tabletMargin={isTablet ? pageMargin : undefined}
                           />
                         )
                       ) : null}

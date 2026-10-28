@@ -154,7 +154,10 @@
     "verses_other": "{{count}} آية",
     "a11yReadHint": "يفتح السورة في المصحف",
     "a11yPlayAction": "تشغيل",
-    "a11yMoreAction": "خيارات إضافية"
+    "a11yMoreAction": "خيارات إضافية",
+    "columnSurah": "السورة",
+    "columnRevelation": "النزول",
+    "columnVerses": "الآيات"
   },
   "sort": {
     "asc": "تصاعدي",
