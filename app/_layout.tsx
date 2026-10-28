@@ -35,6 +35,7 @@ import {
 } from '@/components/modals/WhatsNewOnboarding';
 import {DevMenu} from '@/components/DevMenu';
 import {SheetProvider} from 'react-native-actions-sheet';
+import {recordTouch} from '@/utils/lastTouch'; // @ai
 import '@/components/sheets/sheets'; // Register action sheets
 import {
   configureReanimatedLogger,
@@ -498,6 +499,7 @@ function RootLayout() {
                   ]}
                   // @ts-ignore - RN supports this on iOS to override system theme for native UI (keyboard, menus, alerts)
                   overrideUserInterfaceStyle={isDarkMode ? 'dark' : 'light'}
+                  onTouchStart={recordTouch} // @ai
                   onLayout={onLayoutRootView}>
                   <NetworkStatusMonitor />
                   <SheetProvider>

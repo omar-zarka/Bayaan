@@ -484,6 +484,7 @@ export const PlayerOptionsSheet = (props: SheetProps<'player-options'>) => {
   return (
     <ActionSheet
       id={props.sheetId}
+      tabletPresentation={showSurahInfo ? 'card' : 'menu'}
       containerStyle={[
         styles.sheetContainer,
         showSurahInfo && styles.sheetContainerExpanded,
