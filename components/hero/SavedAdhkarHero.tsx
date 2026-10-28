@@ -299,24 +299,39 @@ const createStyles = (theme: Theme, heroTheme: HeroColorTheme) =>
 
 interface SavedAdhkarHeroProps {
   savedCount: number;
+  /**
+   * iPad: the card's width. The caller places it in the grid, so it skips
+   * the hero section's own padding. @ai
+   */
+  width?: number;
 }
 
 /**
  * Hero section for saved adhkar in AdhkarView
  * Only renders when there are saved adhkar
  */
-export function SavedAdhkarHero({savedCount}: SavedAdhkarHeroProps) {
+export function SavedAdhkarHero({savedCount, width}: SavedAdhkarHeroProps) {
   const cardStyle: ViewStyle = useMemo(() => {
     return {
-      width: '100%' as const,
+      width: width ?? ('100%' as const), // @ai
       height: SECTION_HEIGHT,
     };
-  }, []);
+  }, [width]);
 
   // Don't render if no saved adhkar
   if (savedCount === 0) {
     return null;
   }
+
+  // @ai-start
+  if (width !== undefined) {
+    return (
+      <View style={cardStyle}>
+        <SavedAdhkarCard savedCount={savedCount} style={cardStyle} />
+      </View>
+    );
+  }
+  // @ai-end
 
   return (
     <HeroSection

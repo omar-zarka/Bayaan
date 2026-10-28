@@ -8,6 +8,11 @@ import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {flipX} from '@/utils/rtl';
+import {capScreensExcept} from '@/components/layout/MaxWidthContainer'; // @ai
+
+// The category grid takes the whole pane on iPad; lists and readers stay in
+// the 720pt column (ipad-standards §5.3). @ai
+const SCREEN_LAYOUT = capScreensExcept(['index']); // @ai
 
 // A deep link (widget, Live Activity, App Link) that opens a screen in this
 // stack lands on top of its first screen, so back always has a target.
@@ -21,6 +26,7 @@ export default function AdhkarLayout() {
 
   return (
     <Stack
+      screenLayout={SCREEN_LAYOUT} // @ai
       screenOptions={{
         headerShown: true,
         freezeOnBlur: true,
