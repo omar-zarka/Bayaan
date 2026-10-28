@@ -79,6 +79,23 @@ describe('TabletSettingsList', () => {
     expect(texts(row(r, 'Storage')).length).toBe(2);
   });
 
+  it('moves the analytics note under its group in the split', () => {
+    const note = (r: TestRenderer.ReactTestRenderer) =>
+      texts(r.root).filter(s => s.startsWith('Help improve'));
+    const switchRow = (r: TestRenderer.ReactTestRenderer) =>
+      r.root.find(
+        n => n.props.accessibilityLabel === 'Share anonymous usage data',
+      ).parent as TestRenderer.ReactTestInstance;
+
+    const split = render({onOpenPage: jest.fn(), selectedRoute: 'storage'});
+    expect(note(split)).toHaveLength(1);
+    expect(texts(switchRow(split))).toEqual(['Share anonymous usage data']);
+
+    const alone = render({onOpenPage: jest.fn()});
+    expect(note(alone)).toHaveLength(1);
+    expect(texts(switchRow(alone))).toHaveLength(2);
+  });
+
   it('opens pages by route name and keeps links announced as links', async () => {
     const onOpenPage = jest.fn();
     const r = render({onOpenPage, selectedRoute: 'storage'});

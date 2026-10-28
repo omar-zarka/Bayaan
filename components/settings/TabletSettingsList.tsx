@@ -160,6 +160,9 @@ export function TabletSettingsList({
   const inSplit = selectedRoute !== undefined;
   const text = theme.colors.text;
   const secondary = theme.colors.textSecondary;
+  const analyticsNote = t('settings:index.analytics.description', {
+    appName: branding.appName,
+  });
   const trackColor = {
     false: Color(text).alpha(0.1).toString(),
     true: Color(text).alpha(0.65).toString(),
@@ -228,9 +231,7 @@ export function TabletSettingsList({
       <Group>
         <SettingsRow
           title={t('settings:index.analytics.title')}
-          description={t('settings:index.analytics.description', {
-            appName: branding.appName,
-          })}
+          description={inSplit ? undefined : analyticsNote}
           icon={<Feather name="bar-chart-2" size={16} color={text} />}
           accessory={
             <Switch
@@ -244,6 +245,13 @@ export function TabletSettingsList({
           }
         />
       </Group>
+      {inSplit ? (
+        // The narrow list has no room beside the switch, so the note sits
+        // under the group, as in iOS Settings.
+        <Text style={[styles.footnote, {color: secondary}]}>
+          {analyticsNote}
+        </Text>
+      ) : null}
 
       {__DEV__ && (
         // Dev-only tools stay in English.
@@ -387,5 +395,13 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontFamily: 'Manrope-Regular',
     textAlign: 'left',
+  },
+  footnote: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontFamily: 'Manrope-Regular',
+    textAlign: 'left',
+    marginTop: 8,
+    paddingHorizontal: 4,
   },
 });
