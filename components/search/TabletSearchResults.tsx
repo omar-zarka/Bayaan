@@ -125,6 +125,9 @@ export function TabletSearchResults({
           horizontalPadding: 0,
           gap: RECITER_GAP,
         });
+  // Whole points: the measured width is rounded to the pixel grid, so tiles
+  // that fill it exactly can overflow by a fraction and wrap a row early.
+  const reciterTileWidth = reciterGrid && Math.floor(reciterGrid.itemWidth);
 
   const scopes: {key: SearchScope; label: string; count?: number}[] = [
     {key: 'all', label: t('search.all')},
@@ -297,8 +300,8 @@ export function TabletSearchResults({
         <View
           style={[styles.section, styles.reciterGrid]}
           onLayout={handleGridLayout}>
-          {reciterGrid &&
-            grouped.reciters.map(r => reciterTile(r, reciterGrid.itemWidth))}
+          {reciterTileWidth !== null &&
+            grouped.reciters.map(r => reciterTile(r, reciterTileWidth))}
         </View>
       )}
     </ScrollView>

@@ -165,6 +165,15 @@ describe('TabletSearchResults', () => {
     expect(texts(renderer)).toEqual(
       expect.arrayContaining(['Reciter a', 'Reciter b']),
     );
+    // Whole-point tiles, so a row filled exactly never wraps early.
+    const tileWidths = grid
+      .findAll(
+        n =>
+          typeof n.type === 'string' && n.props.accessibilityRole === 'button',
+      )
+      .map(n => StyleSheet.flatten(n.props.style).width);
+    expect(tileWidths.length).toBeGreaterThan(0);
+    expect(tileWidths.every(w => Number.isInteger(w))).toBe(true);
   });
 
   it('gives every surah row a play button', () => {
