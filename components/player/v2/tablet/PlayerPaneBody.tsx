@@ -1,15 +1,14 @@
 // @ai-generated
-import React, {useCallback, useEffect} from 'react';
+import React, {useEffect} from 'react';
 import {View, StyleSheet} from 'react-native';
-import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {useVerseSelectionStore} from '@/store/verseSelectionStore';
 import {TabletPlayerReciterColumn} from '@/components/tablet/TabletPlayerReciterColumn';
-import {QueueList} from '../PlayerContent/QueueList';
 import {QuranView} from '../PlayerContent/QuranView';
 import {UploadPlaceholder} from '../PlayerContent/UploadPlaceholder';
 import type {PlayerPane} from './PlayerParts';
+import {QueuePane} from './QueuePane';
 import {READING_COLUMN_MAX} from './playerMetrics';
 
 // Verse taps do nothing here: the controls sit beside or below the text,
@@ -36,8 +35,6 @@ export function PlayerPaneBody({
   width,
   bottomInset,
 }: PlayerPaneBodyProps) {
-  const {updateQueue, removeFromQueue, play} = usePlayerActions();
-  const tracks = usePlayerStore(s => s.queue.tracks);
   const currentTrack = usePlayerStore(
     s => s.queue.tracks?.[s.queue.currentIndex ?? -1],
   );
@@ -63,37 +60,10 @@ export function PlayerPaneBody({
     useVerseSelectionStore.getState().clearSelection();
   }, [currentSurah]);
 
-  const handleQueueItemPress = useCallback(
-    async (index: number) => {
-      try {
-        await updateQueue(tracks, index);
-        await play();
-      } catch (e) {
-        console.error('PlayerPaneBody: skip failed', e);
-      }
-    },
-    [tracks, updateQueue, play],
-  );
-
-  const handleRemoveQueueItem = useCallback(
-    async (index: number) => {
-      try {
-        await removeFromQueue([index]);
-      } catch (e) {
-        console.error('PlayerPaneBody: remove failed', e);
-      }
-    },
-    [removeFromQueue],
-  );
-
   if (pane === 'queue') {
     return (
       <View style={styles.column}>
-        <QueueList
-          onQueueItemPress={handleQueueItemPress}
-          onRemoveQueueItem={handleRemoveQueueItem}
-          contentPaddingBottom={bottomInset}
-        />
+        <QueuePane bottomInset={bottomInset} />
       </View>
     );
   }

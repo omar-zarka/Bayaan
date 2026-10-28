@@ -5,7 +5,15 @@
     "nowPlaying": "قيد التشغيل",
     "upNext": "التالي",
     "played": "تم تشغيلها",
-    "remove": "إزالة {{title}} من قائمة الانتظار"
+    "remove": "إزالة {{title}} من قائمة الانتظار",
+    "playNext": "تشغيل تاليًا",
+    "moveUp": "نقل لأعلى",
+    "moveDown": "نقل لأسفل",
+    "reorder": "إعادة ترتيب {{title}}",
+    "reorderHint": "اسحب لنقله في قائمة الانتظار",
+    "moreFor": "خيارات إضافية لـ {{title}}",
+    "clearUpNext": "مسح التالي",
+    "nothingNext": "لا يوجد شيء تالٍ"
   },
   "panes": {
     "text": "النص",
