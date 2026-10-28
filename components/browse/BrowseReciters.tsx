@@ -46,8 +46,17 @@ import branding from '@/config/branding';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {useReciterProfilePathname} from '@/hooks/useTabReciterPath'; // @ai
+import {useResponsive} from '@/hooks/useResponsive'; // @ai
 // @ai-start
 import {useTranslation} from 'react-i18next';
+// @ai-end
+
+// @ai-start
+/** Windows this wide use the `expanded` layout (ipad-standards §2). */
+const EXPANDED_MIN_WIDTH = 900;
+/** Longest the search field gets on iPad (listening/03, Browse all). */
+const TABLET_SEARCH_MAX_WIDTH = 480;
+const CHIP_MARGIN = moderateScale(2);
 // @ai-end
 
 interface BrowseRecitersProps {
@@ -139,6 +148,17 @@ export default function BrowseReciters({
   const insets = useSafeAreaInsets();
   const bottomInset = useBottomInset();
   const styles = useMemo(() => createStyles(theme), [theme]);
+  // @ai-start
+  // iPad: one header row (search, filter, count), chips that wrap on wide
+  // windows, and a grid in page margins. Phones keep the layout below.
+  const {isTablet, width: windowWidth} = useResponsive();
+  const pageMargin = isTablet
+    ? windowWidth >= EXPANDED_MIN_WIDTH
+      ? 32
+      : 24
+    : undefined;
+  const wrapChips = isTablet && windowWidth >= EXPANDED_MIN_WIDTH;
+  // @ai-end
 
   // On iOS, the native Stack header handles the top area; on Android, use custom Header
   const useNativeHeader = USE_GLASS;
@@ -553,6 +573,84 @@ export default function BrowseReciters({
   // Top offset: native header height on iOS, 0 on Android (custom Header handles it)
   const topOffset = useNativeHeader ? iosHeaderHeight : 0;
 
+  // @ai-start
+  // Chips line up with the search field on iPad; the chip's own margin is
+  // taken off the page margin.
+  const chipInset =
+    pageMargin !== undefined
+      ? {paddingHorizontal: pageMargin - CHIP_MARGIN}
+      : undefined;
+  const chipItems = (
+    <>
+      {dynamicFilterChips.map(chip => (
+        <Animated.View
+          key={chip.label + chip.type}
+          entering={FadeIn.duration(300)}
+          exiting={FadeOut.duration(200)}
+          layout={LinearTransition.duration(300)}>
+          {chip.type === 'separator' ? (
+            <View style={styles.separatorChip}>
+              <Text style={styles.separatorChipText}>{chip.label}</Text>
+            </View>
+          ) : (
+            <Pressable
+              accessibilityRole="togglebutton"
+              accessibilityLabel={getRewayatPersonLabel(chip.label)}
+              accessibilityState={{selected: chip.isSelected}}
+              style={({pressed}) => [
+                styles.filterChip,
+                chip.isSelected && styles.filterChipActive,
+                pressed && styles.filterChipPressed,
+              ]}
+              onPress={() => {
+                Keyboard.dismiss();
+                handleChipPress(chip);
+              }}>
+              <Text
+                style={[
+                  styles.filterChipText,
+                  chip.isSelected && styles.filterChipTextActive,
+                ]}>
+                {getRewayatPersonLabel(chip.label)}
+              </Text>
+            </Pressable>
+          )}
+        </Animated.View>
+      ))}
+      {/* RFC-012 — composable chip(s) from `branding.searchFilters`.
+       * v1 ships `has-photo` end-to-end; other dimensions render
+       * once they're wired through (or live as bespoke chips above). */}
+      {hasPhotoEnabled && (
+        <Animated.View
+          entering={FadeIn.duration(300)}
+          layout={LinearTransition.duration(300)}>
+          <Pressable
+            accessibilityRole="togglebutton"
+            accessibilityLabel={t('browse.hasPhoto')}
+            accessibilityState={{selected: hasPhoto}}
+            style={({pressed}) => [
+              styles.filterChip,
+              hasPhoto && styles.filterChipActive,
+              pressed && styles.filterChipPressed,
+            ]}
+            onPress={() => {
+              Keyboard.dismiss();
+              setHasPhoto(v => !v);
+            }}>
+            <Text
+              style={[
+                styles.filterChipText,
+                hasPhoto && styles.filterChipTextActive,
+              ]}>
+              {t('browse.hasPhoto')}
+            </Text>
+          </Pressable>
+        </Animated.View>
+      )}
+    </>
+  );
+  // @ai-end
+
   return (
     <TouchableWithoutFeedback onPress={handleOutsidePress}>
       <View style={styles.container}>
@@ -570,6 +668,10 @@ export default function BrowseReciters({
         <View
           style={[
             styles.searchFilterContainer,
+            pageMargin !== undefined && [
+              styles.tabletSearchRow,
+              {paddingHorizontal: pageMargin},
+            ], // @ai
             {
               marginTop: useNativeHeader
                 ? topOffset
@@ -593,15 +695,21 @@ export default function BrowseReciters({
             onFocus={handleSearchFocus}
             onBlur={handleSearchBlur}
             onSubmitEditing={Keyboard.dismiss}
-            containerStyle={{paddingHorizontal: 0, flex: 1}}
+            containerStyle={
+              isTablet
+                ? styles.tabletSearchInput
+                : {paddingHorizontal: 0, flex: 1}
+            } // @ai
           />
-          {!isSearchFocused && (
+          {(isTablet || !isSearchFocused) && (
             <Pressable
               style={({pressed}) => [
                 styles.filterButton,
                 pressed && styles.filterButtonPressed,
               ]}
-              onPress={handleFilterModalPress}>
+              onPress={handleFilterModalPress}
+              accessibilityRole="button" // @ai
+              accessibilityLabel={t('filters.title')}>
               <Feather
                 name="sliders"
                 size={moderateScale(18)}
@@ -609,85 +717,63 @@ export default function BrowseReciters({
               />
             </Pressable>
           )}
+          {/* @ai-start */}
+          {/* iPad: the count trails the row and Clear All sits beside it,
+              in place of the phone's line under the chips. */}
+          {isTablet && (
+            <View style={styles.tabletCount}>
+              <Text style={styles.tabletCountText} numberOfLines={1}>
+                {t('browse.reciterCount', {count: filteredReciters.length})}
+              </Text>
+              {hasActiveFilters && (
+                <Pressable
+                  style={({pressed}) => [
+                    styles.clearFiltersButton,
+                    pressed && {opacity: 0.6},
+                  ]}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    handleClearFilters();
+                  }}
+                  accessibilityRole="button">
+                  <Text style={styles.clearFiltersText}>
+                    {t('browse.clearAll')}
+                  </Text>
+                </Pressable>
+              )}
+            </View>
+          )}
+          {/* @ai-end */}
         </View>
 
         {/* Filter Chips */}
         <View style={styles.filterSectionsContainer}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.filterBarContainer}
-            keyboardShouldPersistTaps="handled">
-            {dynamicFilterChips.map(chip => (
-              <Animated.View
-                key={chip.label + chip.type}
-                entering={FadeIn.duration(300)}
-                exiting={FadeOut.duration(200)}
-                layout={LinearTransition.duration(300)}>
-                {chip.type === 'separator' ? (
-                  <View style={styles.separatorChip}>
-                    <Text style={styles.separatorChipText}>{chip.label}</Text>
-                  </View>
-                ) : (
-                  <Pressable
-                    accessibilityRole="togglebutton"
-                    accessibilityLabel={getRewayatPersonLabel(chip.label)}
-                    accessibilityState={{selected: chip.isSelected}}
-                    style={({pressed}) => [
-                      styles.filterChip,
-                      chip.isSelected && styles.filterChipActive,
-                      pressed && styles.filterChipPressed,
-                    ]}
-                    onPress={() => {
-                      Keyboard.dismiss();
-                      handleChipPress(chip);
-                    }}>
-                    <Text
-                      style={[
-                        styles.filterChipText,
-                        chip.isSelected && styles.filterChipTextActive,
-                      ]}>
-                      {getRewayatPersonLabel(chip.label)}
-                    </Text>
-                  </Pressable>
-                )}
-              </Animated.View>
-            ))}
-            {/* RFC-012 — composable chip(s) from `branding.searchFilters`.
-             * v1 ships `has-photo` end-to-end; other dimensions render
-             * once they're wired through (or live as bespoke chips above). */}
-            {hasPhotoEnabled && (
-              <Animated.View
-                entering={FadeIn.duration(300)}
-                layout={LinearTransition.duration(300)}>
-                <Pressable
-                  accessibilityRole="togglebutton"
-                  accessibilityLabel={t('browse.hasPhoto')}
-                  accessibilityState={{selected: hasPhoto}}
-                  style={({pressed}) => [
-                    styles.filterChip,
-                    hasPhoto && styles.filterChipActive,
-                    pressed && styles.filterChipPressed,
-                  ]}
-                  onPress={() => {
-                    Keyboard.dismiss();
-                    setHasPhoto(v => !v);
-                  }}>
-                  <Text
-                    style={[
-                      styles.filterChipText,
-                      hasPhoto && styles.filterChipTextActive,
-                    ]}>
-                    {t('browse.hasPhoto')}
-                  </Text>
-                </Pressable>
-              </Animated.View>
-            )}
-          </ScrollView>
+          {/* @ai-start */}
+          {/* Wide iPad windows wrap the chips so every qira'at teacher is
+              visible; elsewhere they scroll in one row. */}
+          {wrapChips ? (
+            <View
+              style={[
+                styles.filterBarContainer,
+                styles.filterBarWrap,
+                chipInset,
+              ]}>
+              {chipItems}
+            </View>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={[styles.filterBarContainer, chipInset]}
+              keyboardShouldPersistTaps="handled">
+              {chipItems}
+            </ScrollView>
+          )}
+          {/* @ai-end */}
         </View>
 
         {/* Active Filters Indicator */}
-        {hasActiveFilters && (
+        {hasActiveFilters && !isTablet && (
           <View style={styles.activeFiltersContainer}>
             <Text style={styles.activeFiltersText}>
               {t('browse.recitersFound', {count: filteredReciters.length})}
@@ -720,6 +806,7 @@ export default function BrowseReciters({
             linkToProfile={!surahId}
             profilePathname={profilePathname} // @ai
             bottomInset={bottomInset}
+            tabletMargin={pageMargin} // @ai
           />
         </View>
 
@@ -786,7 +873,7 @@ const createStyles = (theme: Theme) =>
       backgroundColor: Color(theme.colors.text).alpha(0.04).toString(),
       borderWidth: 1,
       borderColor: Color(theme.colors.text).alpha(0.06).toString(),
-      marginHorizontal: moderateScale(2),
+      marginHorizontal: CHIP_MARGIN, // @ai
     },
     filterChipActive: {
       backgroundColor: Color(theme.colors.text).alpha(0.1).toString(),
@@ -840,4 +927,31 @@ const createStyles = (theme: Theme) =>
       color: Color(theme.colors.textSecondary).alpha(0.5).toString(),
       fontStyle: 'italic',
     },
+    // @ai-start
+    tabletSearchRow: {
+      alignItems: 'center',
+      gap: 12,
+    },
+    tabletSearchInput: {
+      paddingHorizontal: 0,
+      flex: 1,
+      maxWidth: TABLET_SEARCH_MAX_WIDTH,
+    },
+    // The auto margin pushes the count to the trailing edge once the field
+    // has reached its maximum width.
+    tabletCount: {
+      marginStart: 'auto',
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 4,
+    },
+    tabletCountText: {
+      fontSize: 13,
+      fontFamily: 'Manrope-SemiBold',
+      color: theme.colors.textSecondary,
+    },
+    filterBarWrap: {
+      flexWrap: 'wrap',
+    },
+    // @ai-end
   });
