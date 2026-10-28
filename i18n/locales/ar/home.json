@@ -76,6 +76,7 @@
   "hero": {
     "surahOfTheDay": "سورة اليوم",
     "continueReading": "متابعة القراءة",
+    "continueListening": "متابعة الاستماع",
     "browseAllSurahs": "تصفّح جميع السور الـ{{total}}",
     "verses": "آيات",
     "number": "الرقم"

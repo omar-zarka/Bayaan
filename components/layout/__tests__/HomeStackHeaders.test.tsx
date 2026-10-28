@@ -37,6 +37,7 @@ jest.mock('@/hooks/useGlassProps', () => ({
 
 jest.mock('@/components/layout/MaxWidthContainer', () => ({
   MaxWidthContainer: ({children}: {children: React.ReactNode}) => children,
+  capScreensExcept: () => undefined, // @ai
 }));
 
 jest.mock('react-i18next', () => ({
