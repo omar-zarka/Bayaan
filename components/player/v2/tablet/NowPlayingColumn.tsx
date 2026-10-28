@@ -63,9 +63,9 @@ export function NowPlayingColumn({
             borderEndColor: Color(theme.colors.text).alpha(0.08).toString(),
           },
         ]}>
+        {/* The track's "..." sits beside its title, so the bar has only Close. */}
         <View style={[styles.bar, {paddingHorizontal: margin}]}>
           <CloseButton />
-          <MoreButton onPress={onOptionsPress} />
         </View>
         <ColumnScrollView
           style={styles.scroll}

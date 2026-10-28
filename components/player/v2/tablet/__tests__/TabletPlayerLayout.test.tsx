@@ -124,7 +124,9 @@ describe('TabletPlayerLayout', () => {
     const [card] = byId(renderer, 'transport-card');
     expect(card.props.width).toBe(680);
     expect(byId(renderer, 'close')).toHaveLength(1);
-    expect(byId(renderer, 'more')).toHaveLength(1);
+    // The card has the track's "..."; the bar does not repeat it.
+    expect(byId(renderer, 'more')).toHaveLength(0);
+    expect(card.props.onOptionsPress).toBe(handlers.onOptionsPress);
 
     // The pane keeps the card's height clear once it is measured.
     act(() => {

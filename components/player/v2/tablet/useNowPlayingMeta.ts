@@ -7,7 +7,7 @@ import {useCurrentTrackResolvedRewayah} from '@/hooks/useCurrentTrackRewayah';
 import {getShortLabel} from '@/services/rewayah/RewayahIdentity';
 import {getReciterById} from '@/services/dataService';
 import {getTrackArtistDisplay, getTrackDisplayTitle} from '@/i18n/format';
-import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+import {getRecitationStyleTitle} from '@/components/player/v2/recitationStyle';
 import type {Rewayat} from '@/data/reciterData';
 
 /**
@@ -47,7 +47,7 @@ export function useNowPlayingMeta() {
   const rewayahLabel =
     resolvedRewayah && (rewayat || currentTrack?.rewayahName)
       ? `${getShortLabel(resolvedRewayah.id)}${
-          rewayat?.style ? ` · ${getRecitationStyleLabel(rewayat.style)}` : ''
+          rewayat?.style ? ` · ${getRecitationStyleTitle(rewayat.style)}` : ''
         }`
       : null;
 
