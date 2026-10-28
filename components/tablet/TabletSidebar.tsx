@@ -1,5 +1,5 @@
 import React, {useCallback, useMemo} from 'react';
-import {View, Pressable, Text, StyleSheet} from 'react-native';
+import {View, Pressable, Text, StyleSheet, ScrollView} from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
 import {useResponsive} from '@/hooks/useResponsive';
 import {
@@ -9,128 +9,170 @@ import {
   CollectionIcon,
   SettingsIcon,
   LogoIcon,
+  // @ai-start
+  TasbihIcon,
+  HeartIcon,
+  DownloadIcon,
+  PlaylistIcon,
+  ProfileIcon,
+  MicrophoneIcon,
+  // @ai-end
 } from '@/components/Icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {CommonActions} from 'expo-router/build/react-navigation/routers';
 import {BottomTabBarProps} from 'expo-router/build/react-navigation/bottom-tabs';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {TabletDockedPlayer} from '@/components/tablet/TabletDockedPlayer';
 // @ai-start
+import {Feather} from '@expo/vector-icons';
+import {useTranslation} from 'react-i18next';
 import branding from '@/config/branding';
-import {appLayoutDirection, isRTL} from '@/utils/rtl';
+import {appLayoutDirection, flipX, isRTL} from '@/utils/rtl';
+import {useTabletSidebarStore} from '@/store/tabletSidebarStore';
+import {
+  LIBRARY_SECTIONS,
+  TOP_ITEMS,
+  canShowSidebar,
+  selectedSidebarItem,
+  sidebarMode,
+  sidebarPress,
+  sidebarWidth,
+  type SidebarItemId,
+} from '@/components/tablet/sidebarNav';
 // @ai-end
 
-const RAIL_WIDTH_COMPACT = 88;
-const RAIL_WIDTH_EXPANDED = 240;
+// Text in the sidebar grows with Dynamic Type only this far, so the labels
+// still fit its width. @ai
+const MAX_FONT_SCALE = 1.3; // @ai
 
-function getIcon(
-  routeName: string,
-  isFocused: boolean,
-  theme: Theme,
-  iconSize: number,
-) {
-  const color = isFocused
-    ? theme.colors.text
-    : Color(theme.colors.text).alpha(0.55).toString();
-
-  switch (routeName) {
-    case '(a.home)':
-      return <HomeIcon filled={isFocused} color={color} size={iconSize} />;
-    case '(b.surahs)':
-      return (
-        <QuranIcon filled={isFocused} color={color} size={iconSize * 1.2} />
-      );
-    case '(b.search)':
-      return <SearchIcon filled={isFocused} color={color} size={iconSize} />;
-    case '(c.collection)':
-      return (
-        <CollectionIcon filled={isFocused} color={color} size={iconSize} />
-      );
-    case '(d.settings)':
-      return <SettingsIcon filled={isFocused} color={color} size={iconSize} />;
-    default:
-      return null;
+// @ai-start
+function ItemIcon({
+  id,
+  selected,
+  color,
+  size,
+}: {
+  id: SidebarItemId;
+  selected: boolean;
+  color: string;
+  size: number;
+}) {
+  switch (id) {
+    case 'home':
+      return <HomeIcon filled={selected} color={color} size={size} />;
+    case 'quran':
+      return <QuranIcon filled={selected} color={color} size={size * 1.2} />;
+    case 'search':
+      return <SearchIcon filled={selected} color={color} size={size} />;
+    case 'adhkar':
+      return <TasbihIcon color={color} size={size} />;
+    case 'library':
+      return <CollectionIcon filled={selected} color={color} size={size} />;
+    case 'settings':
+      return <SettingsIcon filled={selected} color={color} size={size} />;
+    case 'loved':
+      return <HeartIcon filled={selected} color={color} size={size} />;
+    case 'downloads':
+      return <DownloadIcon color={color} size={size} />;
+    case 'bookmarks':
+      return <Feather name="bookmark" color={color} size={size} />;
+    case 'notes':
+      return <Feather name="file-text" color={color} size={size} />;
+    case 'playlists':
+      return <PlaylistIcon color={color} size={size} />;
+    case 'reciters':
+      return <ProfileIcon filled={selected} color={color} size={size} />;
+    case 'uploads':
+      return <MicrophoneIcon color={color} size={size} />;
   }
 }
+// @ai-end
 
 interface SidebarItemProps {
-  routeName: string;
+  id: SidebarItemId; // @ai
   label: string;
-  isFocused: boolean;
-  onPress: () => void;
+  selected: boolean; // @ai
+  onPress: (id: SidebarItemId) => void; // @ai
   theme: Theme;
-  iconSize: number;
   showLabel: boolean;
 }
 
+// @ai-start
 const SidebarItem = React.memo(function SidebarItem({
-  routeName,
+  id,
   label,
-  isFocused,
+  selected,
   onPress,
   theme,
-  iconSize,
   showLabel,
 }: SidebarItemProps) {
   const activeBg = Color(theme.colors.text).alpha(0.08).toString();
   const pressedBg = Color(theme.colors.text).alpha(0.06).toString();
-  const labelColor = isFocused
+  const iconColor = selected
+    ? theme.colors.text
+    : Color(theme.colors.text).alpha(0.55).toString();
+  const labelColor = selected
     ? Color(theme.colors.text).alpha(0.95).toString()
-    : Color(theme.colors.text).alpha(0.65).toString();
+    : Color(theme.colors.text)
+        .alpha(showLabel ? 0.8 : 0.65)
+        .toString();
+  const fontFamily = selected ? 'Manrope-SemiBold' : 'Manrope-Medium';
 
   return (
     <Pressable
-      onPress={onPress}
+      onPress={() => onPress(id)}
+      accessibilityRole="tab"
+      accessibilityLabel={label}
+      accessibilityState={{selected}}
       style={({pressed}) => [
         styles.item,
         showLabel ? styles.itemRow : styles.itemCol,
-        isFocused && {backgroundColor: activeBg},
-        pressed && !isFocused && {backgroundColor: pressedBg},
+        selected && {backgroundColor: activeBg},
+        pressed && !selected && {backgroundColor: pressedBg},
       ]}>
-      {getIcon(routeName, isFocused, theme, iconSize)}
-      {showLabel ? (
-        <Text
-          style={[
-            styles.labelInline,
-            {
-              color: labelColor,
-              fontFamily: isFocused ? 'Manrope-SemiBold' : 'Manrope-Medium',
-            },
-          ]}
-          numberOfLines={1}>
-          {label}
-        </Text>
-      ) : (
-        <Text
-          style={[
-            styles.labelStacked,
-            {
-              color: labelColor,
-              fontFamily: isFocused ? 'Manrope-SemiBold' : 'Manrope-Medium',
-            },
-          ]}
-          numberOfLines={1}>
-          {label}
-        </Text>
-      )}
+      <View style={showLabel ? styles.iconBox : styles.iconBoxRail}>
+        <ItemIcon
+          id={id}
+          selected={selected}
+          color={iconColor}
+          size={showLabel ? 22 : 24}
+        />
+      </View>
+      <Text
+        style={[
+          showLabel ? styles.labelInline : styles.labelStacked,
+          {color: labelColor, fontFamily},
+        ]}
+        numberOfLines={1}
+        maxFontSizeMultiplier={MAX_FONT_SCALE}>
+        {label}
+      </Text>
     </Pressable>
   );
 });
+// @ai-end
 
+/**
+ * The iPad sidebar (ipad-standards §6). From 900pt wide it is labelled and
+ * lists Collection's sections directly; narrower, or when the reader
+ * collapses it, it is the icon rail. The mini player docks in its footer.
+ */
 // @ai-start
 export const TabletSidebar: React.FC<BottomTabBarProps> = ({
   state,
-  descriptors,
   navigation,
 }) => {
   const {theme, isDarkMode} = useTheme();
+  const {t} = useTranslation(['common', 'collection']);
   const insets = useSafeAreaInsets();
-  const {orientation} = useResponsive();
-  const expanded = orientation === 'landscape';
-  const railWidth = expanded ? RAIL_WIDTH_EXPANDED : RAIL_WIDTH_COMPACT;
-  const iconSize = 24;
+  const {width} = useResponsive();
+  const collapsed = useTabletSidebarStore(s => s.collapsed);
+  const toggleCollapsed = useTabletSidebarStore(s => s.toggleCollapsed);
+  const mode = sidebarMode(width, collapsed);
+  const labelled = mode === 'sidebar';
+  const barWidth = sidebarWidth(width, mode);
+  const selected = selectedSidebarItem(state, mode);
 
   const hasTrack = usePlayerStore(state => {
     const tracks = state.queue.tracks;
@@ -138,22 +180,36 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
     return tracks.length > 0 && tracks[index] != null;
   });
 
-  const handlePress = useCallback(
-    (route: (typeof state.routes)[number], index: number) => {
-      const isFocused = state.index === index;
-      const event = navigation.emit({
-        type: 'tabPress',
-        target: route.key,
-        canPreventDefault: true,
-      });
+  const labels: Record<SidebarItemId, string> = {
+    home: t('tabs.home'),
+    quran: t('tabs.surahs'),
+    search: t('tabs.search'),
+    adhkar: t('terms.adhkar'),
+    library: t('tabs.collection'),
+    settings: t('tabs.settings'),
+    loved: t('collection:collectionScreen.loved'),
+    downloads: t('terms.downloads'),
+    bookmarks: t('terms.bookmarks'),
+    notes: t('collection:collectionScreen.notes'),
+    playlists: t('terms.playlists'),
+    reciters: t('terms.reciters'),
+    uploads: t('terms.uploads'),
+  };
 
-      if (!isFocused && !event.defaultPrevented) {
-        navigation.dispatch(
-          CommonActions.navigate({name: route.name, merge: true}),
-        );
+  const handlePress = useCallback(
+    (item: SidebarItemId) => {
+      const press = sidebarPress(state, item);
+      if (press.tabPress) {
+        const event = navigation.emit({
+          type: 'tabPress',
+          target: press.tabPress,
+          canPreventDefault: true,
+        });
+        if (event.defaultPrevented) return;
       }
+      press.actions.forEach(action => navigation.dispatch(action));
     },
-    [state.index, navigation],
+    [state, navigation],
   );
 
   const containerStyle = useMemo(
@@ -161,7 +217,7 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       styles.container,
       appLayoutDirection,
       {
-        width: railWidth,
+        width: barWidth,
         paddingTop: insets.top + 12,
         paddingBottom: insets.bottom + 8,
         paddingStart: Math.max(isRTL ? insets.right : insets.left, 8),
@@ -172,7 +228,7 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       },
     ],
     [
-      railWidth,
+      barWidth,
       insets.top,
       insets.bottom,
       insets.left,
@@ -183,46 +239,95 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
     ],
   );
 
+  const mutedColor = Color(theme.colors.text).alpha(0.55).toString();
+  const toggleButton = canShowSidebar(width) ? (
+    <Pressable
+      onPress={toggleCollapsed}
+      accessibilityRole="button"
+      accessibilityLabel={
+        labelled ? t('actions.hideSidebar') : t('actions.showSidebar')
+      }
+      hitSlop={4}
+      style={({pressed}) => [
+        styles.toggle,
+        pressed && {
+          backgroundColor: Color(theme.colors.text).alpha(0.06).toString(),
+        },
+      ]}>
+      <Feather name="sidebar" size={20} color={mutedColor} style={flipX} />
+    </Pressable>
+  ) : null;
+
+  const item = (id: SidebarItemId) => (
+    <SidebarItem
+      key={id}
+      id={id}
+      label={labels[id]}
+      selected={selected === id}
+      onPress={handlePress}
+      theme={theme}
+      showLabel={labelled}
+    />
+  );
+
   return (
     <View style={containerStyle}>
-      <View style={[styles.header, expanded && styles.headerExpanded]}>
-        <LogoIcon color={theme.colors.text} size={40} isDarkMode={isDarkMode} />
-        {expanded ? (
-          <Text style={[styles.brand, {color: theme.colors.text}]}>
+      {labelled ? (
+        <View style={[styles.header, styles.headerLabelled]}>
+          <LogoIcon
+            color={theme.colors.text}
+            size={32}
+            isDarkMode={isDarkMode}
+          />
+          <Text
+            style={[styles.brand, {color: theme.colors.text}]}
+            numberOfLines={1}
+            maxFontSizeMultiplier={MAX_FONT_SCALE}>
             {branding.appName}
           </Text>
-        ) : null}
-      </View>
+          {toggleButton}
+        </View>
+      ) : (
+        <View style={styles.header}>
+          <LogoIcon
+            color={theme.colors.text}
+            size={40}
+            isDarkMode={isDarkMode}
+          />
+          {toggleButton}
+        </View>
+      )}
 
-      <View style={styles.items}>
-        {state.routes.map((route, index) => {
-          const {options} = descriptors[route.key];
-          const label =
-            options.tabBarLabel !== undefined
-              ? options.tabBarLabel
-              : options.title !== undefined
-                ? options.title
-                : route.name;
-          const isFocused = state.index === index;
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.items}
+        showsVerticalScrollIndicator={false}>
+        {TOP_ITEMS.map(item)}
+        {labelled ? (
+          <>
+            <Text
+              accessibilityRole="header"
+              style={[
+                styles.sectionHeader,
+                // Spacing letters apart breaks up Arabic script.
+                {color: mutedColor, letterSpacing: isRTL ? 0 : 0.6},
+              ]}
+              numberOfLines={1}
+              maxFontSizeMultiplier={MAX_FONT_SCALE}>
+              {labels.library}
+            </Text>
+            {LIBRARY_SECTIONS.map(section => item(section.id))}
+          </>
+        ) : (
+          item('library')
+        )}
+      </ScrollView>
 
-          return (
-            <SidebarItem
-              key={route.key}
-              routeName={route.name}
-              label={typeof label === 'string' ? label : ''}
-              isFocused={isFocused}
-              onPress={() => handlePress(route, index)}
-              theme={theme}
-              iconSize={iconSize}
-              showLabel={expanded}
-            />
-          );
-        })}
-      </View>
+      <View style={styles.bottom}>{item('settings')}</View>
 
       {hasTrack ? (
         <View style={styles.footer}>
-          <TabletDockedPlayer expanded={expanded} />
+          <TabletDockedPlayer expanded={labelled} />
         </View>
       ) : null}
     </View>
@@ -244,17 +349,28 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     gap: 8,
   },
-  headerExpanded: {
+  headerLabelled: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
+    justifyContent: 'flex-start',
+    paddingStart: 12,
+    paddingVertical: 4,
   },
   brand: {
+    flex: 1,
     fontFamily: 'Manrope-SemiBold',
     fontSize: 18,
   },
-  items: {
+  toggle: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  scroll: {
     flex: 1,
+  },
+  items: {
     gap: 4,
   },
   item: {
@@ -263,21 +379,43 @@ const styles = StyleSheet.create({
   itemCol: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
+    minHeight: 60,
+    paddingVertical: 8,
     gap: 4,
   },
   itemRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
+    minHeight: 44,
+    paddingVertical: 8,
     paddingHorizontal: 12,
-    gap: 14,
+    gap: 12,
+  },
+  iconBox: {
+    width: 28,
+    alignItems: 'center',
+  },
+  iconBoxRail: {
+    height: 30,
+    justifyContent: 'center',
   },
   labelStacked: {
-    fontSize: 10,
+    fontSize: 11,
   },
   labelInline: {
-    fontSize: 14,
+    flex: 1,
+    fontSize: 17,
+  },
+  sectionHeader: {
+    fontFamily: 'Manrope-Bold',
+    fontSize: 13,
+    textTransform: 'uppercase',
+    paddingTop: 16,
+    paddingBottom: 4,
+    paddingHorizontal: 12,
+  },
+  bottom: {
+    paddingTop: 8,
   },
   footer: {
     paddingTop: 8,
