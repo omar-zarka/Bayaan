@@ -5,7 +5,7 @@
  * a tabPress like the native stack does.
  */
 import React, {act, useEffect, useRef} from 'react';
-import {ScrollView, View} from 'react-native';
+import {View} from 'react-native';
 import TestRenderer, {type ReactTestRenderer} from 'react-test-renderer';
 import {
   BaseNavigationContainer,
@@ -373,7 +373,10 @@ describe('labelled sidebar', () => {
 
   it('flashes the scroll indicator once when the sections overflow', () => {
     const r = renderApp();
-    const scroll = r.root.findByType(ScrollView);
+    // The ScrollView, outermost of the nodes that get its props.
+    const scroll = r.root.findAll(
+      n => typeof n.props.onContentSizeChange === 'function',
+    )[0];
     const flash = scroll.instance.flashScrollIndicators as jest.Mock;
     flash.mockClear();
     const layout = (height: number) =>
