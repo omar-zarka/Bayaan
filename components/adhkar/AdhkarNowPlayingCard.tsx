@@ -23,8 +23,11 @@ export function useHasAdhkarSession(): boolean {
 
 export function AdhkarNowPlayingCard({
   variant,
+  width, // @ai
 }: {
   variant: 'tile' | 'row';
+  /** The tile's width. Defaults to RECENT_CARD_WIDTH. */
+  width?: number; // @ai
 }): React.JSX.Element | null {
   const session = useAdhkarSessionStore(s => s.session);
 
@@ -33,6 +36,7 @@ export function AdhkarNowPlayingCard({
   }, []);
 
   if (!session) return null;
-  if (variant === 'tile') return <AdhkarSessionCard session={session} />;
+  if (variant === 'tile')
+    return <AdhkarSessionCard session={session} width={width} />; // @ai
   return <AdhkarSessionPlayer session={session} />;
 }
