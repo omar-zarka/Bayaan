@@ -77,6 +77,11 @@ interface MushafSearchViewProps {
   pageToSurah: Record<number, number>;
   /** Start directly in search mode with keyboard active (skip browse) */
   autoFocusSearch?: boolean;
+  /**
+   * Shown in an iPad card (TabletDialog) instead of over the whole screen:
+   * fills the card, skips the safe area and closes with an X. @ai
+   */
+  inCard?: boolean;
 }
 
 type SortOption = 'asc' | 'desc' | 'revelation';
@@ -497,10 +502,12 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   surahStartPages,
   pageToSurah,
   autoFocusSearch,
+  inCard = false,
 }) => {
   const {theme, isDarkMode} = useTheme();
   const {t} = useTranslation(['reader', 'common']);
   const insets = useSafeAreaInsets();
+  const topInset = inCard ? 0 : insets.top;
   const [isSearchMode, setIsSearchMode] = useState(autoFocusSearch ?? false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
@@ -1030,10 +1037,10 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
   return (
     <View
       style={[
-        styles.container,
+        inCard ? styles.cardContainer : styles.container,
         {
           backgroundColor: theme.colors.background,
-          paddingTop: insets.top,
+          paddingTop: topInset,
         },
       ]}>
       {/* ============================================================ */}
@@ -1050,12 +1057,14 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
               {opacity: pressed ? 0.3 : 0.6},
             ]}
             onPress={onClose}
-            hitSlop={8}>
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={t('common:actions.close')}>
             <Feather
-              name="chevron-left"
+              name={inCard ? 'x' : 'chevron-left'}
               size={ms(20)}
               color={theme.colors.text}
-              style={flipX}
+              style={inCard ? undefined : flipX}
             />
           </Pressable>
           <Pressable style={styles.searchBarTap} onPress={enterSearchMode}>
@@ -1106,7 +1115,7 @@ const MushafSearchView: React.FC<MushafSearchViewProps> = ({
           {
             opacity: searchOpacity,
             backgroundColor: theme.colors.background,
-            paddingTop: insets.top,
+            paddingTop: topInset,
           },
         ]}
         pointerEvents={isSearchMode ? 'auto' : 'none'}>
@@ -1247,6 +1256,9 @@ const styles = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
     zIndex: 20,
+  },
+  cardContainer: {
+    flex: 1,
   },
   modeContainer: {
     flex: 1,

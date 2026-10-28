@@ -77,6 +77,7 @@ export const AddToCollectionSheet = (
   return (
     <ActionSheet
       id={props.sheetId}
+      tabletPresentation="menu" // @ai
       containerStyle={styles.sheetContainer}
       indicatorStyle={styles.indicator}
       gestureEnabled={true}>

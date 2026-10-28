@@ -704,7 +704,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   tool: {
-    width: moderateScale(44),
+    // Seven tools don't fit at full size in the iPad mini's column, which
+    // cut off the queue button; they shrink to fit there instead. @ai
+    flexBasis: moderateScale(44),
+    flexShrink: 1,
     height: moderateScale(44),
     borderRadius: moderateScale(14),
     justifyContent: 'center',
