@@ -4,14 +4,27 @@ import {getJuzForSurah} from '@/data/juzData';
 
 export type SurahListItem =
   | {type: 'juz-header'; juz: number; key: string}
-  | {type: 'surah-row'; surahs: Surah[]; key: string};
+  | {
+      type: 'surah-row';
+      surahs: Surah[];
+      key: string;
+      /**
+       * Multi-column lists only: the juz each surah in the row starts, or
+       * null for a surah in the same juz as the one before it. Left out
+       * when no surah in the row starts a juz.
+       */
+      juzStarts?: (number | null)[];
+    };
 
 export interface SurahListOptions {
   /** Cards get their own keys, so switching views never reuses a row. */
   viewMode: 'card' | 'list';
   /** Surahs per row: grid columns, or list columns on iPad. */
   numColumns: number;
-  /** Start a section, with a sticky header, at each juz (list view only). */
+  /**
+   * Mark where each juz starts (list view only). One column gets a sticky
+   * header row per juz; more columns label the surah that starts each juz.
+   */
   juzHeaders: boolean;
 }
 
@@ -24,9 +37,11 @@ function groupIntoRows<T>(items: T[], size: number): T[][] {
 }
 
 /**
- * Rows for the surah list, in order. Each juz section fills its rows left to
- * right, `numColumns` surahs to a row, so a juz never shares a row with the
- * next one.
+ * Rows for the surah list, in order, `numColumns` surahs to a row. With one
+ * column, each juz is a section under a sticky header. With more, the
+ * surahs flow on without breaks, since juz 3 to 10 hold a single surah
+ * each and sections would leave half of those rows empty; the surah that
+ * starts a juz carries its label instead.
  */
 export function buildSurahListItems(
   surahs: Surah[],
@@ -47,6 +62,27 @@ export function buildSurahListItems(
 
   if (viewMode === 'card' || !juzHeaders) {
     pushRows(surahs);
+    return {items, stickyIndices};
+  }
+
+  if (numColumns > 1) {
+    let previousJuz: number | null = null;
+    const juzStarts = surahs.map(surah => {
+      const juz = getJuzForSurah(surah.id);
+      const starts = juz !== previousJuz;
+      previousJuz = juz;
+      return starts ? juz : null;
+    });
+    for (let i = 0; i < surahs.length; i += numColumns) {
+      const row = surahs.slice(i, i + numColumns);
+      const rowStarts = juzStarts.slice(i, i + numColumns);
+      items.push({
+        type: 'surah-row',
+        surahs: row,
+        key: `${keyPrefix}-${row.map(s => s.id).join('-')}`,
+        ...(rowStarts.some(juz => juz !== null) && {juzStarts: rowStarts}),
+      });
+    }
     return {items, stickyIndices};
   }
 

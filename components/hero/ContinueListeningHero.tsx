@@ -6,7 +6,7 @@ import {useTranslation} from 'react-i18next';
 import {useTheme} from '@/hooks/useTheme';
 import {moderateScale} from '@/utils/scale';
 import {ReciterImage} from '@/components/ReciterImage';
-import {PlayIcon} from '@/components/Icons';
+import {PauseIcon, PlayIcon} from '@/components/Icons';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {
@@ -49,18 +49,19 @@ interface ContinueListeningHeroProps {
 export function ContinueListeningHero({style}: ContinueListeningHeroProps) {
   const {theme} = useTheme();
   const {t} = useTranslation('home');
-  const {updateQueue} = usePlayerActions();
+  const {updateQueue, play, pause} = usePlayerActions();
   const recentTracks = useRecentlyPlayedStore(state => state.recentTracks);
   const recentIndex = findResumableIndex(recentTracks);
   const track = recentIndex >= 0 ? recentTracks[recentIndex] : null;
 
-  const {currentTrack, storePosition} = usePlayerStore(
+  const {currentTrack, storePosition, playbackState} = usePlayerStore(
     state => ({
       currentTrack:
         state.queue.currentIndex >= 0
           ? state.queue.tracks[state.queue.currentIndex]
           : undefined,
       storePosition: state.playback.position,
+      playbackState: state.playback.state,
     }),
     shallow,
   );
@@ -68,9 +69,18 @@ export function ContinueListeningHero({style}: ContinueListeningHeroProps) {
     !!track &&
     currentTrack?.reciterId === track.reciter.id &&
     currentTrack?.surahId === track.surah.id.toString();
+  // Already in the player: the card plays and pauses it, like the mini
+  // player, instead of loading it again.
+  const isPlaying = isCurrentTrack && playbackState === 'playing';
 
   const handlePress = useCallback(() => {
     if (!track) {
+      return;
+    }
+    if (isCurrentTrack) {
+      (isPlaying ? pause() : play()).catch(error => {
+        console.error('Error toggling playback:', error);
+      });
       return;
     }
     const startPosition =
@@ -87,7 +97,16 @@ export function ContinueListeningHero({style}: ContinueListeningHeroProps) {
     }).catch(error => {
       console.error('Error resuming recitation:', error);
     });
-  }, [track, isCurrentTrack, storePosition, recentIndex, updateQueue]);
+  }, [
+    track,
+    isCurrentTrack,
+    isPlaying,
+    storePosition,
+    recentIndex,
+    updateQueue,
+    play,
+    pause,
+  ]);
 
   const styles = useMemo(() => createStyles(theme), [theme]);
   const textColors = getTextColors('fw-ribbon', theme);
@@ -131,10 +150,17 @@ export function ContinueListeningHero({style}: ContinueListeningHeroProps) {
             </Text>
           </View>
           <View style={styles.playButton}>
-            <PlayIcon
-              color={theme.colors.background}
-              size={moderateScale(18)}
-            />
+            {isPlaying ? (
+              <PauseIcon
+                color={theme.colors.background}
+                size={moderateScale(18)}
+              />
+            ) : (
+              <PlayIcon
+                color={theme.colors.background}
+                size={moderateScale(18)}
+              />
+            )}
           </View>
         </View>
         <View style={styles.progressTrack}>

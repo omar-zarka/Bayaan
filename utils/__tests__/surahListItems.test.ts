@@ -18,21 +18,39 @@ it('keeps one surah per row with juz headers on phones', () => {
   expect(items.filter(item => item.type === 'surah-row')).toHaveLength(114);
 });
 
-it('fills each juz section two to a row, never sharing a row across juz', () => {
-  const {items} = buildSurahListItems(SURAHS, {
+it('flows two to a row and labels the surah that starts each juz', () => {
+  const {items, stickyIndices} = buildSurahListItems(SURAHS, {
     viewMode: 'list',
     numColumns: 2,
     juzHeaders: true,
   });
-  expect(items.slice(0, 4).map(ids)).toEqual(['juz 1', [1, 2], 'juz 3', [3]]);
-  const amma = items.findIndex(item => ids(item) === 'juz 30');
-  // Juz 30 starts at An-Naba (78) and runs to An-Nas (114).
-  expect(ids(items[amma + 1])).toEqual([78, 79]);
-  expect(ids(items[items.length - 1])).toEqual([114]);
-  const surahs = items.flatMap(item =>
-    item.type === 'surah-row' ? item.surahs : [],
+  expect(stickyIndices).toEqual([]);
+  expect(items.every(item => item.type === 'surah-row')).toBe(true);
+  expect(items).toHaveLength(57);
+  const rows = items.flatMap(item => (item.type === 'surah-row' ? [item] : []));
+  // Al-Fatihah opens Juz 1; Al-Baqarah carries on in it.
+  expect(rows[0].juzStarts).toEqual([1, null]);
+  // Juz 3 and 4 each start with a single surah, side by side.
+  expect(rows[1].surahs.map(s => s.id)).toEqual([3, 4]);
+  expect(rows[1].juzStarts).toEqual([3, 4]);
+  // Juz 30 starts at An-Naba (78); the rows after it carry no labels.
+  const amma = rows.find(row => row.juzStarts?.includes(30));
+  expect(amma?.surahs.map(s => s.id)).toEqual([77, 78]);
+  expect(amma?.juzStarts).toEqual([null, 30]);
+  expect(rows[rows.length - 1].juzStarts).toBeUndefined();
+  expect(rows.flatMap(row => row.surahs).map(s => s.id)).toEqual(
+    SURAHS.map(s => s.id),
   );
-  expect(surahs.map(s => s.id)).toEqual(SURAHS.map(s => s.id));
+});
+
+it('labels the first surah of each juz it meets when sorted descending', () => {
+  const {items} = buildSurahListItems([...SURAHS].reverse(), {
+    viewMode: 'list',
+    numColumns: 2,
+    juzHeaders: true,
+  });
+  const first = items[0];
+  expect(first.type === 'surah-row' && first.juzStarts).toEqual([30, null]);
 });
 
 it('has no headers when sorted by revelation or in the grid', () => {

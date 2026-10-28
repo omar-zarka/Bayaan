@@ -43,8 +43,8 @@ type FlatItem = SurahListItem; // @ai
 
 // @ai-start
 // Tablet card grid: as many phone-sized cards as the pane fits. The list
-// view flows into columns at least TABLET_MIN_LIST_COLUMN_WIDTH wide: one on
-// the iPad mini, two on 11" and 13" (mockup N5, ipad-standards §5.3).
+// view flows into columns at least TABLET_MIN_LIST_COLUMN_WIDTH wide, two on
+// every iPad in portrait (mockup N5, ipad-standards §5.3).
 const TABLET_GRID_PADDING = moderateScale(16);
 const TABLET_GRID_GAP = moderateScale(12);
 const TABLET_MIN_CARD_WIDTH = moderateScale(150);
@@ -143,6 +143,12 @@ export default function SurahsView({
     [setBrowseSortOption],
   );
 
+  const juzLabel = useCallback(
+    (juz: number) =>
+      juz === 30 ? t('juz.amma') : t('common:labels.juzNumber', {number: juz}),
+    [t],
+  );
+
   const renderItem = useCallback(
     ({item}: ListRenderItemInfo<FlatItem>) => {
       if (item.type === 'juz-header') {
@@ -157,9 +163,7 @@ export default function SurahsView({
                 styles.juzHeaderText,
                 {color: theme.colors.textSecondary},
               ]}>
-              {item.juz === 30
-                ? t('juz.amma')
-                : t('common:labels.juzNumber', {number: item.juz})}
+              {juzLabel(item.juz)}
             </Text>
           </View>
         );
@@ -198,8 +202,22 @@ export default function SurahsView({
       if (tabletColumns) {
         return (
           <View style={styles.tabletListRow}>
-            {surahs.map(surah => (
+            {surahs.map((surah, index) => (
               <View key={surah.id} style={{width: tabletColumns.itemWidth}}>
+                {item.juzStarts && (
+                  // Every cell in the row keeps the label line, so the
+                  // surahs stay level.
+                  <Text
+                    style={[
+                      styles.juzHeaderText,
+                      styles.tabletJuzLabel,
+                      {color: theme.colors.textSecondary},
+                    ]}>
+                    {item.juzStarts[index] != null
+                      ? juzLabel(item.juzStarts[index])
+                      : ' '}
+                  </Text>
+                )}
                 <SurahItem
                   pressAction="read"
                   item={surah}
@@ -229,7 +247,7 @@ export default function SurahsView({
       onSurahLongPress,
       theme.colors.background,
       theme.colors.textSecondary,
-      t,
+      juzLabel,
     ],
   );
 
@@ -402,6 +420,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: moderateScale(16),
     paddingTop: moderateScale(14),
     paddingBottom: moderateScale(6),
+  },
+  // Lines the label up with the surah text, which SurahItem pads 12pt.
+  tabletJuzLabel: {
+    paddingHorizontal: moderateScale(12),
+    paddingTop: moderateScale(14),
+    paddingBottom: moderateScale(2),
   },
   juzHeaderText: {
     fontSize: moderateScale(12),
