@@ -1,5 +1,12 @@
-import React, {useMemo, useCallback} from 'react';
-import {View, Text, StyleSheet, Pressable, Platform} from 'react-native';
+import React, {useMemo, useCallback, useState} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Pressable,
+  Platform,
+  type LayoutChangeEvent,
+} from 'react-native';
 import {FlashList, type ListRenderItemInfo} from '@shopify/flash-list';
 import {useTheme} from '@/hooks/useTheme';
 import {moderateScale} from '@/utils/scale';
@@ -20,6 +27,8 @@ import {ContinueReadingHero} from '@/components/hero/ContinueReadingHero';
 // @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
 import {useTranslation} from 'react-i18next';
+import {useResponsive} from '@/hooks/useResponsive';
+import {computeGridLayout} from '@/utils/gridLayout';
 // @ai-end
 
 interface SurahsViewProps {
@@ -34,17 +43,22 @@ type FlatItem =
   | {type: 'juz-header'; juzName: string; key: string}
   | {type: 'surah-row'; surahs: Surah[]; key: string};
 
-function groupSurahsIntoPairs(surahs: Surah[]): Surah[][] {
-  const pairs: Surah[][] = [];
-  for (let i = 0; i < surahs.length; i += 2) {
-    if (i + 1 < surahs.length) {
-      pairs.push([surahs[i], surahs[i + 1]]);
-    } else {
-      pairs.push([surahs[i]]);
-    }
+// @ai-start
+function groupSurahsIntoRows(surahs: Surah[], numColumns: number): Surah[][] {
+  const rows: Surah[][] = [];
+  for (let i = 0; i < surahs.length; i += numColumns) {
+    rows.push(surahs.slice(i, i + numColumns));
   }
-  return pairs;
+  return rows;
 }
+
+// Tablet card grid: as many phone-sized cards as the pane fits, and the
+// list view kept to a reading column (ipad-standards §5.3).
+const TABLET_GRID_PADDING = moderateScale(16);
+const TABLET_GRID_GAP = moderateScale(12);
+const TABLET_MIN_CARD_WIDTH = moderateScale(150);
+const TABLET_LIST_MAX_WIDTH = 720;
+// @ai-end
 
 // @ai-start
 export default function SurahsView({
@@ -55,6 +69,14 @@ export default function SurahsView({
   const {t} = useTranslation(['home', 'common']);
   const bottomInset = useBottomInset();
   const insets = useSafeAreaInsets();
+  const {isTablet, width: windowWidth} = useResponsive();
+  // Size the tablet grid from its own container (the pane beside the
+  // sidebar). The window width is only a first guess until onLayout reports.
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+  const handleLayout = useCallback((e: LayoutChangeEvent) => {
+    const next = e.nativeEvent.layout.width;
+    setContainerWidth(prev => (prev === next ? prev : next));
+  }, []);
 
   // Persisted settings
   const viewMode = useSettings(state => state.browseViewMode);
@@ -76,6 +98,21 @@ export default function SurahsView({
     }
   }, [sortOption]);
 
+  // Phones keep the two-column grid; tablets add columns.
+  const tabletGrid = useMemo(
+    () =>
+      isTablet
+        ? computeGridLayout(containerWidth ?? windowWidth, {
+            minCardWidth: TABLET_MIN_CARD_WIDTH,
+            horizontalPadding: TABLET_GRID_PADDING,
+            gap: TABLET_GRID_GAP,
+            minColumns: 2,
+          })
+        : null,
+    [isTablet, containerWidth, windowWidth],
+  );
+  const numColumns = tabletGrid?.numColumns ?? 2;
+
   // Build flat data array + sticky header indices
   const {data, stickyIndices} = useMemo(() => {
     const items: FlatItem[] = [];
@@ -84,12 +121,12 @@ export default function SurahsView({
       viewMode === 'list' && (sortOption === 'asc' || sortOption === 'desc');
 
     if (viewMode === 'card') {
-      const pairs = groupSurahsIntoPairs(displaySurahs);
-      for (const pair of pairs) {
+      const rows = groupSurahsIntoRows(displaySurahs, numColumns);
+      for (const row of rows) {
         items.push({
           type: 'surah-row',
-          surahs: pair,
-          key: `card-${pair.map(s => s.id).join('-')}`,
+          surahs: row,
+          key: `card-${row.map(s => s.id).join('-')}`,
         });
       }
     } else if (showJuzHeaders) {
@@ -125,7 +162,7 @@ export default function SurahsView({
     }
 
     return {data: items, stickyIndices: stickies};
-  }, [displaySurahs, viewMode, sortOption, t]);
+  }, [displaySurahs, viewMode, sortOption, numColumns, t]);
 
   const getColorForSurah = useCallback((id: number): string => {
     return GRADIENT_COLORS[id % GRADIENT_COLORS.length];
@@ -164,8 +201,11 @@ export default function SurahsView({
 
       const surahs = item.surahs;
       if (viewMode === 'card') {
+        const cardStyle = tabletGrid
+          ? {width: tabletGrid.itemWidth}
+          : styles.surahCard;
         return (
-          <View style={styles.cardRow}>
+          <View style={[styles.cardRow, tabletGrid && styles.tabletCardRow]}>
             {surahs.map(surah => (
               <SurahCard
                 key={surah.id}
@@ -179,10 +219,12 @@ export default function SurahsView({
                 onLongPress={
                   onSurahLongPress ? () => onSurahLongPress(surah) : undefined
                 }
-                style={styles.surahCard}
+                style={cardStyle}
               />
             ))}
-            {surahs.length === 1 && <View style={styles.surahCard} />}
+            {!tabletGrid && surahs.length === 1 && (
+              <View style={styles.surahCard} />
+            )}
           </View>
         );
       }
@@ -198,6 +240,7 @@ export default function SurahsView({
     },
     [
       viewMode,
+      tabletGrid,
       getColorForSurah,
       onSurahPress,
       onSurahLongPress,
@@ -296,9 +339,16 @@ export default function SurahsView({
     : {paddingTop: insets.top, paddingBottom: bottomInset};
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        isTablet && viewMode === 'list' && styles.tabletListColumn,
+      ]}
+      // Measure only the grid's pane: the list view is capped narrower.
+      onLayout={isTablet && viewMode === 'card' ? handleLayout : undefined}>
       <FlashList
         data={data}
+        extraData={tabletGrid}
         renderItem={renderItem}
         ListHeaderComponent={ListHeader}
         keyExtractor={keyExtractor}
@@ -358,6 +408,15 @@ const styles = StyleSheet.create({
   },
   surahCard: {
     width: '48%',
+  },
+  tabletCardRow: {
+    justifyContent: 'flex-start',
+    gap: TABLET_GRID_GAP,
+  },
+  tabletListColumn: {
+    width: '100%',
+    maxWidth: TABLET_LIST_MAX_WIDTH,
+    alignSelf: 'center',
   },
   juzHeader: {
     paddingHorizontal: moderateScale(16),
