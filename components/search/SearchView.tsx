@@ -38,6 +38,9 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {ExploreView} from '@/components/search/ExploreView';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
+import {useHeaderHeight} from 'expo-router/react-navigation'; // @ai
+import {USE_GLASS} from '@/hooks/useGlassProps'; // @ai
+import {TabletSearchResults} from '@/components/search/TabletSearchResults'; // @ai
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 // @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
@@ -105,6 +108,10 @@ export function SearchView({
   const listStyle = isTablet
     ? [styles.flexFill, styles.tabletColumn]
     : styles.flexFill;
+  // On iPad the native search field floats in the navigation bar, so results
+  // start below the whole bar instead of just the status bar.
+  const headerHeight = useHeaderHeight();
+  const topInset = isTablet && USE_GLASS ? headerHeight : insets.top;
 
   useEffect(() => {
     const showEvent =
@@ -432,7 +439,7 @@ export function SearchView({
           {
             opacity: searchOpacity,
             backgroundColor: theme.colors.background,
-            paddingTop: skipTopInset ? 0 : insets.top,
+            paddingTop: skipTopInset ? 0 : topInset,
           },
         ]}
         pointerEvents={isSearchMode ? 'auto' : 'none'}>
@@ -522,6 +529,14 @@ export function SearchView({
               </View>
             )}
           </ScrollView>
+        ) : isTablet && !searching && searchResults.length > 0 ? (
+          <TabletSearchResults
+            results={searchResults}
+            onResultPress={handleResultPress}
+            onSurahPlay={handleSurahLongPress}
+            bottomPadding={Math.max(keyboardHeight, bottomInset)}
+            style={listStyle}
+          />
         ) : (
           <FlatList
             style={listStyle}

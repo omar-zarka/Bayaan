@@ -34,7 +34,9 @@
     "recentSearches": "Recent searches",
     "noRecent": "No recent searches",
     "noRecentHint": "Your search history will appear here",
-    "noResultsHint": "Try different keywords or check the spelling"
+    "noResultsHint": "Try different keywords or check the spelling",
+    "all": "All",
+    "topResult": "Top result"
   },
   "systemPlaylist": {
     "invalidId": "Invalid playlist ID",

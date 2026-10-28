@@ -38,7 +38,9 @@
     "recentSearches": "عمليات البحث الأخيرة",
     "noRecent": "لا توجد عمليات بحث حديثة",
     "noRecentHint": "سيظهر سجل البحث هنا",
-    "noResultsHint": "جرّب كلمات أخرى أو تحقّق من الإملاء"
+    "noResultsHint": "جرّب كلمات أخرى أو تحقّق من الإملاء",
+    "all": "الكل",
+    "topResult": "أفضل نتيجة"
   },
   "systemPlaylist": {
     "invalidId": "معرّف قائمة التشغيل غير صالح",
