@@ -7,6 +7,11 @@
     "played": "تم تشغيلها",
     "remove": "إزالة {{title}} من قائمة الانتظار"
   },
+  "panes": {
+    "text": "النص",
+    "queue": "قائمة الانتظار",
+    "reciters": "القرّاء"
+  },
   "uploads": {
     "recordingType": {
       "salah": "صلاة",

@@ -72,10 +72,18 @@ type SortOption = 'asc' | 'desc' | 'revelation';
 export const TabletPlayerReciterColumn: React.FC<{
   reciterId: string;
   initialRewayatId?: string;
-}> = ({reciterId, initialRewayatId}) => {
+  /**
+   * Rendered as a pane under the player's own top bar: no status-bar inset
+   * and no background of its own.
+   */
+  embedded?: boolean;
+  /** Space kept clear below the list (defaults to the safe area). */
+  bottomInset?: number;
+}> = ({reciterId, initialRewayatId, embedded = false, bottomInset}) => {
   const {theme} = useTheme();
   const a11y = usePlayerA11y(); // @ai
   const insets = useSafeAreaInsets();
+  const topInset = embedded ? 0 : insets.top;
   const {updateQueue} = usePlayerActions();
   const {navigateToReciterProfile} = useReciterNavigation();
   const {startNewChain} = useRecentlyPlayedStore();
@@ -221,16 +229,19 @@ export const TabletPlayerReciterColumn: React.FC<{
 
   if (!reciter) {
     return (
-      <View style={[styles.centered, {paddingTop: insets.top}]}>
+      <View style={[styles.centered, {paddingTop: topInset}]}>
         <ActivityIndicator color={theme.colors.textSecondary} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.root, {backgroundColor: theme.colors.background}]}>
-      <View
-        style={[styles.header, {paddingTop: insets.top + moderateScale(8)}]}>
+    <View
+      style={[
+        styles.root,
+        !embedded && {backgroundColor: theme.colors.background},
+      ]}>
+      <View style={[styles.header, {paddingTop: topInset + moderateScale(8)}]}>
         <View style={styles.headerMain}>
           <ReciterImage
             reciterName={reciter.name}
@@ -317,7 +328,7 @@ export const TabletPlayerReciterColumn: React.FC<{
           sortOption={sortOption}
           rewayatId={selectedRewayat?.id}
           contentContainerStyle={{
-            paddingBottom: insets.bottom + moderateScale(12),
+            paddingBottom: (bottomInset ?? insets.bottom) + moderateScale(12),
           }}
         />
       </View>
