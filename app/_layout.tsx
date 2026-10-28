@@ -61,7 +61,7 @@ import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import {usePhoneOrientation} from '@/hooks/usePhoneOrientation'; // @ai
 
 // Configure Reanimated logger
 configureReanimatedLogger({
@@ -213,10 +213,9 @@ function RootLayout() {
     resetOnBackground: true,
   });
 
-  // Lock to portrait by default; mushaf.tsx unlocks when that screen is active.
-  useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-  }, []);
+  // Phones are portrait (mushaf.tsx allows landscape there); iPads turn
+  // freely. @ai
+  usePhoneOrientation('portrait'); // @ai
 
   // Start after init so the first snapshot sees the restored session and
   // stores instead of overwriting the widgets with an empty state.
