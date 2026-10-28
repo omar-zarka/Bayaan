@@ -29,8 +29,16 @@ import {ReciterImage} from '@/components/ReciterImage';
 import {Feather} from '@expo/vector-icons';
 // @ai-start
 import {getReciterDisplayName, getSurahDisplayName} from '@/i18n/format';
-import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
+import {getRecitationStyleTitle} from '@/components/player/v2/recitationStyle';
+import {getDisplayLabelFromName} from '@/services/rewayah/RewayahIdentity'; // @ai
 import {usePlayerA11y} from '@/hooks/usePlayerA11y'; // @ai
+// @ai-end
+
+// @ai-start
+/** "Hafs · Murattal", as the reciter profile labels its rewayah tabs. */
+function rewayatLabel(r: Rewayat): string {
+  return `${getDisplayLabelFromName(r.name)} · ${getRecitationStyleTitle(r.style)}`;
+}
 // @ai-end
 
 function sortRewayat(rewayat: Rewayat[]): Rewayat[] {
@@ -257,11 +265,7 @@ export const TabletPlayerReciterColumn: React.FC<{
             <Text
               style={[styles.sub, {color: theme.colors.textSecondary}]}
               numberOfLines={1}>
-              {selectedRewayat
-                ? `${selectedRewayat.name} · ${getRecitationStyleLabel(
-                    selectedRewayat.style,
-                  )}`
-                : ''}
+              {selectedRewayat ? rewayatLabel(selectedRewayat) : ''}
             </Text>
           </View>
           <Pressable
@@ -304,7 +308,7 @@ export const TabletPlayerReciterColumn: React.FC<{
                   <Text
                     style={[styles.chipText, {color: theme.colors.text}]}
                     numberOfLines={1}>
-                    {r.name} · {getRecitationStyleLabel(r.style)}
+                    {rewayatLabel(r)}
                   </Text>
                 </Pressable>
               );

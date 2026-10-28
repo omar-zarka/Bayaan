@@ -16,7 +16,6 @@ import {usePlayerStore} from '@/services/player/store/playerStore';
 import {usePlayerDismissGesture} from '../PlayerDismissContext';
 import {
   CloseButton,
-  MoreButton,
   PaneSwitcher,
   ReadingTools,
   type PlayerPane,
@@ -160,10 +159,8 @@ export function TabletPlayerLayout({
             <CloseButton />
           </View>
           {switcher}
-          <View style={[styles.barSide, styles.barEnd]}>
-            {readingTools}
-            <MoreButton onPress={onOptionsPress} />
-          </View>
+          {/* The track's "..." is on the transport card, beside its title. */}
+          <View style={[styles.barSide, styles.barEnd]}>{readingTools}</View>
         </View>
       </GestureDetector>
       <View style={styles.pane}>
