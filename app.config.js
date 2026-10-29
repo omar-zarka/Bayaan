@@ -248,6 +248,7 @@ module.exports = {
       './plugins/withBayaanCar.js',
       './plugins/withAppShortcuts.js',
       './plugins/withBayaanWidgets.js',
+      './plugins/withBayaanKeyboard.js',
     ],
   },
 };

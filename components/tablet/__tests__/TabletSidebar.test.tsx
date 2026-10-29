@@ -22,6 +22,12 @@ import {
 } from 'expo-router/build/react-navigation/routers';
 import {TabletSidebar} from '../TabletSidebar';
 import {useTabletSidebarStore} from '@/store/tabletSidebarStore';
+import {
+  pressKeyForTests,
+  resetKeyCommandsForTests,
+} from '@/services/keyboard/keyCommands';
+import {takeSearchFocusRequest} from '@/services/keyboard/searchFocus';
+import {BayaanKeyboard} from '@/modules/bayaan-keyboard';
 
 let mockWidth = 1032;
 
@@ -48,6 +54,13 @@ jest.mock('@/services/player/store/playerStore', () => ({
 }));
 jest.mock('@/components/tablet/TabletDockedPlayer', () => ({
   TabletDockedPlayer: () => null,
+}));
+jest.mock('@/modules/bayaan-keyboard', () => ({
+  BayaanKeyboard: {
+    isAvailable: true,
+    setCommands: jest.fn(),
+    addKeyCommandListener: jest.fn(() => () => undefined),
+  },
 }));
 jest.mock('@/config/branding', () => ({
   __esModule: true,
@@ -452,5 +465,67 @@ describe('icon rail', () => {
 
     press(r, 'Collection');
     expect(stackOf('(c.collection)')).toEqual(['index']);
+  });
+});
+
+describe('keyboard', () => {
+  beforeEach(() => {
+    resetKeyCommandsForTests();
+    (BayaanKeyboard.setCommands as jest.Mock).mockClear();
+  });
+
+  afterAll(() => resetKeyCommandsForTests(false));
+
+  function key(k: Parameters<typeof pressKeyForTests>[0]) {
+    act(() => pressKeyForTests(k));
+    act(() => jest.runOnlyPendingTimers());
+  }
+
+  it('lists ⌘1–⌘5 under Go, named as the items, then ⌘F', () => {
+    renderApp();
+    const [menus, commands] = (
+      BayaanKeyboard.setCommands as jest.Mock
+    ).mock.calls.at(-1);
+    expect(menus).toEqual([{id: 'go', title: 'Go'}]);
+    expect(
+      commands.map((c: {id: string; title: string}) => [c.id, c.title]),
+    ).toEqual([
+      ['cmd-1', 'Home'],
+      ['cmd-2', 'Surahs'],
+      ['cmd-3', 'Search'],
+      ['cmd-4', 'Adhkar'],
+      ['cmd-5', 'Collection'],
+      ['cmd-f', 'Find a Surah or Reciter'],
+    ]);
+  });
+
+  it('presses the items with ⌘1–⌘5', () => {
+    renderApp();
+    key('cmd-2');
+    expect(onShow()).toEqual(['(b.surahs)']);
+    key('cmd-4');
+    expect(onShow()).toEqual(['(a.home)', 'adhkar', 'index']);
+    key('cmd-5');
+    expect(onShow()).toEqual(['(c.collection)', 'index']);
+    key('cmd-1');
+    expect(onShow()).toEqual(['(a.home)', 'index']);
+  });
+
+  it('opens Search with its field focused on ⌘F', () => {
+    renderApp();
+    key('cmd-f');
+    expect(onShow()).toEqual(['(b.search)']);
+    expect(takeSearchFocusRequest()).toBe(true);
+  });
+
+  it('takes the keys away when the sidebar unmounts', () => {
+    renderApp();
+    act(() => mounted?.unmount());
+    mounted = undefined;
+    const [menus, commands] = (
+      BayaanKeyboard.setCommands as jest.Mock
+    ).mock.calls.at(-1);
+    expect(menus).toEqual([]);
+    expect(commands).toEqual([]);
   });
 });

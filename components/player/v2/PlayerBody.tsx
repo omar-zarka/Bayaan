@@ -8,6 +8,8 @@ import {useReciterNavigation} from '@/hooks/useReciterNavigation';
 import {useTimestampStore} from '@/store/timestampStore';
 import {useRewayatFollowAlong} from '@/hooks/useFollowAlong';
 import {useResponsive} from '@/hooks/useResponsive';
+import {PlayerKeyCommands} from '@/components/keyboard/PlayerKeyCommands';
+import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
 import PlayerContent from './PlayerContent';
 import {TabletPlayerLayout} from './tablet/TabletPlayerLayout';
 
@@ -193,9 +195,18 @@ export const PlayerBody = () => {
   // iPad picks its layout from the window width (TabletPlayerLayout).
   // Not keyed on sheetMode: the layout would switch while the surface is
   // still shrinking on close. Closed, the surface is off-screen anyway.
-  return isTablet ? (
+  const body = isTablet ? (
     <TabletPlayerLayout {...handlers} />
   ) : (
     <PlayerContent {...handlers} />
+  );
+
+  return (
+    <>
+      {keyCommandsSupported() && (
+        <PlayerKeyCommands onFollowAlongPress={handleFollowAlongPress} />
+      )}
+      {body}
+    </>
   );
 };
