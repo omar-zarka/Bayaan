@@ -105,3 +105,27 @@ describe('persistStorage', () => {
   });
 });
 // @ai-end
+
+// @ai-start
+describe('safeAsyncStorage reads of merged reciters', () => {
+  it('hydrates saved data under the kept reciter id', async () => {
+    await AsyncStorage.setItem(
+      'loved',
+      JSON.stringify({
+        state: {
+          tracks: [
+            {
+              reciterId: '37761060-bd83-4b46-8fec-e71627eb0531',
+              surahId: '1',
+            },
+          ],
+        },
+      }),
+    );
+    const value = await safeAsyncStorage.getItem('loved');
+    expect(JSON.parse(value as string).state.tracks[0].reciterId).toBe(
+      'b5312425-cc6b-4e53-b862-5b389c5dea94',
+    );
+  });
+});
+// @ai-end
