@@ -40,7 +40,7 @@ struct SurahTileButton<I: AppIntent>: View {
     Button(intent: intent) {
       VStack(spacing: 3) {
         SurahCard(surah: StaticData.surah(surahId), size: size)
-        if let caption {
+        if let caption, !(caption == StaticData.surah(surahId)?.name && SurahCard.showsName(StaticData.surah(surahId))) { // @ai
           Text(caption).font(.caption2.weight(.semibold)).foregroundStyle(WidgetPalette.secondary).lineLimit(1).frame(width: size) // @ai
         }
       }

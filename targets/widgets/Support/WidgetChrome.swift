@@ -130,9 +130,36 @@ struct SurahCard: View {
     }
     .frame(width: size, height: size)
     .clipShape(RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)) // @ai
+    .overlay { TileKeyline(cornerRadius: size * 0.2) } // @ai
     .accessibilityLabel(surah?.name ?? "")
   }
+
+  // @ai-start
+  /// True when the cached card, which has the surah name printed on it, will show.
+  static func showsName(_ surah: StaticSurah?) -> Bool {
+    guard let surah else { return false }
+    return SnapshotStore.artwork(surah.artworkFile) != nil
+  }
+
+  /// True when `file` is this surah's card and it is cached.
+  static func showsName(file: String?, surahId: Int) -> Bool {
+    guard let file, let surah = StaticData.surah(surahId), file == surah.artworkFile else { return false }
+    return SnapshotStore.artwork(file) != nil
+  }
+  // @ai-end
 }
+
+// @ai-start
+/// A hairline edge so dark cards stay distinct on dark widget backgrounds.
+struct TileKeyline: View {
+  let cornerRadius: CGFloat
+
+  var body: some View {
+    RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+      .strokeBorder(.white.opacity(0.18), lineWidth: 1)
+  }
+}
+// @ai-end
 
 // @ai-start
 /// Stand-in artwork: the surah's tint, a faint starburst and the surah name

@@ -122,6 +122,7 @@ struct Artwork: View {
     .aspectRatio(1, contentMode: .fill)
     .frame(width: size, height: size)
     .clipShape(RoundedRectangle(cornerRadius: size * 0.16, style: .continuous))
+    .overlay { TileKeyline(cornerRadius: size * 0.16) } // @ai
   }
 }
 
@@ -277,13 +278,17 @@ struct SmallView: View {
 
   var body: some View {
     // @ai-start
+    // A cached card already prints the surah name, so only the reciter is added.
+    let cardNamed = SurahCard.showsName(file: track.artworkFile, surahId: track.surahId)
     ZStack(alignment: .bottom) {
       ArtworkFill(track: track)
       LinearGradient(colors: [SurahTint.deep(track.surahId).opacity(0), SurahTint.deep(track.surahId).opacity(0.92)],
-                     startPoint: .center, endPoint: .bottom)
+                     startPoint: UnitPoint(x: 0.5, y: cardNamed ? 0.72 : 0.5), endPoint: .bottom)
       HStack(alignment: .bottom, spacing: 8) {
         VStack(alignment: .leading, spacing: 1) {
-          Text(track.surahName).font(.system(size: 16, weight: .heavy)).lineLimit(1)
+          if !cardNamed {
+            Text(track.surahName).font(.system(size: 16, weight: .heavy)).lineLimit(1)
+          }
           Text(track.reciterName).font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary)
             .lineLimit(1)
         }

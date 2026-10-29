@@ -169,7 +169,9 @@ struct QuickSurahView: View {
         // @ai-start
         VStack(spacing: 6) {
           SurahCard(surah: surah, size: 72)
-          Text(surah.name).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
+          if !SurahCard.showsName(surah) {
+            Text(surah.name).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
+          }
         // @ai-end
         }
       }
