@@ -9,8 +9,8 @@ import {Gesture, type PanGesture} from 'react-native-gesture-handler';
  * cards, and a scroll component for the Mushaf / queue lists that hands a
  * downward drag at the top of the list to the dismiss.
  *
- * Keeping this behind a context lets PlayerContent, TabletPlayer and the
- * tablet controls column render outside a player (no-op gesture) too.
+ * Keeping this behind a context lets PlayerContent and the iPad player
+ * render outside a player (no-op gesture) too.
  */
 export interface PlayerDismissApi {
   /** Builds a fresh pan gesture; each GestureDetector gets its own. */

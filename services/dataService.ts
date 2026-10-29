@@ -9,6 +9,7 @@ import {
 import {usePlayerStore} from './player/store/playerStore';
 import {useReciterStore} from '../store/reciterStore';
 import {useApiHealthStore} from '../store/apiHealthStore';
+import {audioFileUrl} from '../utils/audioFileUrl';
 import fallbackReciters from '../data/reciters-fallback.json';
 // @ai-start
 import {rankSurahs} from '@/utils/search/catalog';
@@ -332,8 +333,7 @@ export async function fetchAudioUrl(
     }
   }
 
-  const surahStr = surahId.toString().padStart(3, '0');
-  return `${rewayat.server}/${surahStr}.mp3`;
+  return audioFileUrl(rewayat, surahId);
 }
 
 // ── Utility ───────────────────────────────────────────────────────────────────

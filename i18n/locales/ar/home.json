@@ -20,6 +20,7 @@
     "browseAll": "تصفّح الكل",
     "allSurahs": "جميع السور",
     "browseRecitersForSurah": "تصفّح القرّاء - {{surah}}",
+    "chooseReciterForSurah": "اختر قارئًا · {{surah}}",
     "allChip": "الكل",
     "rewayahSeparator": "عن",
     "searchReciters": "ابحث عن قارئ…",
@@ -31,6 +32,12 @@
     "recitersFound_many": "{{count}} قارئًا مطابقًا للفلاتر الحالية",
     "recitersFound_other": "{{count}} قارئ مطابق للفلاتر الحالية",
     "clearAll": "مسح الكل",
+    "reciterCount_zero": "لا يوجد قرّاء",
+    "reciterCount_one": "قارئ واحد",
+    "reciterCount_two": "قارئان",
+    "reciterCount_few": "{{count}} قرّاء",
+    "reciterCount_many": "{{count}} قارئًا",
+    "reciterCount_other": "{{count}} قارئ",
     "searchSurahs": "ابحث عن سورة…"
   },
   "search": {
