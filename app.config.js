@@ -55,6 +55,9 @@ module.exports = {
           'This app uses Apple Music to play audio.',
         UILaunchStoryboardName: 'SplashScreen',
         LSRequiresIPhoneOS: true,
+        // Show Settings › Apps › Bayaan › Language even when the device has a
+        // single preferred language. The language screen sends users there.
+        UIPrefersShowingLanguageSettings: true,
         UIRequiresFullScreen: true,
         ITSAppUsesNonExemptEncryption: false,
         NSCameraUsageDescription: 'This app does not use the camera.',
