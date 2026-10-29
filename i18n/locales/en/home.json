@@ -20,6 +20,7 @@
     "browseAll": "Browse All",
     "allSurahs": "All Surahs",
     "browseRecitersForSurah": "Browse Reciters - {{surah}}",
+    "chooseReciterForSurah": "Choose a reciter · {{surah}}",
     "allChip": "All",
     "rewayahSeparator": "A'n",
     "searchReciters": "Search reciters...",
@@ -27,6 +28,8 @@
     "recitersFound_one": "{{count}} reciters found with current filters",
     "recitersFound_other": "{{count}} reciters found with current filters",
     "clearAll": "Clear All",
+    "reciterCount_one": "{{count}} reciter",
+    "reciterCount_other": "{{count}} reciters",
     "searchSurahs": "Search surahs..."
   },
   "search": {
