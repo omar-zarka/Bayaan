@@ -3,19 +3,29 @@ import React from 'react';
 import {ScrollView} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
 
-const mockCards: {width: number}[] = [];
+const mockCards: {width: number; height: number; tablet?: boolean}[] = [];
+const mockHeroes: {width?: number}[] = [];
+let mockIsTablet = true;
+let mockSavedIds = new Set<string>(['saved-1']);
 jest.mock('@/components/adhkar/AdhkarBentoCard', () => ({
-  AdhkarBentoCard: (props: {width: number}) => {
+  AdhkarBentoCard: (props: {width: number; height: number}) => {
     mockCards.push(props);
     return null;
   },
+  TABLET_LABEL_OVERHEAD: 48,
+}));
+jest.mock('@/hooks/useResponsive', () => ({
+  useResponsive: () => ({isTablet: mockIsTablet}),
 }));
 jest.mock('@/components/adhkar/AdhkarNowPlayingCard', () => ({
   AdhkarNowPlayingCard: () => null,
   useHasAdhkarSession: () => false,
 }));
 jest.mock('@/components/hero/SavedAdhkarHero', () => ({
-  SavedAdhkarHero: () => null,
+  SavedAdhkarHero: (props: {width?: number}) => {
+    mockHeroes.push(props);
+    return null;
+  },
 }));
 jest.mock('@/components/LoadingIndicator', () => ({
   LoadingIndicator: () => null,
@@ -31,7 +41,7 @@ jest.mock('@/hooks/useAdhkar', () => ({
   useAdhkar: () => ({
     error: null,
     superCategoriesLoaded: true,
-    savedIds: new Set(),
+    savedIds: mockSavedIds,
     mainSuperCategories: [
       {id: 'a', column: 'left', sortOrder: 1},
       {id: 'b', column: 'right', sortOrder: 1},
@@ -44,9 +54,71 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   default: () => ({width: 1032, height: 1376, scale: 2, fontScale: 1}),
 }));
 
-import {AdhkarView, adhkarTileDimensions} from '@/components/AdhkarView';
+import {
+  AdhkarView,
+  adhkarTabletLayout,
+  adhkarTileDimensions,
+} from '@/components/AdhkarView';
+
+function renderAt(paneWidth: number) {
+  let r = {} as TestRenderer.ReactTestRenderer;
+  act(() => {
+    r = TestRenderer.create(
+      <AdhkarView
+        onCategoryPress={jest.fn()}
+        onSavedPress={jest.fn()}
+        headerHeight={0}
+      />,
+    );
+  });
+  const [scroll] = r.root.findAll(n => (n.type as unknown) === ScrollView);
+  mockCards.length = 0;
+  mockHeroes.length = 0;
+  act(() => {
+    scroll.props.onLayout({
+      nativeEvent: {layout: {width: paneWidth, height: 900}},
+    });
+  });
+  return r;
+}
+
+beforeEach(() => {
+  mockIsTablet = true;
+  mockSavedIds = new Set(['saved-1']);
+});
+
+it('sizes the iPad grid from the measured pane, not the window', () => {
+  // A 944pt pane beside the rail in a 1032pt window: 32pt margins, 20pt
+  // gutters, so five 160pt cards fit.
+  const r = renderAt(944);
+  const layout = adhkarTabletLayout(944, 1032);
+  expect(layout).toMatchObject({margin: 32, gap: 20, numColumns: 5});
+  expect(layout.columnWidth * 5 + 20 * 4 + 32 * 2).toBeCloseTo(944);
+
+  const [first] = mockCards.slice(-2);
+  expect(first.tablet).toBe(true);
+  expect(first.width).toBeCloseTo(layout.columnWidth);
+  // A 3:2 image plus room for a two-line label.
+  expect(first.height).toBeCloseTo((layout.columnWidth * 2) / 3 + 48);
+  // The saved hero spans the grid, so no empty gap sits beside it.
+  expect(mockHeroes[mockHeroes.length - 1].width).toBeCloseTo(944 - 32 * 2);
+  expect(layout.heroWidth).toBeCloseTo(layout.columnWidth * 5 + layout.gap * 4);
+  act(() => r.unmount());
+});
+
+it('leaves the hero out on iPad when nothing is saved or playing', () => {
+  mockSavedIds = new Set();
+  const r = renderAt(944);
+  expect(mockHeroes).toHaveLength(0);
+  act(() => r.unmount());
+});
+
+it('keeps two columns on a narrow pane', () => {
+  expect(adhkarTabletLayout(400, 834).numColumns).toBe(2);
+});
 
 it('sizes the two columns from the measured container, not the window', () => {
+  mockIsTablet = false;
   let r: TestRenderer.ReactTestRenderer | undefined;
   act(() => {
     r = TestRenderer.create(

@@ -103,6 +103,18 @@ struct AdhkarView: View {
         }
         .font(.footnote.weight(.heavy))
     // @ai-end
+        // @ai-start
+        Spacer(minLength: 0)
+        // Plays the period's adhkar audio from this dhikr, even with the app closed; pauses while it plays.
+        PlayOrPauseButton(playing: AdhkarPlaybackState.isPlaying(superId: data.superId, snapshot: SnapshotStore.load()),
+                          play: PlayAdhkarIntent(superId: data.superId, dhikrId: dhikr.id),
+                          pause: SetAdhkarPlaybackIntent(playing: false), label: "Listen") { playing in
+          Image(systemName: playing ? "pause.fill" : "play.fill").font(.system(size: 11, weight: .bold))
+            .foregroundStyle(style.onAccent)
+            .frame(width: 28, height: 28)
+            .background(style.accent, in: Circle())
+        }
+        // @ai-end
       }
       DhikrText(text: dhikr.arabic, size: 22, lines: 3).frame(maxWidth: .infinity, maxHeight: .infinity) // @ai
     }

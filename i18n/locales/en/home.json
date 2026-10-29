@@ -20,6 +20,7 @@
     "browseAll": "Browse All",
     "allSurahs": "All Surahs",
     "browseRecitersForSurah": "Browse Reciters - {{surah}}",
+    "chooseReciterForSurah": "Choose a reciter · {{surah}}",
     "allChip": "All",
     "rewayahSeparator": "A'n",
     "searchReciters": "Search reciters...",
@@ -27,6 +28,8 @@
     "recitersFound_one": "{{count}} reciters found with current filters",
     "recitersFound_other": "{{count}} reciters found with current filters",
     "clearAll": "Clear All",
+    "reciterCount_one": "{{count}} reciter",
+    "reciterCount_other": "{{count}} reciters",
     "searchSurahs": "Search surahs..."
   },
   "search": {
@@ -34,7 +37,9 @@
     "recentSearches": "Recent searches",
     "noRecent": "No recent searches",
     "noRecentHint": "Your search history will appear here",
-    "noResultsHint": "Try different keywords or check the spelling"
+    "noResultsHint": "Try different keywords or check the spelling",
+    "all": "All",
+    "topResult": "Top result"
   },
   "systemPlaylist": {
     "invalidId": "Invalid playlist ID",
@@ -130,7 +135,10 @@
     "verses_other": "{{count}} verses",
     "a11yReadHint": "Opens the surah in the reader",
     "a11yPlayAction": "Play",
-    "a11yMoreAction": "More options"
+    "a11yMoreAction": "More options",
+    "columnSurah": "Surah",
+    "columnRevelation": "Revelation",
+    "columnVerses": "Verses"
   },
   "sort": {
     "asc": "Asc",

@@ -95,6 +95,12 @@ struct AdhkarSessionView: View {
           .accessibilityLabel("Previous")
         // @ai-end
       }
+      // @ai-start
+      // Plays the period's adhkar audio from this dhikr, even with the app closed; pauses while it plays.
+      PlayOrPauseButton(playing: AdhkarPlaybackState.isPlaying(superId: data.superId, snapshot: SnapshotStore.load()),
+                        play: PlayAdhkarIntent(superId: data.superId, dhikrId: item.id),
+                        pause: SetAdhkarPlaybackIntent(playing: false), label: "Listen") { roundGlyph($0 ? "pause.fill" : "play.fill") }
+      // @ai-end
       Button(intent: AdhkarCountIntent()) {
         // @ai-start
         HStack(spacing: 6) {

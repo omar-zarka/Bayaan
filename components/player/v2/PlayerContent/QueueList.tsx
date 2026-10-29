@@ -37,7 +37,7 @@ type QueueRowItem =
   | {kind: 'section'; section: QueueSection; count: number}
   | {kind: 'track'; track: Track; index: number; section: QueueSection};
 
-interface RowDisplay {
+export interface RowDisplay {
   title: string;
   subtitle: string;
   tags: string[];
@@ -45,7 +45,7 @@ interface RowDisplay {
 }
 
 /** Title, reciter line and tags for one queue row. */
-function useRowDisplay(track: Track): RowDisplay {
+export function useRowDisplay(track: Track): RowDisplay {
   const {t} = useTranslation(['player', 'common']);
   const recitation = useUploadsStore(state =>
     track.isUserUpload && track.userRecitationId
