@@ -98,7 +98,7 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
 // @ai-start
 /**
  * Draws the top `fraction` of the art across the full width at its own aspect,
- * at most `bandPx` tall, filling any space below with `fill`. A surah card prints its name in its
+ * at most `bandPx` tall (shrunk to fit if needed), filling the rest with `fill`. A surah card prints its name in its
  * lower part, so keeping only the calligraphy lets the widget draw its own
  * title and controls under it without zooming into a sliver of the card.
  */
@@ -109,16 +109,15 @@ private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Floa
   val srcH = src.height * fraction
   val scale = widthPx.toFloat() / src.width
   val drawnH = srcH * scale
-  // Taller than the band (e.g. a full photo): crop the middle instead.
   val band = minOf(heightPx, bandPx)
-  val srcRect = if (drawnH <= band) {
-    android.graphics.Rect(0, 0, src.width, srcH.roundToInt())
+  val srcRect = android.graphics.Rect(0, 0, src.width, srcH.roundToInt())
+  // Taller than the band: shrink the art to fit it, centred, so nothing is sliced.
+  val dst = if (drawnH <= band) {
+    android.graphics.Rect(0, 0, widthPx, drawnH.roundToInt())
   } else {
-    val cropH = band / scale
-    val top = (srcH - cropH) / 2
-    android.graphics.Rect(0, top.roundToInt(), src.width, (top + cropH).roundToInt())
+    val w = (src.width * band / srcH).roundToInt()
+    android.graphics.Rect((widthPx - w) / 2, 0, (widthPx + w) / 2, band)
   }
-  val dst = android.graphics.Rect(0, 0, widthPx, minOf(band, drawnH.roundToInt()))
   canvas.drawBitmap(src, srcRect, dst, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
   return out
 }
