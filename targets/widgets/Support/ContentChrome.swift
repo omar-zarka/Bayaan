@@ -45,9 +45,7 @@ struct SurahTileButton<I: AppIntent>: View {
       VStack(spacing: 3) {
         SurahCard(surah: StaticData.surah(surahId), size: size)
           // @ai-start
-          .overlay(alignment: .topTrailing) { // Clear of the card's printed name.
-            if playing { PrimaryGlyph(systemName: "pause.fill", size: max(24, size * 0.32)).padding(4) }
-          }
+          .overlay { if playing { PlayingTileOverlay(size: size) } }
           // @ai-end
         if let caption, !(caption == StaticData.surah(surahId)?.name && SurahCard.showsName(StaticData.surah(surahId))) { // @ai
           Text(caption).font(.caption2.weight(.semibold)).foregroundStyle(WidgetPalette.secondary).lineLimit(1).frame(width: size) // @ai

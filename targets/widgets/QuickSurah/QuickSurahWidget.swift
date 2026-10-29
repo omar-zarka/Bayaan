@@ -178,9 +178,7 @@ struct QuickSurahView: View {
         // @ai-start
         VStack(spacing: 6) {
           SurahCard(surah: surah, size: 72)
-            .overlay(alignment: .topTrailing) { // Clear of the card's printed name.
-              if playing { PrimaryGlyph(systemName: "pause.fill", size: 26).padding(4) }
-            }
+            .overlay { if playing { PlayingTileOverlay(size: 72) } }
           if !SurahCard.showsName(surah) {
             Text(surah.name).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
           }

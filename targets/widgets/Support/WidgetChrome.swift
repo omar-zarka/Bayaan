@@ -306,6 +306,20 @@ struct PlayOrPauseButton<I: AppIntent, Content: View>: View {
   }
 }
 
+/// Dims a playing tile and centers a pause glyph on it, so no corner badge
+/// covers the card's printed name or calligraphy.
+struct PlayingTileOverlay: View {
+  let size: CGFloat
+
+  var body: some View {
+    ZStack {
+      Color.black.opacity(0.42)
+      PrimaryGlyph(systemName: "pause.fill", size: max(24, size * 0.4))
+    }
+    .clipShape(RoundedRectangle(cornerRadius: size * 0.2, style: .continuous))
+  }
+}
+
 /// One line of text that drops leading words before it would cut letters,
 /// e.g. "Mishary Alafasi" becomes "Alafasi".
 struct FittingName: View {
