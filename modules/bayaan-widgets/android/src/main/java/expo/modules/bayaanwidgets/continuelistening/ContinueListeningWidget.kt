@@ -17,6 +17,7 @@ import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
+import androidx.glance.ColorFilter
 import androidx.glance.GlanceModifier
 import androidx.glance.Image
 import androidx.glance.ImageProvider
@@ -61,6 +62,14 @@ import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.WidgetSnapshot
 import expo.modules.bayaanwidgets.WidgetStorage
 import expo.modules.bayaanwidgets.WidgetTrack
+import expo.modules.bayaanwidgets.StaticData
+import expo.modules.bayaanwidgets.WidgetText
+import expo.modules.bayaanwidgets.ui.Eyebrow
+import expo.modules.bayaanwidgets.ui.GeneratedSurahTile
+import expo.modules.bayaanwidgets.ui.PrimaryButton
+import expo.modules.bayaanwidgets.ui.SurahGlyph
+import expo.modules.bayaanwidgets.ui.SurahTint
+import expo.modules.bayaanwidgets.ui.WidgetPalette
 import org.json.JSONObject
 import java.io.File
 import kotlin.math.roundToInt
@@ -85,15 +94,33 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
   )
 }
 
+// @ai-start
+/**
+ * Scales art to cover widthPx x (heightPx + liftPx) and draws it liftPx
+ * higher, so a card's printed name clears the controls at the bottom.
+ */
+private fun liftedFill(src: Bitmap, widthPx: Int, heightPx: Int, liftPx: Int): Bitmap {
+  val out = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+  val canvas = android.graphics.Canvas(out)
+  val scale = maxOf(widthPx.toFloat() / src.width, (heightPx + liftPx).toFloat() / src.height)
+  val w = src.width * scale
+  val h = src.height * scale
+  val left = (widthPx - w) / 2
+  val top = (heightPx + liftPx - h) / 2 - liftPx
+  val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
+  canvas.drawBitmap(src, null, android.graphics.RectF(left, top, left + w, top + h), paint)
+  return out
+}
+// @ai-end
+
 class ContinueListeningWidget : GlanceAppWidget() {
   companion object {
     private val SMALL = DpSize(110.dp, 110.dp)
     private val MEDIUM = DpSize(250.dp, 110.dp)
     private val LARGE = DpSize(250.dp, 250.dp)
 
-    // Fixed near-black, like Podcasts and Spotify: the artwork is the only color.
-    private val BACKGROUND = ColorProvider(Color(0xFF1C1C1E))
     private val WHITE = ColorProvider(Color.White)
+    private val SECONDARY = ColorProvider(Color(0xCCFFFFFF)) // @ai
 
     val SNAPSHOT_KEY = stringPreferencesKey("snapshot")
     val OVERRIDE_KEY = stringPreferencesKey("playbackOverride")
@@ -156,48 +183,48 @@ class ContinueListeningWidget : GlanceAppWidget() {
     }
   }
 
+  // @ai-start
   @Composable
   private fun Content(context: Context, s: WidgetSnapshot?, override: PlaybackOverride?) {
     val track = s?.nowPlaying?.track ?: s?.recent?.firstOrNull() ?: s?.upNext?.firstOrNull()
     val openPlayer = actionStartActivity(
       Intent(Intent.ACTION_VIEW, Uri.parse(AppLinks.url(context, "player"))).setPackage(context.packageName),
     )
+    val tint = ColorProvider(SurahTint.deep(track?.surahId ?: 0))
+    val root = GlanceModifier.fillMaxSize().background(tint).cornerRadius(20.dp).clickable(openPlayer)
 
-    Box(
-      modifier = GlanceModifier.fillMaxSize().background(BACKGROUND).cornerRadius(20.dp)
-        .padding(14.dp).clickable(openPlayer),
-    ) {
-      if (s == null || track == null) {
-        Column(GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally,
-          verticalAlignment = Alignment.CenterVertically) {
-          Logo(24)
-          Spacer(GlanceModifier.height(8.dp))
-          Text("Start listening", style = TextStyle(color = WHITE, fontWeight = FontWeight.Medium))
-        }
-        return@Box
+    if (s == null || track == null) {
+      Column(root.padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally,
+        verticalAlignment = Alignment.CenterVertically) {
+        Logo(24)
+        Spacer(GlanceModifier.height(8.dp))
+        Text("Start listening", style = TextStyle(color = WHITE, fontWeight = FontWeight.Medium))
       }
-      val size = LocalSize.current
-      val np = s.nowPlaying
-      val playback = np?.let { PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis()) }
-      val hero = Hero(
-        track = track,
-        hasNowPlaying = np != null,
-        isPlaying = playback?.isPlaying ?: false,
-        progress = if (np != null && playback != null && np.durationSec > 0) {
-          val rate = if (np.rate > 0 && np.rate.isFinite()) np.rate else 1.0
-          (1 - playback.remainingWallSec * rate / np.durationSec).toFloat().coerceIn(0f, 1f)
-        } else null,
-      )
-      // Drop the side list's first item when it is already the hero.
-      val sideSource =
-        if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0)
-        else s.upNext.drop(if (s.nowPlaying == null && s.recent.isEmpty()) 1 else 0)
-      val sideTitle = if (s.upNext.isEmpty()) "Recent" else "Up next"
-      when {
-        size.width >= MEDIUM.width && size.height >= LARGE.height -> Large(context, hero, sideSource.take(4), sideTitle)
-        size.width >= MEDIUM.width -> Medium(context, hero, sideSource.take(3), sideTitle)
-        else -> Small(context, hero)
-      }
+      return
+    }
+    val size = LocalSize.current
+    val np = s.nowPlaying
+    val playback = np?.let { PlaybackState.effective(it, s.generatedAt, override, System.currentTimeMillis()) }
+    val hero = Hero(
+      track = track,
+      hasNowPlaying = np != null,
+      isPlaying = playback?.isPlaying ?: false,
+      progress = if (np != null && playback != null && np.durationSec > 0) {
+        val rate = if (np.rate > 0 && np.rate.isFinite()) np.rate else 1.0
+        (1 - playback.remainingWallSec * rate / np.durationSec).toFloat().coerceIn(0f, 1f)
+      } else null,
+      minutesLeft = playback?.let { (it.remainingWallSec / 60).roundToInt() },
+    )
+    // Drop the side list's first item when it is already the hero.
+    val sideSource =
+      if (s.upNext.isEmpty()) s.recent.drop(if (s.nowPlaying == null) 1 else 0)
+      else s.upNext.drop(if (s.nowPlaying == null && s.recent.isEmpty()) 1 else 0)
+    val sideTitle = if (s.upNext.isEmpty()) "Recent" else "Up next"
+    when {
+      size.width >= MEDIUM.width && size.height >= LARGE.height ->
+        Large(context, hero, sideSource.take(4), sideTitle, root.padding(16.dp))
+      size.width >= MEDIUM.width -> Medium(context, hero, sideSource.firstOrNull(), sideTitle, root.padding(14.dp))
+      else -> Small(context, hero, root, size.width.value.toInt(), size.height.value.toInt())
     }
   }
 
@@ -207,25 +234,41 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val hasNowPlaying: Boolean,
     val isPlaying: Boolean,
     val progress: Float?,
+    val minutesLeft: Int?,
   )
 
-  @Composable
-  private fun Art(context: Context, file: String?, size: Int) {
-    val cache = LocalArtCache.current
-    val px = maxOf(1, (size * context.resources.displayMetrics.density).roundToInt())
-    val bmp = file?.let { name ->
+  private fun eyebrow(hero: Hero): String = when {
+    hero.isPlaying -> "Now playing"
+    hero.hasNowPlaying -> "Paused"
+    else -> "Continue listening"
+  }
+
+  private fun cachedArt(context: Context, cache: MutableMap<String, Bitmap?>, file: String?, px: Int): Bitmap? =
+    file?.let { name ->
       cache.getOrPut("$name@$px") {
         File(WidgetStorage.artworkDir(context), name).takeIf { it.exists() }?.let { decodeArt(it, px) }
       }
     }
-    if (bmp != null) {
+
+  /** Square art: the cached card or photo, else the generated surah tile. */
+  @Composable
+  private fun Art(context: Context, track: WidgetTrack, size: Int) {
+    val px = maxOf(1, (size * context.resources.displayMetrics.density).roundToInt())
+    val bmp = cachedArt(context, LocalArtCache.current, track.artworkFile, px)
+    Box(GlanceModifier.size(size.dp)) {
+      if (bmp != null) {
+        Image(
+          ImageProvider(bmp), contentDescription = null,
+          modifier = GlanceModifier.size(size.dp).cornerRadius((size / 6).dp),
+          contentScale = ContentScale.Crop,
+        )
+      } else {
+        GeneratedSurahTile(context, StaticData.surah(context, track.surahId), size)
+      }
       Image(
-        ImageProvider(bmp), contentDescription = null,
-        modifier = GlanceModifier.size(size.dp).cornerRadius((size / 6).dp),
-        contentScale = ContentScale.Crop,
+        ImageProvider(R.drawable.widget_keyline), contentDescription = null,
+        modifier = GlanceModifier.size(size.dp).cornerRadius((size / 6).dp), contentScale = ContentScale.FillBounds,
       )
-    } else {
-      Spacer(GlanceModifier.size(size.dp).background(ColorProvider(Color(0x26FFFFFF))).cornerRadius((size / 6).dp))
     }
   }
 
@@ -238,11 +281,11 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   /**
-   * Round play/pause button. With nothing loaded (the hero is a recent item or
-   * the surah of the day), it starts that track.
+   * Play/pause in the accent circle. With nothing loaded (the hero is a recent
+   * item or the surah of the day), it starts that track.
    */
   @Composable
-  private fun PlayButton(context: Context, hero: Hero) {
+  private fun PlayButton(context: Context, hero: Hero, size: Int) {
     val track = hero.track
     val cmd = when {
       // Absolute target: the opposite of what is rendered.
@@ -250,110 +293,130 @@ class ContinueListeningWidget : GlanceAppWidget() {
       track.isUserUpload || track.surahId == 0 -> return
       else -> playTrackCommand(track)
     }
-    Box(
-      GlanceModifier.size(30.dp).background(ColorProvider(Color(0x2EFFFFFF))).cornerRadius(15.dp).clickable(
-        actionStartActivity(
-          WidgetCommandActivity.intent(context, cmd)
-            .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
-        ),
+    PrimaryButton(
+      playing = hero.isPlaying, description = "Play", sizeDp = size,
+      action = actionStartActivity(
+        WidgetCommandActivity.intent(context, cmd)
+          .setData(Uri.parse("bayaan-widget://hero/${cmd.toString().hashCode()}")),
       ),
-      contentAlignment = Alignment.Center,
-    ) {
-      Image(
-        ImageProvider(if (hero.isPlaying) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play),
-        contentDescription = if (hero.isPlaying) "Pause" else "Play",
-        modifier = GlanceModifier.size(18.dp),
-      )
-    }
+    )
   }
 
-  /** Spotify-style thin bar on a faint track. Static: refreshed on each push. */
+  /** Thin bar on a faint track. Static: refreshed on each push. */
   @Composable
   private fun Progress(progress: Float?, modifier: GlanceModifier) {
     if (progress == null) return
     LinearProgressIndicator(
-      progress = progress, modifier = modifier.height(3.dp),
-      color = WHITE, backgroundColor = ColorProvider(Color(0x38FFFFFF)),
+      progress = progress, modifier = modifier.height(4.dp),
+      color = ColorProvider(WidgetPalette.GOLD), backgroundColor = ColorProvider(Color(0x33FFFFFF)),
     )
   }
 
   @Composable
-  private fun Titles(track: WidgetTrack, titleSp: Int) {
-    Text(track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = titleSp.sp, fontWeight = FontWeight.Bold))
-    Text(track.reciterName, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0xBFFFFFFF)), fontSize = 12.sp))
+  private fun TimeLeft(hero: Hero) {
+    val m = hero.minutesLeft ?: return
+    if (!hero.hasNowPlaying) return
+    Text("${m}m left", maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 11.sp, fontWeight = FontWeight.Medium))
   }
 
+  /**
+   * Full-bleed art with the reciter and play button over a fade. A cached card
+   * already prints the surah name, so the title is only drawn over generated art,
+   * and the card is lifted so its printed name clears the controls.
+   */
   @Composable
-  private fun ListHeader(title: String?) {
-    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      if (title != null) {
-        Text(title, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0x99FFFFFF)), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+  private fun Small(context: Context, hero: Hero, root: GlanceModifier, widthDp: Int, heightDp: Int) {
+    val density = context.resources.displayMetrics.density
+    val wPx = maxOf(1, (widthDp * density).roundToInt())
+    val hPx = maxOf(1, (heightDp * density).roundToInt())
+    val track = hero.track
+    val surah = StaticData.surah(context, track.surahId)
+    val cardNamed = surah != null && track.artworkFile == surah.artworkFile
+    val src = cachedArt(context, LocalArtCache.current, track.artworkFile, maxOf(wPx, hPx))
+    val art = src?.let { liftedFill(it, wPx, hPx, if (cardNamed) (14 * density).roundToInt() else 0) }
+    Box(root) {
+      if (art != null) {
+        Image(ImageProvider(art), contentDescription = null, modifier = GlanceModifier.fillMaxSize(),
+          contentScale = ContentScale.FillBounds)
+      } else {
+        Box(GlanceModifier.fillMaxSize().background(ColorProvider(SurahTint.base(track.surahId))).padding(12.dp),
+          contentAlignment = Alignment.TopEnd) {
+          if (surah != null && surah.glyph.isNotEmpty()) SurahGlyph(context, surah.glyph, 70f, 36f)
+        }
       }
-      Spacer(GlanceModifier.defaultWeight())
-      Logo(14)
-    }
-  }
-
-  @Composable
-  private fun Small(context: Context, hero: Hero) {
-    Column(GlanceModifier.fillMaxSize()) {
-      Row(GlanceModifier.fillMaxWidth()) {
-        Art(context, hero.track.artworkFile, 44)
-        Spacer(GlanceModifier.defaultWeight())
-        Logo(14)
+      Image(ImageProvider(R.drawable.widget_scrim), contentDescription = null,
+        modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
+      Column(GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.Bottom) {
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+          Column(GlanceModifier.defaultWeight()) {
+            if (!(art != null && cardNamed)) {
+              Text(track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Bold))
+            }
+            Text(WidgetText.fitName(track.reciterName, maxOf(6, (widthDp - 70) / 7)), maxLines = 1,
+              style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+          }
+          Spacer(GlanceModifier.width(6.dp))
+          PlayButton(context, hero, 40)
+        }
       }
-      Spacer(GlanceModifier.defaultWeight())
-      Titles(hero.track, 15)
-      Spacer(GlanceModifier.height(6.dp))
-      PlayerRow(context, hero)
-    }
-  }
-
-  /** Play button beside the progress bar. */
-  @Composable
-  private fun PlayerRow(context: Context, hero: Hero) {
-    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-      PlayButton(context, hero)
-      Spacer(GlanceModifier.width(10.dp))
-      Progress(hero.progress, GlanceModifier.defaultWeight())
     }
   }
 
   @Composable
-  private fun Medium(context: Context, hero: Hero, side: List<WidgetTrack>, sideTitle: String) {
-    Row(GlanceModifier.fillMaxSize()) {
+  private fun Medium(context: Context, hero: Hero, next: WidgetTrack?, nextTitle: String, root: GlanceModifier) {
+    Row(root, verticalAlignment = Alignment.CenterVertically) {
+      Art(context, hero.track, 96)
+      Spacer(GlanceModifier.width(14.dp))
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
-        Art(context, hero.track.artworkFile, 52)
+        Eyebrow(eyebrow(hero))
+        Text(hero.track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Bold))
+        Text(hero.track.reciterName, maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
         Spacer(GlanceModifier.defaultWeight())
-        Titles(hero.track, 15)
-        Spacer(GlanceModifier.height(6.dp))
-        PlayerRow(context, hero)
-      }
-      Spacer(GlanceModifier.width(12.dp))
-      Column(GlanceModifier.defaultWeight()) {
-        ListHeader(if (side.isEmpty()) null else sideTitle)
-        Spacer(GlanceModifier.height(2.dp))
-        side.forEach { t -> TrackRow(context, t, 30) }
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+          PlayButton(context, hero, 40)
+          if (next != null) {
+            Spacer(GlanceModifier.width(10.dp))
+            Column(GlanceModifier.defaultWeight()) {
+              Text(nextTitle, maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 10.sp, fontWeight = FontWeight.Medium))
+              Text(next.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+            }
+          }
+        }
+        if (hero.hasNowPlaying) {
+          Spacer(GlanceModifier.height(6.dp))
+          Progress(hero.progress, GlanceModifier.fillMaxWidth())
+        }
       }
     }
   }
 
   @Composable
-  private fun Large(context: Context, hero: Hero, rows: List<WidgetTrack>, rowsTitle: String) {
-    Column(GlanceModifier.fillMaxSize()) {
-      Row(GlanceModifier.fillMaxWidth()) {
-        Art(context, hero.track.artworkFile, 72)
-        Spacer(GlanceModifier.width(12.dp))
-        Column(GlanceModifier.defaultWeight().padding(top = 6.dp)) { Titles(hero.track, 18) }
-        Logo(16)
+  private fun Large(context: Context, hero: Hero, rows: List<WidgetTrack>, rowsTitle: String, root: GlanceModifier) {
+    Column(root) {
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Art(context, hero.track, 88)
+        Spacer(GlanceModifier.width(14.dp))
+        Column(GlanceModifier.defaultWeight()) {
+          Eyebrow(eyebrow(hero))
+          Text(hero.track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 20.sp, fontWeight = FontWeight.Bold))
+          Text(hero.track.reciterName, maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+          Spacer(GlanceModifier.height(6.dp))
+          PlayButton(context, hero, 40)
+        }
       }
-      Spacer(GlanceModifier.height(12.dp))
-      PlayerRow(context, hero)
-      Spacer(GlanceModifier.height(12.dp))
+      if (hero.hasNowPlaying) {
+        Spacer(GlanceModifier.height(12.dp))
+        Progress(hero.progress, GlanceModifier.fillMaxWidth())
+        Spacer(GlanceModifier.height(3.dp))
+        TimeLeft(hero)
+      }
       if (rows.isNotEmpty()) {
-        Text(rowsTitle, maxLines = 1, style = TextStyle(color = ColorProvider(Color(0x99FFFFFF)), fontSize = 11.sp, fontWeight = FontWeight.Bold))
+        Spacer(GlanceModifier.height(10.dp))
+        Spacer(GlanceModifier.fillMaxWidth().height(1.dp).background(ColorProvider(Color(0x24FFFFFF))))
+        Spacer(GlanceModifier.height(10.dp))
+        Eyebrow(rowsTitle)
+        rows.forEach { t -> TrackRow(context, t, 36) }
       }
-      rows.forEach { t -> TrackRow(context, t, 34) }
     }
   }
 
@@ -370,10 +433,16 @@ class ContinueListeningWidget : GlanceAppWidget() {
           .setData(Uri.parse("bayaan-widget://row/${t.surahId}/${t.reciterId}")),
       ),
     )
-    Row(base.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-      Art(context, t.artworkFile, art)
-      Spacer(GlanceModifier.width(8.dp))
-      Column { Titles(t, 13) }
+    Row(base.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+      Art(context, t, art)
+      Spacer(GlanceModifier.width(10.dp))
+      Column(GlanceModifier.defaultWeight()) {
+        Text(t.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 13.sp, fontWeight = FontWeight.Bold))
+        Text(t.reciterName, maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 11.sp))
+      }
+      Image(ImageProvider(R.drawable.widget_play), contentDescription = null,
+        colorFilter = ColorFilter.tint(SECONDARY), modifier = GlanceModifier.size(14.dp))
     }
   }
+  // @ai-end
 }

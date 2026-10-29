@@ -28,6 +28,9 @@ import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.RecentShelf
 import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.WidgetInputs
+import expo.modules.bayaanwidgets.PlaybackState
+import expo.modules.bayaanwidgets.WidgetTrack
+import expo.modules.bayaanwidgets.ui.playingTrack
 import expo.modules.bayaanwidgets.ui.ContentMessage
 import expo.modules.bayaanwidgets.ui.ShelfHeader
 import expo.modules.bayaanwidgets.ui.SurahTile
@@ -49,7 +52,8 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
       val inputs = GlanceState.current(currentState(), stored)
       val shelf = remember(inputs) { shelf(inputs) }
       // A push after new artwork lands must redraw cards whose inputs did not change.
-      key(inputs.pushedAt) { Content(context, shelf) }
+      val playing = playingTrack(context, inputs.snapshotJson?.let { SnapshotModels.decode(it) }) // @ai
+      key(inputs.pushedAt) { Content(context, shelf, playing) } // @ai
     }
   }
 
@@ -57,7 +61,7 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
     ContentLogic.recentShelf(inputs.snapshotJson?.let { SnapshotModels.decode(it) })
 
   @Composable
-  private fun Content(context: Context, shelf: RecentShelf) {
+  private fun Content(context: Context, shelf: RecentShelf, playing: WidgetTrack?) { // @ai
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
     val root = contentRoot().clickable(appLink(context, "player"))
     if (shelf.tracks.isEmpty()) {
@@ -73,7 +77,8 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
             if (i > 0) Spacer(GlanceModifier.defaultWeight())
             val action = commandAction(context, playTrackCommand(t.surahId, t.reciterId, t.rewayatId, null),
               "recent/${t.surahId}/${t.reciterId}/${t.rewayatId ?: "any"}")
-            SurahTile(context, t.surahId, if (large) 60 else 44, action, if (large) t.reciterName else null)
+            SurahTile(context, t.surahId, if (large) 72 else 52, action, if (large) t.reciterName else null, // @ai
+              playing = PlaybackState.matches(playing, t.surahId, t.reciterId)) // @ai
           }
         }
       }

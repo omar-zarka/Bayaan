@@ -42,7 +42,18 @@ import expo.modules.bayaanwidgets.StaticData
 import expo.modules.bayaanwidgets.WidgetInputs
 import expo.modules.bayaanwidgets.WidgetSpotlightReciter
 import expo.modules.bayaanwidgets.ui.ContentMessage
-import expo.modules.bayaanwidgets.ui.Logo
+import expo.modules.bayaanwidgets.PlaybackState
+import expo.modules.bayaanwidgets.SnapshotModels
+import expo.modules.bayaanwidgets.WidgetTrack
+import expo.modules.bayaanwidgets.ui.Eyebrow
+import expo.modules.bayaanwidgets.ui.PrimaryButton
+import expo.modules.bayaanwidgets.ui.ReciterSurahRow
+import expo.modules.bayaanwidgets.ui.WidgetPalette
+import expo.modules.bayaanwidgets.ui.playOrPause
+import expo.modules.bayaanwidgets.ui.playingTrack
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.background
+import androidx.glance.unit.ColorProvider
 import expo.modules.bayaanwidgets.ui.ReciterPhoto
 import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.SurahCard
@@ -66,7 +77,8 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
     provideContent {
       val inputs = GlanceState.current(currentState(), stored)
       val reciter = remember(inputs) { resolve(inputs) }
-      key(inputs.pushedAt) { Content(context, reciter) }
+      val playing = playingTrack(context, inputs.snapshotJson?.let { SnapshotModels.decode(it) }) // @ai
+      key(inputs.pushedAt) { Content(context, reciter, playing) } // @ai
     }
   }
 
@@ -75,59 +87,54 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
     inputs.contentJson?.let { ContentModels.decodeContent(it) }, System.currentTimeMillis(), TimeZone.getDefault(),
   )
 
+  // @ai-start
   @Composable
-  private fun Content(context: Context, r: WidgetSpotlightReciter?) {
+  private fun Content(context: Context, r: WidgetSpotlightReciter?, playing: WidgetTrack?) {
+    val root = GlanceModifier.fillMaxSize().background(ColorProvider(WidgetPalette.RECITER)).cornerRadius(20.dp)
     if (r == null) {
-      ContentMessage(contentRoot().clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", "to meet today's reciter")
+      ContentMessage(root.clickable(appLink(context, "")), "Open ${AppBrand.name(context)}", "to meet today's reciter")
       return
     }
-    val play = commandAction(context, playReciterCommand(r.id), "spotlight/${r.id}")
+    val isPlaying = playing?.reciterId == r.id
+    val play = playOrPause(context, isPlaying, commandAction(context, playReciterCommand(r.id), "spotlight/${r.id}"))
     if (LocalSize.current.width < WidgetSizes.MEDIUM.width) {
       val size = LocalSize.current
-      Box(contentRoot().clickable(play)) {
+      Box(root.clickable(play)) {
         ReciterPhoto(context, r.artworkFile, r.name, size.width.value.toInt(), size.height.value.toInt(), 20)
-        Image(ImageProvider(R.drawable.widget_scrim), contentDescription = null,
+        Image(ImageProvider(R.drawable.widget_scrim_ink), contentDescription = null,
           modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
-        Column(GlanceModifier.fillMaxSize().padding(12.dp)) {
-          Row(GlanceModifier.fillMaxWidth()) {
-            Spacer(GlanceModifier.defaultWeight())
-            Logo(14)
-          }
-          Spacer(GlanceModifier.defaultWeight())
-          Text("Reciter of the Day", style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+        Column(GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.Bottom) {
+          Eyebrow("Reciter of the Day", ColorProvider(WidgetPalette.GOLD))
           Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
             Text(r.name, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
               style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
-            RoundButton(android.R.drawable.ic_media_play, "Play ${r.name}", play)
+            Spacer(GlanceModifier.width(4.dp))
+            PrimaryButton(isPlaying, "Play ${r.name}", action = null)
           }
         }
       }
       return
     }
-    Row(contentRoot().padding(12.dp)) {
-      Box(GlanceModifier.width(86.dp).fillMaxHeight().clickable(play), contentAlignment = Alignment.BottomStart) {
-        ReciterPhoto(context, r.artworkFile, r.name, 86, 86, 14)
-        Box(GlanceModifier.padding(6.dp)) { RoundButton(android.R.drawable.ic_media_play, "Play ${r.name}", play) }
-      }
+    Row(root.padding(12.dp)) {
+      ReciterPhoto(context, r.artworkFile, r.name, 86, 86, 14)
       Spacer(GlanceModifier.width(12.dp))
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
-        Row(GlanceModifier.fillMaxWidth()) {
+        // Beside the name, clear of the photo's initials.
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
           Column(GlanceModifier.defaultWeight()) {
-            Text("Reciter of the Day", style = TextStyle(color = WidgetColors.TERTIARY, fontSize = 10.sp, fontWeight = FontWeight.Bold))
+            Eyebrow("Reciter of the Day", ColorProvider(WidgetPalette.GOLD))
             Text(r.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
           }
-          Logo(14)
+          PrimaryButton(isPlaying, "Play ${r.name}", play, sizeDp = 34)
         }
         r.surahIds.forEach { id ->
           val surah = StaticData.surah(context, id) ?: return@forEach
-          val action = commandAction(context, playTrackCommand(id, r.id, null, null), "spotlight/${r.id}/$id")
-          Row(GlanceModifier.fillMaxWidth().padding(top = 6.dp).clickable(action), verticalAlignment = Alignment.CenterVertically) {
-            SurahCard(context, surah, 24)
-            Spacer(GlanceModifier.width(8.dp))
-            Text(surah.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 13.sp, fontWeight = FontWeight.Medium))
-          }
+          val rowPlaying = PlaybackState.matches(playing, id, r.id)
+          val action = playOrPause(context, rowPlaying, commandAction(context, playTrackCommand(id, r.id, null, null), "spotlight/${r.id}/$id"))
+          ReciterSurahRow(context, surah, rowPlaying, action)
         }
       }
     }
   }
+  // @ai-end
 }

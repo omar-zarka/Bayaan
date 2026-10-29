@@ -38,6 +38,11 @@ import expo.modules.bayaanwidgets.GlanceState
 import expo.modules.bayaanwidgets.LibraryShelfState
 import expo.modules.bayaanwidgets.WidgetInputs
 import expo.modules.bayaanwidgets.WidgetShelfItem
+import expo.modules.bayaanwidgets.PlaybackState
+import expo.modules.bayaanwidgets.SnapshotModels
+import expo.modules.bayaanwidgets.WidgetTrack
+import expo.modules.bayaanwidgets.ui.PrimaryButton
+import expo.modules.bayaanwidgets.ui.playingTrack
 import expo.modules.bayaanwidgets.ui.ContentMessage
 import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.ShelfHeader
@@ -63,7 +68,8 @@ class LibraryShelfWidget : GlanceAppWidget() {
       val inputs = GlanceState.current(currentState(), stored)
       val state = remember(inputs) { resolve(inputs) }
       // A push after new artwork lands must redraw cards whose inputs did not change.
-      key(inputs.pushedAt) { Content(context, appWidgetId, state) }
+      val playing = playingTrack(context, inputs.snapshotJson?.let { SnapshotModels.decode(it) }) // @ai
+      key(inputs.pushedAt) { Content(context, appWidgetId, state, playing) } // @ai
     }
   }
 
@@ -85,7 +91,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
   )
 
   @Composable
-  private fun Content(context: Context, appWidgetId: Int, state: LibraryShelfState) {
+  private fun Content(context: Context, appWidgetId: Int, state: LibraryShelfState, playing: WidgetTrack?) { // @ai
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
     when (state) {
       is LibraryShelfState.Downloads -> {
@@ -94,7 +100,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
           ContentMessage(root, "No downloads yet", "Downloaded surahs show here")
           return
         }
-        Shelf(context, root, large, { ShelfHeader("Downloads", ContentLogic.surahCount(state.count)) }, state.items) { item ->
+        Shelf(context, root, large, { ShelfHeader("Downloads", ContentLogic.surahCount(state.count)) }, state.items, playing) { item -> // @ai
           commandAction(context, playTrackCommand(item.surahId, item.reciterId, item.rewayatId, null),
             "library/downloads/${item.surahId}/${item.reciterId}/${item.rewayatId ?: "any"}")
         }
@@ -104,7 +110,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
         val root = contentRoot().clickable(appLink(context, "collection/playlists"))
         val playAll = commandAction(context, playPlaylistCommand(p.id, null), "library/playlist/${p.id}")
         val header: @Composable () -> Unit = {
-          ShelfHeader(p.name, ContentLogic.surahCount(p.itemCount)) { RoundButton(android.R.drawable.ic_media_play, "Play ${p.name}", playAll) }
+          ShelfHeader(p.name, ContentLogic.surahCount(p.itemCount)) { PrimaryButton(false, "Play ${p.name}", playAll, sizeDp = 34) } // @ai
         }
         if (p.items.isEmpty()) {
           Column(root.padding(14.dp)) {
@@ -115,7 +121,7 @@ class LibraryShelfWidget : GlanceAppWidget() {
           }
           return
         }
-        Shelf(context, root, large, header, p.items) { item ->
+        Shelf(context, root, large, header, p.items, playing) { item -> // @ai
           commandAction(context, playPlaylistCommand(p.id, item.itemId), "library/playlist/${p.id}/${item.itemId}")
         }
       }
@@ -128,16 +134,17 @@ class LibraryShelfWidget : GlanceAppWidget() {
   @Composable
   private fun Shelf(
     context: Context, root: GlanceModifier, large: Boolean, header: @Composable () -> Unit,
-    items: List<WidgetShelfItem>, action: (WidgetShelfItem) -> Action,
+    items: List<WidgetShelfItem>, playing: WidgetTrack?, action: (WidgetShelfItem) -> Action, // @ai
   ) {
     Column(root.padding(14.dp)) {
       header()
       Spacer(GlanceModifier.height(10.dp))
-      items.take(if (large) 8 else 4).chunked(4).forEach { row ->
+      items.take(if (large) 12 else 4).chunked(4).forEach { row -> // @ai
         Row(GlanceModifier.fillMaxWidth().padding(bottom = 8.dp)) {
           row.forEachIndexed { i, item ->
             if (i > 0) Spacer(GlanceModifier.defaultWeight())
-            SurahTile(context, item.surahId, if (large) 48 else 44, action(item), if (large) item.surahName else null)
+            SurahTile(context, item.surahId, if (large) 52 else 48, action(item), if (large) item.surahName else null, // @ai
+              playing = PlaybackState.matches(playing, item.surahId, item.reciterId)) // @ai
           }
         }
       }

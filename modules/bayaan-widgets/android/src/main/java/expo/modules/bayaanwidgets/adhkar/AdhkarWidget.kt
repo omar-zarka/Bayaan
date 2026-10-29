@@ -38,6 +38,9 @@ import expo.modules.bayaanwidgets.WidgetStorage
 import expo.modules.bayaanwidgets.ui.ArabicText
 import expo.modules.bayaanwidgets.ui.ContentMessage
 import expo.modules.bayaanwidgets.ui.Logo
+import expo.modules.bayaanwidgets.WidgetText
+import androidx.glance.background
+import androidx.glance.layout.width
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.contentRoot
@@ -74,14 +77,20 @@ fun AdhkarContent(context: Context, nowMs: Long) {
   if (size.width < WidgetSizes.MEDIUM.width) {
     // The small layout keeps the Responsive bucket it was designed for.
     val bucket = if (size.height >= WidgetSizes.SMALL_TALL.height) WidgetSizes.SMALL_TALL else WidgetSizes.SMALL
-    Column(root.padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    // @ai-start
+    val style = AdhkarStyle.forPeriod(data.period)
+    Column(root.background(style.color(style.background)).padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(data.title, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
-          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 13.sp, fontWeight = FontWeight.Bold))
-        Logo(12)
+        PeriodIcon(style, 15)
+        Spacer(GlanceModifier.width(6.dp))
+        // Drops "Adhkar" before cutting letters; the icon already says which.
+        Text(WidgetText.fitTitle(data.title, (size.width.value.toInt() - 50) / 8), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+          style = TextStyle(color = style.color(style.primary), fontSize = 13.sp, fontWeight = FontWeight.Bold))
       }
       Spacer(GlanceModifier.defaultWeight())
-      ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, bucket.width.value - 24, bucket.height.value - 24 - 34, 22f, 11f, 3, center = true)
+      ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, bucket.width.value - 28, bucket.height.value - 28 - 34, 22f, 11f, 3, center = true,
+        color = style.primary)
+    // @ai-end
       Spacer(GlanceModifier.defaultWeight())
     }
     return

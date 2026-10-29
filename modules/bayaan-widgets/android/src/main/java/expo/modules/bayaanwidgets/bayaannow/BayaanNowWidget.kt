@@ -42,6 +42,14 @@ import expo.modules.bayaanwidgets.adhkar.AdhkarContent
 import expo.modules.bayaanwidgets.bedtime.BedtimeContent
 import expo.modules.bayaanwidgets.ui.ContentMessage
 import expo.modules.bayaanwidgets.ui.Logo
+import expo.modules.bayaanwidgets.WidgetText
+import expo.modules.bayaanwidgets.ui.Eyebrow
+import expo.modules.bayaanwidgets.ui.PrimaryButton
+import expo.modules.bayaanwidgets.ui.SurahTint
+import androidx.glance.appwidget.cornerRadius
+import androidx.glance.background
+import androidx.glance.layout.fillMaxSize
+import androidx.glance.unit.ColorProvider
 import expo.modules.bayaanwidgets.ui.ReciterPhoto
 import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.SurahCard
@@ -122,11 +130,14 @@ fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
       "now/play/${track.surahId}/${track.reciterId}/${track.rewayatId ?: "any"}",
     )
   }
-  val icon = if (playing) android.R.drawable.ic_media_pause else android.R.drawable.ic_media_play
-  val label = if (playing) "Pause" else "Play"
+  // @ai-start
+  val label = "Play"
   val surah = if (track.isUserUpload) null else StaticData.surah(context, track.surahId)
   val small = LocalSize.current.width < WidgetSizes.MEDIUM.width
-  val art = if (small) 64 else 96
+  val art = if (small) 56 else 92
+  // Tinted by the surah, like Continue Listening.
+  val tinted = GlanceModifier.fillMaxSize().background(ColorProvider(SurahTint.deep(surah?.id ?: 0))).cornerRadius(20.dp)
+    .clickable(appLink(context, "player"))
 
   @Composable
   fun Art() {
@@ -134,42 +145,30 @@ fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
   }
 
   if (small) {
-    Column(root.padding(12.dp)) {
-      Row(GlanceModifier.fillMaxWidth()) {
-        Art()
-        Spacer(GlanceModifier.defaultWeight())
-        Logo(12)
-      }
+    Column(tinted.padding(12.dp)) {
+      Art()
       Spacer(GlanceModifier.defaultWeight())
-      Text(track.surahName, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+      Text(track.surahName, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-          track.reciterName, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+          WidgetText.fitName(track.reciterName, 9), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
           style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp),
         )
-        RoundButton(icon, label, action)
+        PrimaryButton(playing, label, action, sizeDp = 36)
       }
     }
     return
   }
-  Row(root.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+  Row(tinted.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
     Art()
-    Spacer(GlanceModifier.width(12.dp))
+    Spacer(GlanceModifier.width(14.dp))
     Column(GlanceModifier.defaultWeight()) {
-      Row(GlanceModifier.fillMaxWidth()) {
-        Text(
-          if (playing) "Now playing" else "Continue listening", modifier = GlanceModifier.defaultWeight(),
-          style = TextStyle(color = WidgetColors.TERTIARY, fontSize = 11.sp, fontWeight = FontWeight.Bold),
-        )
-        Logo(14)
-      }
-      Text(track.surahName, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
-      Text(track.reciterName, maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 13.sp))
-      Spacer(GlanceModifier.height(6.dp))
-      Row(GlanceModifier.fillMaxWidth()) {
-        Spacer(GlanceModifier.defaultWeight())
-        RoundButton(icon, label, action)
-      }
+      Eyebrow(if (playing) "Now playing" else "Continue listening")
+      Text(track.surahName, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 17.sp, fontWeight = FontWeight.Bold))
+      Text(track.reciterName, maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
+      Spacer(GlanceModifier.height(8.dp))
+      PrimaryButton(playing, label, action, sizeDp = 38)
     }
   }
+  // @ai-end
 }
