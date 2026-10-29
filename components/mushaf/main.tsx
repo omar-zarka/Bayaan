@@ -6,7 +6,7 @@ import {
   Text,
   Pressable,
   ScrollView,
-  ViewToken,
+  type ListViewToken,
   StatusBar,
   BackHandler,
   Platform,
@@ -950,7 +950,7 @@ export default function MushafViewer({
   ]);
 
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken[]}) => {
+    ({viewableItems}: {viewableItems: ListViewToken[]}) => {
       if (viewableItems.length === 0) return;
       const first = viewableItems[0].item;
       if (first == null) return;

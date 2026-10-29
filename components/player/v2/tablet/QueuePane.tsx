@@ -562,7 +562,7 @@ export function QueuePane({bottomInset}: {bottomInset: number}) {
         }
       }}
       ListHeaderComponent={header}
-      ListFooterComponent={footer}
+      ListFooterComponent={footer ?? undefined}
       onContentSizeChange={onContentSizeChange}
       onContainerLayout={({layout}) => {
         viewportHeight.current = layout.height;
