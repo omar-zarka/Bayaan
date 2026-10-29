@@ -1,20 +1,15 @@
 // @ai-generated
 import React, {useCallback, useEffect, useState} from 'react';
-import {StyleSheet, View, LayoutChangeEvent} from 'react-native';
-import Color from 'color';
 import {SheetManager} from 'react-native-actions-sheet';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
-import {useTheme} from '@/hooks/useTheme';
 import {SURAHS} from '@/data/surahData';
 import {useReciterNavigation} from '@/hooks/useReciterNavigation';
 import {useTimestampStore} from '@/store/timestampStore';
 import {useRewayatFollowAlong} from '@/hooks/useFollowAlong';
 import {useResponsive} from '@/hooks/useResponsive';
-import {TabletPlayerReciterColumn} from '@/components/tablet/TabletPlayerReciterColumn';
-import {TabletPlayerControlsColumn} from '@/components/tablet/TabletPlayerControlsColumn';
 import PlayerContent from './PlayerContent';
-import TabletPlayer from './TabletPlayer';
+import {TabletPlayerLayout} from './tablet/TabletPlayerLayout';
 
 /**
  * The full player's contents and the handlers its controls open (speed, sleep
@@ -22,17 +17,8 @@ import TabletPlayer from './TabletPlayer';
  * Rendered inside the morphing PlayerSurface.
  */
 export const PlayerBody = () => {
-  const {theme} = useTheme();
-  const {isTablet, orientation} = useResponsive();
+  const {isTablet} = useResponsive();
   const [remainingTime, setRemainingTime] = useState<number | null>(null);
-  const [leftPaneWidth, setLeftPaneWidth] = useState<number | undefined>(
-    undefined,
-  );
-  const [tabletShowQueue, setTabletShowQueue] = useState(false);
-  const handleTabletQueueToggle = useCallback(
-    () => setTabletShowQueue(v => !v),
-    [],
-  );
   const {navigateToReciterProfile} = useReciterNavigation();
 
   const {setSheetMode, setRate, updateSettings} = usePlayerActions();
@@ -195,101 +181,21 @@ export const PlayerBody = () => {
     }
   }, [currentTrack, handleGoToReciter]);
 
-  const handleLeftPaneLayout = useCallback((e: LayoutChangeEvent) => {
-    setLeftPaneWidth(e.nativeEvent.layout.width);
-  }, []);
+  const handlers = {
+    onSpeedPress: handleShowSpeedSheet,
+    onSleepTimerPress: handleShowSleepTimerSheet,
+    onMushafLayoutPress: handleShowMushafLayoutSheet,
+    onAmbientPress: handleShowAmbientSheet,
+    onOptionsPress: handleShowOptionsSheet,
+    onFollowAlongPress: handleFollowAlongPress,
+  };
 
-  // Landscape keeps the reciter-list split (only when there's a reciter).
-  // Portrait always splits on iPad: mushaf on the left, player controls on
-  // the right (replacing the reciter list in portrait).
+  // iPad picks its layout from the window width (TabletPlayerLayout).
   // Not keyed on sheetMode: the layout would switch while the surface is
   // still shrinking on close. Closed, the surface is off-screen anyway.
-  const isTabletFull = isTablet;
-  const landscapeSplit =
-    isTabletFull && orientation === 'landscape' && !!currentTrack?.reciterId;
-  const portraitSplit = isTabletFull && orientation === 'portrait';
-  const showTabletSplit = landscapeSplit || portraitSplit;
-
-  const playerContentEl = isTablet ? (
-    <TabletPlayer
-      measuredParentWidth={showTabletSplit ? leftPaneWidth : undefined}
-      bodyOnly={portraitSplit}
-      showQueue={portraitSplit ? tabletShowQueue : undefined}
-      onQueueToggle={portraitSplit ? handleTabletQueueToggle : undefined}
-      onSpeedPress={handleShowSpeedSheet}
-      onSleepTimerPress={handleShowSleepTimerSheet}
-      onMushafLayoutPress={handleShowMushafLayoutSheet}
-      onAmbientPress={handleShowAmbientSheet}
-      onOptionsPress={handleShowOptionsSheet}
-      onFollowAlongPress={handleFollowAlongPress}
-    />
+  return isTablet ? (
+    <TabletPlayerLayout {...handlers} />
   ) : (
-    <PlayerContent
-      onSpeedPress={handleShowSpeedSheet}
-      onSleepTimerPress={handleShowSleepTimerSheet}
-      onMushafLayoutPress={handleShowMushafLayoutSheet}
-      onAmbientPress={handleShowAmbientSheet}
-      onOptionsPress={handleShowOptionsSheet}
-      onFollowAlongPress={handleFollowAlongPress}
-    />
-  );
-
-  return showTabletSplit ? (
-    <View style={styles.tabletSplitRoot}>
-      <View
-        style={styles.tabletSplitPlayerPane}
-        onLayout={handleLeftPaneLayout}>
-        {playerContentEl}
-      </View>
-      <View
-        style={[
-          styles.tabletSplitDivider,
-          {
-            backgroundColor: Color(theme.colors.text).alpha(0.08).toString(),
-          },
-        ]}
-      />
-      <View style={styles.tabletSplitReciterPane}>
-        {portraitSplit ? (
-          <TabletPlayerControlsColumn
-            showQueue={tabletShowQueue}
-            onQueueToggle={handleTabletQueueToggle}
-            onSpeedPress={handleShowSpeedSheet}
-            onSleepTimerPress={handleShowSleepTimerSheet}
-            onMushafLayoutPress={handleShowMushafLayoutSheet}
-            onAmbientPress={handleShowAmbientSheet}
-            onOptionsPress={handleShowOptionsSheet}
-            onFollowAlongPress={handleFollowAlongPress}
-          />
-        ) : (
-          <TabletPlayerReciterColumn
-            reciterId={currentTrack!.reciterId!}
-            initialRewayatId={currentTrack!.rewayatId}
-          />
-        )}
-      </View>
-    </View>
-  ) : (
-    playerContentEl
+    <PlayerContent {...handlers} />
   );
 };
-
-const styles = StyleSheet.create({
-  tabletSplitRoot: {
-    flex: 1,
-    flexDirection: 'row',
-    minHeight: '100%',
-  },
-  tabletSplitPlayerPane: {
-    flex: 11,
-    minWidth: 0,
-  },
-  tabletSplitDivider: {
-    width: StyleSheet.hairlineWidth,
-  },
-  tabletSplitReciterPane: {
-    flex: 9,
-    minWidth: 0,
-    maxWidth: 560,
-  },
-});
