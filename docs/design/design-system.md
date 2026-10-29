@@ -137,16 +137,13 @@ Reference implementations: `components/sheets/MushafSettingsContent.tsx`, `compo
 
 ## 6. Size scaling
 
-There are **two** scaling helpers in the codebase, and which one a file imports decides how it looks on iPad.
+Every file scales through `@/utils/scale` (since #425). It exports the same API as `react-native-size-matters` (`scale`, `verticalScale`, `moderateScale`, `moderateVerticalScale`, `s`, `vs`, `ms`, `mvs`, and `ScaledSheet` with the `'16@s'` string units). On phones the values are identical to the library's. On tablets it scales as a 430×932 large phone in any orientation, so 15pt body text draws at about 16.7pt instead of about 30pt.
 
-| Helper | Behavior on iPad | Files using it |
-| --- | --- | --- |
-| `react-native-size-matters` (`moderateScale`, `ScaledSheet`, `'16@s'`) | Scales from a 350pt guideline using the **shortest screen side**. On an iPad that inflates sizes about **1.7× (11" portrait) to 2×** (13") at the default 0.5 factor | ~190 files |
-| `@/utils/scale` (`moderateScale`, `verticalScale`, `scale`) | Same API, but caps the width at `PHONE_SCALE_CAP` (430pt), so tablets render at large-phone size (about 1.11× base) | ~15 files |
+An ESLint `no-restricted-imports` rule blocks `react-native-size-matters`. The package stays installed only as the reference in `utils/__tests__/scale.test.ts`.
 
-Constants for both live in `utils/responsive.ts`: `TABLET_BREAKPOINT = 700` and `PHONE_SCALE_CAP = 430`.
+Constants live in `utils/responsive.ts`: `TABLET_BREAKPOINT = 600` (shortest window side; was 700 before #448) and `PHONE_SCALE_CAP = 430`. Sizes are read once at launch, so they don't change when an iPhone Duo folds or unfolds.
 
-New code MUST use `@/utils/scale`. See [ipad-standards.md §3](ipad-standards.md#3-sizing-and-scaling).
+See [ipad-standards.md §3](ipad-standards.md#3-sizing-and-scaling).
 
 ---
 
@@ -156,13 +153,17 @@ New code MUST use `@/utils/scale`. See [ipad-standards.md §3](ipad-standards.md
 | --- | --- | --- |
 | `useResponsive()` | `hooks/useResponsive.ts` | Live `width`, `height`, `shortestSide`, `orientation`, `isTablet`, `isPhone`, `scaleWidth`. Re-renders on rotation |
 | Static helpers | `utils/responsive.ts` | `getIsTablet()`, `getShortestSide()`, `getScaleWidth()` for non-component code |
-| `MaxWidthContainer` | `components/layout/MaxWidthContainer.tsx` | Centers children in a capped column (default 720pt) on tablet; no-op on phone. Wraps every tab stack in `app/(tabs)/*/_layout.tsx` |
+| `MaxWidthContainer`, `capScreensExcept` | `components/layout/MaxWidthContainer.tsx` | Centers children in a capped column (default 720pt) on tablet; no-op on phone. Each tab stack passes `capScreensExcept([...])` as its `screenLayout`, so grid screens take the whole pane and the rest stay capped (Settings uses 640pt) |
+| Grid and page math | `utils/gridLayout.ts` | `computeGridLayout()` and `computeShelfLayout()` give columns and card widths from the measured pane; `pageSpacing(windowWidth)` gives the margin and gutter (24/16, 32/20 from 900pt, 40/24 from 1280pt) |
 | Tablet shell | `app/(tabs)/_layout.tsx` → `TabletTabs` | Leading sidebar replaces the tab bar on tablet |
-| `TabletSidebar` | `components/tablet/TabletSidebar.tsx` | 88pt icon rail in portrait, 240pt labeled sidebar in landscape; docks the mini player in its footer; flips side for RTL |
+| `TabletSidebar` | `components/tablet/TabletSidebar.tsx`, `sidebarNav.ts` | 88pt icon rail below 900pt, labeled sidebar from 900pt (240pt, 280pt from 1280pt) with Collection's sections; folds to the rail and remembers it; docks the mini player; flips side for RTL; ⌘1–5 and ⌘F |
 | `TabletDockedPlayer` | `components/tablet/TabletDockedPlayer.tsx` | Mini player inside the sidebar |
-| `TabletPlayer` + columns | `components/player/v2/TabletPlayer.tsx`, `components/tablet/TabletPlayer*Column.tsx` | Full player: landscape splits player and reciter list, portrait splits mushaf and controls |
+| Tablet full player | `components/player/v2/tablet/` (`TabletPlayerLayout`, `PlayerParts`, `playerMetrics`) | Below 900pt: one pane with a floating transport card. From 900pt: Now Playing column plus a Text / Queue / Reciters pane |
 | Reading column | `components/player/v2/PlayerContent/QuranView/index.tsx` | Caps the verse column at 680pt on tablet |
-| Grids | `components/collection/CollectionGrid.tsx`, `components/browse/BrowseGrid.tsx` | Column count derived from window width |
+| Sheets | `components/sheets/AdaptiveActionSheet.tsx` | Phones: library bottom sheet. Tablets: centered card (560×760 max) or, with `tabletPresentation="menu"`, a 340pt menu anchored to the last touch (`utils/lastTouch.ts`). `useSheetWidth()` for content |
+| Dialog card | `components/layout/TabletDialog.tsx` | Centered card for modal routes on tablet (Translations, reciter filter, Mushaf search, surah picker); stays above the keyboard |
+| Orientation | `hooks/usePhoneOrientation.ts` | Portrait lock and the reader's free rotation, on phones only |
+| Pointer and keyboard | `hooks/useHover.ts`, `services/keyboard/keyCommands.ts`, `modules/bayaan-keyboard` | Hover through W3C pointer events; layered key commands shown in the iPadOS menu bar (iPad only, needs a native build) |
 
 ---
 
@@ -178,7 +179,7 @@ Prefer these over building new ones:
 | Segmented tabs | `components/TabSelector.tsx` |
 | Toggle | `components/Toggle.tsx` |
 | List rows | `SurahItem`, `ReciterItem`, `TrackItem`, `PlaylistItem` in `components/` |
-| Sheets | `react-native-actions-sheet` (`SheetManager`) with content in `components/sheets/`; `components/BottomSheetModal.tsx` |
+| Sheets | `react-native-actions-sheet` (`SheetManager`) with content in `components/sheets/`, always imported through `components/sheets/AdaptiveActionSheet`; `components/BottomSheetModal.tsx` |
 | Blur surface | `components/FrostedView.tsx` (iOS blur, Android solid card); `hooks/useGlassProps.ts` for liquid glass |
 | Images | `expo-image`, and `components/ReciterImage.tsx` for reciter art |
 | Lists | `@shopify/flash-list` (`FlashList`) |
@@ -188,14 +189,14 @@ Prefer these over building new ones:
 
 ## 9. Known debt
 
-Each of these has a matching rule in [ipad-standards.md](ipad-standards.md):
+Each of these has a matching rule in [ipad-standards.md](ipad-standards.md). This list was written on 2026-10-26; the notes in brackets say where things stand after the iPad build (2026-10-29), and [ipad-standards.md §13](ipad-standards.md#13-migration-plan) has the full status.
 
-1. **Uncapped scaling.** About 190 files import `react-native-size-matters`, so most of the app renders 1.7–2× larger on iPad than intended. This is the main cause of the "everything looks too big" feel.
-2. **Device-based layout.** `isTablet` is true for every iPad regardless of window size, so once multitasking is enabled a 320pt Slide Over window would get the tablet layout.
-3. **Portrait lock on iPad.** `app/_layout.tsx` calls `ScreenOrientation.lockAsync(PORTRAIT_UP)` on every device, and only `app/mushaf.tsx` unlocks it. The landscape branches in `TabletSidebar`, `PlayerBody`, and `TabletPlayer` are therefore unreachable outside the Mushaf screen, even though `Info.plist` declares all four iPad orientations.
-4. **No multitasking.** `app.config.js` sets `UIRequiresFullScreen: true`, which opts out of Split View, Slide Over, and Stage Manager. Apple deprecated this key in iPadOS 26.
+1. **Uncapped scaling.** About 190 files import `react-native-size-matters`, so most of the app renders 1.7–2× larger on iPad than intended. This is the main cause of the "everything looks too big" feel. *(Fixed in #425.)*
+2. **Device-based layout.** `isTablet` is true for every iPad regardless of window size, so once multitasking is enabled a 320pt Slide Over window would get the tablet layout. *(Still open: tablet layouts use 900pt lines inside `isTablet`, but there is no `widthClass` yet.)*
+3. **Portrait lock on iPad.** `app/_layout.tsx` calls `ScreenOrientation.lockAsync(PORTRAIT_UP)` on every device, and only `app/mushaf.tsx` unlocks it. The landscape branches in `TabletSidebar`, `PlayerBody`, and `TabletPlayer` are therefore unreachable outside the Mushaf screen, even though `Info.plist` declares all four iPad orientations. *(Fixed in #446: locks are phone-only through `usePhoneOrientation`.)*
+4. **No multitasking.** `app.config.js` sets `UIRequiresFullScreen: true`, which opts out of Split View, Slide Over, and Stage Manager. Apple deprecated this key in iPadOS 26. *(Fixed in #446: `false`, matching `Info.plist`.)*
 5. **Two `createTheme` copies.** `styles/theme.ts` and `utils/themeUtils.ts` both define it, and both read `Dimensions` once at module load. `utils/themeUtils.ts` is the live one.
-6. **No type ramp.** `theme.typography` is used in two places; sizes are hardcoded per component.
-7. **One-size column cap.** `MaxWidthContainer` caps every tab at 720pt, including grids and browse shelves that should use the full width in landscape.
-8. **Thin accessibility coverage.** About 60 `accessibilityLabel`s across the app, no `maxFontSizeMultiplier` policy, and no reduce-motion handling outside a handful of files.
-9. **No pointer or keyboard support.** No hover states and no hardware keyboard shortcuts.
+6. **No type ramp.** `theme.typography` is used in two places; sizes are hardcoded per component. *(Still open.)*
+7. **One-size column cap.** `MaxWidthContainer` caps every tab at 720pt, including grids and browse shelves that should use the full width in landscape. *(Mostly fixed in #428 and the screen PRs; see §7.)*
+8. **Thin accessibility coverage.** About 60 `accessibilityLabel`s across the app, no `maxFontSizeMultiplier` policy, and no reduce-motion handling outside a handful of files. *(Partly fixed: player, reader and surah row labels in #408, #412, #413, #415.)*
+9. **No pointer or keyboard support.** No hover states and no hardware keyboard shortcuts. *(Partly fixed in #447: shortcuts, and hover on the sidebar.)*

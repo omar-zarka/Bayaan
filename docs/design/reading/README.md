@@ -1,6 +1,6 @@
 # iPad Reading Experience
 
-> **Status:** Audit + proposal (no code changes yet)
+> **Status:** Audit + proposal, written 2026-10-26 against `develop`. Since then the iPad build has fixed the sizing (#425), the orientation and `UIRequiresFullScreen` drift (#446), sheets and the Translations and Mushaf search dialogs (#427–#433), keeping the page on resize and rotation (#444, #466) and the reader's keyboard shortcuts (#447). The audit is kept as the record of why; current status is in [ipad-standards.md §13](../ipad-standards.md#13-migration-plan) and open issues in [§14](../ipad-standards.md#14-known-open-issues).
 > **Scope:** Every surface involved in *reading* the Quran (and the adhkar reader, which shares its typography) on iPad and large tablets: portrait, landscape, Split View, Slide Over and Stage Manager.
 > **Builds on:** [ipad-standards.md](../ipad-standards.md) (width classes, scaling, type ramp, sheets, keyboard) and [screen-inventory.md](../screen-inventory.md) (every route and sheet, tagged by area). This folder adds the reading-specific audit, designs and rules. The listening counterpart lives in `docs/design/listening/`.
 

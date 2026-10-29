@@ -10,6 +10,15 @@ Written 2026-10-26 against `develop`. It is a code audit: sizes are worked
 out from the scaling formulas, not measured on a device, and a few findings
 are marked *(verify)* where only a simulator can confirm them.
 
+> **Status on 2026-10-29.** Most of the proposals here have shipped in the
+> iPad build PRs (#425–#448): real-point sizing, phone-only orientation locks,
+> full-pane grids, cards and menus instead of sheets, the Settings split, the
+> sidebar's Collection sections, keyboard shortcuts and the 600pt tablet line.
+> The files below describe the 2026-10-26 baseline and are kept as the record
+> of why. Current status is in
+> [ipad-standards.md §13](../ipad-standards.md#13-migration-plan) and open
+> issues in [§14](../ipad-standards.md#14-known-open-issues).
+
 | File | Covers |
 |---|---|
 | [navigation-and-shell.md](navigation-and-shell.md) | Tab shell and sidebar, orientation, multitasking, content width, sizing infrastructure, pointer, keyboard, context menus |
