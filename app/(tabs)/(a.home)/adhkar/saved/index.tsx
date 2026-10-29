@@ -12,7 +12,7 @@ import {
   FlatList,
   Pressable,
   StyleSheet,
-  ViewToken,
+  type ListViewToken,
 } from 'react-native';
 import {useRouter, useNavigation, useFocusEffect, Link} from 'expo-router';
 import {ScaledSheet, moderateScale} from '@/utils/scale';
@@ -182,7 +182,7 @@ const SavedAdhkarScreen: React.FC = () => {
   }, [adhkarList]);
 
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken<Dhikr>[]}) => {
+    ({viewableItems}: {viewableItems: (ListViewToken & {item: Dhikr})[]}) => {
       setVisibleIndices(
         visibleRowIndices(viewableItems, v => v.index ?? undefined),
       );

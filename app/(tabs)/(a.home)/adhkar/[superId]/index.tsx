@@ -11,7 +11,7 @@ import {
   SectionList,
   FlatList,
   Text,
-  ViewToken,
+  type ListViewToken,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -621,7 +621,11 @@ const SuperCategoryListScreen: React.FC = () => {
 
   // Track current visible section for the subtitle
   const onViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken<DhikrItem | undefined>[]}) => {
+    ({
+      viewableItems,
+    }: {
+      viewableItems: (ListViewToken & {item: DhikrItem | undefined})[];
+    }) => {
       setVisibleIndices(
         visibleRowIndices(viewableItems, v => v.item?.globalIndex),
       );
@@ -636,7 +640,11 @@ const SuperCategoryListScreen: React.FC = () => {
   );
 
   const onFlatViewableItemsChanged = useCallback(
-    ({viewableItems}: {viewableItems: ViewToken<DhikrItem>[]}) => {
+    ({
+      viewableItems,
+    }: {
+      viewableItems: (ListViewToken & {item: DhikrItem})[];
+    }) => {
       setVisibleIndices(
         visibleRowIndices(viewableItems, v => v.item.globalIndex),
       );

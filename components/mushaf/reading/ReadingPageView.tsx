@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   type LayoutChangeEvent,
+  type ScrollViewInstance,
 } from 'react-native';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {useTheme} from '@/hooks/useTheme';
@@ -90,7 +91,7 @@ const ReadingPageView: React.FC<ReadingPageViewProps> = ({
 }) => {
   const {theme} = useTheme();
   const insets = useSafeAreaInsets();
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<ScrollViewInstance>(null);
   const verseOffsetsRef = useRef<Map<string, number>>(new Map());
 
   // Settings subscriptions

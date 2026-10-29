@@ -11,8 +11,7 @@ import {
   LogoIcon,
 } from '@/components/Icons';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
-import {CommonActions} from 'expo-router/build/react-navigation/routers';
-import {BottomTabBarProps} from 'expo-router/build/react-navigation/bottom-tabs';
+import type {BottomTabBarProps} from 'expo-router/js-tabs';
 import {Theme} from '@/utils/themeUtils';
 import Color from 'color';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -123,7 +122,8 @@ const SidebarItem = React.memo(function SidebarItem({
 export const TabletSidebar: React.FC<BottomTabBarProps> = ({
   state,
   descriptors,
-  navigation,
+  emitter,
+  navigateToTab,
 }) => {
   const {theme, isDarkMode} = useTheme();
   const insets = useSafeAreaInsets();
@@ -141,19 +141,17 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
   const handlePress = useCallback(
     (route: (typeof state.routes)[number], index: number) => {
       const isFocused = state.index === index;
-      const event = navigation.emit({
+      const event = emitter.emit({
         type: 'tabPress',
         target: route.key,
         canPreventDefault: true,
       });
 
       if (!isFocused && !event.defaultPrevented) {
-        navigation.dispatch(
-          CommonActions.navigate({name: route.name, merge: true}),
-        );
+        navigateToTab(route.key);
       }
     },
-    [state.index, navigation],
+    [state.index, emitter, navigateToTab],
   );
 
   const containerStyle = useMemo(

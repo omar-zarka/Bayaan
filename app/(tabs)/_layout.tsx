@@ -2,14 +2,14 @@
 
 import React from 'react';
 import {View} from 'react-native';
-import {Tabs} from 'expo-router';
+import {Tabs, type BottomTabBarProps} from 'expo-router/js-tabs';
 import {StatusBar} from 'expo-status-bar';
 import {useTheme} from '@/hooks/useTheme';
 import {NativeTabs} from 'expo-router/unstable-native-tabs';
 import {MiniPlayer} from '@/components/player/v2/MiniPlayer';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import BottomTabBar from '@/components/BottomTabBar';
-import {BottomTabBarProps} from 'expo-router/build/react-navigation/bottom-tabs';
+
 import {FloatingPlayer} from '@/components/player/v2/FloatingPlayer';
 import {TabletSidebar} from '@/components/tablet/TabletSidebar';
 import {useResponsive} from '@/hooks/useResponsive';
@@ -175,7 +175,6 @@ function AndroidTabs() {
   return (
     <View style={{flex: 1}}>
       <Tabs
-        initialRouteName="(a.home)"
         screenOptions={{
           headerShown: false,
           lazy: true,
@@ -216,7 +215,6 @@ function TabletTabs() {
   return (
     <View style={[{flex: 1}, forceLTR]}>
       <Tabs
-        initialRouteName="(a.home)"
         screenOptions={{
           headerShown: false,
           lazy: true,
@@ -246,6 +244,12 @@ function TabletTabs() {
   );
 }
 // @ai-end
+
+// Expo Router 58 takes a navigator's initial route from the route node, not
+// from an `initialRouteName` prop on the layout.
+export const unstable_settings = {
+  initialRouteName: '(a.home)',
+};
 
 export default function TabsLayout() {
   const {isDarkMode} = useTheme();
