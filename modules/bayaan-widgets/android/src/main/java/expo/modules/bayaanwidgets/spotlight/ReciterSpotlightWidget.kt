@@ -46,6 +46,7 @@ import expo.modules.bayaanwidgets.PlaybackState
 import expo.modules.bayaanwidgets.SnapshotModels
 import expo.modules.bayaanwidgets.WidgetTrack
 import expo.modules.bayaanwidgets.ui.Eyebrow
+import expo.modules.bayaanwidgets.WidgetText
 import expo.modules.bayaanwidgets.ui.PrimaryButton
 import expo.modules.bayaanwidgets.ui.ReciterSurahRow
 import expo.modules.bayaanwidgets.ui.WidgetPalette
@@ -127,7 +128,9 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
           Column(GlanceModifier.defaultWeight()) {
             Text(SPOTLIGHT_LABEL, maxLines = 1,
               style = TextStyle(color = ColorProvider(WidgetPalette.GOLD), fontSize = 10.sp, fontWeight = FontWeight.Bold))
-            Text(r.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
+            // Beside the photo and button: drop leading words rather than cut mid-word. // @ai
+            Text(WidgetText.fitName(r.name, maxOf(6, (LocalSize.current.width.value.toInt() - 176) / 8)), maxLines = 1, // @ai
+              style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
           }
           Spacer(GlanceModifier.width(8.dp)) // @ai
           PrimaryButton(isPlaying, "Play ${r.name}", play, sizeDp = 34)

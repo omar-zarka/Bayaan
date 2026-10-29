@@ -98,26 +98,27 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
 // @ai-start
 /**
  * Draws the top `fraction` of the art across the full width at its own aspect,
- * filling any space below with `fill`. A surah card prints its name in its
+ * at most `bandPx` tall, filling any space below with `fill`. A surah card prints its name in its
  * lower part, so keeping only the calligraphy lets the widget draw its own
  * title and controls under it without zooming into a sliver of the card.
  */
-private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Float, fill: Int): Bitmap {
+private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Float, fill: Int, bandPx: Int = heightPx): Bitmap {
   val out = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
   val canvas = android.graphics.Canvas(out)
   canvas.drawColor(fill)
   val srcH = src.height * fraction
   val scale = widthPx.toFloat() / src.width
   val drawnH = srcH * scale
-  // Taller than the widget (e.g. a full photo): crop the middle instead.
-  val srcRect = if (drawnH <= heightPx) {
+  // Taller than the band (e.g. a full photo): crop the middle instead.
+  val band = minOf(heightPx, bandPx)
+  val srcRect = if (drawnH <= band) {
     android.graphics.Rect(0, 0, src.width, srcH.roundToInt())
   } else {
-    val cropH = heightPx / scale
+    val cropH = band / scale
     val top = (srcH - cropH) / 2
     android.graphics.Rect(0, top.roundToInt(), src.width, (top + cropH).roundToInt())
   }
-  val dst = android.graphics.Rect(0, 0, widthPx, minOf(heightPx, drawnH.roundToInt()))
+  val dst = android.graphics.Rect(0, 0, widthPx, minOf(band, drawnH.roundToInt()))
   canvas.drawBitmap(src, srcRect, dst, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
   return out
 }
@@ -132,6 +133,8 @@ class ContinueListeningWidget : GlanceAppWidget() {
     const val TALL_DP = 150 // @ai
     /** The share of a surah card above its printed name. */ // @ai
     const val CARD_ART_FRACTION = 0.56f // @ai
+    /** Padding, title and the reciter/button row under a small card's art. */ // @ai
+    const val SMALL_CHROME_DP = 70 // @ai
 
     private val WHITE = ColorProvider(Color.White)
     private val SECONDARY = ColorProvider(Color(0xCCFFFFFF)) // @ai
@@ -348,7 +351,9 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val surah = StaticData.surah(context, track.surahId)
     val cardNamed = surah != null && track.artworkFile == surah.artworkFile
     val src = cachedArt(context, LocalArtCache.current, track.artworkFile, maxOf(wPx, hPx))
-    val art = src?.let { cropTopFill(it, wPx, hPx, if (cardNamed) CARD_ART_FRACTION else 1f, SurahTint.deep(track.surahId).toArgb()) }
+    val art = src?.let { cropTopFill(it, wPx, hPx, if (cardNamed) CARD_ART_FRACTION else 1f, SurahTint.deep(track.surahId).toArgb(),
+      // A card's calligraphy ends above the title and controls.
+      if (cardNamed) hPx - (SMALL_CHROME_DP * density).roundToInt() else hPx) }
     Box(root) {
       if (art != null) {
         Image(ImageProvider(art), contentDescription = null, modifier = GlanceModifier.fillMaxSize(),
