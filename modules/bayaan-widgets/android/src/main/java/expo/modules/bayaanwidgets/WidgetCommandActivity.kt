@@ -170,8 +170,9 @@ class WidgetCommandActivity : Activity() {
     private const val AUDIO_SERVICE = "expo.modules.audio.service.AudioControlsService"
     private const val CONTROLLER_TIMEOUT_MS = 3_000L
     // @ai-start
-    // A cold start boots React, restores the session and loads the track.
-    private const val HANDLE_TIMEOUT_MS = 12_000L
+    // A cold start boots React, restores the session and loads the track; an
+    // emulator took up to 10.4 s, so leave room for slower phones under load.
+    private const val HANDLE_TIMEOUT_MS = 20_000L
     private const val HANDLE_POLL_MS = 100L
     private const val FOREGROUND_GRACE_MS = 1_500L
     // @ai-end
