@@ -11,10 +11,18 @@ and uses its vocabulary: width classes (`compact`, `medium`, `expanded`,
 with a rule, it says so in a "Proposed changes to the standard" section; those
 are collected [below](#proposed-changes-to-the-standard).
 
-Audit baseline: `develop` on 2026-10-26. All findings come from reading the
-code, with a `file:line` reference for each. They have not yet been confirmed
-on the simulator; sizes quoted in pt are computed from the code and the
-reference window sizes in [ipad-standards.md §2.1](../ipad-standards.md#21-classes).
+Audit baseline: `develop` on 2026-10-26. The findings come from reading the
+code, with a `file:line` reference for each; sizes quoted in pt are computed
+from the code and the reference window sizes in
+[ipad-standards.md §2.1](../ipad-standards.md#21-classes). Line references
+describe that baseline and will drift as the code changes.
+
+> **Status on 2026-10-29.** Most of the roadmap below has since shipped in the
+> iPad build PRs (#425–#448, #452). The docs are kept as the record of why each
+> change was made and as the design reference for the remaining work. See
+> [Status on develop](#status-on-develop-2026-10-29) for what simulator
+> screenshots of `develop` confirmed, and [screenshots/](screenshots/README.md)
+> for the captures.
 
 ## Documents
 
@@ -61,6 +69,32 @@ track table. The player becomes two panes: Now Playing on the leading side, and
 a switchable Text / Queue / Reciters pane on the trailing side (Apple Music's
 lyrics and queue pattern). Menus become context menus and popovers, every card
 and control gets hover, keyboard, VoiceOver and Dynamic Type support.
+
+## Status on develop (2026-10-29)
+
+Checked on iPad Pro 13" and iPad Air 11" simulators, portrait and landscape,
+running `develop` at `ad520313`. Captures and notes: [screenshots/](screenshots/README.md).
+
+| Finding | Status |
+|---------|--------|
+| F-01, F-02: portrait lock and `UIRequiresFullScreen` | Fixed. iPads rotate; the lock is phone-only |
+| F-04, P-01, D-01, L-01: size-matters inflation | Fixed on the screens captured. The reciter name is ~34pt on 13", not 63pt |
+| F-09, P-19, D-14: full-width bottom sheets | Fixed. Surah options and Add to Collection open as centred cards |
+| D-10: Browse All grid overflows | Fixed. Not reproduced on 13" or 11" |
+| D-16: "Choose a reciter for this surah" opens the profile | Fixed. It plays the surah and stays on the list |
+| L-10: reciter pager clipped | Fixed for tab taps. Swipe snapping not re-tested |
+| L-12: 150–230pt blank space at list ends | Fixed. About 60–80pt remains |
+| P-14: portrait player squeezes the verses | Fixed. 13" portrait uses two panes; 11" portrait is one column with a floating control card |
+| Play button circle on iPad (not in the audit) | Removed in #463 to match the phone |
+
+New issues seen in the captures, not yet fixed:
+
+- Browse All lists "Yasser Salamah" twice (13", end of list).
+- On 11" portrait, Loved and playlist rows run to the right screen edge with no margin.
+- Library screens in landscape sit in a column capped near 600pt, leaving wide empty sides on 13" (L-13 is only partly addressed).
+
+Not yet captured: the speed, options and sleep-timer popovers, and Split View
+or Stage Manager windows.
 
 ## Bugs found during the audit
 
