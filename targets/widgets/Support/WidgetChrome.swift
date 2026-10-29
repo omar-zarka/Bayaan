@@ -286,23 +286,31 @@ enum PlayingNow {
   }
 }
 
-/// Runs `play` normally, or pauses when its target is what is playing.
-struct PlayOrPauseButton<I: AppIntent, Content: View>: View {
+/// Runs `play` normally, or `pause` when its target is what is playing.
+struct PlayOrPauseButton<I: AppIntent, P: AppIntent, Content: View>: View {
   let playing: Bool
   let play: I
+  let pause: P
   let label: String
   @ViewBuilder let content: (_ playing: Bool) -> Content
 
   var body: some View {
     Group {
       if playing {
-        Button(intent: SetPlaybackIntent(playing: false)) { content(true) }
+        Button(intent: pause) { content(true) }
       } else {
         Button(intent: play) { content(false) }
       }
     }
     .buttonStyle(.plain)
     .accessibilityLabel(playing ? "Pause" : label)
+  }
+}
+
+extension PlayOrPauseButton where P == SetPlaybackIntent {
+  /// Pauses the main player.
+  init(playing: Bool, play: I, label: String, @ViewBuilder content: @escaping (_ playing: Bool) -> Content) {
+    self.init(playing: playing, play: play, pause: SetPlaybackIntent(playing: false), label: label, content: content)
   }
 }
 
