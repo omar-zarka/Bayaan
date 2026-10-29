@@ -10,6 +10,7 @@ import {
   addWidgetCommandListener,
   takeQueuedCommands,
   selectFreshCommands,
+  markCommandsHandled,
   WidgetKind,
   WidgetSnapshot,
 } from 'bayaan-widgets';
@@ -192,13 +193,17 @@ export async function drainWidgetCommands(): Promise<void> {
   }
   draining = true;
   let handled = 0;
+  let takenThrough = 0; // @ai
   try {
     do {
       redrainRequested = false;
-      for (const command of selectFreshCommands(
-        takeQueuedCommands(),
-        Date.now(),
-      )) {
+      // @ai-start
+      const taken = takeQueuedCommands();
+      for (const q of taken) {
+        takenThrough = Math.max(takenThrough, q.enqueuedAt);
+      }
+      for (const command of selectFreshCommands(taken, Date.now())) {
+        // @ai-end
         handled += 1;
         try {
           await handleWidgetCommand(command);
@@ -209,6 +214,10 @@ export async function drainWidgetCommands(): Promise<void> {
     } while (redrainRequested);
   } finally {
     draining = false;
+    // @ai-start
+    // Stale commands count too: their intents are waiting all the same.
+    if (takenThrough > 0) markCommandsHandled(takenThrough);
+    // @ai-end
   }
   if (handled > 0) flushWidgetSnapshot(true);
 }

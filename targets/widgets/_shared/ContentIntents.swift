@@ -22,11 +22,12 @@ struct PlayPlaylistIntent: AudioPlaybackIntent {
   }
 
   func perform() async throws -> some IntentResult {
-    WidgetCommandQueue.enqueue([
+    let enqueuedAt = WidgetCommandQueue.enqueue([ // @ai
       "type": "playPlaylist",
       "playlistId": playlistId,
       "itemId": itemId ?? NSNull(),
     ])
+    await PlaybackCommand.waitUntilHandled(enqueuedAt) // @ai
     return .result()
   }
 }
@@ -52,13 +53,14 @@ struct StartBedtimeIntent: AudioPlaybackIntent {
   }
 
   func perform() async throws -> some IntentResult {
-    WidgetCommandQueue.enqueue([
+    let enqueuedAt = WidgetCommandQueue.enqueue([ // @ai
       "type": "startBedtime",
       "surahId": surahId,
       "reciterId": reciterId ?? NSNull(),
       "sleepMinutes": sleepMinutes,
       "ambient": ambient ?? NSNull(),
     ])
+    await PlaybackCommand.waitUntilHandled(enqueuedAt) // @ai
     return .result()
   }
 }
