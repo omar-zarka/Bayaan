@@ -135,7 +135,10 @@
     "verses_other": "{{count}} verses",
     "a11yReadHint": "Opens the surah in the reader",
     "a11yPlayAction": "Play",
-    "a11yMoreAction": "More options"
+    "a11yMoreAction": "More options",
+    "columnSurah": "Surah",
+    "columnRevelation": "Revelation",
+    "columnVerses": "Verses"
   },
   "sort": {
     "asc": "Asc",

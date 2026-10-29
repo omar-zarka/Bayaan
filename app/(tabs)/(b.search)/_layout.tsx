@@ -17,6 +17,7 @@ const SCREEN_LAYOUT = capScreensExcept([
   'index',
   'browse-all',
   'reciter/browse',
+  'reciter/[id]',
 ]); // @ai
 
 // A deep link (widget, Live Activity, App Link) that opens a screen in this
