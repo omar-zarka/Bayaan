@@ -98,15 +98,19 @@ struct PinnedReciterView: View {
 
   private func medium(id: String, name: String, file: String?, rows: [PinnedRow]) -> some View {
     HStack(spacing: 12) {
-      ZStack(alignment: .bottomLeading) {
-        ReciterPhoto(file: file, name: name)
-          .frame(width: 106, height: 106)
-          .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        PrimaryIntentButton(intent: PlayReciterIntent(reciterId: id), systemName: "play.fill", label: "Play \(name)") // @ai
-          .padding(8)
-      }
+      ReciterPhoto(file: file, name: name)
+        .frame(width: 106, height: 106)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
       VStack(alignment: .leading, spacing: 6) {
-        Text(name).font(.subheadline.weight(.heavy)).lineLimit(1) // @ai
+        // @ai-start
+        // The play button sits beside the name, clear of the photo's initials.
+        HStack(spacing: 8) {
+          Text(name).font(.subheadline.weight(.heavy)).lineLimit(2)
+          Spacer(minLength: 0)
+          PrimaryIntentButton(intent: PlayReciterIntent(reciterId: id), systemName: "play.fill", label: "Play \(name)",
+                              size: 36)
+        }
+        // @ai-end
         ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
           if let surah = StaticData.surah(row.surahId) {
             Button(intent: PlayTrackIntent(surahId: surah.id, reciterId: id, rewayatId: row.rewayatId)) {

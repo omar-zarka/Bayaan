@@ -118,7 +118,7 @@ struct LibraryShelfView: View {
           ForEach(0..<4, id: \.self) { col in
             let i = row * 4 + col
             if i < shown.count {
-              SurahTileButton(surahId: shown[i].surahId, size: isLarge ? 62 : 58, intent: intent(shown[i]),
+              SurahTileButton(surahId: shown[i].surahId, size: isLarge ? 74 : 64, intent: intent(shown[i]), // @ai
                               caption: isLarge ? shown[i].surahName : nil)
                 .frame(maxWidth: .infinity)
             } else {

@@ -65,7 +65,7 @@ struct ContinueListeningView: View {
                      next: sideList(limit: 1).first, nextTitle: sideTitle)
           // @ai-end
         default:
-          LargeView(track: track, playback: entry.playback, date: entry.date, rows: sideList(limit: 3), // @ai
+          LargeView(track: track, playback: entry.playback, date: entry.date, rows: sideList(limit: 4), // @ai
                     rowsTitle: sideTitle)
         }
       } else {

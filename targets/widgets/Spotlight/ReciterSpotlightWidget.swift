@@ -88,13 +88,9 @@ struct ReciterSpotlightView: View {
 
   private func medium(_ r: WidgetSpotlightReciter) -> some View {
     HStack(spacing: 12) {
-      ZStack(alignment: .bottomLeading) {
-        ReciterPhoto(file: r.artworkFile, name: r.name)
-          .frame(width: 106, height: 106)
-          .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        PrimaryIntentButton(intent: PlayReciterIntent(reciterId: r.id), systemName: "play.fill", label: "Play \(r.name)") // @ai
-          .padding(8)
-      }
+      ReciterPhoto(file: r.artworkFile, name: r.name)
+        .frame(width: 106, height: 106)
+        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
       VStack(alignment: .leading, spacing: 6) {
         HStack(alignment: .top) {
           VStack(alignment: .leading, spacing: 1) {
@@ -104,6 +100,11 @@ struct ReciterSpotlightView: View {
             // @ai-end
           }
           Spacer(minLength: 0)
+          // @ai-start
+          // Beside the name, clear of the photo's initials.
+          PrimaryIntentButton(intent: PlayReciterIntent(reciterId: r.id), systemName: "play.fill", label: "Play \(r.name)",
+                              size: 36)
+          // @ai-end
         }
         ForEach(r.surahIds, id: \.self) { id in
           if let surah = StaticData.surah(id) {

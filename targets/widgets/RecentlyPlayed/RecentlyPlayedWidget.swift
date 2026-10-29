@@ -73,7 +73,7 @@ struct RecentlyPlayedView: View {
   private var medium: some View {
     HStack(spacing: 8) {
       ForEach(Array(entry.shelf.tracks.prefix(4).enumerated()), id: \.offset) { _, t in
-        SurahTileButton(surahId: t.surahId, size: 62, intent: intent(t)).frame(maxWidth: .infinity)
+        SurahTileButton(surahId: t.surahId, size: 72, intent: intent(t)).frame(maxWidth: .infinity) // @ai
       }
     }
   }
@@ -86,7 +86,7 @@ struct RecentlyPlayedView: View {
           ForEach(0..<3, id: \.self) { col in
             let i = row * 3 + col
             if i < tracks.count {
-              SurahTileButton(surahId: tracks[i].surahId, size: 84, intent: intent(tracks[i]), caption: tracks[i].reciterName)
+              SurahTileButton(surahId: tracks[i].surahId, size: 98, intent: intent(tracks[i]), caption: tracks[i].reciterName) // @ai
                 .frame(maxWidth: .infinity)
             } else {
               Color.clear.frame(maxWidth: .infinity, maxHeight: 1)
