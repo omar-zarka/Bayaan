@@ -65,6 +65,13 @@ const Blank = () => null;
 
 const StackLayout = () => <Stack screenOptions={{headerShown: false}} />;
 
+// The tab stacks anchor on their first screen, as their layouts in app/(tabs)
+// do.
+const TabStackLayout = {
+  default: StackLayout,
+  unstable_settings: {initialRouteName: 'index'},
+};
+
 const TAB_ROUTES = [
   '(a.home)',
   '(b.surahs)',
@@ -98,31 +105,31 @@ const COLLECTION_SCREENS = [
 const APP = {
   _layout: StackLayout,
   '(tabs)/_layout': TabsLayout,
-  '(tabs)/(a.home)/_layout': StackLayout,
+  '(tabs)/(a.home)/_layout': TabStackLayout,
   '(tabs)/(a.home)/index': Blank,
   '(tabs)/(a.home)/adhkar/_layout': StackLayout,
   '(tabs)/(a.home)/adhkar/index': Blank,
   '(tabs)/(a.home)/adhkar/[superId]/index': Blank,
   '(tabs)/(a.home)/reciter/[id]': Blank,
-  '(tabs)/(b.surahs)/_layout': StackLayout,
+  '(tabs)/(b.surahs)/_layout': TabStackLayout,
   '(tabs)/(b.surahs)/index': Blank,
-  '(tabs)/(b.search)/_layout': StackLayout,
+  '(tabs)/(b.search)/_layout': TabStackLayout,
   '(tabs)/(b.search)/index': Blank,
-  '(tabs)/(c.collection)/_layout': StackLayout,
+  '(tabs)/(c.collection)/_layout': TabStackLayout,
   ...Object.fromEntries(
     COLLECTION_SCREENS.map(name => [`(tabs)/(c.collection)/${name}`, Blank]),
   ),
-  '(tabs)/(d.settings)/_layout': StackLayout,
+  '(tabs)/(d.settings)/_layout': TabStackLayout,
   '(tabs)/(d.settings)/index': Blank,
 };
 
 let mounted: ReactTestRenderer | undefined;
 
-function renderApp(): ReactTestRenderer {
+function renderApp(location = '/'): ReactTestRenderer {
   process.env.EXPO_ROUTER_IMPORT_MODE = 'sync';
   act(() => {
     mounted = TestRenderer.create(
-      <ExpoRoot context={getMockContext(APP)} location="/" />,
+      <ExpoRoot context={getMockContext(APP)} location={location} />,
     );
   });
   act(() => jest.runOnlyPendingTimers());
@@ -274,6 +281,15 @@ describe('labelled sidebar', () => {
     press(r, 'Search');
     press(r, 'Home');
     expect(onShow()).toEqual(['(a.home)', 'index']);
+  });
+
+  it('opens Adhkar above Home before Home has opened', () => {
+    const r = renderApp('/collection/loved');
+    expect(stackOf('(a.home)')).toEqual([]);
+    press(r, 'Adhkar');
+    expect(onShow()).toEqual(['(a.home)', 'adhkar', 'index']);
+    expect(stackOf('(a.home)')).toEqual(['index', 'adhkar']);
+    expect(selected(r)).toEqual(['Adhkar']);
   });
 
   it('takes Adhkar back to its first screen when pressed again', () => {

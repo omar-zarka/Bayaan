@@ -48,7 +48,7 @@ import {
   sidebarWidth,
   type SidebarItemId,
 } from '@/components/tablet/sidebarNav';
-import {useIsFocused} from 'expo-router';
+import {router, useIsFocused, type Href} from 'expo-router';
 import {useHover} from '@/hooks/useHover';
 import {useKeyCommands} from '@/hooks/useKeyCommands';
 import type {KeyBinding} from '@/services/keyboard/keyCommands';
@@ -261,6 +261,11 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       // descriptor still carries the tab navigator's, which handles these.
       const {navigation} = descriptors[state.routes[state.index].key];
       press.actions.forEach(action => navigation.dispatch(action));
+      if (press.open) {
+        router.navigate(press.open.href as Href, {
+          withAnchor: press.open.withAnchor,
+        });
+      }
     },
     [state, descriptors, emitter],
   );
