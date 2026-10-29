@@ -1,5 +1,4 @@
 // @ai-generated
-import type {ImageSourcePropType} from 'react-native';
 import {reciterImages} from './reciterImages';
 
 /**
@@ -26,10 +25,13 @@ export function reciterImageKey(name: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/** The bundled photo for a reciter, if the app ships one. */
+/**
+ * The bundled photo for a reciter, if the app ships one, as the asset id that
+ * `require` returns.
+ */
 export function getLocalReciterImage(
   name: string | null | undefined,
-): ImageSourcePropType | undefined {
+): number | undefined {
   if (!name) return undefined;
   const key = reciterImageKey(name);
   return reciterImages[RECITER_IMAGE_ALIASES[key] ?? key];

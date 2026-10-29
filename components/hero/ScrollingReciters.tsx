@@ -5,8 +5,8 @@ import {
   StyleSheet,
   Pressable,
   TouchableOpacity,
-  InteractionManager,
 } from 'react-native';
+import {runAfterInteractions} from '@/utils/afterInteractions';
 import {moderateScale} from '@/utils/scale';
 import Animated, {
   useSharedValue,
@@ -274,7 +274,7 @@ const Column = React.memo(
         );
       };
 
-      const task = InteractionManager.runAfterInteractions(() => {
+      const task = runAfterInteractions(() => {
         if (isAnimating.value && isComponentMounted.current) {
           startAnimation();
         }
