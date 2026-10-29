@@ -139,12 +139,14 @@ export function selectFreshCommands(
   // The adhkar player's setAdhkarPlayback follows the same rule. // @ai
   let lastPlay = -1;
   let lastSet = -1;
-  let lastAdhkarSet = -1; // @ai
+  // @ai-start
+  let lastAdhkarSet = -1;
   fresh.forEach((c, i) => {
     if (c.type === 'setPlayback') lastSet = i;
-    else if (c.type === 'setAdhkarPlayback') lastAdhkarSet = i; // @ai
+    else if (c.type === 'setAdhkarPlayback') lastAdhkarSet = i;
     else lastPlay = i;
   });
+  // @ai-end
   // @ai-start
   const picked = [lastPlay];
   if (lastSet > lastPlay) picked.push(lastSet);
