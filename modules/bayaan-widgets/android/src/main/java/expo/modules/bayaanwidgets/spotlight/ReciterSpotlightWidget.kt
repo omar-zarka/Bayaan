@@ -135,8 +135,10 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
           Spacer(GlanceModifier.width(8.dp)) // @ai
           PrimaryButton(isPlaying, "Play ${r.name}", play, sizeDp = 34)
         }
-        // A 110 dp cell has room for one row under the name. // @ai
-        r.surahIds.take(if (WidgetSizes.isShort(LocalSize.current)) 1 else r.surahIds.size).forEach { id ->
+        // A 110 dp cell has room for one row: the playing surah if it is listed. // @ai
+        (if (WidgetSizes.isShort(LocalSize.current)) { // @ai
+          listOf(r.surahIds.firstOrNull { PlaybackState.matches(playing, it, r.id) } ?: r.surahIds.first()) // @ai
+        } else r.surahIds).forEach { id ->
           val surah = StaticData.surah(context, id) ?: return@forEach
           val rowPlaying = PlaybackState.matches(playing, id, r.id)
           val action = playOrPause(context, rowPlaying, commandAction(context, playTrackCommand(id, r.id, null, null), "spotlight/${r.id}/$id"))

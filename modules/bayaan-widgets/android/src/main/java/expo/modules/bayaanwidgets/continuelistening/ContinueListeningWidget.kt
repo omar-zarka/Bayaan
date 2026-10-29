@@ -105,7 +105,8 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
 private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Float, fill: Int, bandPx: Int = heightPx): Bitmap {
   val out = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
   val canvas = android.graphics.Canvas(out)
-  canvas.drawColor(fill)
+  // A card is shrunk into the band on its own ground, so its edges disappear.
+  canvas.drawColor(if (fraction < 1f) src.getPixel(minOf(2, src.width - 1), minOf(2, src.height - 1)) else fill)
   val srcH = src.height * fraction
   val scale = widthPx.toFloat() / src.width
   val drawnH = srcH * scale
