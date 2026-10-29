@@ -214,6 +214,15 @@ Captured on `develop` (`2566b5c8`) on iPad Pro 13" (M4) and iPad mini (A17 Pro) 
 | Q11 | **Theme settings don't fit.** Theme swatches wrap 4 + 3 with dead space, the live preview frame is cropped, and the "Changing appearance mode" note is small grey text. | 13" portrait and landscape reading-theme captures | P2 |
 | Q12 | **The Surahs tab doesn't use the width.** The column is capped at about 640pt with a big empty margin in landscape. List rows are small (≈ 15pt titles), and the grid has only 2 columns even at 13". | `13in-landscape-surahs-grid`, `13in-landscape-surahs-list`, `13in-portrait-surahs-list` | P2 |
 
+**Status on `develop` after the iPad stack (#430–#447, Oct 29).** These were checked in the code but not captured again:
+
+| Item | Status |
+|---|---|
+| Q1 | **Addressed by #444.** The paged lists remount per layout through `readerListKey(mode, width)` instead of per orientation. #447 also stops List view from using the spread index. |
+| Q2 | **Likely addressed.** `ReadingPageView` and `ContinuousListView` now take the measured width and have a 680pt column (#444). Clipping in landscape List view still needs a screenshot. |
+| Q3 | **Addressed by #444.** The vertical mushaf gets its own `scrollMetrics` and is centred. |
+| Q4 | **Partly addressed.** The verse sheet height now reads `useWindowDimensions` at render, which also fixes A2's `SHEET_HEIGHT`. #430 made iPad sheets into popovers and centred cards. Landscape overflow still needs checking. |
+
 Not captured: the audio bar while playing. The timestamps CDN reset the TLS handshake from the capture machine (curl fails too), so every reciter showed "Playback unavailable". That is a network/CDN issue, not an iPad layout bug.
 
 ---
