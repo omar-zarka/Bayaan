@@ -137,7 +137,7 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
         }
         // A 110 dp cell has room for one row: the playing surah if it is listed. // @ai
         (if (WidgetSizes.isShort(LocalSize.current)) { // @ai
-          listOf(r.surahIds.firstOrNull { PlaybackState.matches(playing, it, r.id) } ?: r.surahIds.first()) // @ai
+          listOfNotNull(r.surahIds.firstOrNull { PlaybackState.matches(playing, it, r.id) } ?: r.surahIds.firstOrNull()) // @ai
         } else r.surahIds).forEach { id ->
           val surah = StaticData.surah(context, id) ?: return@forEach
           val rowPlaying = PlaybackState.matches(playing, id, r.id)
