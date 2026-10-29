@@ -18,12 +18,11 @@ import {
   View,
   Text,
   Platform,
-  StatusBar as RNStatusBar,
   Appearance,
-  InteractionManager,
   Linking,
   type AppStateStatus,
 } from 'react-native';
+import {runAfterInteractions} from '@/utils/afterInteractions';
 import {useTheme} from '@/hooks/useTheme';
 // @ai-start
 import {LocaleDirContext, ThemeProvider} from 'expo-router/react-navigation';
@@ -37,6 +36,10 @@ import {DevMenu} from '@/components/DevMenu';
 import {SheetProvider} from 'react-native-actions-sheet';
 import {recordTouch} from '@/utils/lastTouch'; // @ai
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
+// @ai-start
+import {AppKeyCommands} from '@/components/keyboard/AppKeyCommands';
+import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
+// @ai-end
 import '@/components/sheets/sheets'; // Register action sheets
 import {
   configureReanimatedLogger,
@@ -61,7 +64,7 @@ import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import {usePhoneOrientation} from '@/hooks/usePhoneOrientation'; // @ai
 
 // Configure Reanimated logger
 configureReanimatedLogger({
@@ -70,7 +73,9 @@ configureReanimatedLogger({
 });
 
 // Cache for expo-navigation-bar module (Android only)
-let NavigationBarModule: any = null;
+let NavigationBarModule:
+  | typeof import('expo-navigation-bar').NavigationBar
+  | null = null;
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync().catch(() => {
@@ -213,10 +218,9 @@ function RootLayout() {
     resetOnBackground: true,
   });
 
-  // Lock to portrait by default; mushaf.tsx unlocks when that screen is active.
-  useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-  }, []);
+  // Phones are portrait (mushaf.tsx allows landscape there); iPads turn
+  // freely. @ai
+  usePhoneOrientation('portrait'); // @ai
 
   // Start after init so the first snapshot sees the restored session and
   // stores instead of overwriting the widgets with an empty state.
@@ -236,7 +240,7 @@ function RootLayout() {
 
   // Tajweed data — defer until after first frame + interactions complete
   useEffect(() => {
-    InteractionManager.runAfterInteractions(() => {
+    runAfterInteractions(() => {
       if (__DEV__) console.log('[App] Preloading tajweed data...');
       preloadTajweedData();
     });
@@ -305,24 +309,16 @@ function RootLayout() {
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(theme.colors.background);
 
+    // Edge-to-edge: the app draws behind the navigation bar, so only the
+    // button style follows the theme.
     async function setupNavigationBar() {
       if (Platform.OS === 'android') {
         try {
           if (!NavigationBarModule) {
-            NavigationBarModule = await import('expo-navigation-bar').then(
-              module => module.default,
-            );
-            RNStatusBar.setTranslucent(true);
+            NavigationBarModule = (await import('expo-navigation-bar'))
+              .NavigationBar;
           }
-
-          if (NavigationBarModule) {
-            await NavigationBarModule.setBackgroundColorAsync(
-              theme.colors.background,
-            );
-            await NavigationBarModule.setButtonStyleAsync(
-              isDarkMode ? 'light' : 'dark',
-            );
-          }
+          NavigationBarModule?.setStyle(isDarkMode ? 'dark' : 'light');
         } catch (error) {
           if (__DEV__)
             console.warn(
@@ -422,7 +418,7 @@ function RootLayout() {
           params: lastReadPage ? {page: String(lastReadPage)} : undefined,
         });
         // Let the navigation animation finish behind the splash before revealing
-        InteractionManager.runAfterInteractions(() => {
+        runAfterInteractions(() => {
           setMushafRestoreHandled(true);
         });
       });
@@ -580,6 +576,7 @@ function RootLayout() {
                       {/* @ai-end */}
                     </Stack>
                     <PlayerHost />
+                    {keyCommandsSupported() && <AppKeyCommands />}
                     <WhatsNewModal ref={whatsNewModalRef} />
                     <DevMenu whatsNewModalRef={whatsNewModalRef} />
                   </SheetProvider>
