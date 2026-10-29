@@ -258,6 +258,7 @@ module.exports = {
       './plugins/withAppShortcuts.js',
       './plugins/withBayaanWidgets.js',
       './plugins/withBayaanKeyboard.js',
+      './plugins/withOkHttpFloor.js',
     ],
   },
 };
