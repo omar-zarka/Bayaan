@@ -72,11 +72,16 @@ jobs:
       # @ai-end
 
       # Build a single ABI to keep native compile time down; this job checks
-      # that the project compiles, not that every ABI links.
+      # that the project compiles, not that every ABI links. On Expo SDK 58 the
+      # hosted runner shut down mid-build with unbounded workers (most likely
+      # out of memory), so cap them like the preview builds below; df/free
+      # are logged to diagnose a repeat.
       - name: Assemble debug APK
         if: ${{ !inputs.preview_apk }} # @ai
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon -PreactNativeArchitectures=x86_64
+        run: |
+          df -h / && free -h
+          ./gradlew assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=x86_64
 
       # @ai-start
       # Release bundles JavaScript and uses the committed debug key when no
