@@ -55,6 +55,9 @@ module.exports = {
           'This app uses Apple Music to play audio.',
         UILaunchStoryboardName: 'SplashScreen',
         LSRequiresIPhoneOS: true,
+        // Show Settings › Apps › Bayaan › Language even when the device has a
+        // single preferred language. The language screen sends users there.
+        UIPrefersShowingLanguageSettings: true,
         // Matches ios/Bayaan/Info.plist: iPad multitasking (Split View, Stage
         // Manager) is on, so iPad windows can be any size. @ai
         UIRequiresFullScreen: false,
