@@ -22,7 +22,6 @@ import {Theme} from '@/utils/themeUtils';
 import BrowseGrid from './BrowseGrid';
 import FilterModal, {FilterOptions} from './FilterModal';
 import {useFavoriteReciters} from '@/hooks/useFavoriteReciters';
-import {getFeaturedReciters} from '@/data/featuredReciters';
 import {useRouter} from 'expo-router';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTracksForReciter} from '@/utils/track';
@@ -39,6 +38,7 @@ import {
 } from '@/data/rewayat';
 import {rankReciters} from '@/utils/search/catalog'; // @ai
 import {pickRewayatId} from '@/utils/rewayatPreference'; // @ai
+import {sortRecitersByName} from '@/utils/sortReciters'; // @ai
 // @ai-end
 import {resolveRewayahFromName} from '@/services/rewayah/RewayahIdentity';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -269,8 +269,7 @@ export default function BrowseReciters({
   }, [selectedTeacher, selectedStudent, primaryTeachers, t]);
 
   const filteredReciters = useMemo(() => {
-    // Hoisted above the filter chain so the RFC-012 `has-photo` filter
-    // and the existing sort step share one definition. "Has photo" matches
+    // Used by the RFC-012 `has-photo` filter. "Has photo" matches
     // a card whose user-visible artwork resolves to something — either a
     // catalog `image_url` OR a bundled local headshot fallback.
     const hasImage = (reciter: Reciter): boolean => {
@@ -347,33 +346,22 @@ export default function BrowseReciters({
       );
     }
 
-    // RFC-012 — `has-photo` filter dimension. Predicate uses the same
-    // `hasImage` helper as the sort step below, so the filter and the
-    // sort agree on what counts as "has a photo." No-op when the chip
+    // RFC-012 — `has-photo` filter dimension. No-op when the chip
     // isn't enabled in branding or the user hasn't toggled it on.
     if (hasPhoto) {
       result = result.filter(hasImage);
     }
 
-    const featuredRecitersData = getFeaturedReciters(20);
-    const featuredIds = new Set(featuredRecitersData.map(r => r.id));
-
-    result.sort((a, b) => {
-      // @ai-start
-      if (searchRank) {
-        return (searchRank.get(a.id) ?? 0) - (searchRank.get(b.id) ?? 0);
-      }
-      // @ai-end
-      if (featuredIds.has(a.id) && !featuredIds.has(b.id)) return -1;
-      if (!featuredIds.has(a.id) && featuredIds.has(b.id)) return 1;
-      const aHasImage = hasImage(a);
-      const bHasImage = hasImage(b);
-      if (aHasImage && !bHasImage) return -1;
-      if (!aHasImage && bHasImage) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    return result;
+    // @ai-start
+    // Search keeps its relevance order. Otherwise the list is one A–Z run;
+    // being featured or having a photo does not move a reciter up.
+    if (searchRank) {
+      return result.sort(
+        (a, b) => (searchRank.get(a.id) ?? 0) - (searchRank.get(b.id) ?? 0),
+      );
+    }
+    return sortRecitersByName(result);
+    // @ai-end
   }, [
     selectedTeacher,
     selectedStudent,
