@@ -10,7 +10,7 @@ import {moderateScale} from '@/utils/scale';
 import {LegendList} from '@legendapp/list';
 import {Reciter} from '@/data/reciterData';
 import {Theme} from '@/utils/themeUtils';
-import {BrowseReciterCard} from './BrowseReciterCard';
+import {BrowseReciterCard, TABLET_CAPTION_HEIGHT} from './BrowseReciterCard'; // @ai
 import {computeGridLayout} from '@/utils/gridLayout'; // @ai
 import type {ReciterProfilePathname} from '@/hooks/useTabReciterPath'; // @ai
 
@@ -32,28 +32,37 @@ interface BrowseGridProps {
   // that don't need it; the original `moderateScale(80)` floor still
   // applies when the inset is small or unset.
   bottomInset?: number;
+  // iPad page margin. When set, the grid uses the tablet layout: 160pt
+  // minimum cards with 16pt gutters, square art and 14/12pt captions, and
+  // a play badge on cards whose tap plays (mockup L8). @ai
+  tabletMargin?: number;
 }
 
 // @ai-start
 // One source for the padding and gap so the column math matches the styles.
 const GRID_PADDING = moderateScale(10);
 const GRID_GAP = moderateScale(10);
+// Tablet grid in plain points (ipad-standards §10.1): 3-5 columns on iPad.
+const TABLET_MIN_CARD_WIDTH = 160;
+const TABLET_GAP = 16;
+const TABLET_ROW_GAP = 20;
 // @ai-end
 
-function createStyles(_theme: Theme, bottomInset = 0) {
+function createStyles(_theme: Theme, bottomInset = 0, tabletMargin?: number) {
+  const isTabletLayout = tabletMargin !== undefined; // @ai
   return StyleSheet.create({
     container: {
       flex: 1,
     },
     gridContainer: {
-      paddingHorizontal: GRID_PADDING, // @ai
+      paddingHorizontal: tabletMargin ?? GRID_PADDING, // @ai
       paddingBottom: Math.max(moderateScale(80), bottomInset),
       paddingTop: moderateScale(8),
     },
     row: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      marginBottom: moderateScale(10),
+      marginBottom: isTabletLayout ? TABLET_ROW_GAP : moderateScale(10), // @ai
     },
     loadingContainer: {
       padding: moderateScale(20),
@@ -85,6 +94,7 @@ const BrowseGrid = React.memo(
     linkToProfile = true, // @ai
     profilePathname, // @ai
     bottomInset = 0,
+    tabletMargin, // @ai
   }: BrowseGridProps) => {
     const {width: windowWidth} = useWindowDimensions();
     const [isLoading] = useState(false);
@@ -99,15 +109,23 @@ const BrowseGrid = React.memo(
     }, []);
     const gridWidth = containerWidth ?? windowWidth;
 
+    const isTabletLayout = tabletMargin !== undefined;
     const {numColumns, itemWidth} = useMemo(
       () =>
-        computeGridLayout(gridWidth, {
-          minCardWidth: moderateScale(120),
-          horizontalPadding: GRID_PADDING,
-          gap: GRID_GAP,
-          minColumns: 3,
-        }),
-      [gridWidth],
+        tabletMargin !== undefined
+          ? computeGridLayout(gridWidth, {
+              minCardWidth: TABLET_MIN_CARD_WIDTH,
+              horizontalPadding: tabletMargin,
+              gap: TABLET_GAP,
+              minColumns: 2,
+            })
+          : computeGridLayout(gridWidth, {
+              minCardWidth: moderateScale(120),
+              horizontalPadding: GRID_PADDING,
+              gap: GRID_GAP,
+              minColumns: 3,
+            }),
+      [gridWidth, tabletMargin],
     );
     // @ai-end
 
@@ -117,14 +135,21 @@ const BrowseGrid = React.memo(
     }, [reciters, numColumns]);
 
     const styles = useMemo(
-      () => createStyles(theme, bottomInset),
-      [theme, bottomInset],
-    );
-
-    const itemDimensions = useMemo(
-      () => ({width: itemWidth, height: itemWidth * 1.2}),
-      [itemWidth],
+      () => createStyles(theme, bottomInset, tabletMargin),
+      [theme, bottomInset, tabletMargin],
     ); // @ai
+
+    // @ai-start
+    const itemDimensions = useMemo(
+      () => ({
+        width: itemWidth,
+        height: isTabletLayout
+          ? itemWidth + TABLET_CAPTION_HEIGHT
+          : itemWidth * 1.2,
+      }),
+      [itemWidth, isTabletLayout],
+    );
+    // @ai-end
 
     // Render a row of items
     const renderRow = useCallback(
@@ -141,6 +166,8 @@ const BrowseGrid = React.memo(
               rewayatId={getRewayatIdForReciter?.(reciter)}
               linkToProfile={linkToProfile}
               profilePathname={profilePathname} // @ai
+              tabletText={isTabletLayout} // @ai
+              showPlayBadge={isTabletLayout && !linkToProfile} // @ai
             />
           ))}
           {/* Add empty placeholders for the last row if needed */}
@@ -164,6 +191,7 @@ const BrowseGrid = React.memo(
         getRewayatIdForReciter,
         linkToProfile, // @ai
         profilePathname, // @ai
+        isTabletLayout, // @ai
       ],
     );
 
@@ -223,6 +251,7 @@ const BrowseGrid = React.memo(
     prevProps.linkToProfile === nextProps.linkToProfile && // @ai
     prevProps.profilePathname === nextProps.profilePathname && // @ai
     prevProps.bottomInset === nextProps.bottomInset &&
+    prevProps.tabletMargin === nextProps.tabletMargin && // @ai
     prevProps.keyboardShouldPersistTaps === nextProps.keyboardShouldPersistTaps,
 );
 
