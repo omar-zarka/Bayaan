@@ -37,6 +37,31 @@ const AUDIO_FILE_VERSIONS: Record<string, number | Record<number, number>> = {
   'b958d3cf-47b3-4e47-863c-87c81c355e73': {1: 2}, // hamad-al-daghriri
   '6757f5cc-4c08-4268-8906-ed89757e8247': {1: 2}, // othman-al-ansary
   '8c892091-6307-4489-828d-7f255d1d0028': {1: 2}, // umar-muhammad-al-qasim
+  // Truncated recordings whose MP3 length header claimed far more audio than
+  // they hold; headers rebuilt losslessly (2026-10-29).
+  '1df87e0d-bb9e-447d-be78-8e8c4dbfeb34': {
+    2: 2,
+    3: 2,
+    4: 2,
+    5: 2,
+    7: 2,
+    8: 2,
+    9: 2,
+    11: 2,
+    13: 2,
+  }, // khalid-algamdi
+  '3009ea23-319a-44c2-b1b6-d69c71aa7ff4': {41: 2}, // mohammad-al-airawy (warsh-azraq)
+  'b9fd0aef-7cbd-4ed6-af1e-d74264a1f1ad': {48: 2, 50: 2}, // salman-alotaibi
+  'cdd6d877-da42-4d6a-b930-8827ae488be3': {
+    12: 2,
+    18: 2,
+    19: 2,
+    31: 2,
+    36: 2,
+    55: 2,
+    56: 2,
+    67: 2,
+  }, // nabil-al-rifay
 };
 
 /** Remote URL of one surah's audio file for a rewayat. */
