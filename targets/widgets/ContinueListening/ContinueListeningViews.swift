@@ -131,30 +131,32 @@ struct Artwork: View {
 struct ArtworkFill: View {
   let track: WidgetTrack
 
+  // Overlays on a flexible base, so neither the art nor the starburst can
+  // size the widget wider than its frame.
   var body: some View {
     if let image = SnapshotStore.artwork(track.artworkFile) {
-      CachedImage(image: image)
-        .aspectRatio(contentMode: .fill)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+      Color.clear
+        .overlay { CachedImage(image: image).aspectRatio(contentMode: .fill) }
         .clipped()
     } else {
-      ZStack(alignment: .topTrailing) {
-        SurahTint.base(track.surahId)
-        BayaanMark().fill(.white.opacity(0.14))
-          .frame(width: 210, height: 175)
-          .offset(x: 54, y: -26)
-        if let surah = StaticData.surah(track.surahId), !surah.glyph.isEmpty {
-          Text(surah.glyph).font(WidgetFonts.surahGlyph(40)).foregroundStyle(.white).padding(14)
+      SurahTint.base(track.surahId)
+        .overlay(alignment: .topTrailing) {
+          BayaanMark().fill(.white.opacity(0.14))
+            .frame(width: 210, height: 175)
+            .offset(x: 54, y: -26)
         }
-      }
-      .frame(maxWidth: .infinity, maxHeight: .infinity)
-      .clipped()
+        .overlay(alignment: .topTrailing) {
+          if let surah = StaticData.surah(track.surahId), !surah.glyph.isEmpty {
+            Text(surah.glyph).font(WidgetFonts.surahGlyph(40)).foregroundStyle(.white).padding(14)
+          }
+        }
+        .clipped()
     }
   }
 }
 
-/// Primary play/pause button. With nothing loaded (the hero is a recent item or
 // @ai-end
+/// Primary play/pause button. With nothing loaded (the hero is a recent item or
 /// the surah of the day), it starts that track.
 struct PlayButton: View {
   let track: WidgetTrack
