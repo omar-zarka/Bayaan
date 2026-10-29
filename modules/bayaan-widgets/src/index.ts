@@ -58,7 +58,7 @@ export function takeQueuedCommands(): QueuedWidgetCommand[] {
 }
 
 // @ai-start
-/** Releases iOS playback intents waiting on commands queued up to `through`. */
+/** Releases widget taps (iOS intents, Android WidgetCommandActivity) waiting on commands queued up to `through`. */
 export function markCommandsHandled(through: number): void {
   NativeBayaanWidgets?.markCommandsHandled?.(through);
 }
