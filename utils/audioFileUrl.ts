@@ -22,8 +22,21 @@ const AUDIO_FILE_VERSIONS: Record<string, number | Record<number, number>> = {
   'a762d292-6fd1-4120-a55a-4c18d289f6e4': {1: 2}, // khaled-al-qahtani
   'd7f42caf-d6ee-4f21-a7c9-4b5c25ccd34a': {1: 2}, // khalid-al-shoraimy
   'acf9420e-a268-4951-abfc-050df35e0f11': {1: 2}, // malik-ahmad
-  '887424f7-9146-46db-b144-a8b40a6949cf': {1: 2}, // youssef-edghouch
+  '887424f7-9146-46db-b144-a8b40a6949cf': {1: 2, 3: 2}, // youssef-edghouch
   '697eddea-178e-4c4b-b3e9-04d381c92d59': {1: 2}, // yusuf-al-aidroos
+  // Recordings trimmed of trailing noise after the last ayah, or given a basmala
+  // in place of an unrecognised Al-Fatiha intro (2026-10-29).
+  '8335b8d3-2589-489e-a472-67f27c7fe128': {2: 2, 5: 2, 6: 2, 9: 2}, // abdulghani-abdullah
+  '5f7348eb-e244-49dd-bf76-d4c03ff9b4f4': {36: 2}, // abdullah-fahmi
+  'e432c4f8-eaab-4572-8971-95e4f40b3326': {9: 2, 11: 2}, // mohammed-hafas-ali
+  '367a93cd-da44-4b2d-b462-9f070c5c5402': {17: 2}, // saidin-abdulrahman
+  '61e0357f-9ce6-4922-a3b2-e78c6d9b5771': {6: 2}, // fahad-al-kandari
+  '5046099d-1642-4141-85ca-d96750956742': {27: 2}, // fawaz-alkabi
+  'e260feb9-fe2d-46ea-99f3-8deeb87eba50': {56: 2}, // hussain-alshaik
+  '824d6212-06c3-4e9f-9a74-fd977b69b3de': {1: 2}, // alwaleed-al-shamsan
+  'b958d3cf-47b3-4e47-863c-87c81c355e73': {1: 2}, // hamad-al-daghriri
+  '6757f5cc-4c08-4268-8906-ed89757e8247': {1: 2}, // othman-al-ansary
+  '8c892091-6307-4489-828d-7f255d1d0028': {1: 2}, // umar-muhammad-al-qasim
 };
 
 /** Remote URL of one surah's audio file for a rewayat. */
