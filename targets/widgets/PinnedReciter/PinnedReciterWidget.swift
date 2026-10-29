@@ -119,9 +119,10 @@ struct PinnedReciterView: View {
                 // @ai-start
                 SurahCard(surah: surah, size: 26)
                 Text(surah.name).font(.caption.weight(.bold)).lineLimit(1)
+                  .foregroundStyle(playing ? WidgetPalette.accent : .white)
+                if playing { Image(systemName: "pause.fill").font(.system(size: 10, weight: .bold)).foregroundStyle(WidgetPalette.accent) }
                 // @ai-end
                 Spacer(minLength: 0)
-                if playing { Image(systemName: "pause.fill").font(.system(size: 11, weight: .bold)).foregroundStyle(WidgetPalette.accent) } // @ai
               }
             }
           }
