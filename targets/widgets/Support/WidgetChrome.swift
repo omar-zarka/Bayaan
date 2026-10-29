@@ -3,12 +3,97 @@ import AppIntents
 import SwiftUI
 import WidgetKit
 
-/// The Continue Listening look, shared by every Phase 1b widget.
+// @ai-start
+/// The widget look (redesign 2026-10): three families share these tokens.
+/// Listen widgets sit on a surah tint, Read widgets on paper or night, and
+/// Remember widgets on ink or a time-of-day tint. `accent` marks the one
+/// primary action in a widget.
+// @ai-end
 enum WidgetPalette {
-  // Fixed near-black in both appearances (Continue Listening keeps its own
-  // private copy of the same value).
-  static let background = Color(red: 0x1C / 255, green: 0x1C / 255, blue: 0x1E / 255)
+  // @ai-start
+  static let ink = Color(hex: 0x0B1E26)
+  static let background = ink
+  static let night = Color(hex: 0x071A22)
+  static let paper = Color(hex: 0xF4F3EC)
+  static let paperInk = Color(hex: 0x06151C)
+  static let paperSecondary = Color(hex: 0x3A4A52)
+  static let paperLabel = Color(hex: 0x6B5B3A)
+  static let paperRule = Color(hex: 0xDCD8C8)
+  static let gold = Color(hex: 0xD6BE8C)
+  static let accent = Color(hex: 0x1F9D6B)
+  static let bedtime = Color(hex: 0x10142B)
+  static let moon = Color(hex: 0xE8D9A8)
+  // @ai-end
   static let tile = Color.white.opacity(0.15)
+  // @ai-start
+  static let secondary = Color.white.opacity(0.8)
+}
+
+extension Color {
+  init(hex: UInt32) {
+    self.init(red: Double((hex >> 16) & 0xFF) / 255, green: Double((hex >> 8) & 0xFF) / 255,
+              blue: Double(hex & 0xFF) / 255)
+  }
+}
+
+/// A fixed color per surah: `base` for its tile, `deep` for the widget
+/// background behind it. Uploads (surah 0) use ink.
+enum SurahTint {
+  private static let pairs: [(base: UInt32, deep: UInt32)] = [
+    (0x1D6461, 0x0F2C2C), // teal
+    (0x5645A1, 0x1E1838), // violet
+    (0x273A6B, 0x101A30), // navy
+    (0x9A4A2B, 0x2E1710), // clay
+    (0x1F6B47, 0x0D2A1D), // green
+    (0x6B2F5A, 0x2A1224), // plum
+    (0x3B5566, 0x14212A), // slate
+    (0x5F6332, 0x24260F), // olive
+  ]
+
+  private static func pair(_ surahId: Int) -> (base: UInt32, deep: UInt32)? {
+    surahId > 0 ? pairs[(surahId - 1) % pairs.count] : nil
+  }
+
+  static func base(_ surahId: Int) -> Color { pair(surahId).map { Color(hex: $0.base) } ?? WidgetPalette.tile }
+  static func deep(_ surahId: Int) -> Color { pair(surahId).map { Color(hex: $0.deep) } ?? WidgetPalette.ink }
+}
+
+/// Paper in light appearance, night in dark: the Read family.
+struct ReadingStyle {
+  let background: Color
+  let primary: Color
+  let secondary: Color
+  let label: Color
+  let rule: Color
+  let buttonFill: Color
+  let buttonGlyph: Color
+
+  static func forScheme(_ scheme: ColorScheme) -> ReadingStyle {
+    scheme == .dark
+      ? ReadingStyle(background: WidgetPalette.night, primary: WidgetPalette.paper,
+                     secondary: WidgetPalette.paper.opacity(0.82), label: WidgetPalette.gold,
+                     rule: WidgetPalette.gold.opacity(0.35), buttonFill: WidgetPalette.gold,
+                     buttonGlyph: WidgetPalette.night)
+      : ReadingStyle(background: WidgetPalette.paper, primary: WidgetPalette.paperInk,
+                     secondary: WidgetPalette.paperSecondary, label: WidgetPalette.paperLabel,
+                     rule: WidgetPalette.paperRule, buttonFill: WidgetPalette.paperInk,
+                     buttonGlyph: WidgetPalette.paper)
+  }
+}
+
+/// Small caps label above a widget's content ("NOW PLAYING").
+struct Eyebrow: View {
+  let text: String
+  var color: Color = WidgetPalette.secondary
+
+  var body: some View {
+    Text(text.uppercased())
+      .font(.system(size: 10, weight: .heavy))
+      .tracking(1)
+      .foregroundStyle(color)
+      .lineLimit(1)
+  }
+  // @ai-end
 }
 
 enum WidgetFonts {
@@ -30,7 +115,7 @@ struct CachedImage: View {
   }
 }
 
-/// The surah card when cached, else a dark tile with the number and name.
+/// The surah card when cached, else a generated tile. // @ai
 struct SurahCard: View {
   let surah: StaticSurah?
   let size: CGFloat
@@ -40,27 +125,44 @@ struct SurahCard: View {
       if let surah, let image = SnapshotStore.artwork(surah.artworkFile) {
         CachedImage(image: image).aspectRatio(1, contentMode: .fill)
       } else {
-        ZStack {
-          WidgetPalette.tile
-          VStack(spacing: 1) {
-            Text(surah.map { String($0.id) } ?? "")
-              .font(.system(size: size * 0.32, weight: .bold, design: .rounded))
-            if size >= 44, let surah {
-              Text(surah.name).font(.system(size: 9, weight: .semibold))
-                .lineLimit(1).minimumScaleFactor(0.7).padding(.horizontal, 3)
-            }
-          }
-          .foregroundStyle(.white)
-        }
+        GeneratedSurahTile(surah: surah, size: size) // @ai
       }
     }
     .frame(width: size, height: size)
-    .clipShape(RoundedRectangle(cornerRadius: size * 0.16, style: .continuous))
+    .clipShape(RoundedRectangle(cornerRadius: size * 0.2, style: .continuous)) // @ai
     .accessibilityLabel(surah?.name ?? "")
   }
 }
 
-/// The reciter photo when cached, else initials on a dark tile. Fills its frame.
+// @ai-start
+/// Stand-in artwork: the surah's tint, a faint starburst and the surah name
+/// glyph, so a widget never shows an empty box before artwork is cached.
+struct GeneratedSurahTile: View {
+  let surah: StaticSurah?
+  let size: CGFloat
+
+  var body: some View {
+    ZStack {
+      SurahTint.base(surah?.id ?? 0)
+      BayaanMark().fill(.white.opacity(0.14))
+        .frame(width: size * 1.2, height: size)
+        .offset(x: size * 0.32, y: size * 0.28)
+      if let surah {
+        if surah.glyph.isEmpty {
+          Text(String(surah.id)).font(.system(size: size * 0.32, weight: .bold, design: .rounded))
+        } else {
+          Text(surah.glyph).font(WidgetFonts.surahGlyph(size * 0.46)).minimumScaleFactor(0.5)
+        }
+      }
+    }
+    .foregroundStyle(.white)
+    .frame(width: size, height: size)
+    .clipped()
+  }
+}
+
+/// The reciter photo when cached, else initials on a violet tile. Fills its frame.
+// @ai-end
 struct ReciterPhoto: View {
   let file: String?
   let name: String
@@ -70,23 +172,44 @@ struct ReciterPhoto: View {
       CachedImage(image: image).aspectRatio(contentMode: .fill)
     } else {
       ZStack {
-        WidgetPalette.tile
-        Text(WidgetLogic.initials(name)).font(.title2.bold()).foregroundStyle(.white)
+        // @ai-start
+        Color(hex: 0x5645A1)
+        Text(WidgetLogic.initials(name)).font(.title2.weight(.heavy)).foregroundStyle(.white)
+        // @ai-end
       }
     }
   }
 }
 
-/// The 30 pt round glyph of Continue Listening's play button.
+/// Secondary round control (reset, previous, next). // @ai
 struct RoundGlyph: View {
   let systemName: String
+  var size: CGFloat = 32 // @ai
 
   var body: some View {
     Image(systemName: systemName)
-      .font(.system(size: 12, weight: .bold))
+      .font(.system(size: size * 0.38, weight: .bold)) // @ai
       .foregroundStyle(.white)
-      .frame(width: 30, height: 30)
-      .background(.white.opacity(0.18), in: Circle())
+      // @ai-start
+      .frame(width: size, height: size)
+      .background(.white.opacity(0.14), in: Circle())
+  }
+}
+
+/// The one primary action in a widget: a solid accent circle, 44 pt by default.
+struct PrimaryGlyph: View {
+  let systemName: String
+  var size: CGFloat = 44
+  var fill: Color = WidgetPalette.accent
+  var glyph: Color = .white
+
+  var body: some View {
+    Image(systemName: systemName)
+      .font(.system(size: size * 0.38, weight: .bold))
+      .foregroundStyle(glyph)
+      .frame(width: size, height: size)
+      .background(fill, in: Circle())
+      // @ai-end
   }
 }
 
@@ -94,9 +217,25 @@ struct RoundIntentButton<I: AppIntent>: View {
   let intent: I
   let systemName: String
   let label: String
+  // @ai-start
+  var size: CGFloat = 32
 
   var body: some View {
-    Button(intent: intent) { RoundGlyph(systemName: systemName) }
+    Button(intent: intent) { RoundGlyph(systemName: systemName, size: size) }
+      .buttonStyle(.plain)
+      .accessibilityLabel(label)
+  }
+}
+
+struct PrimaryIntentButton<I: AppIntent>: View {
+  let intent: I
+  let systemName: String
+  let label: String
+  var size: CGFloat = 44
+  // @ai-end
+
+  var body: some View {
+    Button(intent: intent) { PrimaryGlyph(systemName: systemName, size: size) } // @ai
       .buttonStyle(.plain)
       .accessibilityLabel(label)
   }

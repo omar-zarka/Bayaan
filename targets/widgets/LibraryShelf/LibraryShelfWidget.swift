@@ -75,13 +75,13 @@ struct LibraryShelfView: View {
         }
       case let .playlist(p):
         let header = ShelfHeader(title: p.name, detail: ContentText.surahCount(p.itemCount)) {
-          RoundIntentButton(intent: PlayPlaylistIntent(playlistId: p.id, itemId: nil), systemName: "play.fill", label: "Play \(p.name)")
+          PrimaryIntentButton(intent: PlayPlaylistIntent(playlistId: p.id, itemId: nil), systemName: "play.fill", label: "Play \(p.name)", size: 36) // @ai
         }
         if p.items.isEmpty {
           VStack(alignment: .leading, spacing: 10) {
             header
             Spacer(minLength: 0)
-            Text("Open the playlist in \(AppBrand.name)").font(.caption).opacity(0.6)
+            Text("Open the playlist in \(AppBrand.name)").font(.caption).foregroundStyle(WidgetPalette.secondary) // @ai
             Spacer(minLength: 0)
           }
           .padding(14)

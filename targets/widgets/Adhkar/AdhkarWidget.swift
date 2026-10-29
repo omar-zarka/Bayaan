@@ -80,22 +80,28 @@ struct AdhkarView: View {
         ContentMessage(title: "Open \(AppBrand.name)")
       }
     }
-    .foregroundStyle(.white)
-    .containerBackground(for: .widget) { WidgetPalette.background }
+    // @ai-start
+    .foregroundStyle(style.primary)
+    .containerBackground(for: .widget) { style.background }
+  }
+
+  /// Time-of-day tint; the period of the shown data, else today's clock.
+  private var style: AdhkarStyle {
+    .forPeriod(entry.data?.period ?? (Calendar.current.component(.hour, from: entry.date) < 12 ? "morning" : "evening"))
+    // @ai-end
   }
 
   private func small(_ data: AdhkarPeriodData, _ dhikr: FeaturedDhikr) -> some View {
-    VStack(spacing: 6) {
-      HStack {
-        Text(data.title).font(.footnote.weight(.bold)).opacity(0.75).lineLimit(1)
-        Spacer(minLength: 0)
-        BayaanLogo(size: 12)
+    // @ai-start
+    VStack(alignment: .leading, spacing: 6) {
+      HStack(spacing: 6) {
+        Image(systemName: style.symbol).font(.system(size: 13, weight: .bold)).foregroundStyle(style.accent)
+        Text(data.title).font(.footnote.weight(.heavy)).lineLimit(1)
+    // @ai-end
       }
-      Spacer(minLength: 0)
-      DhikrText(text: dhikr.arabic, size: 22, lines: 3).frame(maxWidth: .infinity)
-      Spacer(minLength: 0)
+      DhikrText(text: dhikr.arabic, size: 22, lines: 3).frame(maxWidth: .infinity, maxHeight: .infinity) // @ai
     }
-    .padding(12)
+    .padding(14) // @ai
   }
 }
 

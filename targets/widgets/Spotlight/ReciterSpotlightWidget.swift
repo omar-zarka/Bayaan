@@ -61,7 +61,7 @@ struct ReciterSpotlightView: View {
       }
     }
     .foregroundStyle(.white)
-    .containerBackground(for: .widget) { WidgetPalette.background }
+    .containerBackground(for: .widget) { Color(hex: 0x1E1838) } // @ai
   }
 
   private func small(_ r: WidgetSpotlightReciter) -> some View {
@@ -70,18 +70,17 @@ struct ReciterSpotlightView: View {
         ReciterPhoto(file: r.artworkFile, name: r.name)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .clipped()
-        LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
+        LinearGradient(colors: [WidgetPalette.ink.opacity(0), WidgetPalette.ink.opacity(0.9)], startPoint: .center, endPoint: .bottom) // @ai
         VStack(alignment: .leading, spacing: 2) {
-          Text("Reciter of the Day").font(.caption2.weight(.semibold)).opacity(0.75)
+          Eyebrow(text: "Reciter of the Day") // @ai
           HStack(alignment: .bottom) {
             Text(r.name).font(.headline).lineLimit(2)
             Spacer(minLength: 4)
-            RoundGlyph(systemName: "play.fill")
+            PrimaryGlyph(systemName: "play.fill") // @ai
           }
         }
         .padding(12)
       }
-      .overlay(alignment: .topTrailing) { BayaanLogo(size: 14).padding(12) }
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Play \(r.name)")
@@ -93,24 +92,27 @@ struct ReciterSpotlightView: View {
         ReciterPhoto(file: r.artworkFile, name: r.name)
           .frame(width: 106, height: 106)
           .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        RoundIntentButton(intent: PlayReciterIntent(reciterId: r.id), systemName: "play.fill", label: "Play \(r.name)")
+        PrimaryIntentButton(intent: PlayReciterIntent(reciterId: r.id), systemName: "play.fill", label: "Play \(r.name)") // @ai
           .padding(8)
       }
       VStack(alignment: .leading, spacing: 6) {
         HStack(alignment: .top) {
           VStack(alignment: .leading, spacing: 1) {
-            Text("Reciter of the Day").font(.caption2.weight(.semibold)).opacity(0.6)
-            Text(r.name).font(.subheadline.bold()).lineLimit(1)
+            // @ai-start
+            Eyebrow(text: "Reciter of the Day")
+            Text(r.name).font(.subheadline.weight(.heavy)).lineLimit(1)
+            // @ai-end
           }
           Spacer(minLength: 0)
-          BayaanLogo(size: 14)
         }
         ForEach(r.surahIds, id: \.self) { id in
           if let surah = StaticData.surah(id) {
             Button(intent: PlayTrackIntent(surahId: id, reciterId: r.id, rewayatId: nil)) {
               HStack(spacing: 8) {
-                SurahCard(surah: surah, size: 24)
-                Text(surah.name).font(.caption.weight(.semibold)).lineLimit(1)
+                // @ai-start
+                SurahCard(surah: surah, size: 26)
+                Text(surah.name).font(.caption.weight(.bold)).lineLimit(1)
+                // @ai-end
                 Spacer(minLength: 0)
               }
             }

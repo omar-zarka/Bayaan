@@ -74,7 +74,7 @@ struct PinnedReciterView: View {
       }
     }
     .foregroundStyle(.white)
-    .containerBackground(for: .widget) { WidgetPalette.background }
+    .containerBackground(for: .widget) { Color(hex: 0x1E1838) } // @ai
   }
 
   private func small(id: String, name: String, file: String?) -> some View {
@@ -83,15 +83,14 @@ struct PinnedReciterView: View {
         ReciterPhoto(file: file, name: name)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .clipped()
-        LinearGradient(colors: [.clear, .black.opacity(0.7)], startPoint: .center, endPoint: .bottom)
+        LinearGradient(colors: [WidgetPalette.ink.opacity(0), WidgetPalette.ink.opacity(0.9)], startPoint: .center, endPoint: .bottom) // @ai
         HStack(alignment: .bottom) {
           Text(name).font(.headline).lineLimit(2)
           Spacer(minLength: 4)
-          RoundGlyph(systemName: "play.fill")
+          PrimaryGlyph(systemName: "play.fill") // @ai
         }
         .padding(12)
       }
-      .overlay(alignment: .topTrailing) { BayaanLogo(size: 14).padding(12) }
     }
     .buttonStyle(.plain)
     .accessibilityLabel("Play \(name)")
@@ -103,21 +102,19 @@ struct PinnedReciterView: View {
         ReciterPhoto(file: file, name: name)
           .frame(width: 106, height: 106)
           .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-        RoundIntentButton(intent: PlayReciterIntent(reciterId: id), systemName: "play.fill", label: "Play \(name)")
+        PrimaryIntentButton(intent: PlayReciterIntent(reciterId: id), systemName: "play.fill", label: "Play \(name)") // @ai
           .padding(8)
       }
       VStack(alignment: .leading, spacing: 6) {
-        HStack {
-          Text(name).font(.subheadline.bold()).lineLimit(1)
-          Spacer(minLength: 0)
-          BayaanLogo(size: 14)
-        }
+        Text(name).font(.subheadline.weight(.heavy)).lineLimit(1) // @ai
         ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
           if let surah = StaticData.surah(row.surahId) {
             Button(intent: PlayTrackIntent(surahId: surah.id, reciterId: id, rewayatId: row.rewayatId)) {
               HStack(spacing: 8) {
-                SurahCard(surah: surah, size: 24)
-                Text(surah.name).font(.caption.weight(.semibold)).lineLimit(1)
+                // @ai-start
+                SurahCard(surah: surah, size: 26)
+                Text(surah.name).font(.caption.weight(.bold)).lineLimit(1)
+                // @ai-end
                 Spacer(minLength: 0)
               }
             }
