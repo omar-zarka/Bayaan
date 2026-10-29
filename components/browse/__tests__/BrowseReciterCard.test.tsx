@@ -1,5 +1,6 @@
 import React from 'react';
 import TestRenderer, {act, type ReactTestRenderer} from 'react-test-renderer';
+import {StyleSheet} from 'react-native'; // @ai
 import {BrowseReciterCard} from '@/components/browse/BrowseReciterCard';
 import type {Reciter} from '@/data/reciterData';
 import type {Theme} from '@/utils/themeUtils';
@@ -26,6 +27,7 @@ jest.mock('@/components/ReciterImage', () => ({ReciterImage: () => null}));
 jest.mock('@/components/badges/FollowAlongBadge', () => ({
   FollowAlongBadge: () => null,
 }));
+jest.mock('@/components/Icons', () => ({PlayIcon: () => null})); // @ai
 
 const theme = {
   colors: {text: '#111111', textSecondary: '#666666'},
@@ -109,5 +111,30 @@ it('links to the profile in the tab it is shown in', () => {
     pathname: '/(tabs)/(b.search)/reciter/[id]',
     params: {id: 'reciter-1'},
   });
+});
+// @ai-end
+
+// @ai-start
+it('shows the play badge only when asked', () => {
+  const badges = (r: ReactTestRenderer) =>
+    r.root.findAll(
+      n => (n.type as unknown) === 'View' && n.props.testID === 'play-badge',
+    );
+  expect(badges(render({linkToProfile: false}))).toHaveLength(0);
+  act(() => mounted?.unmount());
+  expect(
+    badges(render({linkToProfile: false, showPlayBadge: true})),
+  ).toHaveLength(1);
+});
+
+it('uses the iPad caption sizes with tabletText', () => {
+  const sizes = (r: ReactTestRenderer) =>
+    r.root
+      .findAll(n => (n.type as unknown) === 'Text')
+      .map(n => StyleSheet.flatten(n.props.style).fontSize);
+  const phone = sizes(render());
+  act(() => mounted?.unmount());
+  expect(sizes(render({tabletText: true}))).toEqual([14, 12]);
+  expect(phone).not.toEqual([14, 12]);
 });
 // @ai-end
