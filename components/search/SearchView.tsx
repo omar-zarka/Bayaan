@@ -38,6 +38,11 @@ import {SheetManager} from 'react-native-actions-sheet';
 import {ExploreView} from '@/components/search/ExploreView';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
+import {useHeaderHeight} from 'expo-router/react-navigation'; // @ai
+import {USE_GLASS} from '@/hooks/useGlassProps'; // @ai
+import {usePlayerActions} from '@/hooks/usePlayerActions'; // @ai
+import {createTracksForReciter} from '@/utils/track'; // @ai
+import {TabletSearchResults} from '@/components/search/TabletSearchResults'; // @ai
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 // @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
@@ -97,14 +102,20 @@ export function SearchView({
   const {askEveryTime, defaultReciterSelection} = useSettings();
   const defaultReciter = useReciterStore(state => state.defaultReciter);
   const {playWithReciter, playWithRandomReciter} = useReciterSelection();
+  const {addToQueue} = usePlayerActions();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
-  // Explore fills the iPad pane, but results and recents stay in the 720pt
-  // reading column (ipad-standards §5.3).
+  // Explore and the results fill the iPad pane, but recent searches and the
+  // loading and empty states stay in the 720pt reading column
+  // (ipad-standards §5.3).
   const {isTablet} = useResponsive();
   const listStyle = isTablet
     ? [styles.flexFill, styles.tabletColumn]
     : styles.flexFill;
+  // On iPad the native search field floats in the navigation bar, so results
+  // start below the whole bar instead of just the status bar.
+  const headerHeight = useHeaderHeight();
+  const topInset = isTablet && USE_GLASS ? headerHeight : insets.top;
 
   useEffect(() => {
     const showEvent =
@@ -354,6 +365,34 @@ export function SearchView({
     ],
   );
 
+  // The iPad results' options button. The menu acts on the default reciter
+  // and the rewayah its play button uses, and names the reciter in its
+  // header.
+  const handleSurahOptions = useCallback(
+    (result: SearchResult) => {
+      Keyboard.dismiss();
+      const rewayatId = defaultReciter?.rewayat[0]?.id;
+      SheetManager.show('surah-options', {
+        payload: {
+          surah: result.item as Surah,
+          reciterId: defaultReciter?.id,
+          rewayatId,
+          onAddToQueue: defaultReciter
+            ? async (surah: Surah) => {
+                const tracks = await createTracksForReciter(
+                  defaultReciter,
+                  [surah],
+                  rewayatId,
+                );
+                await addToQueue(tracks);
+              }
+            : undefined,
+        },
+      });
+    },
+    [defaultReciter, addToQueue],
+  );
+
   const renderSearchResult = useCallback(
     ({item}: ListRenderItemInfo<SearchResult>) => {
       if (item.type === 'surah') {
@@ -432,7 +471,7 @@ export function SearchView({
           {
             opacity: searchOpacity,
             backgroundColor: theme.colors.background,
-            paddingTop: skipTopInset ? 0 : insets.top,
+            paddingTop: skipTopInset ? 0 : topInset,
           },
         ]}
         pointerEvents={isSearchMode ? 'auto' : 'none'}>
@@ -522,6 +561,15 @@ export function SearchView({
               </View>
             )}
           </ScrollView>
+        ) : isTablet && !searching && searchResults.length > 0 ? (
+          <TabletSearchResults
+            results={searchResults}
+            onResultPress={handleResultPress}
+            onSurahPlay={handleSurahLongPress}
+            onSurahOptions={handleSurahOptions}
+            bottomPadding={Math.max(keyboardHeight, bottomInset)}
+            style={styles.tabletFullWidth}
+          />
         ) : (
           <FlatList
             style={listStyle}
@@ -604,6 +652,9 @@ const styles = StyleSheet.create({
   tabletColumn: {
     width: '100%',
     maxWidth: 720,
+  },
+  tabletFullWidth: {
+    alignSelf: 'stretch',
   },
   scrollContent: {},
   sectionHeader: {
