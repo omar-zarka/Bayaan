@@ -60,3 +60,21 @@ export async function playAdhkarFromWidget(
     store.dispatch(event);
   }
 }
+
+/** Pause or resume the adhkar session; a no-op when it is already there. */
+export function adhkarPlaybackEvents(
+  session: AdhkarSession | null,
+  playing: boolean,
+): SessionEvent[] {
+  if (!session) return [];
+  return (session.status !== 'paused') === playing ? [] : [{type: 'toggle'}];
+}
+
+export function setAdhkarPlaybackFromWidget(playing: boolean): void {
+  const {useAdhkarSessionStore} =
+    require('@/store/adhkarSessionStore') as typeof import('@/store/adhkarSessionStore');
+  const store = useAdhkarSessionStore.getState();
+  for (const event of adhkarPlaybackEvents(store.session, playing)) {
+    store.dispatch(event);
+  }
+}

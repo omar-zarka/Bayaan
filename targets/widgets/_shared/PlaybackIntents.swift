@@ -78,12 +78,24 @@ struct PlayReciterIntent: AudioPlaybackIntent {
 
 /// Every play/pause and play-track entry point (widgets, Live Activity, controls, Siri).
 enum PlaybackCommand {
+  // @ai-start
+  /// Kinds that render the main player's state, for an optimistic reload.
+  static let playButtonKinds = [
+    "ContinueListening", "ListeningAccessory", "QuickSurah", "PinnedReciter", "AyahOfTheDay",
+    "RecentlyPlayed", "LibraryShelf", "ReciterSpotlight", "Bedtime", "BayaanNow",
+  ]
+  // @ai-end
+
   @discardableResult // @ai
   static func setPlaying(_ playing: Bool) -> Double {
     // Optimistic render first, then hand the command to the app.
     PlaybackOverrideStore.write(isPlaying: playing)
-    WidgetCenter.shared.reloadTimelines(ofKind: "ContinueListening")
-    WidgetCenter.shared.reloadTimelines(ofKind: "ListeningAccessory")
+    // @ai-start
+    // Every widget whose play button turns into pause while its item plays.
+    for kind in PlaybackCommand.playButtonKinds {
+      WidgetCenter.shared.reloadTimelines(ofKind: kind)
+    }
+    // @ai-end
     if #available(iOS 18.0, *) {
       ControlCenter.shared.reloadControls(ofKind: "PlaybackControl")
     }

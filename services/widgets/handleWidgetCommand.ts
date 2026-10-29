@@ -341,6 +341,12 @@ export async function handleWidgetCommand(
       await playAdhkarFromWidget(command.superId, command.dhikrId);
       return;
     }
+    case 'setAdhkarPlayback': {
+      const {setAdhkarPlaybackFromWidget} =
+        require('@/services/adhkar/playback/widgetPlay') as typeof import('@/services/adhkar/playback/widgetPlay');
+      setAdhkarPlaybackFromWidget(command.playing);
+      return;
+    }
     // @ai-end
   }
 }

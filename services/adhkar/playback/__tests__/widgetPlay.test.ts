@@ -1,5 +1,5 @@
 // @ai-generated
-import {widgetPlayEvents} from '../widgetPlay';
+import {adhkarPlaybackEvents, widgetPlayEvents} from '../widgetPlay';
 import type {AdhkarSession, SessionSource} from '../types';
 
 const source: SessionSource = {
@@ -71,4 +71,35 @@ it('does nothing when it is already playing that dhikr', () => {
 it('does nothing for a list without audio', () => {
   const silent = {...source, items: [source.items[0]]};
   expect(widgetPlayEvents(null, silent, null)).toEqual([]);
+});
+
+describe('adhkarPlaybackEvents', () => {
+  it('pauses a playing session', () => {
+    expect(adhkarPlaybackEvents(session({}), false)).toEqual([
+      {type: 'toggle'},
+    ]);
+  });
+
+  it('pauses a loading session', () => {
+    expect(adhkarPlaybackEvents(session({status: 'loading'}), false)).toEqual([
+      {type: 'toggle'},
+    ]);
+  });
+
+  it('resumes a paused session', () => {
+    expect(adhkarPlaybackEvents(session({status: 'paused'}), true)).toEqual([
+      {type: 'toggle'},
+    ]);
+  });
+
+  it('leaves a session already in that state', () => {
+    expect(adhkarPlaybackEvents(session({}), true)).toEqual([]);
+    expect(adhkarPlaybackEvents(session({status: 'paused'}), false)).toEqual(
+      [],
+    );
+  });
+
+  it('does nothing without a session', () => {
+    expect(adhkarPlaybackEvents(null, false)).toEqual([]);
+  });
 });

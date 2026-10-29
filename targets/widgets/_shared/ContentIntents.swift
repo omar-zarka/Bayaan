@@ -1,6 +1,7 @@
 // targets/widgets/_shared/ContentIntents.swift
 import AppIntents
 import Foundation
+import WidgetKit // @ai
 
 // AudioPlaybackIntents run in the app process, like PlayTrackIntent. They
 // only enqueue a command; services/widgets/contentCommands.ts does the work.
@@ -94,6 +95,68 @@ struct PlayAdhkarIntent: AudioPlaybackIntent {
     ])
     await PlaybackCommand.waitUntilHandled(enqueuedAt)
     return .result()
+  }
+}
+// @ai-end
+
+// @ai-start
+/// Pauses or resumes the adhkar player (Adhkar widgets' pause button).
+/// Sends an absolute state, like SetPlaybackIntent.
+@available(iOS 17.0, *)
+struct SetAdhkarPlaybackIntent: AudioPlaybackIntent {
+  static var title: LocalizedStringResource = "Play or Pause Adhkar"
+  static var isDiscoverable = false
+
+  @Parameter(title: "Playing") var playing: Bool
+
+  init() {}
+
+  init(playing: Bool) {
+    self.playing = playing
+  }
+
+  func perform() async throws -> some IntentResult {
+    // Optimistic render first, then hand the command to the app.
+    AdhkarPlaybackOverrideStore.write(isPlaying: playing)
+    WidgetCenter.shared.reloadTimelines(ofKind: "Adhkar")
+    WidgetCenter.shared.reloadTimelines(ofKind: "BayaanNow")
+    let enqueuedAt = WidgetCommandQueue.enqueue(["type": "setAdhkarPlayback", "playing": playing])
+    await PlaybackCommand.waitUntilHandled(enqueuedAt)
+    return .result()
+  }
+}
+
+/// Written on an adhkar pause or play tap so the widget flips before the app
+/// confirms it. Same shape and lifetime as PlaybackOverride.
+enum AdhkarPlaybackOverrideStore {
+  static let key = "widgets.adhkarPlaybackOverride"
+
+  static func write(isPlaying: Bool) {
+    let value = PlaybackOverride(isPlaying: isPlaying, at: Date().timeIntervalSince1970 * 1000)
+    guard let defaults = BayaanAppGroup.defaults,
+          let data = try? JSONEncoder().encode(value),
+          let json = String(data: data, encoding: .utf8) else { return }
+    defaults.set(json, forKey: key)
+  }
+
+  static func read() -> PlaybackOverride? {
+    guard let data = BayaanAppGroup.defaults?.string(forKey: key)?.data(using: .utf8) else { return nil }
+    return try? JSONDecoder().decode(PlaybackOverride.self, from: data)
+  }
+}
+
+/// Whether the adhkar list `superId` is playing: the snapshot, unless a newer
+/// tap override (younger than the TTL) says otherwise. Show pause when true.
+enum AdhkarPlaybackState {
+  static func isPlaying(superId: String, snapshot: WidgetSnapshot?,
+                        override: PlaybackOverride? = AdhkarPlaybackOverrideStore.read(),
+                        now: Date = .now) -> Bool {
+    guard let snapshot, let adhkar = snapshot.adhkar, adhkar.superId == superId else { return false }
+    let nowMs = now.timeIntervalSince1970 * 1000
+    if let o = override, o.at > snapshot.generatedAt, nowMs - o.at <= PlaybackOverrideStore.ttlMs {
+      return o.isPlaying
+    }
+    return adhkar.isPlaying
   }
 }
 // @ai-end

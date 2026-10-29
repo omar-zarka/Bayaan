@@ -40,7 +40,9 @@ export type WidgetCommand =
       ambient: WidgetAmbientSound | null; // null leaves ambient alone
     }
   // Play an adhkar list's audio from dhikrId (null: the first with audio). // @ai
-  | {type: 'playAdhkar'; superId: string; dhikrId: string | null}; // @ai
+  | {type: 'playAdhkar'; superId: string; dhikrId: string | null} // @ai
+  // Absolute target state for the adhkar player, like setPlayback. // @ai
+  | {type: 'setAdhkarPlayback'; playing: boolean}; // @ai
 
 export interface QueuedWidgetCommand {
   command: WidgetCommand;
@@ -95,6 +97,8 @@ export function isWidgetCommand(value: unknown): value is WidgetCommand {
         value.superId.length > 0 &&
         isNullableString(value.dhikrId)
       );
+    case 'setAdhkarPlayback':
+      return typeof value.playing === 'boolean';
     // @ai-end
     default:
       return false;
@@ -132,14 +136,22 @@ export function selectFreshCommands(
 
   // The last play command wins. The last setPlayback wins too, but only
   // when it came after that play command (a pause tapped after a row tap).
+  // The adhkar player's setAdhkarPlayback follows the same rule. // @ai
   let lastPlay = -1;
   let lastSet = -1;
+  let lastAdhkarSet = -1; // @ai
   fresh.forEach((c, i) => {
     if (c.type === 'setPlayback') lastSet = i;
+    else if (c.type === 'setAdhkarPlayback') lastAdhkarSet = i; // @ai
     else lastPlay = i;
   });
-  const selected: WidgetCommand[] = [];
-  if (lastPlay >= 0) selected.push(fresh[lastPlay]);
-  if (lastSet > lastPlay) selected.push(fresh[lastSet]);
-  return selected;
+  // @ai-start
+  const picked = [lastPlay];
+  if (lastSet > lastPlay) picked.push(lastSet);
+  if (lastAdhkarSet > lastPlay) picked.push(lastAdhkarSet);
+  return picked
+    .filter(i => i >= 0)
+    .sort((a, b) => a - b)
+    .map(i => fresh[i]);
+  // @ai-end
 }

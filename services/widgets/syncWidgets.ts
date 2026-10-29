@@ -18,6 +18,7 @@ import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import {useReciterStore} from '@/store/reciterStore';
 import {useThemeStore} from '@/store/themeStore';
+import {useAdhkarSessionStore} from '@/store/adhkarSessionStore'; // @ai
 import {getReciterByIdSync} from '@/services/dataService';
 import {getReciterArtwork} from '@/utils/artworkUtils';
 import {
@@ -146,7 +147,10 @@ export function flushWidgetSnapshot(forceContinueListening = false): void {
       forceContinueListening && !changed.includes('ContinueListening')
         ? [...changed, 'ContinueListening' as const]
         : changed;
-    if (kinds.length === 0) return;
+    // Adhkar playback has no WidgetKind; the content sync reloads its widgets. // @ai
+    const adhkarChanged = // @ai
+      JSON.stringify(prev?.adhkar ?? null) !== JSON.stringify(next.adhkar); // @ai
+    if (kinds.length === 0 && !adhkarChanged) return; // @ai
     writeSnapshot(next);
     reloadWidgets(enabledKinds(kinds));
     lastSnapshot = next;
@@ -241,6 +245,7 @@ export function startWidgetSync(): () => void {
     useRecentlyPlayedStore.subscribe(schedule),
     useReciterStore.subscribe(schedule),
     useThemeStore.subscribe(schedule),
+    useAdhkarSessionStore.subscribe(schedule), // @ai
   ];
   const appState = AppState.addEventListener('change', state => {
     if (state === 'background') flushWidgetSnapshot();
