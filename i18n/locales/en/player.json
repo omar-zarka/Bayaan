@@ -5,7 +5,15 @@
     "nowPlaying": "Now Playing",
     "upNext": "Up Next",
     "played": "Played",
-    "remove": "Remove {{title}} from queue"
+    "remove": "Remove {{title}} from queue",
+    "playNext": "Play Next",
+    "moveUp": "Move up",
+    "moveDown": "Move down",
+    "reorder": "Reorder {{title}}",
+    "reorderHint": "Drag to move it in the queue",
+    "moreFor": "More options for {{title}}",
+    "clearUpNext": "Clear Up Next",
+    "nothingNext": "Nothing up next"
   },
   "panes": {
     "text": "Text",

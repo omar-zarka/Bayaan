@@ -3,17 +3,6 @@ import React from 'react';
 import {StyleSheet, View} from 'react-native';
 import TestRenderer, {act} from 'react-test-renderer';
 
-const mockUpdateQueue = jest.fn().mockResolvedValue(undefined);
-const mockRemoveFromQueue = jest.fn().mockResolvedValue(undefined);
-const mockPlay = jest.fn().mockResolvedValue(undefined);
-jest.mock('@/hooks/usePlayerActions', () => ({
-  usePlayerActions: () => ({
-    updateQueue: mockUpdateQueue,
-    removeFromQueue: mockRemoveFromQueue,
-    play: mockPlay,
-  }),
-}));
-
 type MockTrack = {
   surahId?: string;
   reciterId?: string;
@@ -50,10 +39,10 @@ jest.mock('@/components/tablet/TabletPlayerReciterColumn', () => {
     ),
   };
 });
-jest.mock('../../PlayerContent/QueueList', () => {
+jest.mock('../QueuePane', () => {
   const {View: MockView} = jest.requireActual('react-native');
   return {
-    QueueList: (props: object) => <MockView testID="queue" {...props} />,
+    QueuePane: (props: object) => <MockView testID="queue" {...props} />,
   };
 });
 jest.mock('../../PlayerContent/QuranView', () => {
@@ -104,21 +93,10 @@ describe('PlayerPaneBody', () => {
     expect(text.props.arabicFontSize).toBe(30);
   });
 
-  it('holds the queue to the reading column and plays a tapped row', async () => {
+  it('holds the queue to the reading column, clear of the bottom inset', () => {
     const [queue] = find(render('queue'), 'queue');
-    expect(queue.props.contentPaddingBottom).toBe(272);
+    expect(queue.props.bottomInset).toBe(272);
     expect(parentStyle(queue)).toMatchObject({maxWidth: 680});
-
-    await act(async () => {
-      await queue.props.onQueueItemPress(0);
-    });
-    expect(mockUpdateQueue).toHaveBeenCalledWith(mockTracks, 0);
-    expect(mockPlay).toHaveBeenCalled();
-
-    await act(async () => {
-      await queue.props.onRemoveQueueItem(0);
-    });
-    expect(mockRemoveFromQueue).toHaveBeenCalledWith([0]);
   });
 
   it("embeds the current reciter's catalog", () => {
