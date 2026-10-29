@@ -194,11 +194,6 @@
     "packages/*"
   ],
   "expo": {
-    "install": {
-      "exclude": [
-        "react-native-screens"
-      ]
-    },
     "autolinking": {
       "buildFromSource": [
         "expo-audio"
