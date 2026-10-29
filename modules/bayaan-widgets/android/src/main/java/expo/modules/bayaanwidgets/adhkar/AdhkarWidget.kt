@@ -86,22 +86,25 @@ fun AdhkarContent(context: Context, nowMs: Long) {
     val bucket = if (size.height >= WidgetSizes.SMALL_TALL.height) WidgetSizes.SMALL_TALL else WidgetSizes.SMALL
     // @ai-start
     val style = AdhkarStyle.forPeriod(data.period)
-    Column(root.background(style.color(style.background)).padding(14.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(root.background(style.color(style.background)).padding(12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         PeriodIcon(style, 15)
         Spacer(GlanceModifier.width(6.dp))
         // Drops "Adhkar" before cutting letters; the icon already says which.
-        Text(WidgetText.fitTitle(data.title, (size.width.value.toInt() - 84) / 8), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+        Text(WidgetText.fitTitle(data.title, (size.width.value.toInt() - 45) / 8), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
           style = TextStyle(color = style.color(style.primary), fontSize = 13.sp, fontWeight = FontWeight.Bold))
-        // Plays the period's adhkar audio from this dhikr, even with the app closed; pauses while it plays.
+      }
+      Spacer(GlanceModifier.defaultWeight())
+      ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, bucket.width.value - 24, bucket.height.value - 24 - 20 - 30, 20f, 11f, 2, center = true,
+        color = style.primary, wholeLines = true)
+      Spacer(GlanceModifier.defaultWeight())
+      // Plays the period's adhkar audio from this dhikr, even with the app closed; pauses while it plays.
+      Row(GlanceModifier.fillMaxWidth()) {
+        Spacer(GlanceModifier.defaultWeight())
         PrimaryButton(listening, "Listen", adhkarListenAction(context, listening, data.superId, dhikr.id), sizeDp = 28,
           fill = style.color(style.accent), glyph = style.color(style.onAccent))
       }
-      Spacer(GlanceModifier.defaultWeight())
-      ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, bucket.width.value - 28, bucket.height.value - 28 - 34, 22f, 11f, 3, center = true,
-        color = style.primary)
     // @ai-end
-      Spacer(GlanceModifier.defaultWeight())
     }
     return
   }

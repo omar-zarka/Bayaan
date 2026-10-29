@@ -137,23 +137,27 @@ class QuickSurahWidget : GlanceAppWidget() {
     }
     val isPlaying = playingId == first.id
     val play = commandAction(context, playTrackCommand(first.id, reciterId, null, null), "quick/${first.id}/${reciterId ?: "default"}")
-    // A cached card prints the surah name, so it is shown larger and not repeated.
+    // A cached card prints the surah name, so it is shown larger and not repeated;
+    // generated art gets the title beside it.
     val cardNamed = surahCardShowsName(context, first)
-    Column(root.padding(14.dp).clickable(playOrPause(context, isPlaying, play))) {
-      SurahCard(context, first, if (cardNamed) 64 else 48)
-      Spacer(GlanceModifier.defaultWeight())
-      if (!cardNamed) {
-        Text(first.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
-        Spacer(GlanceModifier.height(4.dp))
-      }
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        if (photoId != null) {
-          ReciterPhoto(context, photoFile, reciterName, 18, 18, 9)
-          Spacer(GlanceModifier.width(6.dp))
+    val widthDp = LocalSize.current.width.value.toInt()
+    Column(root.padding(12.dp).clickable(playOrPause(context, isPlaying, play))) {
+      if (cardNamed) {
+        SurahCard(context, first, 52)
+      } else {
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+          SurahCard(context, first, 40)
+          Spacer(GlanceModifier.width(8.dp))
+          Text(first.name, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
+            style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
         }
-        Text(WidgetText.fitName(reciterName, 9), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
-          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
-        PrimaryButton(isPlaying, "Play ${first.name}", action = null, sizeDp = 36)
+      }
+      Spacer(GlanceModifier.defaultWeight())
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(WidgetText.fitName(reciterName, maxOf(6, (widthDp - 60) / 7)), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+        Spacer(GlanceModifier.width(4.dp))
+        PrimaryButton(isPlaying, "Play ${first.name}", action = null, sizeDp = 32)
       }
     }
   }

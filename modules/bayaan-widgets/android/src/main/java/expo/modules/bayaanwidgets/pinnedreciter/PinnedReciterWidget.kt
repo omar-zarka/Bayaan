@@ -118,13 +118,15 @@ class PinnedReciterWidget : GlanceAppWidget() {
         ImageProvider(R.drawable.widget_scrim_ink), contentDescription = null,
         modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds,
       )
-      Column(GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.Bottom) {
-        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-          Text(state.name, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
-          Spacer(GlanceModifier.width(4.dp))
-          PrimaryButton(isPlaying, "Play ${state.name}", action = null)
+      // The button sits top right, so the name gets the full width and breaks between words.
+      Column(GlanceModifier.fillMaxSize().padding(10.dp)) {
+        Row(GlanceModifier.fillMaxWidth()) {
+          Spacer(GlanceModifier.defaultWeight())
+          PrimaryButton(isPlaying, "Play ${state.name}", action = null, sizeDp = 34)
         }
+        Spacer(GlanceModifier.defaultWeight())
+        Text(state.name, maxLines = 2, modifier = GlanceModifier.padding(horizontal = 2.dp),
+          style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
       }
     }
   }

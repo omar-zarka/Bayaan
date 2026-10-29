@@ -99,27 +99,31 @@ fun BedtimeContent(context: Context, configured: BedtimeConfig, inputs: WidgetIn
   val subtitle = sleepAt?.let { "Sleep at ${clockTime(context, it)}" } ?: detail
   val moon = ColorProvider(WidgetPalette.MOON)
   val root = GlanceModifier.fillMaxSize().background(ColorProvider(WidgetPalette.BEDTIME)).cornerRadius(20.dp).clickable(action)
+  // A 110 dp tall cell (dense launchers) drops the card and the reciter line.
+  val short = WidgetSizes.isShort(LocalSize.current)
   if (small) {
-    Column(root.padding(14.dp)) {
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+    Column(root.padding(12.dp)) {
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Image(ImageProvider(R.drawable.widget_moon), contentDescription = null, colorFilter = ColorFilter.tint(moon),
-          modifier = GlanceModifier.size(22.dp))
+          modifier = GlanceModifier.size(16.dp))
+        Spacer(GlanceModifier.width(6.dp))
+        Eyebrow("Bedtime", moon)
         Spacer(GlanceModifier.defaultWeight())
-        SurahCard(context, surah, 36)
+        if (!short) SurahCard(context, surah, 36)
       }
       Spacer(GlanceModifier.defaultWeight())
-      Eyebrow("Bedtime", moon)
       Text(surah?.name ?: "", maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 16.sp, fontWeight = FontWeight.Bold))
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(subtitle, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
           style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp))
-        PrimaryButton(playing, "Start bedtime", action = null, sizeDp = 36, fill = moon, glyph = ColorProvider(WidgetPalette.BEDTIME))
+        Spacer(GlanceModifier.width(4.dp))
+        PrimaryButton(playing, "Start bedtime", action = null, sizeDp = 32, fill = moon, glyph = ColorProvider(WidgetPalette.BEDTIME))
       }
     }
     return
   }
-  Row(root.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-    SurahCard(context, surah, 92)
+  Row(root.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+    SurahCard(context, surah, if (short) 80 else 92)
     Spacer(GlanceModifier.width(12.dp))
     Column(GlanceModifier.defaultWeight()) {
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -129,14 +133,14 @@ fun BedtimeContent(context: Context, configured: BedtimeConfig, inputs: WidgetIn
         Eyebrow("Bedtime", moon)
       }
       Text(surah?.name ?: "", maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 17.sp, fontWeight = FontWeight.Bold))
-      if (reciterName != null) {
+      if (reciterName != null && !short) {
         Text(reciterName, maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
       }
-      Spacer(GlanceModifier.height(6.dp))
-      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
+      Spacer(GlanceModifier.height(4.dp))
+      Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(subtitle, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
           style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
-        PrimaryButton(playing, "Start bedtime", action = null, sizeDp = 38, fill = moon, glyph = ColorProvider(WidgetPalette.BEDTIME))
+        PrimaryButton(playing, "Start bedtime", action = null, sizeDp = if (short) 32 else 38, fill = moon, glyph = ColorProvider(WidgetPalette.BEDTIME))
       }
     }
   }

@@ -155,7 +155,7 @@ fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: Adhk
         adhkarListenAction(context, listening, data.superId, item.id))
       // @ai-end
       if (hint) {
-        Text(readTheRest(context), maxLines = 1, modifier = GlanceModifier.defaultWeight().padding(horizontal = 8.dp),
+        Text(READ_MORE, maxLines = 1, modifier = GlanceModifier.defaultWeight().padding(horizontal = 8.dp), // @ai
           style = TextStyle(color = style.color(style.secondary), fontSize = 10.sp, fontWeight = FontWeight.Medium)) // @ai
       } else {
         Spacer(GlanceModifier.defaultWeight())
@@ -170,6 +170,9 @@ fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: Adhk
 }
 
 private fun readTheRest(context: Context): String = "Read the rest in ${AppBrand.name(context)} →"
+
+/** The controls row also holds Listen, so the hint there is shorter. */ // @ai
+private const val READ_MORE = "Read more →" // @ai
 
 // @ai-start
 /** The accent "Count" pill with its repetition ring; a dhikr said once shows "Done". Tapping counts. */

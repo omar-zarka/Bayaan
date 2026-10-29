@@ -103,14 +103,17 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
         ReciterPhoto(context, r.artworkFile, r.name, size.width.value.toInt(), size.height.value.toInt(), 20)
         Image(ImageProvider(R.drawable.widget_scrim_ink), contentDescription = null,
           modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
-        Column(GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.Bottom) {
-          Eyebrow("Reciter of the Day", ColorProvider(WidgetPalette.GOLD))
-          Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-            Text(r.name, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
-              style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
-            Spacer(GlanceModifier.width(4.dp))
-            PrimaryButton(isPlaying, "Play ${r.name}", action = null)
+        // The button sits top right, so the label and name get the full width.
+        Column(GlanceModifier.fillMaxSize().padding(10.dp)) {
+          Row(GlanceModifier.fillMaxWidth()) {
+            Spacer(GlanceModifier.defaultWeight())
+            PrimaryButton(isPlaying, "Play ${r.name}", action = null, sizeDp = 34)
           }
+          Spacer(GlanceModifier.defaultWeight())
+          Text(SPOTLIGHT_LABEL, maxLines = 1, modifier = GlanceModifier.padding(horizontal = 2.dp),
+            style = TextStyle(color = ColorProvider(WidgetPalette.GOLD), fontSize = 10.sp, fontWeight = FontWeight.Bold))
+          Text(r.name, maxLines = 2, modifier = GlanceModifier.padding(horizontal = 2.dp),
+            style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
         }
       }
       return
@@ -122,7 +125,8 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
         // Beside the name, clear of the photo's initials.
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
           Column(GlanceModifier.defaultWeight()) {
-            Eyebrow("Reciter of the Day", ColorProvider(WidgetPalette.GOLD))
+            Text(SPOTLIGHT_LABEL, maxLines = 1,
+              style = TextStyle(color = ColorProvider(WidgetPalette.GOLD), fontSize = 10.sp, fontWeight = FontWeight.Bold))
             Text(r.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
           }
           PrimaryButton(isPlaying, "Play ${r.name}", play, sizeDp = 34)
@@ -138,3 +142,6 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
   }
   // @ai-end
 }
+
+/** Short enough for the small widget and beside the medium button; "Reciter of the Day" did not fit. */ // @ai
+private const val SPOTLIGHT_LABEL = "Today's reciter" // @ai

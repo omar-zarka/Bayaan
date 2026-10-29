@@ -42,16 +42,28 @@ fun contentRoot(): GlanceModifier = GlanceModifier.fillMaxSize().background(Widg
 
 /** Shelf title row: optional leading button, title and detail. */ // @ai
 @Composable
-fun ShelfHeader(title: String, detail: String?, leading: (@Composable () -> Unit)? = null) {
+fun ShelfHeader(title: String, detail: String?, compact: Boolean = false, leading: (@Composable () -> Unit)? = null) { // @ai
   Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
     if (leading != null) {
       leading()
       Spacer(GlanceModifier.width(8.dp))
     }
-    Column(GlanceModifier.defaultWeight()) {
-      Text(title, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold)) // @ai
-      if (detail != null) Text(detail, maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp)) // @ai
+    // @ai-start
+    if (compact) {
+      // One line, so a 110 dp tall shelf keeps room for its tiles.
+      Row(GlanceModifier.defaultWeight(), verticalAlignment = Alignment.CenterVertically) {
+        Text(title, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
+        if (detail != null) {
+          Text("  ·  $detail", maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp))
+        }
+      }
+    } else {
+      Column(GlanceModifier.defaultWeight()) {
+        Text(title, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
+        if (detail != null) Text(detail, maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp))
+      }
     }
+    // @ai-end
   }
 }
 

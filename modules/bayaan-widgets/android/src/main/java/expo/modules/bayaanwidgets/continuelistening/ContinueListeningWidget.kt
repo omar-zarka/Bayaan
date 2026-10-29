@@ -96,19 +96,21 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
 
 // @ai-start
 /**
- * Scales art to cover widthPx x (heightPx + liftPx) and draws it liftPx
- * higher, so a card's printed name clears the controls at the bottom.
+ * Scales the top `fraction` of the art to cover widthPx x heightPx. A surah
+ * card prints its name in its lower part, so keeping only the calligraphy lets
+ * the widget draw its own title and controls without covering that print.
  */
-private fun liftedFill(src: Bitmap, widthPx: Int, heightPx: Int, liftPx: Int): Bitmap {
+private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Float): Bitmap {
   val out = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
-  val canvas = android.graphics.Canvas(out)
-  val scale = maxOf(widthPx.toFloat() / src.width, (heightPx + liftPx).toFloat() / src.height)
-  val w = src.width * scale
-  val h = src.height * scale
-  val left = (widthPx - w) / 2
-  val top = (heightPx + liftPx - h) / 2 - liftPx
-  val paint = android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG)
-  canvas.drawBitmap(src, null, android.graphics.RectF(left, top, left + w, top + h), paint)
+  val srcH = src.height * fraction
+  val scale = maxOf(widthPx.toFloat() / src.width, heightPx / srcH)
+  val cropW = widthPx / scale
+  val cropH = heightPx / scale
+  val left = (src.width - cropW) / 2
+  val top = (srcH - cropH) / 2
+  val srcRect = android.graphics.Rect(left.roundToInt(), top.roundToInt(), (left + cropW).roundToInt(), (top + cropH).roundToInt())
+  android.graphics.Canvas(out).drawBitmap(src, srcRect, android.graphics.Rect(0, 0, widthPx, heightPx),
+    android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
   return out
 }
 // @ai-end
@@ -118,6 +120,10 @@ class ContinueListeningWidget : GlanceAppWidget() {
     private val SMALL = DpSize(110.dp, 110.dp)
     private val MEDIUM = DpSize(250.dp, 110.dp)
     private val LARGE = DpSize(250.dp, 250.dp)
+    /** Below this height a medium widget is the dense 110 dp cell. */ // @ai
+    const val TALL_DP = 150 // @ai
+    /** The share of a surah card above its printed name. */ // @ai
+    const val CARD_ART_FRACTION = 0.56f // @ai
 
     private val WHITE = ColorProvider(Color.White)
     private val SECONDARY = ColorProvider(Color(0xCCFFFFFF)) // @ai
@@ -223,7 +229,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
     when {
       size.width >= MEDIUM.width && size.height >= LARGE.height ->
         Large(context, hero, sideSource.take(4), sideTitle, root.padding(16.dp))
-      size.width >= MEDIUM.width -> Medium(context, hero, sideSource.firstOrNull(), sideTitle, root.padding(14.dp))
+      size.width >= MEDIUM.width -> Medium(context, hero, sideSource.firstOrNull(), sideTitle, root.padding(12.dp))
       else -> Small(context, hero, root, size.width.value.toInt(), size.height.value.toInt())
     }
   }
@@ -320,9 +326,9 @@ class ContinueListeningWidget : GlanceAppWidget() {
   }
 
   /**
-   * Full-bleed art with the reciter and play button over a fade. A cached card
-   * already prints the surah name, so the title is only drawn over generated art,
-   * and the card is lifted so its printed name clears the controls.
+   * Full-bleed art with the title, reciter and play button over a fade. A
+   * cached card is cropped to its calligraphy, so its printed name never sits
+   * under the controls or repeats the title.
    */
   @Composable
   private fun Small(context: Context, hero: Hero, root: GlanceModifier, widthDp: Int, heightDp: Int) {
@@ -333,7 +339,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val surah = StaticData.surah(context, track.surahId)
     val cardNamed = surah != null && track.artworkFile == surah.artworkFile
     val src = cachedArt(context, LocalArtCache.current, track.artworkFile, maxOf(wPx, hPx))
-    val art = src?.let { liftedFill(it, wPx, hPx, if (cardNamed) (14 * density).roundToInt() else 0) }
+    val art = src?.let { cropTopFill(it, wPx, hPx, if (cardNamed) CARD_ART_FRACTION else 1f) }
     Box(root) {
       if (art != null) {
         Image(ImageProvider(art), contentDescription = null, modifier = GlanceModifier.fillMaxSize(),
@@ -347,16 +353,14 @@ class ContinueListeningWidget : GlanceAppWidget() {
       Image(ImageProvider(R.drawable.widget_scrim), contentDescription = null,
         modifier = GlanceModifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
       Column(GlanceModifier.fillMaxSize().padding(12.dp), verticalAlignment = Alignment.Bottom) {
-        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
-          Column(GlanceModifier.defaultWeight()) {
-            if (!(art != null && cardNamed)) {
-              Text(track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 16.sp, fontWeight = FontWeight.Bold))
-            }
-            Text(WidgetText.fitName(track.reciterName, maxOf(6, (widthDp - 70) / 7)), maxLines = 1,
-              style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
-          }
-          Spacer(GlanceModifier.width(6.dp))
-          PlayButton(context, hero, 40)
+        // The title gets the full width; the reciter shares its row with the button.
+        Text(track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+          Text(WidgetText.fitName(track.reciterName, maxOf(6, (widthDp - 64) / 7)), maxLines = 1,
+            modifier = GlanceModifier.defaultWeight(),
+            style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
+          Spacer(GlanceModifier.width(4.dp))
+          PlayButton(context, hero, 34)
         }
       }
     }
@@ -364,8 +368,10 @@ class ContinueListeningWidget : GlanceAppWidget() {
 
   @Composable
   private fun Medium(context: Context, hero: Hero, next: WidgetTrack?, nextTitle: String, root: GlanceModifier) {
+    // A 110 dp tall cell (dense launchers) has no room for the progress bar.
+    val short = LocalSize.current.height < TALL_DP.dp
     Row(root, verticalAlignment = Alignment.CenterVertically) {
-      Art(context, hero.track, 96)
+      Art(context, hero.track, if (short) 80 else 96)
       Spacer(GlanceModifier.width(14.dp))
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
         Eyebrow(eyebrow(hero))
@@ -373,7 +379,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
         Text(hero.track.reciterName, maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
         Spacer(GlanceModifier.defaultWeight())
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-          PlayButton(context, hero, 40)
+          PlayButton(context, hero, if (short) 34 else 40)
           if (next != null) {
             Spacer(GlanceModifier.width(10.dp))
             Column(GlanceModifier.defaultWeight()) {
@@ -382,7 +388,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
             }
           }
         }
-        if (hero.hasNowPlaying) {
+        if (hero.hasNowPlaying && !short) {
           Spacer(GlanceModifier.height(6.dp))
           Progress(hero.progress, GlanceModifier.fillMaxWidth())
         }

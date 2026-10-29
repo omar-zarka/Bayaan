@@ -92,9 +92,9 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
       size.height >= WidgetSizes.LARGE.height -> Column(root.padding(20.dp).clickable(open), horizontalAlignment = Alignment.CenterHorizontally) {
         Eyebrow("Ayah of the Day", ReadingColors.LABEL)
         Spacer(GlanceModifier.defaultWeight())
-        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 40, 140f, 30f, 14f, 6, center = true, color = ink)
-        Spacer(GlanceModifier.height(12.dp))
-        Text(ayah.translation, maxLines = 5, style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 13.sp, textAlign = TextAlign.Center))
+        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 40, 110f, 28f, 14f, 4, center = true, color = ink, wholeLines = true)
+        Spacer(GlanceModifier.height(10.dp))
+        Text(ayah.translation, maxLines = 3, style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 13.sp, textAlign = TextAlign.Center))
         Spacer(GlanceModifier.defaultWeight())
         Footer(ayah, isPlaying, listen, 38)
       }
@@ -104,13 +104,17 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
           Spacer(GlanceModifier.defaultWeight())
           PrimaryButton(isPlaying, "Listen", listen, sizeDp = 30, fill = ReadingColors.BUTTON, glyph = ReadingColors.BUTTON_GLYPH)
         }
-        Spacer(GlanceModifier.height(6.dp))
-        // A 2-row widget is often taller than the 110 dp bucket; the TALL buckets give the ayah that room.
-        val arabicHeight = maxOf(44f, size.height.value - MEDIUM_CHROME_DP)
-        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 28, arabicHeight, 24f, 12f, 3, center = true, color = ink)
         Spacer(GlanceModifier.height(4.dp))
-        Text(ayah.translation, maxLines = 2, style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 12.sp, textAlign = TextAlign.Center),
-          modifier = GlanceModifier.fillMaxWidth())
+        // The 110 dp bucket gives the ayah everything below the header; the TALL buckets add the translation.
+        val short = WidgetSizes.isShort(size)
+        val arabicHeight = size.height.value - (if (short) SHORT_CHROME_DP else MEDIUM_CHROME_DP)
+        ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 28, arabicHeight, 24f, 11f, 3, center = true, color = ink,
+          wholeLines = true)
+        if (!short) {
+          Spacer(GlanceModifier.height(4.dp))
+          Text(ayah.translation, maxLines = 2, style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 12.sp, textAlign = TextAlign.Center),
+            modifier = GlanceModifier.fillMaxWidth())
+        }
       }
       else -> Column(root.padding(12.dp).clickable(open), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(GlanceModifier.defaultWeight())
@@ -137,5 +141,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
     val MEDIUM_TALL = DpSize(250.dp, 180.dp)
     /** Padding, header, spacers and a two-line translation around the medium ayah. */
     const val MEDIUM_CHROME_DP = 104f
+    /** Padding, the header row and its gap around the 110 dp medium ayah. */ // @ai
+    const val SHORT_CHROME_DP = 64f // @ai
   }
 }

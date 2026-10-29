@@ -77,9 +77,10 @@ class ContinueReadingWidget : GlanceAppWidget() {
     val root = GlanceModifier.fillMaxSize().background(ReadingColors.BACKGROUND).cornerRadius(20.dp)
       .clickable(appLink(context, "mushaf/$page"))
     val eyebrow = if (lastRead == null) "Start reading" else "Continue reading"
+    val short = WidgetSizes.isShort(size)
     if (size.width >= WidgetSizes.MEDIUM.width) {
-      Row(root.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-        PageGlimpse(context, lastRead, surahName, GlanceModifier.width(92.dp).fillMaxHeight())
+      Row(root.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        PageGlimpse(context, lastRead, surahName, GlanceModifier.width(if (short) 80.dp else 92.dp).fillMaxHeight())
         Spacer(GlanceModifier.width(14.dp))
         Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
           Eyebrow(eyebrow, ReadingColors.LABEL)
@@ -88,32 +89,31 @@ class ContinueReadingWidget : GlanceAppWidget() {
             style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 12.sp))
           Spacer(GlanceModifier.defaultWeight())
           PageProgress(progress)
-          Spacer(GlanceModifier.height(8.dp))
-          Box(
-            GlanceModifier.fillMaxWidth().height(30.dp).background(ReadingColors.BUTTON).cornerRadius(15.dp),
-            contentAlignment = Alignment.Center,
-          ) {
-            Text(if (lastRead == null) "Start reading" else "Resume reading", maxLines = 1,
-              style = TextStyle(color = ReadingColors.BUTTON_GLYPH, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+          // A 110 dp tall cell has no room for the button; the whole widget opens the page.
+          if (!short) {
+            Spacer(GlanceModifier.height(8.dp))
+            Box(
+              GlanceModifier.fillMaxWidth().height(30.dp).background(ReadingColors.BUTTON).cornerRadius(15.dp),
+              contentAlignment = Alignment.Center,
+            ) {
+              Text(if (lastRead == null) "Start reading" else "Resume reading", maxLines = 1,
+                style = TextStyle(color = ReadingColors.BUTTON_GLYPH, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+            }
           }
         }
       }
     } else {
-      Column(root.padding(14.dp)) {
-        Eyebrow(eyebrow, ReadingColors.LABEL)
+      // Words, not letters: a short label, the page number on its own line, then "page · Juz".
+      Column(root.padding(12.dp)) {
+        Eyebrow(if (lastRead == null) "Start" else "Last read", ReadingColors.LABEL)
         Spacer(GlanceModifier.defaultWeight())
-        Row(verticalAlignment = Alignment.Bottom) {
-          Text("$page", style = TextStyle(color = ReadingColors.PRIMARY, fontSize = 34.sp, fontWeight = FontWeight.Bold))
-          Spacer(GlanceModifier.width(4.dp))
-          Text("page", modifier = GlanceModifier.padding(bottom = 6.dp),
-            style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
-        }
-        Text(lastRead?.let { "$surahName · Juz ${it.juz}" } ?: surahName, maxLines = 1,
-          style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
-        Spacer(GlanceModifier.defaultWeight())
+        Text("$page", maxLines = 1, style = TextStyle(color = ReadingColors.PRIMARY, fontSize = 28.sp, fontWeight = FontWeight.Bold))
+        Text(lastRead?.let { "page · Juz ${it.juz}" } ?: "page", maxLines = 1,
+          style = TextStyle(color = ReadingColors.SECONDARY, fontSize = 11.sp, fontWeight = FontWeight.Medium))
+        Text(surahName, maxLines = 1,
+          style = TextStyle(color = ReadingColors.PRIMARY, fontSize = 12.sp, fontWeight = FontWeight.Bold))
+        Spacer(GlanceModifier.height(6.dp))
         PageProgress(progress)
-        Spacer(GlanceModifier.height(4.dp))
-        Text("Page $page of $MUSHAF_PAGES", maxLines = 1, style = TextStyle(color = ReadingColors.LABEL, fontSize = 10.sp, fontWeight = FontWeight.Bold))
       }
     }
   }

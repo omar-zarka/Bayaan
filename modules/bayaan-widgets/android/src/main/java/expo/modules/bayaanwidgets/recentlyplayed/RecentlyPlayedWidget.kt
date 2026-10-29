@@ -63,21 +63,22 @@ class RecentlyPlayedWidget : GlanceAppWidget() {
   @Composable
   private fun Content(context: Context, shelf: RecentShelf, playing: WidgetTrack?) { // @ai
     val large = LocalSize.current.height >= WidgetSizes.LARGE.height
+    val short = WidgetSizes.isShort(LocalSize.current) // @ai
     val root = contentRoot().clickable(appLink(context, "player"))
     if (shelf.tracks.isEmpty()) {
       ContentMessage(root, "Open ${AppBrand.name(context)}", "Your recent surahs show here")
       return
     }
-    Column(root.padding(14.dp)) {
-      ShelfHeader(if (shelf.isSuggestion) "Start listening" else "Recently Played", null)
-      Spacer(GlanceModifier.height(10.dp))
+    Column(root.padding((if (short) 12 else 14).dp)) { // @ai
+      ShelfHeader(if (shelf.isSuggestion) "Start listening" else "Recently Played", null, compact = short) // @ai
+      Spacer(GlanceModifier.height((if (short) 6 else 10).dp)) // @ai
       shelf.tracks.take(if (large) 6 else 4).chunked(if (large) 3 else 4).forEach { row ->
         Row(GlanceModifier.fillMaxWidth().padding(bottom = 8.dp)) {
           row.forEachIndexed { i, t ->
             if (i > 0) Spacer(GlanceModifier.defaultWeight())
             val action = commandAction(context, playTrackCommand(t.surahId, t.reciterId, t.rewayatId, null),
               "recent/${t.surahId}/${t.reciterId}/${t.rewayatId ?: "any"}")
-            SurahTile(context, t.surahId, if (large) 72 else 52, action, if (large) t.reciterName else null, // @ai
+            SurahTile(context, t.surahId, if (large) 72 else if (short) 46 else 52, action, if (large) t.reciterName else null, // @ai
               playing = PlaybackState.matches(playing, t.surahId, t.reciterId)) // @ai
           }
         }

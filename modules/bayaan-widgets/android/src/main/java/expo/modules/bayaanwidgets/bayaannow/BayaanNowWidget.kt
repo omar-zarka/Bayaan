@@ -46,6 +46,7 @@ import expo.modules.bayaanwidgets.WidgetText
 import expo.modules.bayaanwidgets.ui.Eyebrow
 import expo.modules.bayaanwidgets.ui.PrimaryButton
 import expo.modules.bayaanwidgets.ui.SurahTint
+import expo.modules.bayaanwidgets.ui.surahCardShowsName
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.background
 import androidx.glance.layout.fillMaxSize
@@ -134,7 +135,10 @@ fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
   val label = "Play"
   val surah = if (track.isUserUpload) null else StaticData.surah(context, track.surahId)
   val small = LocalSize.current.width < WidgetSizes.MEDIUM.width
-  val art = if (small) 56 else 92
+  val short = WidgetSizes.isShort(LocalSize.current)
+  // A cached card prints the surah name, so small shows it larger instead of a title.
+  val cardNamed = surah != null && surahCardShowsName(context, surah)
+  val art = if (small) (if (cardNamed) 52 else 40) else if (short) 80 else 92
   // Tinted by the surah, like Continue Listening.
   val tinted = GlanceModifier.fillMaxSize().background(ColorProvider(SurahTint.deep(surah?.id ?: 0))).cornerRadius(20.dp)
     .clickable(appLink(context, "player"))
@@ -145,30 +149,41 @@ fun NowPlayingCard(context: Context, snapshot: WidgetSnapshot?, nowMs: Long) {
   }
 
   if (small) {
+    val widthDp = LocalSize.current.width.value.toInt()
     Column(tinted.padding(12.dp)) {
-      Art()
+      if (cardNamed) {
+        Art()
+      } else {
+        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+          Art()
+          Spacer(GlanceModifier.width(8.dp))
+          Text(track.surahName, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
+            style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
+        }
+      }
       Spacer(GlanceModifier.defaultWeight())
-      Text(track.surahName, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 15.sp, fontWeight = FontWeight.Bold))
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
-          WidgetText.fitName(track.reciterName, 9), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
-          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp),
+          WidgetText.fitName(track.reciterName, maxOf(6, (widthDp - 60) / 7)), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium),
         )
-        PrimaryButton(playing, label, action, sizeDp = 36)
+        Spacer(GlanceModifier.width(4.dp))
+        PrimaryButton(playing, label, action, sizeDp = 32)
       }
     }
     return
   }
-  Row(tinted.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
+  // The button sits beside the titles, so a 110 dp tall cell still fits it.
+  Row(tinted.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
     Art()
-    Spacer(GlanceModifier.width(14.dp))
+    Spacer(GlanceModifier.width(12.dp))
     Column(GlanceModifier.defaultWeight()) {
       Eyebrow(if (playing) "Now playing" else "Continue listening")
       Text(track.surahName, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 17.sp, fontWeight = FontWeight.Bold))
       Text(track.reciterName, maxLines = 1, style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp))
-      Spacer(GlanceModifier.height(8.dp))
-      PrimaryButton(playing, label, action, sizeDp = 38)
     }
+    Spacer(GlanceModifier.width(8.dp))
+    PrimaryButton(playing, label, action, sizeDp = 40)
   }
   // @ai-end
 }

@@ -103,12 +103,18 @@ class TasbeehWidget : GlanceAppWidget() {
         Box(GlanceModifier.clickable(increment)) { Beads(context, count, dhikr.repeatCount, ring, arabic = null) }
         Spacer(GlanceModifier.width(14.dp))
         Column(GlanceModifier.defaultWeight().fillMaxHeight(), horizontalAlignment = Alignment.End) {
+          // A 110 dp tall cell keeps the dhikr and reset only.
+          val short = WidgetSizes.isShort(size)
           ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, size.width.value - 28 - 14 - ring, 44f, 24f, 12f, 2, center = false)
-          Translation(dhikr)
+          if (!short) Translation(dhikr)
           Spacer(GlanceModifier.defaultWeight())
           Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Tap the beads to count", maxLines = 1, modifier = GlanceModifier.defaultWeight(),
-              style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp, fontWeight = FontWeight.Medium))
+            if (!short) {
+              Text("Tap the beads to count", maxLines = 2, modifier = GlanceModifier.defaultWeight(),
+                style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 11.sp, fontWeight = FontWeight.Medium))
+            } else {
+              Spacer(GlanceModifier.defaultWeight())
+            }
             RoundButton(R.drawable.widget_reset, "Reset", reset)
           }
         }

@@ -105,6 +105,9 @@ object WidgetSizes {
   /** A 4x2 cell is often ~180 dp tall; the ayah needs more than the 44 dp slot of the 110 dp bucket. */
   val MEDIUM_TALL = DpSize(250.dp, 180.dp)
   val LARGE = DpSize(250.dp, 250.dp)
+
+  /** A 110 dp tall cell (dense launchers, the smallest bucket) needs the compact layout. */ // @ai
+  fun isShort(size: DpSize): Boolean = size.height < 150.dp // @ai
 }
 
 fun dpToPx(context: Context, dp: Int): Int =
@@ -195,10 +198,10 @@ fun PrimaryButton(
 @Composable
 fun PlayingTileOverlay(sizeDp: Int) {
   Box(
-    GlanceModifier.size(sizeDp.dp).background(ColorProvider(Color(0x6B000000))).cornerRadius((sizeDp / 5).dp),
+    GlanceModifier.size(sizeDp.dp).background(ColorProvider(Color(0x99000000))).cornerRadius((sizeDp / 5).dp),
     contentAlignment = Alignment.Center,
   ) {
-    PrimaryButton(playing = true, description = "Pause", action = null, sizeDp = maxOf(24, sizeDp * 2 / 5))
+    PrimaryButton(playing = true, description = "Pause", action = null, sizeDp = maxOf(26, sizeDp / 2))
   }
 }
 // @ai-end
