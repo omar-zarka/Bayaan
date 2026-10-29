@@ -283,7 +283,7 @@ struct SmallView: View {
     // A cached card already prints the surah name, so only the reciter is added.
     let cardNamed = SurahCard.showsName(file: track.artworkFile, surahId: track.surahId)
     ZStack(alignment: .bottom) {
-      ArtworkFill(track: track, lift: cardNamed ? 30 : 0)
+      ArtworkFill(track: track, lift: cardNamed ? 22 : 0)
       LinearGradient(stops: [.init(color: SurahTint.deep(track.surahId).opacity(0), location: cardNamed ? 0.66 : 0.5),
                              .init(color: SurahTint.deep(track.surahId).opacity(0.95), location: cardNamed ? 0.84 : 1)],
                      startPoint: .top, endPoint: .bottom)
