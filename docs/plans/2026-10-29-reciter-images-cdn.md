@@ -73,7 +73,7 @@ Public reciter responses add one object, built in `toPublicReciter`:
 
 ### Making the variants
 
-`scripts/lib/reciterPhoto.ts` (Bayaan) exports a pure
+`scripts/lib/photoVariants.ts` (Bayaan) exports a pure
 `makeVariants(buffer) → { full, thumb, placeholder }`: centre square crop,
 512 px and 160 px WebP at quality 80 with `sharp`, and a ThumbHash computed
 from a 100 px copy with `thumbhash`. The admin dashboard can port the same
@@ -106,11 +106,12 @@ of the change that removes them (already our practice).
 
 **Who gets backfilled when.** Setting `image_url` makes older app versions stop
 using their bundled photo, and offline with a cold cache they would show the
-plain icon. So:
+plain icon. So the script leaves reciters with a bundled photo alone unless
+`--force` is given:
 
-- Now: reciters with no bundled photo (all new reciters, and those missing a
-  photo) and reciters whose bundled photo is wrong.
-- After the new app version reaches most users: everyone else.
+- Now: `--no-bundled` (all new reciters and those missing a photo). Wrong
+  bundled photos are fixed in the bundle (thebayaan/Bayaan#461).
+- After the new app version reaches most users: `--all --force`.
 
 ### App (Bayaan)
 
