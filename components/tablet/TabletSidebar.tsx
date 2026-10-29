@@ -281,7 +281,7 @@ export const TabletSidebar: React.FC<BottomTabBarProps> = ({
       },
       {
         key: 'cmd-f',
-        title: t('keyboard.search'),
+        title: t('keyboard.findSurahOrReciter'),
         menu: 'go',
         run: () => {
           handlePress('search');

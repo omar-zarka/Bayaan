@@ -481,7 +481,7 @@ describe('keyboard', () => {
     act(() => jest.runOnlyPendingTimers());
   }
 
-  it('lists ⌘1–⌘5 and ⌘F under Go, named as the items', () => {
+  it('lists ⌘1–⌘5 under Go, named as the items, then ⌘F', () => {
     renderApp();
     const [menus, commands] = (
       BayaanKeyboard.setCommands as jest.Mock
@@ -495,7 +495,7 @@ describe('keyboard', () => {
       ['cmd-3', 'Search'],
       ['cmd-4', 'Adhkar'],
       ['cmd-5', 'Collection'],
-      ['cmd-f', 'Search'],
+      ['cmd-f', 'Find a Surah or Reciter'],
     ]);
   });
 
