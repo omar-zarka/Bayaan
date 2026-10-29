@@ -70,3 +70,20 @@ export function computeShelfLayout(
   );
   return {numColumns, itemWidth};
 }
+
+export interface PageSpacing {
+  /** Space between the pane's edge and the content. */
+  margin: number;
+  /** Space between two cards. */
+  gap: number;
+}
+
+/**
+ * Page margin and gutter for the window's width class (ipad-standards §5.2):
+ * medium below 900pt, expanded below 1280pt, large from there.
+ */
+export function pageSpacing(windowWidth: number): PageSpacing {
+  if (windowWidth >= 1280) return {margin: 40, gap: 24};
+  if (windowWidth >= 900) return {margin: 32, gap: 20};
+  return {margin: 24, gap: 16};
+}
