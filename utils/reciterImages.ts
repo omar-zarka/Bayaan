@@ -1,7 +1,6 @@
+import {ImageSourcePropType} from 'react-native';
 
-import { ImageSourcePropType } from 'react-native';
-
-export const reciterImages: { [key: string]: ImageSourcePropType } = {
+export const reciterImages: {[key: string]: ImageSourcePropType} = {
   'abdelaziz-sheim': require('@/assets/reciter-images/Abdelaziz-sheim.jpeg'),
   'abdelbari-al-toubayti': require('@/assets/reciter-images/Abdelbari-Al-Toubayti.jpeg'),
   'abdelmoujib-benkirane': require('@/assets/reciter-images/Abdelmoujib-Benkirane.jpeg'),
