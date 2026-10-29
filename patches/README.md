@@ -37,3 +37,23 @@ Expo ships expo-audio prebuilt (an xcframework on iOS, an AAR in
 `package.json` sets `expo.autolinking.buildFromSource: ["expo-audio"]`.
 When upgrading expo-audio, regenerate the patch against the new version and
 keep that setting.
+
+# react-native-draggable-flatlist drag state
+
+`react-native-draggable-flatlist+4.0.3.patch` fixes three ways a drag left
+stale state behind in the iPad queue (`components/player/v2/tablet/QueuePane.tsx`,
+the only user):
+
+- A row dropped where it started changes no data, so upstream never reset
+  the drag. The next drag of that row started from the old scroll offset and
+  landed rows away from the finger. The patch resets after a drop in place.
+- A plain scroll of the list wrote its distance into the drag offset. The patch
+  only tracks the pan while a row is lifted.
+- When the scroll view took a touch from a lifted row, the pan ended without
+  `onEnd` or a touch up, so the row stayed lifted and the next swipe dragged
+  it. The patch ends the touch on cancel and finalize, which drops the row
+  in place.
+
+Metro reads the package's `src` (its `react-native` field), so only `src` is
+patched. When upgrading the library, check whether these are fixed upstream
+before regenerating the patch.

@@ -11,6 +11,7 @@ const {
   applySceneAppDelegate,
   applySiriAppDelegate,
 } = require('../withBayaanCar');
+const {addKeyboardToAppDelegate} = require('../withBayaanKeyboard');
 
 const ROOT = path.join(__dirname, '..', '..');
 const TEMPLATE = fs.readFileSync(
@@ -18,9 +19,12 @@ const TEMPLATE = fs.readFileSync(
   'utf8',
 );
 
-// Expo runs AppDelegate mods last-registered first.
+// Expo runs AppDelegate mods last-registered first, and app.config.js
+// registers withBayaanKeyboard after withBayaanCar.
 function applyAll(src) {
-  return applySceneAppDelegate(applySiriAppDelegate(src));
+  return applySceneAppDelegate(
+    applySiriAppDelegate(addKeyboardToAppDelegate(src)),
+  );
 }
 
 describe('withBayaanCar AppDelegate', () => {

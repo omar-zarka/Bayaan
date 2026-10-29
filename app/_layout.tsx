@@ -36,6 +36,10 @@ import {DevMenu} from '@/components/DevMenu';
 import {SheetProvider} from 'react-native-actions-sheet';
 import {recordTouch} from '@/utils/lastTouch'; // @ai
 import {useResponsive} from '@/hooks/useResponsive'; // @ai
+// @ai-start
+import {AppKeyCommands} from '@/components/keyboard/AppKeyCommands';
+import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
+// @ai-end
 import '@/components/sheets/sheets'; // Register action sheets
 import {
   configureReanimatedLogger,
@@ -60,7 +64,7 @@ import {mushafSessionStore} from '@/services/mushaf/MushafSessionStore';
 import {USE_GLASS} from '@/hooks/useGlassProps';
 import Constants from 'expo-constants';
 import * as Sentry from '@sentry/react-native';
-import * as ScreenOrientation from 'expo-screen-orientation';
+import {usePhoneOrientation} from '@/hooks/usePhoneOrientation'; // @ai
 
 // Configure Reanimated logger
 configureReanimatedLogger({
@@ -214,10 +218,9 @@ function RootLayout() {
     resetOnBackground: true,
   });
 
-  // Lock to portrait by default; mushaf.tsx unlocks when that screen is active.
-  useEffect(() => {
-    ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-  }, []);
+  // Phones are portrait (mushaf.tsx allows landscape there); iPads turn
+  // freely. @ai
+  usePhoneOrientation('portrait'); // @ai
 
   // Start after init so the first snapshot sees the restored session and
   // stores instead of overwriting the widgets with an empty state.
@@ -573,6 +576,7 @@ function RootLayout() {
                       {/* @ai-end */}
                     </Stack>
                     <PlayerHost />
+                    {keyCommandsSupported() && <AppKeyCommands />}
                     <WhatsNewModal ref={whatsNewModalRef} />
                     <DevMenu whatsNewModalRef={whatsNewModalRef} />
                   </SheetProvider>

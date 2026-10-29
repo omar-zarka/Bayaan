@@ -29,14 +29,15 @@ export function jumpPillDirection(
 
 // Row indices of the viewable tokens. Section headers and footers report no
 // index (null at runtime, undefined in the types) and are not rows, so they
-// are dropped.
+// are dropped. A token holding several cards (the iPad's paired rows) gives
+// one index per card.
 export function visibleRowIndices<T extends {index?: number | null}>(
   tokens: readonly T[],
-  toRowIndex: (token: T) => number | undefined,
+  toRowIndex: (token: T) => number | readonly number[] | undefined,
 ): number[] {
   return tokens
     .filter(v => v.index != null)
-    .map(toRowIndex)
+    .flatMap(toRowIndex)
     .filter((i): i is number => typeof i === 'number');
 }
 
