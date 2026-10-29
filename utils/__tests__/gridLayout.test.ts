@@ -1,5 +1,9 @@
 // @ai-generated
-import {computeGridLayout, computeShelfLayout} from '../gridLayout';
+import {
+  computeGridLayout,
+  computeShelfLayout,
+  pageSpacing,
+} from '../gridLayout';
 
 const opts = {minCardWidth: 120, horizontalPadding: 10, gap: 10, minColumns: 3};
 
@@ -66,5 +70,14 @@ describe('computeShelfLayout', () => {
       2,
     );
     expect(computeShelfLayout(0, shelf).itemWidth).toBe(0);
+  });
+});
+
+describe('pageSpacing', () => {
+  it('follows the width classes', () => {
+    expect(pageSpacing(834)).toEqual({margin: 24, gap: 16});
+    expect(pageSpacing(900)).toEqual({margin: 32, gap: 20});
+    expect(pageSpacing(1279)).toEqual({margin: 32, gap: 20});
+    expect(pageSpacing(1366)).toEqual({margin: 40, gap: 24});
   });
 });

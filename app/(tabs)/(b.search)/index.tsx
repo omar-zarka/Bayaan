@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback} from 'react';
+import React, {useState, useRef, useCallback, useEffect} from 'react'; // @ai
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   Keyboard,
   type TextInputInstance,
 } from 'react-native';
-import {Stack, useFocusEffect} from 'expo-router';
+import {Stack, useFocusEffect, useIsFocused} from 'expo-router'; // @ai
+import type {SearchBarCommands} from 'react-native-screens'; // @ai
 // @ai-start
 import {useTranslation} from 'react-i18next';
 // @ai-end
@@ -19,6 +20,12 @@ import {moderateScale} from '@/utils/scale';
 import {Feather} from '@expo/vector-icons';
 import Color from 'color';
 import {USE_GLASS} from '@/hooks/useGlassProps';
+// @ai-start
+import {
+  subscribeSearchFocus,
+  takeSearchFocusRequest,
+} from '@/services/keyboard/searchFocus';
+// @ai-end
 
 // @ai-start
 export default function SearchScreen() {
@@ -47,6 +54,24 @@ export default function SearchScreen() {
     }, []),
   );
 
+  // ⌘F (iPad keyboard) opens this tab and puts the cursor in the field, once
+  // the tab is on screen and, on iOS 26, its search bar is mounted.
+  const searchBarRef = useRef<SearchBarCommands>(null);
+  const isFocused = useIsFocused();
+  const canFocusField = isFocused && (!USE_GLASS || searchBarMounted);
+  useEffect(() => {
+    if (!canFocusField) return;
+    const focusIfAsked = () => {
+      if (!takeSearchFocusRequest()) return;
+      requestAnimationFrame(() => {
+        if (USE_GLASS) searchBarRef.current?.focus();
+        else inputRef.current?.focus();
+      });
+    };
+    focusIfAsked();
+    return subscribeSearchFocus(focusIfAsked);
+  }, [canFocusField]);
+
   const handleCancel = () => {
     setQuery('');
     setIsSearchActive(false);
@@ -59,6 +84,7 @@ export default function SearchScreen() {
       style={[styles.container, {backgroundColor: theme.colors.background}]}>
       {USE_GLASS && searchBarMounted && (
         <Stack.SearchBar
+          ref={searchBarRef}
           placement="automatic"
           placeholder={t('search.placeholder')}
           onChangeText={e => setQuery(e.nativeEvent.text)}

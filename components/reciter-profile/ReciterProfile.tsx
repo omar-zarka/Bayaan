@@ -62,7 +62,11 @@ import Animated, {
 import {ActionButtons} from './components/ActionButtons';
 import {ReciterHeader} from './components/ReciterHeader';
 import {NavigationButtons} from './components/NavigationButtons';
-import {SurahList} from './components/SurahList';
+import {
+  SurahList,
+  SurahListTableHeader,
+  TABLE_MIN_WIDTH,
+} from './components/SurahList'; // @ai
 import {SearchView} from './components/SearchView';
 import {RewayatTabBar} from './components/RewayatTabBar';
 import {UploadsTabContent} from './components/UploadsTabContent';
@@ -70,6 +74,7 @@ import {useUploadsStore} from '@/store/uploadsStore';
 import {moderateScale} from '@/utils/scale';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {HAFS_REWAYAT_NAME} from '@/data/rewayat';
+import {pickRewayatId} from '@/utils/rewayatPreference'; // @ai
 import {useNavigation} from 'expo-router';
 import {useGlassHeaderHeight} from '@/hooks/useGlassHeaderHeight'; // @ai
 import {USE_GLASS} from '@/hooks/useGlassProps';
@@ -87,6 +92,8 @@ import {getRecitationStyleLabel} from '@/components/player/v2/recitationStyle';
 import {rankSurahs} from '@/utils/search/catalog'; // @ai
 // @ai-end
 import {hasPagerReachedInitialPage} from './utils/pagerLayout'; // @ai
+import {TabletReciterHero} from './components/TabletReciterHero'; // @ai
+import {useResponsive} from '@/hooks/useResponsive'; // @ai
 
 interface ReciterProfileProps {
   id: string;
@@ -219,6 +226,10 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   const insets = useSafeAreaInsets();
   const bottomInset = useBottomInset();
   const {height: screenHeight, width: windowWidth} = useWindowDimensions();
+  // iPad (mockup L9): a photo hero and a surah table across the pane, with
+  // the page margin for the window's width class (ipad-standards §5.2).
+  const {isTablet} = useResponsive();
+  const pageMargin = windowWidth >= 900 ? 32 : 24;
   // @ai-start
   // The pager pages must match the pager's own width, not the window: on
   // iPad the profile sits beside the sidebar inside a capped column, so
@@ -242,16 +253,20 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     () => initReciter(currentReciterId),
     [currentReciterId],
   );
-  // Prefer the rewayat passed via navigation, then fall back to the first one
+  // @ai-start
+  // Prefer the rewayat passed via navigation, then the one the user last
+  // picked for this reciter, then the first one. The saved pick is read once
+  // so saving a new pick does not move the open profile.
   const initialRewayatId = useMemo(() => {
-    if (
-      initialRewayatIdProp &&
-      initialReciter?.rewayat.some(r => r.id === initialRewayatIdProp)
-    ) {
-      return initialRewayatIdProp;
-    }
-    return initialReciter?.rewayat[0]?.id;
+    if (!initialReciter) return undefined;
+    const savedRewayatId =
+      useSettings.getState().reciterPreferences[initialReciter.id];
+    return pickRewayatId(initialReciter.rewayat, [
+      initialRewayatIdProp,
+      savedRewayatId,
+    ]);
   }, [initialRewayatIdProp, initialReciter]);
+  // @ai-end
 
   const [reciter, setReciter] = useState<Reciter | null>(initialReciter);
   const surahs = SURAHS;
@@ -363,6 +378,13 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   );
   const [showLovedOnly, setShowLovedOnly] = useState(showLoved);
   const [activeTab, setActiveTab] = useState<string>(initialRewayatId ?? '');
+  // iPad list tables pin their column header in the sticky section, so it
+  // must use the same width test as SurahList (the page is the list). @ai
+  const showPinnedTableHeader =
+    isTablet &&
+    viewMode === 'list' &&
+    activeTab !== 'uploads' &&
+    pageWidth >= TABLE_MIN_WIDTH;
   const [neighborsReady, setNeighborsReady] = useState(false);
   const outerScrollRef = useRef<ScrollViewInstance>(null);
   const horizontalRef = useRef<ScrollViewInstance>(null);
@@ -409,7 +431,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   }, []);
   // @ai-end
   const {startNewChain} = useRecentlyPlayedStore();
-  const {reciterPreferences, setReciterPreference} = useSettings();
+  const {setReciterPreference} = useSettings(); // @ai
 
   // Retrieve persisted reciter profile settings
   const setReciterViewModeSetting = useSettings(
@@ -1102,13 +1124,11 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
               onLayout={e => setCollapsibleHeight(e.nativeEvent.layout.height)}
               style={{marginBottom: -stickyPinOffset, zIndex: 11}}
               pointerEvents="box-none">
-              <ReciterHeader
-                reciter={reciter}
-                showSearch={showSearch}
-                insets={insets}
-              />
-              <View style={styles.contentContainer}>
-                <ActionButtons
+              {isTablet ? (
+                <TabletReciterHero
+                  reciter={reciter}
+                  paddingTop={showSearch ? 16 : isGlass ? 8 : insets.top + 56}
+                  margin={pageMargin}
                   onFavoritePress={handleToggleFavorite}
                   onShufflePress={handleShuffleAll}
                   onPlayPress={handlePlayAll}
@@ -1118,7 +1138,27 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                   downloadAllProgress={downloadAllProgress}
                   allDownloaded={allDownloaded}
                 />
-              </View>
+              ) : (
+                <>
+                  <ReciterHeader
+                    reciter={reciter}
+                    showSearch={showSearch}
+                    insets={insets}
+                  />
+                  <View style={styles.contentContainer}>
+                    <ActionButtons
+                      onFavoritePress={handleToggleFavorite}
+                      onShufflePress={handleShuffleAll}
+                      onPlayPress={handlePlayAll}
+                      isFavoriteReciter={isFavoriteReciter(reciter.id)}
+                      onDownloadAllPress={handleDownloadAll}
+                      isDownloadingAll={isDownloadingAll}
+                      downloadAllProgress={downloadAllProgress}
+                      allDownloaded={allDownloaded}
+                    />
+                  </View>
+                </>
+              )}
             </View>
 
             {/* Child 1: Sticky section — sticks at top when header collapses */}
@@ -1138,7 +1178,11 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                     screenWidth={pageWidth}
                   />
                 )}
-                <View style={styles.controlsRow}>
+                <View
+                  style={[
+                    styles.controlsRow,
+                    isTablet && {marginHorizontal: pageMargin},
+                  ]}>
                   {activeTab !== 'uploads' && (
                     <View style={styles.sortOptionsContainer}>
                       <Pressable
@@ -1220,6 +1264,11 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                     </Pressable>
                   </View>
                 </View>
+                {/* @ai: the table's column labels stay on screen while the
+                    surahs scroll under them. */}
+                {showPinnedTableHeader && (
+                  <SurahListTableHeader margin={pageMargin} />
+                )}
               </View>
             </View>
 
@@ -1299,6 +1348,8 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
                             sortOption={sortOption}
                             getColorForSurah={getColorForSurah}
                             rewayatId={tab.id}
+                            tabletMargin={isTablet ? pageMargin : undefined}
+                            hideTableHeader={isTablet} // @ai
                           />
                         )
                       ) : null}

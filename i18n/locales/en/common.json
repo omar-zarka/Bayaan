@@ -30,7 +30,9 @@
     "copy": "Copy",
     "select": "Select",
     "apply": "Apply",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "hideSidebar": "Hide sidebar",
+    "showSidebar": "Show sidebar"
   },
   "tabs": {
     "home": "Home",
@@ -130,5 +132,24 @@
     "confirmTitle": "Restart the app?",
     "confirmMessage": "The app will close and reopen in the new language.",
     "restart": "Restart"
+  },
+  "keyboard": {
+    "menus": {
+      "playback": "Playback",
+      "go": "Go",
+      "reader": "Mushaf"
+    },
+    "playPause": "Play/Pause",
+    "skipBack": "Back {{seconds}} Seconds",
+    "skipForward": "Forward {{seconds}} Seconds",
+    "previousTrack": "Previous Track",
+    "nextTrack": "Next Track",
+    "followAlong": "Follow Along",
+    "search": "Search",
+    "findSurahOrReciter": "Find a Surah or Reciter",
+    "close": "Close",
+    "nextPage": "Next Page",
+    "previousPage": "Previous Page",
+    "playPauseRecitation": "Play/Pause Recitation"
   }
 }

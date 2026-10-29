@@ -169,6 +169,15 @@ android {
 }
 
 dependencies {
+    // @bayaan-okhttp start
+    // OkHttp 4.12.1 refuses the compromised eMudhra intermediate CAs.
+    // React Native and Expo modules ask for 4.9.2, so raise the floor here.
+    constraints {
+        implementation("com.squareup.okhttp3:okhttp:4.12.1")
+        implementation("com.squareup.okhttp3:okhttp-urlconnection:4.12.1")
+    }
+    // @bayaan-okhttp end
+
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
 
