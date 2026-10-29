@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // @ai-start
 import * as Sentry from '@sentry/react-native';
 import {createJSONStorage, type StateStorage} from 'zustand/middleware';
+import {remapMergedReciterJson} from '@/utils/reciterMerges';
 // @ai-end
 
 export const storage = AsyncStorage;
@@ -44,11 +45,16 @@ export function resetWriteFailureReportForTests(): void {
  * 640, the device is out of space), each state change became an unhandled
  * rejection (BAYAAN-6J). A failed write here is logged and dropped instead:
  * the in-memory state stays correct, and the next successful write persists
- * it. Reads pass through unchanged, because `persist` already handles a failed
- * hydration.
+ * it. Reads are not caught, because `persist` already handles a failed
+ * hydration. A read moves anything saved under a merged reciter over to the
+ * reciter it was merged into (see utils/reciterMerges), so every store
+ * hydrates with the kept id; the next write saves it that way.
  */
 export const safeAsyncStorage: StateStorage = {
-  getItem: name => AsyncStorage.getItem(name),
+  getItem: async name => {
+    const value = await AsyncStorage.getItem(name);
+    return value === null ? null : remapMergedReciterJson(value);
+  },
   setItem: async (name, value) => {
     try {
       await AsyncStorage.setItem(name, value);

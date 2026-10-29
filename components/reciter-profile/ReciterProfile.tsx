@@ -15,13 +15,14 @@ import {
   NativeScrollEvent,
   NativeSyntheticEvent,
   useWindowDimensions,
-  InteractionManager,
   PixelRatio, // @ai
   type LayoutChangeEvent, // @ai
   Platform,
   StyleSheet,
   Alert,
+  type ScrollViewInstance,
 } from 'react-native';
+import {runAfterInteractions} from '@/utils/afterInteractions';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import {useTheme} from '@/hooks/useTheme';
 import {Surah, SURAHS} from '@/data/surahData';
@@ -385,8 +386,8 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     activeTab !== 'uploads' &&
     pageWidth >= TABLE_MIN_WIDTH;
   const [neighborsReady, setNeighborsReady] = useState(false);
-  const outerScrollRef = useRef<ScrollView>(null);
-  const horizontalRef = useRef<ScrollView>(null);
+  const outerScrollRef = useRef<ScrollViewInstance>(null);
+  const horizontalRef = useRef<ScrollViewInstance>(null);
   const currentScrollYRef = useRef(0);
   const renderedTabsRef = useRef(new Set<string>());
   const pagerScrolledRef = useRef(
@@ -1467,8 +1468,8 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
 
 // Lightweight wrapper — defers mounting the heavy content until the navigation
 // transition finishes so the screen push feels instant.
-// On Android, InteractionManager can hang indefinitely if an interaction never
-// completes, so we race it against a short timeout.
+// The idle callback can be late while the JS thread stays busy, so we race it
+// against a short timeout.
 const ReciterProfile: React.FC<ReciterProfileProps> = props => {
   const [ready, setReady] = useState(false);
   const {theme} = useTheme();
@@ -1481,7 +1482,7 @@ const ReciterProfile: React.FC<ReciterProfileProps> = props => {
       setReady(true);
     };
 
-    const handle = InteractionManager.runAfterInteractions(markReady);
+    const handle = runAfterInteractions(markReady);
     // Fallback: if interactions don't settle within 300ms, mount anyway
     const timer = setTimeout(markReady, 300);
 
