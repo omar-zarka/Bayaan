@@ -121,15 +121,14 @@ struct AyahOfTheDayView: View {
         HStack {
           Text(reference(ayah)).font(.caption.weight(.bold)).foregroundStyle(style.label).lineLimit(1)
           Spacer(minLength: 4)
-          Button(intent: listenIntent(ayah)) {
-            Label("Listen", systemImage: "play.fill")
+          PlayOrPauseButton(playing: isPlaying(ayah), play: listenIntent(ayah), label: "Listen") { playing in
+            Label(playing ? "Pause" : "Listen", systemImage: playing ? "pause.fill" : "play.fill")
               .font(.caption.weight(.heavy))
               .foregroundStyle(style.buttonGlyph)
               .padding(.horizontal, 14)
               .frame(height: 32)
               .background(style.buttonFill, in: Capsule())
           }
-          .buttonStyle(.plain)
         }
       }
       .padding(.horizontal, 26)
@@ -150,16 +149,18 @@ struct AyahOfTheDayView: View {
     PlayTrackIntent(surahId: ayah.surahId, reciterId: nil, rewayatId: nil, ayah: ayah.ayah)
   }
 
-  private func listen(_ ayah: StaticAyah, size: CGFloat) -> some View {
-    Button(intent: listenIntent(ayah)) {
-      PrimaryGlyph(systemName: "play.fill", size: size, fill: style.buttonFill, glyph: style.buttonGlyph)
-  // @ai-end
-    }
-    // @ai-start
-    .buttonStyle(.plain)
-    .accessibilityLabel("Listen")
-    // @ai-end
+  /// The ayah's surah is playing, from any reciter.
+  private func isPlaying(_ ayah: StaticAyah) -> Bool {
+    PlayingNow.matches(PlayingNow.track(at: entry.date), surahId: ayah.surahId, reciterId: nil)
   }
+
+  private func listen(_ ayah: StaticAyah, size: CGFloat) -> some View {
+    PlayOrPauseButton(playing: isPlaying(ayah), play: listenIntent(ayah), label: "Listen") { playing in
+      PrimaryGlyph(systemName: playing ? "pause.fill" : "play.fill", size: size, fill: style.buttonFill,
+                   glyph: style.buttonGlyph)
+    }
+  }
+  // @ai-end
 
   private func arabic(_ ayah: StaticAyah, size: CGFloat, lines: Int) -> some View {
     Text(ayah.arabic)

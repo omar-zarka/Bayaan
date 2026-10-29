@@ -267,3 +267,61 @@ struct PrimaryIntentButton<I: AppIntent>: View {
       .accessibilityLabel(label)
   }
 }
+
+// @ai-start
+/// The track that is playing right now, from the snapshot and any newer tap
+/// override; nil when paused or stopped. Lets any widget show pause.
+enum PlayingNow {
+  static func track(at date: Date = .now) -> WidgetTrack? {
+    guard let s = SnapshotStore.load(), let np = s.nowPlaying else { return nil }
+    let p = EffectivePlayback(nowPlaying: np, generatedAt: s.generatedAt,
+                              override: PlaybackOverrideStore.read(), now: date)
+    return p.isPlaying ? np.track : nil
+  }
+
+  /// A nil reciter matches any reciter (the widget plays the default one).
+  static func matches(_ track: WidgetTrack?, surahId: Int, reciterId: String?) -> Bool {
+    guard let track else { return false }
+    return track.surahId == surahId && (reciterId == nil || track.reciterId == reciterId)
+  }
+}
+
+/// Runs `play` normally, or pauses when its target is what is playing.
+struct PlayOrPauseButton<I: AppIntent, Content: View>: View {
+  let playing: Bool
+  let play: I
+  let label: String
+  @ViewBuilder let content: (_ playing: Bool) -> Content
+
+  var body: some View {
+    Group {
+      if playing {
+        Button(intent: SetPlaybackIntent(playing: false)) { content(true) }
+      } else {
+        Button(intent: play) { content(false) }
+      }
+    }
+    .buttonStyle(.plain)
+    .accessibilityLabel(playing ? "Pause" : label)
+  }
+}
+
+/// One line of text that drops leading words before it would cut letters,
+/// e.g. "Mishary Alafasi" becomes "Alafasi".
+struct FittingName: View {
+  let name: String
+
+  private var options: [String] {
+    let words = name.split(separator: " ")
+    guard words.count > 1 else { return [name] }
+    return (0..<words.count).map { words[$0...].joined(separator: " ") }
+  }
+
+  var body: some View {
+    ViewThatFits(in: .horizontal) {
+      ForEach(options, id: \.self) { Text($0).lineLimit(1).fixedSize(horizontal: true, vertical: false) }
+      Text(name).lineLimit(1).minimumScaleFactor(0.8)
+    }
+  }
+}
+// @ai-end

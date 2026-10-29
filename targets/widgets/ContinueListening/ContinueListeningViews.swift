@@ -292,8 +292,7 @@ struct SmallView: View {
           if !cardNamed {
             Text(track.surahName).font(.system(size: 16, weight: .heavy)).lineLimit(1)
           }
-          Text(track.reciterName).font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary)
-            .lineLimit(1)
+          FittingName(name: track.reciterName).font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary)
         }
     // @ai-end
         Spacer(minLength: 0)

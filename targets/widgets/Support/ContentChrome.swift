@@ -35,18 +35,25 @@ struct SurahTileButton<I: AppIntent>: View {
   let size: CGFloat
   let intent: I
   var caption: String? = nil
+  var playing: Bool = false // @ai
 
   var body: some View {
-    Button(intent: intent) {
+    // @ai-start
+    // While this tile's track plays, a tap pauses it and a pause badge shows.
+    PlayOrPauseButton(playing: playing, play: intent, label: StaticData.surah(surahId)?.name ?? "") { playing in
+    // @ai-end
       VStack(spacing: 3) {
         SurahCard(surah: StaticData.surah(surahId), size: size)
+          // @ai-start
+          .overlay(alignment: .bottomTrailing) {
+            if playing { PrimaryGlyph(systemName: "pause.fill", size: max(24, size * 0.32)).padding(4) }
+          }
+          // @ai-end
         if let caption, !(caption == StaticData.surah(surahId)?.name && SurahCard.showsName(StaticData.surah(surahId))) { // @ai
           Text(caption).font(.caption2.weight(.semibold)).foregroundStyle(WidgetPalette.secondary).lineLimit(1).frame(width: size) // @ai
         }
       }
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel(StaticData.surah(surahId)?.name ?? "")
   }
 }
 

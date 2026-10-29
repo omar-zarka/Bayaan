@@ -109,15 +109,24 @@ struct BedtimeView: View {
                        sleepMinutes: entry.settings.minutes, ambient: entry.settings.ambient.commandValue)
   }
 
+  // @ai-start
+  private var isPlaying: Bool {
+    PlayingNow.matches(PlayingNow.track(at: entry.date), surahId: entry.settings.surahId,
+                       reciterId: entry.settings.reciterId)
+  }
+  // @ai-end
+
   private var detail: String {
     ["\(entry.settings.minutes) min", entry.settings.ambient.label].compactMap { $0 }.joined(separator: " · ")
   }
 
   var body: some View {
     // The whole widget is the action.
-    Button(intent: intent) { content }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Start bedtime with \(surah?.name ?? "")")
+    // @ai-start
+    PlayOrPauseButton(playing: isPlaying, play: intent, label: "Start bedtime with \(surah?.name ?? "")") { _ in
+      content
+    }
+    // @ai-end
       .foregroundStyle(.white)
       .containerBackground(for: .widget) { WidgetPalette.bedtime } // @ai
   }
@@ -138,7 +147,7 @@ struct BedtimeView: View {
         HStack(alignment: .bottom) {
           subtitle.font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary).lineLimit(2) // @ai
           Spacer(minLength: 4)
-          PrimaryGlyph(systemName: "play.fill", fill: WidgetPalette.moon, glyph: WidgetPalette.bedtime) // @ai
+          PrimaryGlyph(systemName: isPlaying ? "pause.fill" : "play.fill", fill: WidgetPalette.moon, glyph: WidgetPalette.bedtime) // @ai
         }
       }
       .padding(14) // @ai
@@ -160,7 +169,7 @@ struct BedtimeView: View {
           HStack(alignment: .bottom) {
             subtitle.font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary).lineLimit(1) // @ai
             Spacer(minLength: 4)
-            PrimaryGlyph(systemName: "play.fill", fill: WidgetPalette.moon, glyph: WidgetPalette.bedtime) // @ai
+            PrimaryGlyph(systemName: isPlaying ? "pause.fill" : "play.fill", fill: WidgetPalette.moon, glyph: WidgetPalette.bedtime) // @ai
           }
         }
       }

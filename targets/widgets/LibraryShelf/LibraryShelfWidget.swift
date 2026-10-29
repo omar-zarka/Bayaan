@@ -111,6 +111,7 @@ struct LibraryShelfView: View {
                                              intent: @escaping (WidgetShelfItem) -> I) -> some View {
     let shown = Array(items.prefix(isLarge ? 12 : 4)) // @ai
     let rows = (shown.count + 3) / 4
+    let now = PlayingNow.track(at: entry.date) // @ai
     return VStack(alignment: .leading, spacing: 10) {
       header
       ForEach(0..<rows, id: \.self) { row in
@@ -119,7 +120,9 @@ struct LibraryShelfView: View {
             let i = row * 4 + col
             if i < shown.count {
               SurahTileButton(surahId: shown[i].surahId, size: isLarge ? 74 : 64, intent: intent(shown[i]), // @ai
-                              caption: isLarge ? shown[i].surahName : nil)
+                              caption: isLarge ? shown[i].surahName : nil,
+                              playing: PlayingNow.matches(now, surahId: shown[i].surahId, // @ai
+                                                          reciterId: shown[i].reciterId)) // @ai
                 .frame(maxWidth: .infinity)
             } else {
               Color.clear.frame(maxWidth: .infinity, maxHeight: 1)

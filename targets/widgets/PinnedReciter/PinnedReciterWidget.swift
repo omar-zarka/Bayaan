@@ -78,26 +78,26 @@ struct PinnedReciterView: View {
   }
 
   private func small(id: String, name: String, file: String?) -> some View {
-    Button(intent: PlayReciterIntent(reciterId: id)) {
+    let playing = PlayingNow.track(at: entry.date)?.reciterId == id // @ai
+    return PlayOrPauseButton(playing: playing, play: PlayReciterIntent(reciterId: id), label: "Play \(name)") { playing in // @ai
       ZStack(alignment: .bottomLeading) {
         ReciterPhoto(file: file, name: name)
           .frame(maxWidth: .infinity, maxHeight: .infinity)
           .clipped()
         LinearGradient(colors: [WidgetPalette.ink.opacity(0), WidgetPalette.ink.opacity(0.9)], startPoint: .center, endPoint: .bottom) // @ai
         HStack(alignment: .bottom) {
-          Text(name).font(.headline).lineLimit(2)
+          Text(name).font(.headline).lineLimit(2).minimumScaleFactor(0.85) // @ai
           Spacer(minLength: 4)
-          PrimaryGlyph(systemName: "play.fill") // @ai
+          PrimaryGlyph(systemName: playing ? "pause.fill" : "play.fill") // @ai
         }
         .padding(12)
       }
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel("Play \(name)")
   }
 
   private func medium(id: String, name: String, file: String?, rows: [PinnedRow]) -> some View {
-    HStack(spacing: 12) {
+    let now = PlayingNow.track(at: entry.date) // @ai
+    return HStack(spacing: 12) { // @ai
       ReciterPhoto(file: file, name: name)
         .frame(width: 106, height: 106)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
@@ -107,23 +107,23 @@ struct PinnedReciterView: View {
         HStack(spacing: 8) {
           Text(name).font(.subheadline.weight(.heavy)).lineLimit(2)
           Spacer(minLength: 0)
-          PrimaryIntentButton(intent: PlayReciterIntent(reciterId: id), systemName: "play.fill", label: "Play \(name)",
-                              size: 36)
+          PlayOrPauseButton(playing: now?.reciterId == id, play: PlayReciterIntent(reciterId: id),
+                            label: "Play \(name)") { PrimaryGlyph(systemName: $0 ? "pause.fill" : "play.fill", size: 36) }
         }
         // @ai-end
         ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
           if let surah = StaticData.surah(row.surahId) {
-            Button(intent: PlayTrackIntent(surahId: surah.id, reciterId: id, rewayatId: row.rewayatId)) {
+            PlayOrPauseButton(playing: PlayingNow.matches(now, surahId: surah.id, reciterId: id), // @ai
+                              play: PlayTrackIntent(surahId: surah.id, reciterId: id, rewayatId: row.rewayatId), label: "Play \(surah.name)") { playing in // @ai
               HStack(spacing: 8) {
                 // @ai-start
                 SurahCard(surah: surah, size: 26)
                 Text(surah.name).font(.caption.weight(.bold)).lineLimit(1)
                 // @ai-end
                 Spacer(minLength: 0)
+                if playing { Image(systemName: "pause.fill").font(.system(size: 11, weight: .bold)).foregroundStyle(WidgetPalette.accent) } // @ai
               }
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Play \(surah.name)")
           }
         }
         Spacer(minLength: 0)

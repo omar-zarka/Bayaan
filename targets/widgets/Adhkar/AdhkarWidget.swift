@@ -96,7 +96,12 @@ struct AdhkarView: View {
     VStack(alignment: .leading, spacing: 6) {
       HStack(spacing: 6) {
         Image(systemName: style.symbol).font(.system(size: 13, weight: .bold)).foregroundStyle(style.accent)
-        Text(data.title).font(.footnote.weight(.heavy)).lineLimit(1)
+        // Drops "Adhkar" before cutting letters; the icon already says which.
+        ViewThatFits(in: .horizontal) {
+          Text(data.title).lineLimit(1).fixedSize(horizontal: true, vertical: false)
+          Text(data.title.split(separator: " ").first.map(String.init) ?? data.title).lineLimit(1)
+        }
+        .font(.footnote.weight(.heavy))
     // @ai-end
       }
       DhikrText(text: dhikr.arabic, size: 22, lines: 3).frame(maxWidth: .infinity, maxHeight: .infinity) // @ai

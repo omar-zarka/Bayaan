@@ -93,6 +93,13 @@ struct QuickSurahView: View {
 
   private var reciterName: String { entry.reciter?.name ?? entry.defaultReciter?.name ?? "Default reciter" }
   private var reciterFile: String? { entry.reciter?.artworkFile ?? entry.defaultReciter?.artworkFile }
+  // @ai-start
+  private var reciterId: String? { entry.reciter?.id ?? entry.defaultReciter?.id }
+
+  private func isPlaying(_ surah: StaticSurah) -> Bool {
+    PlayingNow.matches(PlayingNow.track(at: entry.date), surahId: surah.id, reciterId: reciterId)
+  }
+  // @ai-end
 
   var body: some View {
     Group {
@@ -115,7 +122,7 @@ struct QuickSurahView: View {
   }
 
   private func small(_ surah: StaticSurah) -> some View {
-    Button(intent: intent(surah)) {
+    PlayOrPauseButton(playing: isPlaying(surah), play: intent(surah), label: "Play \(surah.name)") { playing in // @ai
       // @ai-start
       // A cached card prints the surah name, so it is shown larger and not repeated.
       let cardNamed = SurahCard.showsName(surah)
@@ -129,16 +136,14 @@ struct QuickSurahView: View {
         HStack(spacing: 6) {
           ReciterPhoto(file: reciterFile, name: reciterName)
             .frame(width: 18, height: 18).clipShape(Circle())
-          Text(reciterName).font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary).lineLimit(1) // @ai
+          FittingName(name: reciterName).font(.caption.weight(.medium)).foregroundStyle(WidgetPalette.secondary) // @ai
           Spacer(minLength: 0)
-          PrimaryGlyph(systemName: "play.fill") // @ai
+          PrimaryGlyph(systemName: playing ? "pause.fill" : "play.fill") // @ai
         }
       }
       .padding(14)
       .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
-    .buttonStyle(.plain)
-    .accessibilityLabel("Play \(surah.name)")
   }
 
   private var medium: some View {
@@ -169,18 +174,19 @@ struct QuickSurahView: View {
   @ViewBuilder private func tile(_ index: Int) -> some View {
     if index < entry.surahs.count {
       let surah = entry.surahs[index]
-      Button(intent: intent(surah)) {
+      PlayOrPauseButton(playing: isPlaying(surah), play: intent(surah), label: "Play \(surah.name)") { playing in // @ai
         // @ai-start
         VStack(spacing: 6) {
           SurahCard(surah: surah, size: 72)
+            .overlay(alignment: .bottomTrailing) {
+              if playing { PrimaryGlyph(systemName: "pause.fill", size: 26).padding(4) }
+            }
           if !SurahCard.showsName(surah) {
             Text(surah.name).font(.caption.weight(.bold)).lineLimit(1).minimumScaleFactor(0.8)
           }
         // @ai-end
         }
       }
-      .buttonStyle(.plain)
-      .accessibilityLabel("Play \(surah.name)")
     } else {
       Color.clear.frame(width: 72, height: 72) // @ai
     }
