@@ -1,7 +1,7 @@
 // "Now playing" pill under the header: shown while the playing row of this
 // list is scrolled away, pointing toward it.
 import React, {useEffect} from 'react';
-import {Pressable, Text} from 'react-native';
+import {Pressable, Text, type ListViewToken} from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useReducedMotion,
@@ -26,6 +26,10 @@ export function jumpPillDirection(
   }
   return target < Math.min(...visible) ? 'up' : 'down';
 }
+
+// A viewable token of a list whose items are rows of type T. React Native's
+// ListViewToken types its item as any.
+export type RowToken<T> = Omit<ListViewToken, 'item'> & {item: T};
 
 // Row indices of the viewable tokens. Section headers and footers report no
 // index (null at runtime, undefined in the types) and are not rows, so they

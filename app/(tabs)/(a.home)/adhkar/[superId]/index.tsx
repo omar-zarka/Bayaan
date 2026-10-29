@@ -11,7 +11,6 @@ import {
   SectionList,
   FlatList,
   Text,
-  type ListViewToken,
   Pressable,
   StyleSheet,
 } from 'react-native';
@@ -36,6 +35,7 @@ import {
   AdhkarJumpPill,
   jumpPillDirection,
   visibleRowIndices,
+  type RowToken,
 } from '@/components/adhkar/AdhkarJumpPill';
 import {Dhikr, SuperCategory} from '@/types/adhkar';
 import {adhkarService} from '@/services/adhkar/AdhkarService';
@@ -676,13 +676,7 @@ const SuperCategoryListScreen: React.FC = () => {
 
   // Track current visible section for the subtitle
   const onViewableItemsChanged = useCallback(
-    ({
-      viewableItems,
-    }: {
-      viewableItems: (Omit<ListViewToken, 'item'> & {
-        item: DhikrItem[] | undefined;
-      })[];
-    }) => {
+    ({viewableItems}: {viewableItems: RowToken<DhikrItem[] | undefined>[]}) => {
       setVisibleIndices(
         visibleRowIndices(viewableItems, v => v.item?.map(i => i.globalIndex)),
       );
@@ -697,11 +691,7 @@ const SuperCategoryListScreen: React.FC = () => {
   );
 
   const onFlatViewableItemsChanged = useCallback(
-    ({
-      viewableItems,
-    }: {
-      viewableItems: (Omit<ListViewToken, 'item'> & {item: DhikrItem[]})[];
-    }) => {
+    ({viewableItems}: {viewableItems: RowToken<DhikrItem[]>[]}) => {
       setVisibleIndices(
         visibleRowIndices(viewableItems, v => v.item.map(i => i.globalIndex)),
       );
