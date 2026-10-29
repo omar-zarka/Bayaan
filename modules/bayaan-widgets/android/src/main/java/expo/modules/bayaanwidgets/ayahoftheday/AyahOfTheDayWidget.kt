@@ -120,7 +120,7 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
         Spacer(GlanceModifier.defaultWeight())
         ArabicText(context, ayah.arabic, ArabicBitmap.QURAN_FONT, width - 24, size.height.value - 24 - 40, 26f, 10f, 5, center = true, color = ink)
         Spacer(GlanceModifier.defaultWeight())
-        Footer(ayah, isPlaying, listen, 30)
+        SmallFooter(ayah, isPlaying, listen)
       }
     }
   }
@@ -132,6 +132,19 @@ class AyahOfTheDayWidget : GlanceAppWidget() {
       Text(WidgetText.reference(ayah.surahName, ayah.key), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
         style = TextStyle(color = ReadingColors.LABEL, fontSize = 11.sp, fontWeight = FontWeight.Bold))
       PrimaryButton(isPlaying, "Listen", listen, sizeDp = buttonDp, fill = ReadingColors.BUTTON, glyph = ReadingColors.BUTTON_GLYPH)
+    }
+  }
+
+  /** Surah over the ayah number, so a 110 dp cell never cuts the reference. */
+  @Composable
+  private fun SmallFooter(ayah: StaticAyah, isPlaying: Boolean, listen: Action) {
+    Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+      Column(GlanceModifier.defaultWeight()) {
+        Text(WidgetText.shortSurahName(ayah.surahName, 9), maxLines = 1,
+          style = TextStyle(color = ReadingColors.LABEL, fontSize = 10.sp, fontWeight = FontWeight.Medium))
+        Text(ayah.key, maxLines = 1, style = TextStyle(color = ReadingColors.LABEL, fontSize = 11.sp, fontWeight = FontWeight.Bold))
+      }
+      PrimaryButton(isPlaying, "Listen", listen, sizeDp = 28, fill = ReadingColors.BUTTON, glyph = ReadingColors.BUTTON_GLYPH)
     }
   }
   // @ai-end

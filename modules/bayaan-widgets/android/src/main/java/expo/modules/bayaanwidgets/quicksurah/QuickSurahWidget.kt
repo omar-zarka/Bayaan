@@ -141,20 +141,27 @@ class QuickSurahWidget : GlanceAppWidget() {
     // generated art gets the title beside it.
     val cardNamed = surahCardShowsName(context, first)
     val widthDp = LocalSize.current.width.value.toInt()
-    Column(root.padding(12.dp).clickable(playOrPause(context, isPlaying, play))) {
-      if (cardNamed) {
-        SurahCard(context, first, 52)
-      } else {
+    val reciterLine = WidgetText.fitName(reciterName, maxOf(6, (widthDp - 60) / 7))
+    if (!cardNamed) {
+      // Generated art: card and button on top, so the title gets the full width below.
+      Column(root.padding(12.dp).clickable(playOrPause(context, isPlaying, play))) {
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-          SurahCard(context, first, 40)
-          Spacer(GlanceModifier.width(8.dp))
-          Text(first.name, maxLines = 2, modifier = GlanceModifier.defaultWeight(),
-            style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
+          SurahCard(context, first, 36)
+          Spacer(GlanceModifier.defaultWeight())
+          PrimaryButton(isPlaying, "Play ${first.name}", action = null, sizeDp = 32)
         }
+        Spacer(GlanceModifier.defaultWeight())
+        Text(first.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
+        Text(reciterLine, maxLines = 1,
+          style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
       }
+      return
+    }
+    Column(root.padding(12.dp).clickable(playOrPause(context, isPlaying, play))) {
+      SurahCard(context, first, 52)
       Spacer(GlanceModifier.defaultWeight())
       Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(WidgetText.fitName(reciterName, maxOf(6, (widthDp - 60) / 7)), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+        Text(reciterLine, maxLines = 1, modifier = GlanceModifier.defaultWeight(),
           style = TextStyle(color = WidgetColors.SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
         Spacer(GlanceModifier.width(4.dp))
         PrimaryButton(isPlaying, "Play ${first.name}", action = null, sizeDp = 32)

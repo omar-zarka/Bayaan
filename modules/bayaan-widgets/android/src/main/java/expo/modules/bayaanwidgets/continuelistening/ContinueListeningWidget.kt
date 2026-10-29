@@ -13,6 +13,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -96,21 +97,28 @@ private fun decodeArt(file: File, px: Int): Bitmap? {
 
 // @ai-start
 /**
- * Scales the top `fraction` of the art to cover widthPx x heightPx. A surah
- * card prints its name in its lower part, so keeping only the calligraphy lets
- * the widget draw its own title and controls without covering that print.
+ * Draws the top `fraction` of the art across the full width at its own aspect,
+ * filling any space below with `fill`. A surah card prints its name in its
+ * lower part, so keeping only the calligraphy lets the widget draw its own
+ * title and controls under it without zooming into a sliver of the card.
  */
-private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Float): Bitmap {
+private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Float, fill: Int): Bitmap {
   val out = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
+  val canvas = android.graphics.Canvas(out)
+  canvas.drawColor(fill)
   val srcH = src.height * fraction
-  val scale = maxOf(widthPx.toFloat() / src.width, heightPx / srcH)
-  val cropW = widthPx / scale
-  val cropH = heightPx / scale
-  val left = (src.width - cropW) / 2
-  val top = (srcH - cropH) / 2
-  val srcRect = android.graphics.Rect(left.roundToInt(), top.roundToInt(), (left + cropW).roundToInt(), (top + cropH).roundToInt())
-  android.graphics.Canvas(out).drawBitmap(src, srcRect, android.graphics.Rect(0, 0, widthPx, heightPx),
-    android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
+  val scale = widthPx.toFloat() / src.width
+  val drawnH = srcH * scale
+  // Taller than the widget (e.g. a full photo): crop the middle instead.
+  val srcRect = if (drawnH <= heightPx) {
+    android.graphics.Rect(0, 0, src.width, srcH.roundToInt())
+  } else {
+    val cropH = heightPx / scale
+    val top = (srcH - cropH) / 2
+    android.graphics.Rect(0, top.roundToInt(), src.width, (top + cropH).roundToInt())
+  }
+  val dst = android.graphics.Rect(0, 0, widthPx, minOf(heightPx, drawnH.roundToInt()))
+  canvas.drawBitmap(src, srcRect, dst, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
   return out
 }
 // @ai-end
@@ -229,7 +237,8 @@ class ContinueListeningWidget : GlanceAppWidget() {
     when {
       size.width >= MEDIUM.width && size.height >= LARGE.height ->
         Large(context, hero, sideSource.take(4), sideTitle, root.padding(16.dp))
-      size.width >= MEDIUM.width -> Medium(context, hero, sideSource.firstOrNull(), sideTitle, root.padding(12.dp))
+      size.width >= MEDIUM.width -> Medium(context, hero, sideSource.firstOrNull(), sideTitle,
+        root.padding(if (size.height < TALL_DP.dp) 10.dp else 12.dp))
       else -> Small(context, hero, root, size.width.value.toInt(), size.height.value.toInt())
     }
   }
@@ -339,7 +348,7 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val surah = StaticData.surah(context, track.surahId)
     val cardNamed = surah != null && track.artworkFile == surah.artworkFile
     val src = cachedArt(context, LocalArtCache.current, track.artworkFile, maxOf(wPx, hPx))
-    val art = src?.let { cropTopFill(it, wPx, hPx, if (cardNamed) CARD_ART_FRACTION else 1f) }
+    val art = src?.let { cropTopFill(it, wPx, hPx, if (cardNamed) CARD_ART_FRACTION else 1f, SurahTint.deep(track.surahId).toArgb()) }
     Box(root) {
       if (art != null) {
         Image(ImageProvider(art), contentDescription = null, modifier = GlanceModifier.fillMaxSize(),
@@ -372,14 +381,15 @@ class ContinueListeningWidget : GlanceAppWidget() {
     val short = LocalSize.current.height < TALL_DP.dp
     Row(root, verticalAlignment = Alignment.CenterVertically) {
       Art(context, hero.track, if (short) 80 else 96)
-      Spacer(GlanceModifier.width(14.dp))
+      Spacer(GlanceModifier.width(if (short) 12.dp else 14.dp))
       Column(GlanceModifier.defaultWeight().fillMaxHeight()) {
-        Eyebrow(eyebrow(hero))
+        // The short cell drops the eyebrow so the button clears the bottom edge.
+        if (!short) Eyebrow(eyebrow(hero))
         Text(hero.track.surahName, maxLines = 1, style = TextStyle(color = WHITE, fontSize = 18.sp, fontWeight = FontWeight.Bold))
         Text(hero.track.reciterName, maxLines = 1, style = TextStyle(color = SECONDARY, fontSize = 12.sp, fontWeight = FontWeight.Medium))
         Spacer(GlanceModifier.defaultWeight())
         Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-          PlayButton(context, hero, if (short) 34 else 40)
+          PlayButton(context, hero, if (short) 32 else 40)
           if (next != null) {
             Spacer(GlanceModifier.width(10.dp))
             Column(GlanceModifier.defaultWeight()) {

@@ -23,5 +23,12 @@ class WidgetTextTest {
     assertEquals("Morning Adhkar", WidgetText.fitTitle("Morning Adhkar", 14))
     assertEquals("Morning", WidgetText.fitTitle("Morning Adhkar", 10))
   }
+
+  @Test
+  fun shortSurahNameDropsTheArticleOnlyWhenNeeded() {
+    assertEquals("Hud", WidgetText.shortSurahName("Hud", 9))
+    assertEquals("Baqarah", WidgetText.shortSurahName("Al-Baqarah", 9))
+    assertEquals("Shu'ara", WidgetText.shortSurahName("Ash-Shu'ara", 9))
+  }
 }
 // @ai-end

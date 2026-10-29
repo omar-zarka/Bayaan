@@ -22,5 +22,9 @@ object WidgetText {
   /** "Morning Adhkar" to "Morning" when it does not fit: the icon already says which. */
   fun fitTitle(title: String, maxChars: Int): String =
     if (title.length <= maxChars) title else title.substringBefore(' ')
+
+  /** "Al-Baqarah" to "Baqarah" when it does not fit: drops the leading article. */
+  fun shortSurahName(name: String, maxChars: Int): String =
+    if (name.length <= maxChars) name else name.replaceFirst(Regex("^[A-Za-z]{1,3}-"), "")
   // @ai-end
 }

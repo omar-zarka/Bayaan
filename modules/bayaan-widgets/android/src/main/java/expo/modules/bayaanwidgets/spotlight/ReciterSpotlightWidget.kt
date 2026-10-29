@@ -129,6 +129,7 @@ class ReciterSpotlightWidget : GlanceAppWidget() {
               style = TextStyle(color = ColorProvider(WidgetPalette.GOLD), fontSize = 10.sp, fontWeight = FontWeight.Bold))
             Text(r.name, maxLines = 1, style = TextStyle(color = WidgetColors.WHITE, fontSize = 14.sp, fontWeight = FontWeight.Bold))
           }
+          Spacer(GlanceModifier.width(8.dp)) // @ai
           PrimaryButton(isPlaying, "Play ${r.name}", play, sizeDp = 34)
         }
         r.surahIds.forEach { id ->
