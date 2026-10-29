@@ -42,6 +42,8 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {
   getJuzForPage,
   getPageEdgeLayout,
+  readerListKey, // @ai
+  singlePageLayout, // @ai
   useMushafLayout,
   type MushafLayoutMetrics,
 } from './constants';
@@ -608,13 +610,12 @@ export default function MushafViewer({
   const {isTablet} = useResponsive();
   const {width: windowWidth, height: windowHeight} = useWindowDimensions();
   // A paged, `inverted` FlatList preserves its pixel scroll offset when its
-  // items resize on rotation, so the visible page drifts to a different index
-  // (old offset ÷ new item width); `initialScrollIndex` is mount-only and never
-  // re-fires. Remount the list on an orientation flip via this key so it starts
-  // fresh at `initialScrollIndex = currentPage` and never inherits the stale
-  // offset. Keyed on orientation (not raw dimensions) so the on-screen keyboard
-  // shrinking the height never remounts the reader.
-  const orientationKey = windowWidth > windowHeight ? 'landscape' : 'portrait';
+  // items resize, so the visible page drifts to a different index (old offset
+  // ÷ new item width); `initialScrollIndex` is mount-only and never re-fires.
+  // Each reader list is keyed with `readerListKey` (what it shows + its item
+  // width, never the height), so it remounts at `initialScrollIndex =
+  // currentPage` on rotation, on a Stage Manager resize and on a switch
+  // between pages and spreads, and the keyboard never remounts it. // @ai
 
   // Measured size of the FlatList container. Using `useWindowDimensions()`
   // alone overestimates the available space on iPad because the stack
@@ -653,6 +654,24 @@ export default function MushafViewer({
     containerWidth: isTablet ? containerSize?.width : undefined,
     containerHeight: isTablet ? containerSize?.height : undefined,
   });
+  // @ai-start
+  // The vertical mushaf shows one page per row, also where the pager shows
+  // spreads.
+  const scrollMetrics = useMemo(() => singlePageLayout(metrics), [metrics]);
+  // iPad: the list and translation views take the measured pane, not the
+  // launch-time screen size. Phones keep their layout.
+  const readingPageSize = useMemo(
+    () =>
+      isTablet
+        ? {width: metrics.screenWidth, height: metrics.screenHeight}
+        : undefined,
+    [isTablet, metrics.screenWidth, metrics.screenHeight],
+  );
+  // A tap on the status bar scrolls a vertical reader back to page 1. On
+  // iPad the toolbar sits close enough to the status bar (the mini in
+  // landscape) that tapping its buttons did that too, so iPads turn it off.
+  const scrollsToTop = !isTablet;
+  // @ai-end
 
   // Reanimated overlay animation (same pattern as PlayerContent)
   const overlayOpacity = useSharedValue(1);
@@ -1195,18 +1214,19 @@ export default function MushafViewer({
       {/* Content area: horizontal FlatList or vertical continuous view */}
       {isVertical && viewMode === 'mushaf' ? (
         <ContinuousMushafView
-          key={orientationKey}
+          key={readerListKey('mushaf-scroll', metrics.screenWidth)} // @ai
           ref={continuousListRef}
           textColor={readingColors.text}
           dividerColor={readingColors.textSecondary}
           onTap={toggleImmersive}
           initialPage={currentPage}
           onCurrentPageChange={handleContinuousPageChange}
-          metrics={metrics}
+          metrics={scrollMetrics} // @ai
+          scrollsToTop={scrollsToTop} // @ai
         />
       ) : isVertical && viewMode === 'list' ? (
         <ContinuousListView
-          key={orientationKey}
+          key={readerListKey('list-scroll', metrics.screenWidth)} // @ai
           ref={continuousListRef}
           textColor={readingColors.text}
           labelColor={readingColors.textSecondary}
@@ -1214,10 +1234,12 @@ export default function MushafViewer({
           onTap={toggleImmersive}
           initialPage={currentPage}
           onCurrentPageChange={handleContinuousPageChange}
+          width={readingPageSize?.width} // @ai
+          scrollsToTop={scrollsToTop} // @ai
         />
       ) : metrics.facingPages && viewMode === 'mushaf' ? (
         <FlatList
-          key={orientationKey}
+          key={readerListKey('spreads', metrics.screenWidth)} // @ai
           ref={flatListRef}
           data={spreads}
           renderItem={({item}) => (
@@ -1259,7 +1281,7 @@ export default function MushafViewer({
         />
       ) : (
         <FlatList
-          key={orientationKey}
+          key={readerListKey('pages', metrics.screenWidth)} // @ai
           ref={flatListRef}
           data={pages}
           renderItem={({item}) => {
@@ -1277,6 +1299,7 @@ export default function MushafViewer({
                   bgColor={edgeBg}
                   isBookLayout={isBookLayout}
                   onTap={toggleImmersive}
+                  pageSize={readingPageSize} // @ai
                 />
               );
             }

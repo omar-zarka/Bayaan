@@ -11,6 +11,8 @@ const SCREEN_LAYOUT = capScreensExcept([
   'index',
   'browse-all',
   'reciter/browse',
+  // Adhkar caps its own screens, all but its category grid. @ai
+  'adhkar',
 ]); // @ai
 
 // A deep link (widget, Live Activity, App Link) that opens a screen in this

@@ -11,8 +11,13 @@ import {capScreensExcept} from '@/components/layout/MaxWidthContainer';
 const EmptyHeaderBackground = () => <View />;
 
 // Grids and shelves take the whole pane on iPad; other screens stay in the
-// 720pt column for now (ipad-standards §5.3). @ai
-const SCREEN_LAYOUT = capScreensExcept(['browse-all', 'reciter/browse']); // @ai
+// 720pt column for now (ipad-standards §5.3). The Explore grid on `index`
+// keeps its search results in that column itself. @ai
+const SCREEN_LAYOUT = capScreensExcept([
+  'index',
+  'browse-all',
+  'reciter/browse',
+]); // @ai
 
 // A deep link (widget, Live Activity, App Link) that opens a screen in this
 // stack lands on top of its first screen, so back always has a target.
@@ -117,7 +122,29 @@ export default function SearchLayout() {
             : {headerShown: false}),
         }}
       />
-      <Stack.Screen name="reciter/browse" />
+      {/* @ai-start */}
+      {/* Glass devices need the native header here too: BrowseReciters
+          draws no header of its own when USE_GLASS is on, so without it
+          the screen had no title or back button. The screen sets the
+          title. */}
+      <Stack.Screen
+        name="reciter/browse"
+        options={
+          USE_GLASS
+            ? {
+                headerShown: true,
+                headerTransparent: true,
+                headerBlurEffect: undefined,
+                headerStyle: {backgroundColor: 'transparent'},
+                headerShadowVisible: false,
+                headerBackTitle: ' ',
+                headerBackButtonDisplayMode: 'minimal',
+                fullScreenGestureEnabled: false,
+              }
+            : undefined
+        }
+      />
+      {/* @ai-end */}
     </Stack>
   );
 }
