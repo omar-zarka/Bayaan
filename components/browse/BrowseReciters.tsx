@@ -27,7 +27,7 @@ import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {createTracksForReciter} from '@/utils/track';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import {getSurahById} from '@/services/dataService';
-import {reciterImages} from '@/utils/reciterImages';
+import {getLocalReciterImage} from '@/utils/reciterImageLookup'; // @ai
 import Header from '@/components/Header';
 import {useSettings} from '@/hooks/useSettings';
 // @ai-start
@@ -274,11 +274,7 @@ export default function BrowseReciters({
     // catalog `image_url` OR a bundled local headshot fallback.
     const hasImage = (reciter: Reciter): boolean => {
       if (reciter.image_url) return true;
-      const formattedName = reciter.name
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-');
-      return !!reciterImages[formattedName];
+      return !!getLocalReciterImage(reciter.name); // @ai
     };
 
     let result = [...RECITERS];
