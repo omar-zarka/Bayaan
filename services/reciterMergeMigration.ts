@@ -1,5 +1,6 @@
 // @ai-generated
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {localAggregationStore} from '@/services/analytics/LocalAggregationStore';
 import {databaseService} from '@/services/database/DatabaseService';
 import {uploadsDatabaseService} from '@/services/uploads/UploadsDatabaseService';
 import {RECITER_MERGES, remapMergedReciterJson} from '@/utils/reciterMerges';
@@ -19,7 +20,7 @@ const SKIPPED_KEYS = new Set([
  * Moves everything saved on the device under a merged reciter's id to the
  * reciter it was merged into: every AsyncStorage value (including keys the
  * zustand stores already remap on read, so the change is saved), playlist
- * items, and tagged uploads. Downloaded files keep their names; only the
+ * items, tagged uploads, and on-device listening time. Downloaded files keep their names; only the
  * records that point at them change.
  */
 export async function applyReciterMergesToSavedData(): Promise<void> {
@@ -42,6 +43,7 @@ export async function applyReciterMergesToSavedData(): Promise<void> {
   for (const merge of RECITER_MERGES) {
     await databaseService.remapReciterId(merge.fromId, merge.toId);
     await uploadsDatabaseService.remapReciterId(merge.fromId, merge.toId);
+    localAggregationStore.remapReciterId(merge.fromId, merge.toId);
   }
 
   await AsyncStorage.setItem(APPLIED_KEY, signature);
