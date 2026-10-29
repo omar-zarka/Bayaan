@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
   InteractionManager,
 } from 'react-native';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,

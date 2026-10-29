@@ -17,7 +17,7 @@ import {PlaybackControls} from './PlaybackControls';
 import {ControlButtons} from './ControlButtons';
 import {UploadPlaceholder} from './UploadPlaceholder';
 import {Header} from './Header';
-import {moderateScale} from 'react-native-size-matters';
+import {moderateScale} from '@/utils/scale';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useVerseSelectionStore} from '@/store/verseSelectionStore';
