@@ -37,6 +37,7 @@ import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import {SheetManager} from 'react-native-actions-sheet';
 import {ExploreView} from '@/components/search/ExploreView';
 import {useBottomInset} from '@/hooks/useBottomInset';
+import {useResponsive} from '@/hooks/useResponsive'; // @ai
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 // @ai-start
 import {latinLetterSpacing} from '@/utils/rtl';
@@ -98,6 +99,12 @@ export function SearchView({
   const {playWithReciter, playWithRandomReciter} = useReciterSelection();
   const insets = useSafeAreaInsets();
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+  // Explore fills the iPad pane, but results and recents stay in the 720pt
+  // reading column (ipad-standards §5.3).
+  const {isTablet} = useResponsive();
+  const listStyle = isTablet
+    ? [styles.flexFill, styles.tabletColumn]
+    : styles.flexFill;
 
   useEffect(() => {
     const showEvent =
@@ -421,6 +428,7 @@ export function SearchView({
         style={[
           styles.modeContainer,
           styles.modeOverlay,
+          isTablet && styles.tabletOverlay,
           {
             opacity: searchOpacity,
             backgroundColor: theme.colors.background,
@@ -430,7 +438,7 @@ export function SearchView({
         pointerEvents={isSearchMode ? 'auto' : 'none'}>
         {query.length === 0 ? (
           <ScrollView
-            style={styles.flexFill}
+            style={listStyle}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={[
               styles.scrollContent,
@@ -516,7 +524,7 @@ export function SearchView({
           </ScrollView>
         ) : (
           <FlatList
-            style={styles.flexFill}
+            style={listStyle}
             data={searchResults}
             renderItem={renderSearchResult}
             keyExtractor={(item, index) => `${item.type}-${index}`}
@@ -589,6 +597,13 @@ const styles = StyleSheet.create({
   },
   flexFill: {
     flex: 1,
+  },
+  tabletOverlay: {
+    alignItems: 'center',
+  },
+  tabletColumn: {
+    width: '100%',
+    maxWidth: 720,
   },
   scrollContent: {},
   sectionHeader: {

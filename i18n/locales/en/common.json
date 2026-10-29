@@ -30,7 +30,9 @@
     "copy": "Copy",
     "select": "Select",
     "apply": "Apply",
-    "tryAgain": "Try again"
+    "tryAgain": "Try again",
+    "hideSidebar": "Hide sidebar",
+    "showSidebar": "Show sidebar"
   },
   "tabs": {
     "home": "Home",
