@@ -46,6 +46,7 @@ import expo.modules.bayaanwidgets.ui.RoundButton
 import expo.modules.bayaanwidgets.ui.WidgetColors
 import expo.modules.bayaanwidgets.ui.WidgetSizes
 import expo.modules.bayaanwidgets.ui.dpToPx
+import expo.modules.bayaanwidgets.ui.adhkarListenAction
 import kotlin.math.ceil
 
 private val CAPTION = ColorProvider(Color(0xB3FFFFFF))
@@ -92,7 +93,7 @@ fun PeriodIcon(style: AdhkarStyle, sizeDp: Int) {
  * and shows one line.
  */
 @Composable
-fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: AdhkarSession, large: Boolean) {
+fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: AdhkarSession, large: Boolean, listening: Boolean = false) { // @ai
   val size = LocalSize.current
   val compact = !large && size.height < WidgetSizes.MEDIUM_TALL.height
   val pad = if (large) 16 else if (compact) 10 else 12
@@ -147,6 +148,12 @@ fun AdhkarSessionContent(context: Context, data: AdhkarPeriodData, session: Adhk
     Spacer(GlanceModifier.defaultWeight())
     Row(GlanceModifier.fillMaxWidth().padding(top = gap.dp), verticalAlignment = Alignment.CenterVertically) {
       if (session.index > 0) StyledRound(style, R.drawable.widget_prev, "Previous", actionRunCallback<AdhkarPrevAction>()) // @ai
+      // @ai-start
+      // Plays the list's adhkar audio from the dhikr shown, even with the app closed; pauses while it plays.
+      if (session.index > 0) Spacer(GlanceModifier.width(6.dp))
+      StyledRound(style, if (listening) R.drawable.widget_pause else R.drawable.widget_play, if (listening) "Pause" else "Listen",
+        adhkarListenAction(context, listening, data.superId, item.id))
+      // @ai-end
       if (hint) {
         Text(readTheRest(context), maxLines = 1, modifier = GlanceModifier.defaultWeight().padding(horizontal = 8.dp),
           style = TextStyle(color = style.color(style.secondary), fontSize = 10.sp, fontWeight = FontWeight.Medium)) // @ai

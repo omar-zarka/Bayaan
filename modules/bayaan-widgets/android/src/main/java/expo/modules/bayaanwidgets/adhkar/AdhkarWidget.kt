@@ -39,6 +39,10 @@ import expo.modules.bayaanwidgets.ui.ArabicText
 import expo.modules.bayaanwidgets.ui.ContentMessage
 import expo.modules.bayaanwidgets.ui.Logo
 import expo.modules.bayaanwidgets.WidgetText
+import expo.modules.bayaanwidgets.SnapshotModels
+import expo.modules.bayaanwidgets.ui.PrimaryButton
+import expo.modules.bayaanwidgets.ui.adhkarListenAction
+import expo.modules.bayaanwidgets.ui.adhkarPlaying
 import androidx.glance.background
 import androidx.glance.layout.width
 import expo.modules.bayaanwidgets.ui.WidgetColors
@@ -74,6 +78,9 @@ fun AdhkarContent(context: Context, nowMs: Long) {
   }
   val size = LocalSize.current
   val root = contentRoot().clickable(appLink(context, "adhkar/${data.superId}"))
+  // @ai-start
+  val listening = adhkarPlaying(WidgetStorage.readSnapshotJson(context)?.let { SnapshotModels.decode(it) }, data.superId)
+  // @ai-end
   if (size.width < WidgetSizes.MEDIUM.width) {
     // The small layout keeps the Responsive bucket it was designed for.
     val bucket = if (size.height >= WidgetSizes.SMALL_TALL.height) WidgetSizes.SMALL_TALL else WidgetSizes.SMALL
@@ -84,8 +91,11 @@ fun AdhkarContent(context: Context, nowMs: Long) {
         PeriodIcon(style, 15)
         Spacer(GlanceModifier.width(6.dp))
         // Drops "Adhkar" before cutting letters; the icon already says which.
-        Text(WidgetText.fitTitle(data.title, (size.width.value.toInt() - 50) / 8), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
+        Text(WidgetText.fitTitle(data.title, (size.width.value.toInt() - 84) / 8), maxLines = 1, modifier = GlanceModifier.defaultWeight(),
           style = TextStyle(color = style.color(style.primary), fontSize = 13.sp, fontWeight = FontWeight.Bold))
+        // Plays the period's adhkar audio from this dhikr, even with the app closed; pauses while it plays.
+        PrimaryButton(listening, "Listen", adhkarListenAction(context, listening, data.superId, dhikr.id), sizeDp = 28,
+          fill = style.color(style.accent), glyph = style.color(style.onAccent))
       }
       Spacer(GlanceModifier.defaultWeight())
       ArabicText(context, dhikr.arabic, ArabicBitmap.DHIKR_FONT, bucket.width.value - 28, bucket.height.value - 28 - 34, 22f, 11f, 3, center = true,
@@ -102,6 +112,6 @@ fun AdhkarContent(context: Context, nowMs: Long) {
   )
   val link = appLink(context, AdhkarSessionLogic.link(data.superId, session, ids))
   Box(contentRoot().clickable(link)) {
-    AdhkarSessionContent(context, data, session, large = size.height >= WidgetSizes.LARGE.height)
+    AdhkarSessionContent(context, data, session, large = size.height >= WidgetSizes.LARGE.height, listening = listening) // @ai
   }
 }

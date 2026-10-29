@@ -118,3 +118,20 @@ fun startBedtimeCommand(c: BedtimeConfig): JSONObject =
     .put("reciterId", c.reciterId ?: JSONObject.NULL)
     .put("sleepMinutes", c.minutes)
     .put("ambient", c.ambient ?: JSONObject.NULL)
+
+// @ai-start
+fun playAdhkarCommand(superId: String, dhikrId: String?): JSONObject =
+  JSONObject().put("type", "playAdhkar").put("superId", superId).put("dhikrId", dhikrId ?: JSONObject.NULL)
+
+fun setAdhkarPlaybackCommand(playing: Boolean): JSONObject =
+  JSONObject().put("type", "setAdhkarPlayback").put("playing", playing)
+
+/** Whether the adhkar player is playing this list, from the snapshot. */
+fun adhkarPlaying(snapshot: expo.modules.bayaanwidgets.WidgetSnapshot?, superId: String): Boolean =
+  snapshot?.adhkar?.let { it.superId == superId && it.isPlaying } == true
+
+/** Plays the list from `dhikrId`, or pauses while the list is playing. */
+fun adhkarListenAction(context: Context, playing: Boolean, superId: String, dhikrId: String?): Action =
+  if (playing) commandAction(context, setAdhkarPlaybackCommand(false), "adhkar/pause")
+  else commandAction(context, playAdhkarCommand(superId, dhikrId), "adhkar/play/$superId/${dhikrId ?: "start"}")
+// @ai-end
