@@ -109,7 +109,7 @@ struct LibraryShelfView: View {
 
   private func shelf<H: View, I: AppIntent>(_ header: H, items: [WidgetShelfItem],
                                              intent: @escaping (WidgetShelfItem) -> I) -> some View {
-    let shown = Array(items.prefix(isLarge ? 8 : 4))
+    let shown = Array(items.prefix(isLarge ? 12 : 4)) // @ai
     let rows = (shown.count + 3) / 4
     return VStack(alignment: .leading, spacing: 10) {
       header

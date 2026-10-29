@@ -117,11 +117,15 @@ struct QuickSurahView: View {
   private func small(_ surah: StaticSurah) -> some View {
     Button(intent: intent(surah)) {
       // @ai-start
+      // A cached card prints the surah name, so it is shown larger and not repeated.
+      let cardNamed = SurahCard.showsName(surah)
       VStack(alignment: .leading, spacing: 2) {
-        SurahCard(surah: surah, size: 64)
+        SurahCard(surah: surah, size: cardNamed ? 92 : 64)
       // @ai-end
         Spacer(minLength: 0)
-        Text(surah.name).font(.system(size: 16, weight: .heavy)).lineLimit(1) // @ai
+        if !cardNamed {
+          Text(surah.name).font(.system(size: 16, weight: .heavy)).lineLimit(1) // @ai
+        }
         HStack(spacing: 6) {
           ReciterPhoto(file: reciterFile, name: reciterName)
             .frame(width: 18, height: 18).clipShape(Circle())

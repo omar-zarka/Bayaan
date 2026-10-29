@@ -131,13 +131,15 @@ struct Artwork: View {
 /// surah glyph in the top corner so the titles below stay clear.
 struct ArtworkFill: View {
   let track: WidgetTrack
+  /// Moves cached art up so its printed title clears the controls below.
+  var lift: CGFloat = 0
 
   // Overlays on a flexible base, so neither the art nor the starburst can
   // size the widget wider than its frame.
   var body: some View {
     if let image = SnapshotStore.artwork(track.artworkFile) {
-      Color.clear
-        .overlay { CachedImage(image: image).aspectRatio(contentMode: .fill) }
+      SurahTint.deep(track.surahId)
+        .overlay { CachedImage(image: image).aspectRatio(contentMode: .fill).offset(y: -lift) }
         .clipped()
     } else {
       SurahTint.base(track.surahId)
@@ -281,9 +283,10 @@ struct SmallView: View {
     // A cached card already prints the surah name, so only the reciter is added.
     let cardNamed = SurahCard.showsName(file: track.artworkFile, surahId: track.surahId)
     ZStack(alignment: .bottom) {
-      ArtworkFill(track: track)
-      LinearGradient(colors: [SurahTint.deep(track.surahId).opacity(0), SurahTint.deep(track.surahId).opacity(0.92)],
-                     startPoint: UnitPoint(x: 0.5, y: cardNamed ? 0.72 : 0.5), endPoint: .bottom)
+      ArtworkFill(track: track, lift: cardNamed ? 30 : 0)
+      LinearGradient(stops: [.init(color: SurahTint.deep(track.surahId).opacity(0), location: cardNamed ? 0.66 : 0.5),
+                             .init(color: SurahTint.deep(track.surahId).opacity(0.95), location: cardNamed ? 0.84 : 1)],
+                     startPoint: .top, endPoint: .bottom)
       HStack(alignment: .bottom, spacing: 8) {
         VStack(alignment: .leading, spacing: 1) {
           if !cardNamed {
