@@ -38,6 +38,7 @@ import {
   getRewayatPersonLabel,
 } from '@/data/rewayat';
 import {rankReciters} from '@/utils/search/catalog'; // @ai
+import {pickRewayatId} from '@/utils/rewayatPreference'; // @ai
 // @ai-end
 import {resolveRewayahFromName} from '@/services/rewayah/RewayahIdentity';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
@@ -496,7 +497,17 @@ export default function BrowseReciters({
           const surah = await getSurahById(surahId);
           if (!surah) return;
 
-          const rewayatId = selectedRewayatId || reciter.rewayat[0]?.id;
+          // @ai-start
+          const rewayatId = pickRewayatId(
+            reciter.rewayat,
+            [
+              selectedRewayatId,
+              useSettings.getState().reciterPreferences[reciter.id],
+            ],
+            surahId,
+          );
+          if (!rewayatId) return;
+          // @ai-end
 
           const tracks = await createTracksForReciter(
             reciter,

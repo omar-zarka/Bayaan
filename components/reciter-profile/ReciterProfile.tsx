@@ -73,6 +73,7 @@ import {useUploadsStore} from '@/store/uploadsStore';
 import {moderateScale} from '@/utils/scale';
 import {useBottomInset} from '@/hooks/useBottomInset';
 import {HAFS_REWAYAT_NAME} from '@/data/rewayat';
+import {pickRewayatId} from '@/utils/rewayatPreference'; // @ai
 import {useNavigation} from 'expo-router';
 import {useGlassHeaderHeight} from '@/hooks/useGlassHeaderHeight'; // @ai
 import {USE_GLASS} from '@/hooks/useGlassProps';
@@ -251,16 +252,20 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
     () => initReciter(currentReciterId),
     [currentReciterId],
   );
-  // Prefer the rewayat passed via navigation, then fall back to the first one
+  // @ai-start
+  // Prefer the rewayat passed via navigation, then the one the user last
+  // picked for this reciter, then the first one. The saved pick is read once
+  // so saving a new pick does not move the open profile.
   const initialRewayatId = useMemo(() => {
-    if (
-      initialRewayatIdProp &&
-      initialReciter?.rewayat.some(r => r.id === initialRewayatIdProp)
-    ) {
-      return initialRewayatIdProp;
-    }
-    return initialReciter?.rewayat[0]?.id;
+    if (!initialReciter) return undefined;
+    const savedRewayatId =
+      useSettings.getState().reciterPreferences[initialReciter.id];
+    return pickRewayatId(initialReciter.rewayat, [
+      initialRewayatIdProp,
+      savedRewayatId,
+    ]);
   }, [initialRewayatIdProp, initialReciter]);
+  // @ai-end
 
   const [reciter, setReciter] = useState<Reciter | null>(initialReciter);
   const surahs = SURAHS;
@@ -425,7 +430,7 @@ const ReciterProfileContent: React.FC<ReciterProfileProps> = ({
   }, []);
   // @ai-end
   const {startNewChain} = useRecentlyPlayedStore();
-  const {reciterPreferences, setReciterPreference} = useSettings();
+  const {setReciterPreference} = useSettings(); // @ai
 
   // Retrieve persisted reciter profile settings
   const setReciterViewModeSetting = useSettings(
