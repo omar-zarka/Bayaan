@@ -106,7 +106,8 @@ private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Floa
   val out = Bitmap.createBitmap(widthPx, heightPx, Bitmap.Config.ARGB_8888)
   val canvas = android.graphics.Canvas(out)
   // A card is shrunk into the band on its own ground, so its edges disappear.
-  canvas.drawColor(if (fraction < 1f) src.getPixel(minOf(2, src.width - 1), minOf(2, src.height - 1)) else fill)
+  val ground = if (fraction < 1f) src.getPixel(minOf(2, src.width - 1), minOf(2, src.height - 1)) else fill
+  canvas.drawColor(ground)
   val srcH = src.height * fraction
   val scale = widthPx.toFloat() / src.width
   val drawnH = srcH * scale
@@ -120,7 +121,24 @@ private fun cropTopFill(src: Bitmap, widthPx: Int, heightPx: Int, fraction: Floa
     android.graphics.Rect((widthPx - w) / 2, 0, (widthPx + w) / 2, band)
   }
   canvas.drawBitmap(src, srcRect, dst, android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG))
+  if (dst.width() < widthPx) featherEdges(canvas, dst, ground)
   return out
+}
+
+/** Fades the left, right and bottom of `r` into `ground`, so shrunk art has no seam. */
+private fun featherEdges(canvas: android.graphics.Canvas, r: android.graphics.Rect, ground: Int) {
+  val f = r.height() * 0.22f
+  val clear = ground and 0x00FFFFFF
+  fun band(x0: Float, y0: Float, x1: Float, y1: Float, rect: android.graphics.RectF) {
+    val paint = android.graphics.Paint().apply {
+      shader = android.graphics.LinearGradient(x0, y0, x1, y1, ground, clear, android.graphics.Shader.TileMode.CLAMP)
+    }
+    canvas.drawRect(rect, paint)
+  }
+  val l = r.left.toFloat(); val t = r.top.toFloat(); val rt = r.right.toFloat(); val b = r.bottom.toFloat()
+  band(l, 0f, l + f, 0f, android.graphics.RectF(l, t, l + f, b))
+  band(rt, 0f, rt - f, 0f, android.graphics.RectF(rt - f, t, rt, b))
+  band(0f, b, 0f, b - f, android.graphics.RectF(l, b - f, rt, b))
 }
 // @ai-end
 
