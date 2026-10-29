@@ -37,8 +37,8 @@ const PHONES: Array<[number, number]> = [
   [466, 678], // iPhone Duo folded
 ];
 const TABLETS: Array<[number, number]> = [
-  [626, 890], // iPhone Duo unfolded, upright
-  [890, 626], // iPhone Duo unfolded, sideways
+  [669, 951], // iPhone Duo unfolded, upright (measured)
+  [951, 669], // iPhone Duo unfolded, sideways (measured)
   [744, 1133], // iPad mini portrait
   [1133, 744], // iPad mini landscape
   [834, 1194], // iPad Pro 11"

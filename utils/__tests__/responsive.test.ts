@@ -28,9 +28,9 @@ describe('getIsTablet', () => {
   });
 
   it.each([
-    [626, 890], // iPhone Duo unfolded, upright
-    [890, 626], // iPhone Duo unfolded, sideways
-    [669, 951], // iPhone Duo unfolded, larger estimate
+    [669, 951], // iPhone Duo unfolded, upright (measured)
+    [951, 669], // iPhone Duo unfolded, sideways (measured)
+    [626, 890], // iPhone Duo unfolded, lower estimate
     [744, 1133], // iPad mini
     [1376, 1032], // iPad Pro 13" landscape
   ])('treats %ix%i as a tablet', (width, height) => {

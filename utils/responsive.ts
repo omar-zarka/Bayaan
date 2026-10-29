@@ -13,8 +13,8 @@ import {Dimensions, Platform} from 'react-native';
  */
 
 // Start of the medium width class. Every iPhone is at most 440pt on its short
-// side and the folded iPhone Duo is ~466pt, so they stay phones. The unfolded
-// iPhone Duo (~626pt) and iPad mini (744pt) are tablets. Matches Android's
+// side and the folded iPhone Duo is 466pt, so they stay phones. The unfolded
+// iPhone Duo (669pt, measured) and iPad mini (744pt) are tablets. Matches Android's
 // sw600dp tablet line.
 export const TABLET_BREAKPOINT = 600; // @ai
 
