@@ -77,9 +77,7 @@ async function setStoredData<T>(key: string, data: T): Promise<void> {
 function populateReciters(data: Reciter[]): void {
   RECITERS.splice(0, RECITERS.length, ...data);
   markRecitersUpdated(); // @ai
-  // Refresh the store's default reciter now that RECITERS is populated
-  useReciterStore.getState().refreshDefaultReciter();
-  useReciterStore.setState({isInitialized: true});
+  useReciterStore.getState().catalogLoaded(); // @ai
 }
 
 // ── API client ────────────────────────────────────────────────────────────────
