@@ -1,5 +1,6 @@
 import React from 'react';
-import {Text, View, InteractionManager} from 'react-native';
+import {Text, View} from 'react-native';
+import {runAfterInteractions} from '@/utils/afterInteractions';
 import {
   FlashList,
   type FlashListRef,
@@ -290,7 +291,7 @@ export const SurahList = React.forwardRef<
 
     React.useEffect(() => {
       if (!inline) return;
-      const handle = InteractionManager.runAfterInteractions(() => {
+      const handle = runAfterInteractions(() => {
         setExpandedCards(true);
         setExpandedList(true);
       });
