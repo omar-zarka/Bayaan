@@ -38,7 +38,9 @@ export type WidgetCommand =
       reciterId: string | null; // null means default reciter
       sleepMinutes: number;
       ambient: WidgetAmbientSound | null; // null leaves ambient alone
-    };
+    }
+  // Play an adhkar list's audio from dhikrId (null: the first with audio). // @ai
+  | {type: 'playAdhkar'; superId: string; dhikrId: string | null}; // @ai
 
 export interface QueuedWidgetCommand {
   command: WidgetCommand;
@@ -86,6 +88,14 @@ export function isWidgetCommand(value: unknown): value is WidgetCommand {
         value.sleepMinutes <= MAX_SLEEP_MINUTES &&
         (value.ambient === null || isAmbientSound(value.ambient))
       );
+    // @ai-start
+    case 'playAdhkar':
+      return (
+        typeof value.superId === 'string' &&
+        value.superId.length > 0 &&
+        isNullableString(value.dhikrId)
+      );
+    // @ai-end
     default:
       return false;
   }

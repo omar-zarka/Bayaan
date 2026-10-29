@@ -334,5 +334,13 @@ export async function handleWidgetCommand(
       );
       return;
     }
+    // @ai-start
+    case 'playAdhkar': {
+      const {playAdhkarFromWidget} =
+        require('@/services/adhkar/playback/widgetPlay') as typeof import('@/services/adhkar/playback/widgetPlay');
+      await playAdhkarFromWidget(command.superId, command.dhikrId);
+      return;
+    }
+    // @ai-end
   }
 }
