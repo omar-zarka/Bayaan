@@ -21,7 +21,7 @@ const AUDIO_FILE_VERSIONS: Record<string, number | Record<number, number>> = {
   '81b8f244-577d-457e-b175-2a79afc0f03b': {1: 2, 16: 2}, // ahmad-talib-bin-humaid (016 trimmed)
   'a762d292-6fd1-4120-a55a-4c18d289f6e4': {1: 2}, // khaled-al-qahtani
   'd7f42caf-d6ee-4f21-a7c9-4b5c25ccd34a': {1: 2}, // khalid-al-shoraimy
-  'acf9420e-a268-4951-abfc-050df35e0f11': {1: 2}, // malik-ahmad
+  'acf9420e-a268-4951-abfc-050df35e0f11': {1: 2, 10: 2, 11: 2}, // malik-ahmad (010/011 were swapped)
   '887424f7-9146-46db-b144-a8b40a6949cf': {1: 2, 3: 2}, // youssef-edghouch
   '697eddea-178e-4c4b-b3e9-04d381c92d59': {1: 2}, // yusuf-al-aidroos
   // Recordings trimmed of trailing noise after the last ayah, or given a basmala
@@ -52,6 +52,8 @@ const AUDIO_FILE_VERSIONS: Record<string, number | Record<number, number>> = {
   }, // khalid-algamdi
   '3009ea23-319a-44c2-b1b6-d69c71aa7ff4': {41: 2}, // mohammad-al-airawy (warsh-azraq)
   'b9fd0aef-7cbd-4ed6-af1e-d74264a1f1ad': {48: 2, 50: 2}, // salman-alotaibi
+  // Mislabeled files renamed to the surah they hold (2026-10-30).
+  'accf6db5-b752-4790-8010-60d459c4568d': {106: 2, 107: 2, 108: 2}, // marwan-alakri (qalon)
   'cdd6d877-da42-4d6a-b930-8827ae488be3': {
     12: 2,
     18: 2,
