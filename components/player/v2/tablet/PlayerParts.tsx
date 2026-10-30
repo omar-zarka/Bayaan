@@ -10,6 +10,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Slider from '@react-native-community/slider';
+import {nativeMenusAvailable} from '@/components/native/nativeMenus'; // @ai
+import {PlaybackSpeedMenu, SleepTimerMenu} from '../ListeningMenus'; // @ai
 import {Feather, Ionicons, MaterialCommunityIcons} from '@expo/vector-icons';
 import Color from 'color';
 import {useTranslation} from 'react-i18next';
@@ -385,19 +387,24 @@ export function useListeningTools(
   const ambientEnabled = useAmbientStore(s => s.isEnabled);
   const {playbackRate, repeatMode, isTimerActive} = transport;
 
+  // @ai-start
   const speed = (
-    <ToolButton
+    <PlaybackSpeedMenu
       key="speed"
-      selected={playbackRate !== 1}
-      onPress={onSpeedPress}
-      {...a11y.speed(playbackRate)}>
-      {color => (
-        <Text style={[styles.toolLabel, {color}]}>
-          {localizeDigits(`${playbackRate}x`)}
-        </Text>
-      )}
-    </ToolButton>
+      accessibilityLabel={a11y.speed(playbackRate).accessibilityLabel}>
+      <ToolButton
+        selected={playbackRate !== 1}
+        onPress={nativeMenusAvailable ? undefined : onSpeedPress}
+        {...a11y.speed(playbackRate)}>
+        {color => (
+          <Text style={[styles.toolLabel, {color}]}>
+            {localizeDigits(`${playbackRate}x`)}
+          </Text>
+        )}
+      </ToolButton>
+    </PlaybackSpeedMenu>
   );
+  // @ai-end
   const repeat = (
     <ToolButton
       key="repeat"
@@ -413,15 +420,20 @@ export function useListeningTools(
       }
     </ToolButton>
   );
+  // @ai-start
   const sleep = (
-    <ToolButton
+    <SleepTimerMenu
       key="sleep"
-      selected={isTimerActive}
-      onPress={onSleepTimerPress}
-      {...a11y.sleepTimer(isTimerActive)}>
-      {color => <TimerIcon size={20} color={color} filled={isTimerActive} />}
-    </ToolButton>
+      accessibilityLabel={a11y.sleepTimer(isTimerActive).accessibilityLabel}>
+      <ToolButton
+        selected={isTimerActive}
+        onPress={nativeMenusAvailable ? undefined : onSleepTimerPress}
+        {...a11y.sleepTimer(isTimerActive)}>
+        {color => <TimerIcon size={20} color={color} filled={isTimerActive} />}
+      </ToolButton>
+    </SleepTimerMenu>
   );
+  // @ai-end
   const ambient = (
     <ToolButton
       key="ambient"

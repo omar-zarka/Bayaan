@@ -1,5 +1,5 @@
 // @ai-generated
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback} from 'react';
 import {SheetManager} from 'react-native-actions-sheet';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -8,6 +8,7 @@ import {useReciterNavigation} from '@/hooks/useReciterNavigation';
 import {useTimestampStore} from '@/store/timestampStore';
 import {useRewayatFollowAlong} from '@/hooks/useFollowAlong';
 import {useResponsive} from '@/hooks/useResponsive';
+import {useSleepTimerRemaining} from '@/hooks/useSleepTimerRemaining';
 import {PlayerKeyCommands} from '@/components/keyboard/PlayerKeyCommands';
 import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
 import PlayerContent from './PlayerContent';
@@ -20,48 +21,12 @@ import {TabletPlayerLayout} from './tablet/TabletPlayerLayout';
  */
 export const PlayerBody = () => {
   const {isTablet} = useResponsive();
-  const [remainingTime, setRemainingTime] = useState<number | null>(null);
+  const remainingTime = useSleepTimerRemaining();
   const {navigateToReciterProfile} = useReciterNavigation();
 
   const {setSheetMode, setRate, updateSettings} = usePlayerActions();
   const queue = usePlayerStore(s => s.queue);
   const playbackRate = usePlayerStore(s => s.playback.rate);
-  const settings = usePlayerStore(s => s.settings);
-
-  // Effect to handle sleep timer remaining time
-  useEffect(() => {
-    let interval: ReturnType<typeof setInterval>;
-    if (settings.sleepTimerEnd) {
-      interval = setInterval(() => {
-        // Calculate remaining time based on the end timestamp
-        const now = Date.now();
-        const timeRemaining = settings.sleepTimerEnd
-          ? settings.sleepTimerEnd - now
-          : 0;
-
-        if (timeRemaining > 0) {
-          // For very short timers (less than 1 minute), display seconds
-          if (timeRemaining < 60 * 1000) {
-            const remainingSeconds = Math.ceil(timeRemaining / 1000);
-            setRemainingTime(remainingSeconds / 60); // Convert to fractional minutes
-          } else {
-            const remainingMinutes = Math.ceil(timeRemaining / (60 * 1000));
-            setRemainingTime(remainingMinutes);
-          }
-        } else {
-          setRemainingTime(null);
-        }
-      }, 500); // Update more frequently for short timers
-    } else {
-      setRemainingTime(null);
-    }
-
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
-  }, [settings.sleepTimerEnd]);
 
   const currentTrack = queue?.tracks?.[queue?.currentIndex ?? -1];
 
