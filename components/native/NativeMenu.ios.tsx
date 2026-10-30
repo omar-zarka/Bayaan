@@ -1,6 +1,6 @@
 // @ai-generated
 import React from 'react';
-import {View} from 'react-native';
+import {StyleSheet, View} from 'react-native';
 import {
   Button,
   ContextMenu,
@@ -87,6 +87,7 @@ export function NativeMenu({
   onSelect,
   title,
   trigger = 'tap',
+  layout = trigger === 'tap' ? 'wrap' : 'row',
   accessibilityLabel,
   style,
   testID,
@@ -95,23 +96,33 @@ export function NativeMenu({
   const native = useNativeTheme();
   const rows = entries.map(entry => renderEntry(entry, onSelect, native.tint));
   const body = title ? <Section title={title}>{rows}</Section> : rows;
-  // The SwiftUI control owns the touch and the VoiceOver element, so the
-  // React Native trigger is only drawn.
+  // A tap menu owns the touch and the VoiceOver element, so its React Native
+  // trigger is only drawn. A context menu keeps its trigger live: the row
+  // still plays on tap, and the menu takes over on a long press or a
+  // secondary click.
+  const matchContents =
+    layout === 'wrap' ? true : layout === 'row' ? {vertical: true} : false;
   const label = (
-    <RNHostView matchContents boundedByHost>
-      <View
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants">
-        {children}
-      </View>
+    <RNHostView matchContents={matchContents} boundedByHost>
+      {trigger === 'tap' ? (
+        <View
+          pointerEvents="none"
+          style={layout === 'overlay' ? StyleSheet.absoluteFill : undefined}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants">
+          {children}
+        </View>
+      ) : (
+        <View>{children}</View>
+      )}
     </RNHostView>
   );
   const modifiers = accessibilityLabel ? [a11yLabel(accessibilityLabel)] : [];
 
   return (
     <Host
-      style={style}
+      matchContents={matchContents}
+      style={layout === 'overlay' ? [StyleSheet.absoluteFill, style] : style}
       testID={testID}
       colorScheme={native.colorScheme}
       layoutDirection={native.layoutDirection}

@@ -36,6 +36,7 @@ import {WordDetailSheet} from './WordDetailSheet';
 import {HomeCardOptionsSheet} from './HomeCardOptionsSheet';
 import {AdhkarSessionOptionsSheet} from './AdhkarSessionOptionsSheet';
 import {installRewayahFallbackNotice} from './rewayahFallbackNotice'; // @ai
+import type {SurahOptionsPayload} from './options/surahOptions'; // @ai
 
 // Register all sheets
 registerSheet('surah-options', SurahOptionsSheet);
@@ -82,14 +83,7 @@ installRewayahFallbackNotice();
 declare module 'react-native-actions-sheet' {
   interface Sheets {
     'surah-options': SheetDefinition<{
-      payload: {
-        surah: Surah;
-        reciterId?: string;
-        rewayatId?: string;
-        onAddToQueue?: (surah: Surah) => Promise<void>;
-        onRemoveFromPlaylist?: () => void;
-        hideGoToReciter?: boolean;
-      };
+      payload: SurahOptionsPayload; // @ai
     }>;
     'rewayat-info': SheetDefinition<{
       payload: {

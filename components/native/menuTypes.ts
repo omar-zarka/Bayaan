@@ -37,6 +37,15 @@ export interface NativeMenuProps {
   title?: string;
   /** `tap` for a ••• or tool button, `longPress` for a row's context menu. */
   trigger?: 'tap' | 'longPress';
+  /**
+   * How the menu's host sits in the layout:
+   * - `wrap` (default for `tap`): sized by the trigger it wraps.
+   * - `overlay`: fills its parent (`absoluteFill`) over a button that draws
+   *   itself, so the whole button area opens the menu with no layout change.
+   * - `row` (default for `longPress`): width from `style` (usually
+   *   `flex: 1`), height from the wrapped row.
+   */
+  layout?: 'wrap' | 'overlay' | 'row';
   /** Read by VoiceOver for the trigger, which hides the child's own label. */
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;

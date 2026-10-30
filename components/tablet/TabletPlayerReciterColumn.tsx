@@ -1,4 +1,5 @@
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {SurahOptionsScope} from '@/components/sheets/options/surahOptions'; // @ai
 import {
   View,
   Text,
@@ -320,21 +321,28 @@ export const TabletPlayerReciterColumn: React.FC<{
       <View style={[styles.listDivider, {borderTopColor: divider}]} />
 
       <View style={styles.listFill}>
-        <SurahList
-          surahs={filteredSurahs}
-          onSurahPress={handleSurahPress}
+        {/* @ai-start */}
+        <SurahOptionsScope
           reciterId={reciterId}
-          isLoved={isLoved}
-          isDownloaded={isDownloaded}
-          onOptionsPress={onOptionsPress}
-          viewMode={viewMode}
-          getColorForSurah={getColorForSurah}
-          sortOption={sortOption}
           rewayatId={selectedRewayat?.id}
-          contentContainerStyle={{
-            paddingBottom: (bottomInset ?? insets.bottom) + moderateScale(12),
-          }}
-        />
+          hideGoToReciter>
+          <SurahList
+            surahs={filteredSurahs}
+            onSurahPress={handleSurahPress}
+            reciterId={reciterId}
+            isLoved={isLoved}
+            isDownloaded={isDownloaded}
+            onOptionsPress={onOptionsPress}
+            viewMode={viewMode}
+            getColorForSurah={getColorForSurah}
+            sortOption={sortOption}
+            rewayatId={selectedRewayat?.id}
+            contentContainerStyle={{
+              paddingBottom: (bottomInset ?? insets.bottom) + moderateScale(12),
+            }}
+          />
+        </SurahOptionsScope>
+        {/* @ai-end */}
       </View>
     </View>
   );

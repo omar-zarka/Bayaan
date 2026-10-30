@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import {useTheme} from '@/hooks/useTheme';
 import {TrackItem} from '@/components/TrackItem';
+import {SurahOptionsRow} from '@/components/sheets/options/surahOptions'; // @ai
 import {usePlaylists} from '@/hooks/usePlaylists';
 import {getReciterById, getSurahById} from '@/services/dataService';
 import {Reciter} from '@/data/reciterData';
@@ -349,35 +350,44 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
     headerRight: !loading && playlist ? renderHeaderRight : undefined,
   });
 
-  const handleShowTrackOptions = useCallback(
-    async (track: PlaylistTrack, reciter: Reciter, surah: Surah) => {
-      let audioTrack;
-      if (track.userRecitationId) {
-        const upload = useUploadsStore
-          .getState()
-          .recitations.find(r => r.id === track.userRecitationId);
-        if (upload) audioTrack = createUserUploadTrack(upload);
-      }
-      if (!audioTrack) {
-        audioTrack = await createTrack(reciter, surah, track.rewayatId);
-      }
+  // @ai-start
+  // The options payload for a playlist track, shared by the sheet (phones)
+  // and the row's native menu (tablets). The queue track is built only when
+  // "Add to queue" is chosen.
+  const buildTrackOptions = useCallback(
+    (track: PlaylistTrack, reciter: Reciter, surah: Surah) => ({
+      surah,
+      reciterId: track.reciterId,
+      rewayatId: track.rewayatId,
+      onAddToQueue: async () => {
+        let audioTrack;
+        if (track.userRecitationId) {
+          const upload = useUploadsStore
+            .getState()
+            .recitations.find(r => r.id === track.userRecitationId);
+          if (upload) audioTrack = createUserUploadTrack(upload);
+        }
+        if (!audioTrack) {
+          audioTrack = await createTrack(reciter, surah, track.rewayatId);
+        }
+        if (audioTrack) {
+          await addToQueue([audioTrack]);
+        }
+      },
+      onRemoveFromPlaylist: () => handleRemoveFromPlaylist(track),
+    }),
+    [addToQueue, handleRemoveFromPlaylist],
+  );
 
+  const handleShowTrackOptions = useCallback(
+    (track: PlaylistTrack, reciter: Reciter, surah: Surah) => {
       SheetManager.show('surah-options', {
-        payload: {
-          surah,
-          reciterId: track.reciterId,
-          rewayatId: track.rewayatId,
-          onAddToQueue: async (s: Surah) => {
-            if (audioTrack) {
-              await addToQueue([audioTrack]);
-            }
-          },
-          onRemoveFromPlaylist: () => handleRemoveFromPlaylist(track),
-        },
+        payload: buildTrackOptions(track, reciter, surah),
       });
     },
-    [addToQueue],
+    [buildTrackOptions],
   );
+  // @ai-end
 
   const ListHeaderComponent = useCallback(() => {
     if (!playlist) return null;
@@ -410,16 +420,18 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
     }
 
     return (
-      <TrackItem
-        reciterId={track.reciterId}
-        surahId={track.surahId}
-        rewayatId={track.rewayatId}
-        userRecitationId={track.userRecitationId}
-        onPress={() => handleSurahPress(track, reciter, surah)}
-        onPlayPress={() => handleSurahPress(track, reciter, surah)}
-        onOptionsPress={() => handleShowTrackOptions(track, reciter, surah)}
-        onLongPress={() => handleShowTrackOptions(track, reciter, surah)}
-      />
+      <SurahOptionsRow payload={buildTrackOptions(track, reciter, surah)}>
+        <TrackItem
+          reciterId={track.reciterId}
+          surahId={track.surahId}
+          rewayatId={track.rewayatId}
+          userRecitationId={track.userRecitationId}
+          onPress={() => handleSurahPress(track, reciter, surah)}
+          onPlayPress={() => handleSurahPress(track, reciter, surah)}
+          onOptionsPress={() => handleShowTrackOptions(track, reciter, surah)}
+          onLongPress={() => handleShowTrackOptions(track, reciter, surah)}
+        />
+      </SurahOptionsRow>
     );
   };
 
