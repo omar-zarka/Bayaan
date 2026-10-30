@@ -42,6 +42,7 @@ import type {DownloadOptionsPayload} from './options/downloadOptions'; // @ai
 import type {CollectionOptionsPayload} from './options/collectionOptions'; // @ai
 import type {UploadOptionsPayload} from './options/uploadOptions'; // @ai
 import type {PlaylistOptionsPayload} from './options/playlistOptions'; // @ai
+import type {HomeCardOptionsPayload} from './options/homeCardOptions'; // @ai
 
 // Register all sheets
 registerSheet('surah-options', SurahOptionsSheet);
@@ -251,16 +252,7 @@ declare module 'react-native-actions-sheet' {
       };
     }>;
     'home-card-options': SheetDefinition<{
-      payload: {
-        reciterId: string;
-        reciterName: string;
-        surahId?: number;
-        surahName?: string;
-        rewayatId?: string;
-        recentIndex?: number;
-        variant: 'recent' | 'reciter';
-        onContinuePlaying?: () => void;
-      };
+      payload: HomeCardOptionsPayload; // @ai
     }>;
     'adhkar-session-options': SheetDefinition<{
       payload: {
