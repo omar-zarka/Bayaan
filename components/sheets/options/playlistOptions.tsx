@@ -1,6 +1,6 @@
 // @ai-generated
 import React from 'react';
-import {Alert} from 'react-native';
+import {confirmDestructive} from '@/utils/confirmDestructive'; // @ai
 import {SheetManager} from 'react-native-actions-sheet';
 import {useTranslation} from 'react-i18next';
 import type {NativeMenuEntry} from '@/components/native/menuTypes';
@@ -67,18 +67,15 @@ export function PlaylistOptionsMenu({
         });
         return;
       case 'delete':
-        Alert.alert(
-          t('playlistContext.deleteTitle'),
-          t('playlistContext.deleteMessage', {name: payload.playlistName}),
-          [
-            {text: t('common:actions.cancel'), style: 'cancel'},
-            {
-              text: t('common:actions.delete'),
-              style: 'destructive',
-              onPress: payload.onDelete,
-            },
-          ],
-        );
+        confirmDestructive({
+          title: t('playlistContext.deleteTitle'),
+          message: t('playlistContext.deleteMessage', {
+            name: payload.playlistName,
+          }),
+          confirmText: t('common:actions.delete'),
+          cancelText: t('common:actions.cancel'),
+          onConfirm: payload.onDelete,
+        });
         return;
     }
   };

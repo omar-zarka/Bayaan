@@ -1,12 +1,6 @@
 import React, {useCallback, useState, useMemo} from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Alert,
-  Dimensions,
-} from 'react-native';
+import {View, Text, Pressable, StyleSheet, Dimensions} from 'react-native';
+import {confirmDestructive} from '@/utils/confirmDestructive'; // @ai
 import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
@@ -243,17 +237,16 @@ export const UploadOptionsSheet = (props: SheetProps<'upload-options'>) => {
   const handleDelete = useCallback(() => {
     if (!recitation) return;
     const title = getDisplayTitle(recitation);
-    Alert.alert(t('uploads.deleteTitle'), t('uploads.deleteMessage', {title}), [
-      {text: t('common:actions.cancel'), style: 'cancel'},
-      {
-        text: t('common:actions.delete'),
-        style: 'destructive',
-        onPress: () => {
-          handleClose();
-          deleteRecitation(recitation.id);
-        },
+    confirmDestructive({
+      title: t('uploads.deleteTitle'),
+      message: t('uploads.deleteMessage', {title}),
+      confirmText: t('common:actions.delete'),
+      cancelText: t('common:actions.cancel'),
+      onConfirm: () => {
+        handleClose();
+        deleteRecitation(recitation.id);
       },
-    ]);
+    });
   }, [recitation, handleClose, deleteRecitation, t]);
 
   const handleSheetChange = useCallback((index: number) => {

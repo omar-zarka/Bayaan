@@ -1,4 +1,3 @@
-import React from 'react';
 import {SheetDefinition, registerSheet} from 'react-native-actions-sheet';
 import {Surah} from '@/data/surahData';
 import type {RewayatStyle} from '@/types/reciter';

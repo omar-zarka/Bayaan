@@ -1,12 +1,6 @@
 import React, {useCallback, useState, useMemo} from 'react';
-import {
-  View,
-  Text,
-  Pressable,
-  StyleSheet,
-  Dimensions,
-  Alert,
-} from 'react-native';
+import {View, Text, Pressable, StyleSheet, Dimensions} from 'react-native';
+import {confirmDestructive} from '@/utils/confirmDestructive'; // @ai
 import {ScaledSheet, moderateScale} from '@/utils/scale';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
@@ -146,21 +140,16 @@ export const DownloadOptionsSheet = (props: SheetProps<'download-options'>) => {
 
   const handleRemoveDownload = useCallback(() => {
     if (!download) return;
-    Alert.alert(
-      t('downloadOptions.removeTitle'),
-      t('downloadOptions.removeMessage'),
-      [
-        {text: t('common:actions.cancel'), style: 'cancel'},
-        {
-          text: t('common:actions.remove'),
-          style: 'destructive',
-          onPress: () => {
-            handleClose();
-            onRemoveDownload?.();
-          },
-        },
-      ],
-    );
+    confirmDestructive({
+      title: t('downloadOptions.removeTitle'),
+      message: t('downloadOptions.removeMessage'),
+      confirmText: t('common:actions.remove'),
+      cancelText: t('common:actions.cancel'),
+      onConfirm: () => {
+        handleClose();
+        onRemoveDownload?.();
+      },
+    });
   }, [download, handleClose, onRemoveDownload, t]);
 
   const handleSheetChange = useCallback((index: number) => {

@@ -1,6 +1,6 @@
 // @ai-generated
 import React from 'react';
-import {Alert} from 'react-native';
+import {confirmDestructive} from '@/utils/confirmDestructive'; // @ai
 import {SheetManager} from 'react-native-actions-sheet';
 import {useTranslation} from 'react-i18next';
 import {useLoved} from '@/hooks/useLoved';
@@ -90,18 +90,13 @@ export function DownloadOptionsMenu({
         });
         return;
       case 'remove':
-        Alert.alert(
-          t('downloadOptions.removeTitle'),
-          t('downloadOptions.removeMessage'),
-          [
-            {text: t('common:actions.cancel'), style: 'cancel'},
-            {
-              text: t('common:actions.remove'),
-              style: 'destructive',
-              onPress: payload.onRemoveDownload,
-            },
-          ],
-        );
+        confirmDestructive({
+          title: t('downloadOptions.removeTitle'),
+          message: t('downloadOptions.removeMessage'),
+          confirmText: t('common:actions.remove'),
+          cancelText: t('common:actions.cancel'),
+          onConfirm: payload.onRemoveDownload,
+        });
         return;
     }
   };

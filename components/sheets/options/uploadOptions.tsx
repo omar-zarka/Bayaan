@@ -1,6 +1,6 @@
 // @ai-generated
 import React from 'react';
-import {Alert} from 'react-native';
+import {confirmDestructive} from '@/utils/confirmDestructive'; // @ai
 import {SheetManager} from 'react-native-actions-sheet';
 import {useTranslation} from 'react-i18next';
 import {useLoved} from '@/hooks/useLoved';
@@ -139,20 +139,15 @@ export function UploadOptionsMenu({
         });
         return;
       case 'delete':
-        Alert.alert(
-          t('uploads.deleteTitle'),
-          t('uploads.deleteMessage', {
+        confirmDestructive({
+          title: t('uploads.deleteTitle'),
+          message: t('uploads.deleteMessage', {
             title: getUploadDisplayTitle(recitation),
           }),
-          [
-            {text: t('common:actions.cancel'), style: 'cancel'},
-            {
-              text: t('common:actions.delete'),
-              style: 'destructive',
-              onPress: () => deleteRecitation(recitation.id),
-            },
-          ],
-        );
+          confirmText: t('common:actions.delete'),
+          cancelText: t('common:actions.cancel'),
+          onConfirm: () => deleteRecitation(recitation.id),
+        });
         return;
     }
   };
