@@ -8,7 +8,7 @@ import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
 import {GlassView} from 'expo-glass-effect';
 import {USE_GLASS, useGlassColorScheme} from '@/hooks/useGlassProps';
-import {Slider} from '@miblanchard/react-native-slider';
+import {ProgressTrack} from '@/components/ProgressTrack'; // @ai
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import {resumeRecent} from '@/services/player/utils/resumeRecent';
@@ -368,21 +368,11 @@ export const RecentReciterCard = ({
               />
             )}
           </View>
-          <Slider
+          <ProgressTrack
             value={currentSliderProgress}
-            disabled={true}
-            minimumTrackTintColor={Color(theme.colors.text)
-              .alpha(0.35)
-              .toString()}
-            maximumTrackTintColor={Color(theme.colors.text)
-              .alpha(0.08)
-              .toString()}
-            trackStyle={{
-              height: moderateScale(3),
-              borderRadius: moderateScale(2),
-            }}
-            thumbStyle={{height: 0, width: 0}}
-            containerStyle={styles.sliderContainer}
+            fillColor={Color(theme.colors.text).alpha(0.35).toString()}
+            trackColor={Color(theme.colors.text).alpha(0.08).toString()}
+            style={styles.sliderContainer}
           />
           <Text style={styles.timeRemaining}>{timeRemaining}</Text>
         </View>

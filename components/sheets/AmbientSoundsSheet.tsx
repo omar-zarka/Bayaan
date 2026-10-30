@@ -1,7 +1,7 @@
 import React, {useCallback} from 'react';
 import {View, Text, Pressable, StyleSheet} from 'react-native';
 import {ScaledSheet, moderateScale} from '@/utils/scale';
-import Slider from '@react-native-community/slider';
+import {NativeSlider} from '@/components/native/NativeSlider'; // @ai
 import Svg, {Line, Circle, Path, Rect, Polygon} from 'react-native-svg';
 import {useTheme} from '@/hooks/useTheme';
 import {Theme} from '@/utils/themeUtils';
@@ -156,18 +156,14 @@ export const AmbientSoundsSheet = (props: SheetProps<'ambient-sounds'>) => {
                 {t('percent', {value: Math.round(volume * 100)})}
               </Text>
             </View>
-            <Slider
+            <NativeSlider
               style={styles.slider}
               minimumValue={0}
               maximumValue={1}
               step={0.05}
               value={volume}
               onValueChange={handleVolumeChange}
-              minimumTrackTintColor={theme.colors.text}
-              maximumTrackTintColor={Color(theme.colors.text)
-                .alpha(0.2)
-                .toString()}
-              thumbTintColor={theme.colors.text}
+              accessibilityLabel={t('ambient.volume')}
             />
           </View>
         )}

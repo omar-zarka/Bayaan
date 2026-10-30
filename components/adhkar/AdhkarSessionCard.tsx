@@ -9,7 +9,7 @@ import {useNavigationContainerRef} from 'expo-router';
 import Color from 'color';
 import {LinearGradient} from 'expo-linear-gradient';
 import {GlassView} from 'expo-glass-effect';
-import {Slider} from '@miblanchard/react-native-slider';
+import {ProgressTrack} from '@/components/ProgressTrack'; // @ai
 import {SheetManager} from 'react-native-actions-sheet';
 import {useReducedMotion} from 'react-native-reanimated';
 import {useTranslation} from 'react-i18next';
@@ -176,21 +176,12 @@ export function AdhkarSessionCard({
               />
             )}
           </View>
-          <Slider
+          <ProgressTrack
             value={sessionProgress(session)}
-            disabled={true}
-            minimumTrackTintColor={Color(theme.colors.text)
-              .alpha(0.35)
-              .toString()}
-            maximumTrackTintColor={Color(theme.colors.text)
-              .alpha(0.08)
-              .toString()}
-            trackStyle={{
-              height: moderateScale(3),
-              borderRadius: moderateScale(2),
-            }}
-            thumbStyle={{height: 0, width: 0}}
-            containerStyle={styles.sliderContainer}
+            fillColor={Color(theme.colors.text).alpha(0.35).toString()}
+            trackColor={Color(theme.colors.text).alpha(0.08).toString()}
+            style={styles.sliderContainer}
+            testID="adhkar-session-progress"
           />
           <Text style={styles.timeRemaining}>{remaining}</Text>
         </View>

@@ -76,14 +76,6 @@ jest.mock('expo-glass-effect', () => {
   const {View: MockView} = jest.requireActual('react-native');
   return {GlassView: MockView};
 });
-jest.mock('@miblanchard/react-native-slider', () => {
-  const {View: MockView} = jest.requireActual('react-native');
-  return {
-    Slider: (props: {value: number}) => (
-      <MockView testID="adhkar-session-progress" value={props.value} />
-    ),
-  };
-});
 jest.mock('@/services/adhkar/playback/sessionPersistence', () => ({
   dropStaleSession: jest.fn(),
 }));
