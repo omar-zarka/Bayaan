@@ -65,6 +65,11 @@ interface SurahItemProps {
    * place chip, and the text grows. Pair it with SurahTableHeader. @ai
    */
   tableColumns?: boolean;
+  /**
+   * A native menu laid over the ••• button on tablets, for screens whose
+   * options aren't surah options (downloads). @ai
+   */
+  optionsMenu?: React.ReactNode;
 }
 
 // @ai-start
@@ -81,6 +86,7 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
     rewayatName,
     pressAction = 'play', // @ai
     tableColumns = false, // @ai
+    optionsMenu, // @ai
   }) => {
     const {theme} = useTheme();
     const {t} = useTranslation(['home', 'common']);
@@ -394,13 +400,15 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
               />
             )}
             {/* @ai-start */}
-            {tapMenu && options && (
+            {tapMenu && options ? (
               <options.Menu
                 payload={optionsPayload}
                 layout="overlay"
                 accessibilityLabel={t('surahItem.moreOptions')}>
                 <View />
               </options.Menu>
+            ) : (
+              optionsMenu
             )}
             {/* @ai-end */}
           </Pressable>

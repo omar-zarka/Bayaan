@@ -42,6 +42,7 @@ import {
   getSurahMeaning,
   localizeDigits,
 } from '@/i18n/format';
+import {getUploadDisplayTitle} from './options/uploadOptions';
 // @ai-end
 
 const surahInfo = require('@/data/surahInfo.json');
@@ -67,22 +68,7 @@ const renderHtmlDefaultProps: Partial<RenderHTMLProps> = {
   },
 };
 
-function stripExtension(filename: string): string {
-  return filename.replace(/\.[^/.]+$/, '');
-}
-
-// @ai-start
-function getDisplayTitle(item: UploadedRecitation): string {
-  if (item.type === 'surah' && item.surahNumber) {
-    const surah = getSurahById(item.surahNumber);
-    if (surah) return getSurahDisplayName(surah);
-  }
-  if (item.type === 'other' && item.title) {
-    return item.title;
-  }
-  return stripExtension(item.originalFilename);
-}
-// @ai-end
+const getDisplayTitle = getUploadDisplayTitle; // @ai
 
 // @ai-start
 function getDisplaySubtitle(item: UploadedRecitation): string {
@@ -147,7 +133,8 @@ export const UploadOptionsSheet = (props: SheetProps<'upload-options'>) => {
   const {t} = useTranslation(['sheets', 'common']);
   // Size HTML from the sheet, which stops at 560pt on iPad. @ai
   const width = useSheetWidth(); // @ai
-  const [showSurahInfo, setShowSurahInfo] = useState(false);
+  // A native menu's "Learn about this surah" opens the sheet on the info. @ai
+  const [showSurahInfo, setShowSurahInfo] = useState(!!props.payload?.showInfo);
 
   const {deleteRecitation} = useUploadsStore();
   const {isLovedWithRewayat, toggleLoved} = useLoved();

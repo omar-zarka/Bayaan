@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useRef} from 'react';
+import React, {useState, useEffect, useCallback, useRef, useMemo} from 'react';
 import {
   View,
   Text,
@@ -54,6 +54,10 @@ import {useCollectionNativeHeader} from '@/hooks/useCollectionNativeHeader';
 import {useTranslation} from 'react-i18next';
 import {flipX} from '@/utils/rtl';
 import {useLibraryListBottomPadding} from '@/hooks/useBottomInset'; // @ai
+import {
+  CollectionOptionsMenu,
+  type CollectionOptionsPayload,
+} from '@/components/sheets/options/collectionOptions';
 // @ai-end
 
 interface LovedTrack {
@@ -535,70 +539,73 @@ const LovedScreen = () => {
   const downloadState = useCollectionDownloadState(lovedData);
 
   // Handle options menu
+  // @ai-start
+  const optionsPayload = useMemo<CollectionOptionsPayload>(
+    () => ({
+      title: t('collectionScreen.loved'),
+      subtitle: t('common:counts.surahs', {count: lovedData.length}),
+      options: [
+        {
+          label: downloadState.allDownloaded
+            ? t('lovedScreen.allDownloaded')
+            : t('lovedScreen.downloadAll'),
+          icon: 'download',
+          onPress: handleBulkDownload,
+          disabled: downloadState.allDownloaded || downloadState.hasNoTracks,
+          customIcon:
+            downloadState.allDownloaded && !downloadState.hasNoTracks ? (
+              <CheckIcon color={theme.colors.text} size={moderateScale(20)} />
+            ) : undefined,
+        },
+        {
+          label: t('lovedScreen.unloveAll'),
+          icon: 'heart',
+          destructive: true,
+          customIcon: (
+            <HeartIcon color="#ff4444" size={moderateScale(20)} filled={true} />
+          ),
+          // @ai-start
+          onPress: () =>
+            confirmDestructive({
+              title: t('lovedScreen.unloveAllTitle'),
+              message: t('lovedScreen.unloveAllConfirm'),
+              confirmText: t('common:actions.remove'),
+              cancelText: t('common:actions.cancel'),
+              onConfirm: unloveAll,
+            }),
+          // @ai-end
+        },
+      ],
+    }),
+    [
+      lovedData.length,
+      downloadState,
+      handleBulkDownload,
+      unloveAll,
+      theme.colors.text,
+      t,
+    ],
+  );
+
   const handleOptionsMenu = useCallback(() => {
-    SheetManager.show('collection-options', {
-      payload: {
-        title: t('collectionScreen.loved'),
-        subtitle: t('common:counts.surahs', {count: lovedData.length}),
-        options: [
-          {
-            label: downloadState.allDownloaded
-              ? t('lovedScreen.allDownloaded')
-              : t('lovedScreen.downloadAll'),
-            icon: 'download',
-            onPress: handleBulkDownload,
-            disabled: downloadState.allDownloaded || downloadState.hasNoTracks,
-            customIcon:
-              downloadState.allDownloaded && !downloadState.hasNoTracks ? (
-                <CheckIcon color={theme.colors.text} size={moderateScale(20)} />
-              ) : undefined,
-          },
-          {
-            label: t('lovedScreen.unloveAll'),
-            icon: 'heart',
-            destructive: true,
-            customIcon: (
-              <HeartIcon
-                color="#ff4444"
-                size={moderateScale(20)}
-                filled={true}
-              />
-            ),
-            // @ai-start
-            onPress: () =>
-              confirmDestructive({
-                title: t('lovedScreen.unloveAllTitle'),
-                message: t('lovedScreen.unloveAllConfirm'),
-                confirmText: t('common:actions.remove'),
-                cancelText: t('common:actions.cancel'),
-                onConfirm: unloveAll,
-              }),
-            // @ai-end
-          },
-        ],
-      },
-    });
-  }, [
-    lovedData.length,
-    downloadState,
-    handleBulkDownload,
-    unloveAll,
-    theme.colors.text,
-    t,
-  ]);
+    SheetManager.show('collection-options', {payload: optionsPayload});
+  }, [optionsPayload]);
 
   const renderHeaderRight = useCallback(
     () => (
-      <Pressable onPress={handleOptionsMenu} hitSlop={8}>
-        <Feather
-          name="more-horizontal"
-          size={moderateScale(20)}
-          color={theme.colors.text}
-        />
-      </Pressable>
+      <CollectionOptionsMenu payload={optionsPayload}>
+        <Pressable onPress={handleOptionsMenu} hitSlop={8}>
+          <Feather
+            name="more-horizontal"
+            size={moderateScale(20)}
+            color={theme.colors.text}
+          />
+        </Pressable>
+      </CollectionOptionsMenu>
     ),
-    [handleOptionsMenu, theme.colors.text],
+    [optionsPayload, handleOptionsMenu, theme.colors.text],
   );
+  // @ai-end
 
   useCollectionNativeHeader({
     title: t('collectionScreen.loved'),
@@ -671,6 +678,9 @@ const LovedScreen = () => {
         onPlayPress={handlePlayAll}
         onShufflePress={handleShuffle}
         onOptionsPress={USE_GLASS ? undefined : handleOptionsMenu}
+        optionsMenu={
+          <CollectionOptionsMenu payload={optionsPayload} layout="overlay" />
+        }
         theme={theme}
       />
     );
@@ -679,6 +689,7 @@ const LovedScreen = () => {
     handlePlayAll,
     handleShuffle,
     handleOptionsMenu,
+    optionsPayload,
     theme,
     t,
   ]);

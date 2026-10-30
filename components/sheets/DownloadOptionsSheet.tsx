@@ -58,9 +58,10 @@ export const DownloadOptionsSheet = (props: SheetProps<'download-options'>) => {
   const {t} = useTranslation(['sheets', 'common']);
   // Size HTML from the sheet, which stops at 560pt on iPad. @ai
   const width = useSheetWidth(); // @ai
-  const [showSurahInfo, setShowSurahInfo] = useState(false);
-
   const payload = props.payload;
+  // A native menu's "Learn about this surah" opens the sheet on the info. @ai
+  const [showSurahInfo, setShowSurahInfo] = useState(!!payload?.showInfo);
+
   const download = payload?.download;
   const surah = payload?.surah;
   const reciterId = payload?.reciterId;

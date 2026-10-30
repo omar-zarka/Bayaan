@@ -47,6 +47,11 @@ interface TrackItemProps {
   hidePlayButton?: boolean;
   onOptionsPress?: () => void;
   onLongPress?: () => void;
+  /**
+   * A native menu laid over the ••• button on tablets, for screens whose
+   * options aren't surah options (downloads, uploads). @ai
+   */
+  optionsMenu?: React.ReactNode;
 }
 
 // @ai-start
@@ -61,6 +66,7 @@ export const TrackItem: React.FC<TrackItemProps> = React.memo(
     hidePlayButton,
     onOptionsPress,
     onLongPress,
+    optionsMenu,
   }) => {
     const {theme} = useTheme();
     // @ai-start
@@ -297,13 +303,15 @@ export const TrackItem: React.FC<TrackItemProps> = React.memo(
               />
             )}
             {/* @ai-start */}
-            {tapMenu && options && (
+            {tapMenu && options ? (
               <options.Menu
                 payload={optionsPayload}
                 layout="overlay"
                 accessibilityLabel={tHome('surahItem.moreOptions')}>
                 <View />
               </options.Menu>
+            ) : (
+              optionsMenu
             )}
             {/* @ai-end */}
           </Pressable>
