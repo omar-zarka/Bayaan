@@ -40,6 +40,10 @@ import {
 import {localizeDigits} from '@/i18n/format';
 import {forceLTR} from '@/utils/rtl';
 import {SEEK_INTERVAL, type PlayerTransport} from './usePlayerTransport';
+import {
+  AmbientPopover,
+  ReadingSettingsPopover,
+} from '@/components/popovers/ToolPopovers'; // @ai
 
 /**
  * Building blocks of the iPad player (listening/02, "Shared building
@@ -442,15 +446,23 @@ export function useListeningTools(
     </SleepTimerMenu>
   );
   // @ai-end
+  // @ai-start
+  // iPad: a popover anchored to the button. Elsewhere: the sheet.
   const ambient = (
-    <ToolButton
-      key="ambient"
-      selected={ambientEnabled}
-      onPress={onAmbientPress}
-      {...a11y.ambient(ambientEnabled)}>
-      {color => <AmbientIcon size={20} color={color} filled={ambientEnabled} />}
-    </ToolButton>
+    <AmbientPopover key="ambient" onFallbackPress={onAmbientPress}>
+      {onPress => (
+        <ToolButton
+          selected={ambientEnabled}
+          onPress={onPress}
+          {...a11y.ambient(ambientEnabled)}>
+          {color => (
+            <AmbientIcon size={20} color={color} filled={ambientEnabled} />
+          )}
+        </ToolButton>
+      )}
+    </AmbientPopover>
   );
+  // @ai-end
   return {leading: [speed, repeat], trailing: [sleep, ambient]};
 }
 
@@ -480,11 +492,23 @@ export function ReadingTools({
         {...a11y.followAlong(active)}>
         {color => <Ionicons name="locate-outline" size={20} color={color} />}
       </ToolButton>
-      <ToolButton onPress={onMushafLayoutPress} {...a11y.displayOptions}>
-        {color => (
-          <MaterialCommunityIcons name="format-size" size={22} color={color} />
+      {/* @ai-start */}
+      <ReadingSettingsPopover
+        context="player"
+        onFallbackPress={onMushafLayoutPress}>
+        {onPress => (
+          <ToolButton onPress={onPress} {...a11y.displayOptions}>
+            {color => (
+              <MaterialCommunityIcons
+                name="format-size"
+                size={22}
+                color={color}
+              />
+            )}
+          </ToolButton>
         )}
-      </ToolButton>
+      </ReadingSettingsPopover>
+      {/* @ai-end */}
     </>
   );
 }

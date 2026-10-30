@@ -54,6 +54,17 @@ jest.mock('@expo/vector-icons', () => ({
   MaterialCommunityIcons: () => null,
 }));
 jest.mock('@react-native-community/slider', () => () => null);
+// The tool buttons as on Android: they call their handlers (no popover).
+jest.mock('@/components/popovers/ToolPopovers', () => {
+  const fallback = ({
+    onFallbackPress,
+    children,
+  }: {
+    onFallbackPress: () => void;
+    children: (onPress: () => void) => unknown;
+  }) => children(onFallbackPress);
+  return {AmbientPopover: fallback, ReadingSettingsPopover: fallback};
+});
 
 import {
   PaneSwitcher,

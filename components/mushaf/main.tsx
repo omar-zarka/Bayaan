@@ -93,6 +93,7 @@ import {RewayahFallbackBanner} from '@/components/MushafSettingsContent'; // @ai
 import {ReaderKeyCommands} from '@/components/keyboard/ReaderKeyCommands';
 import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
 import {closeTopSheet} from '@/services/keyboard/keyActions';
+import {ReadingSettingsPopover} from '@/components/popovers/ToolPopovers'; // @ai
 // @ai-end
 
 const TOTAL_PAGES = 604;
@@ -837,6 +838,12 @@ export default function MushafViewer({
     );
   }, [currentPage, isDarkMode, t]);
 
+  // @ai-start
+  const openReadingSettingsSheet = useCallback(() => {
+    SheetManager.show('mushaf-layout', {payload: {context: 'mushaf'}});
+  }, []);
+  // @ai-end
+
   // iOS 26: configure Stack navigator header based on current mode
   useEffect(() => {
     if (!USE_GLASS) return;
@@ -934,26 +941,31 @@ export default function MushafViewer({
               color={theme.colors.text}
             />
           </Pressable>
-          <Pressable
-            onPress={() =>
-              SheetManager.show('mushaf-layout', {
-                payload: {context: 'mushaf'},
-              })
-            }
-            hitSlop={8}
-            accessibilityRole="button" // @ai
-            accessibilityLabel={t('mushaf.settings')} // @ai
-          >
-            <Ionicons
-              name="options-outline"
-              size={moderateScale(22)}
-              color={theme.colors.text}
-            />
-          </Pressable>
+          {/* @ai-start */}
+          {/* iPad: a popover anchored to the button. Elsewhere: the sheet. */}
+          <ReadingSettingsPopover
+            context="mushaf"
+            onFallbackPress={openReadingSettingsSheet}>
+            {onPress => (
+              <Pressable
+                onPress={onPress}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel={t('mushaf.settings')}>
+                <Ionicons
+                  name="options-outline"
+                  size={moderateScale(22)}
+                  color={theme.colors.text}
+                />
+              </Pressable>
+            )}
+          </ReadingSettingsPopover>
+          {/* @ai-end */}
         </View>
       ),
     });
   }, [
+    openReadingSettingsSheet,
     isImmersive,
     isSearchMode,
     currentPage,
@@ -1461,21 +1473,25 @@ export default function MushafViewer({
 
                 {/* Right: settings */}
                 <View style={[styles.headerSide, {alignItems: 'flex-end'}]}>
-                  <Pressable
-                    style={styles.headerIcon}
-                    onPress={() =>
-                      SheetManager.show('mushaf-layout', {
-                        payload: {context: 'mushaf'},
-                      })
-                    }
-                    accessibilityRole="button"
-                    accessibilityLabel={t('mushaf.settings')}>
-                    <Ionicons
-                      name="options-outline"
-                      size={moderateScale(22)}
-                      color={theme.colors.text}
-                    />
-                  </Pressable>
+                  {/* @ai-start */}
+                  <ReadingSettingsPopover
+                    context="mushaf"
+                    onFallbackPress={openReadingSettingsSheet}>
+                    {onPress => (
+                      <Pressable
+                        style={styles.headerIcon}
+                        onPress={onPress}
+                        accessibilityRole="button"
+                        accessibilityLabel={t('mushaf.settings')}>
+                        <Ionicons
+                          name="options-outline"
+                          size={moderateScale(22)}
+                          color={theme.colors.text}
+                        />
+                      </Pressable>
+                    )}
+                  </ReadingSettingsPopover>
+                  {/* @ai-end */}
                 </View>
               </View>
               {/* @ai — Hafs is standing in for a rewayah that failed to load */}
