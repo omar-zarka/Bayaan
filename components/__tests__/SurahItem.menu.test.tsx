@@ -71,7 +71,7 @@ const fatihah = {
   revelation_place: 'makkah',
 } as unknown as Surah;
 
-const MockMenu = jest.fn(({children}: {children: React.ReactNode}) => (
+const MockMenu = jest.fn(({children}: {children?: React.ReactNode}) => (
   <>{children}</>
 ));
 const context = {

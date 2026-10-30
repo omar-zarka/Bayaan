@@ -1,5 +1,5 @@
 // @ai-generated
-import React, {useCallback} from 'react';
+import React, {useCallback, useMemo} from 'react';
 import {SheetManager} from 'react-native-actions-sheet';
 import {usePlayerActions} from '@/hooks/usePlayerActions';
 import {usePlayerStore} from '@/services/player/store/playerStore';
@@ -13,6 +13,13 @@ import {PlayerKeyCommands} from '@/components/keyboard/PlayerKeyCommands';
 import {keyCommandsSupported} from '@/services/keyboard/keyCommands';
 import PlayerContent from './PlayerContent';
 import {TabletPlayerLayout} from './tablet/TabletPlayerLayout';
+// @ai-start
+import {nativeMenusAvailable} from '@/components/native/nativeMenus';
+import {
+  PlayerOptionsMenu,
+  type PlayerOptionsPayload,
+} from '@/components/sheets/options/playerOptions';
+// @ai-end
 
 /**
  * The full player's contents and the handlers its controls open (speed, sleep
@@ -110,9 +117,11 @@ export const PlayerBody = () => {
     }
   }, [followAlongAvailable]);
 
-  const handleShowOptionsSheet = useCallback(() => {
-    if (!currentTrack) return;
-
+  // @ai-start
+  // The options for the current track: the sheet on phones, and a native
+  // menu on the iPad player's ••• buttons.
+  const optionsPayload = useMemo<PlayerOptionsPayload | null>(() => {
+    if (!currentTrack) return null;
     const surahNumber = currentTrack.surahId
       ? parseInt(currentTrack.surahId, 10)
       : undefined;
@@ -120,33 +129,39 @@ export const PlayerBody = () => {
       ? SURAHS.find(s => s.id === surahNumber)
       : undefined;
 
-    // Upload tracks — always show options
+    // Upload tracks always have options.
     if (currentTrack.isUserUpload) {
-      SheetManager.show('player-options', {
-        payload: {
-          surah: currentSurahData,
-          reciterId: currentTrack.reciterId || undefined,
-          rewayatId: currentTrack.rewayatId,
-          onGoToReciter: currentTrack.reciterId ? handleGoToReciter : undefined,
-          isUserUpload: true,
-          userRecitationId: currentTrack.userRecitationId,
-        },
-      });
-      return;
+      return {
+        surah: currentSurahData,
+        reciterId: currentTrack.reciterId || undefined,
+        rewayatId: currentTrack.rewayatId,
+        onGoToReciter: currentTrack.reciterId ? handleGoToReciter : undefined,
+        isUserUpload: true,
+        userRecitationId: currentTrack.userRecitationId,
+      };
     }
-
-    // System tracks — existing behavior
     if (currentSurahData && currentTrack.reciterId) {
-      SheetManager.show('player-options', {
-        payload: {
-          surah: currentSurahData,
-          reciterId: currentTrack.reciterId,
-          rewayatId: currentTrack.rewayatId,
-          onGoToReciter: handleGoToReciter,
-        },
-      });
+      return {
+        surah: currentSurahData,
+        reciterId: currentTrack.reciterId,
+        rewayatId: currentTrack.rewayatId,
+        onGoToReciter: handleGoToReciter,
+      };
     }
+    return null;
   }, [currentTrack, handleGoToReciter]);
+
+  const handleShowOptionsSheet = useCallback(() => {
+    if (optionsPayload) {
+      SheetManager.show('player-options', {payload: optionsPayload});
+    }
+  }, [optionsPayload]);
+
+  const optionsMenu =
+    isTablet && nativeMenusAvailable && optionsPayload ? (
+      <PlayerOptionsMenu payload={optionsPayload} layout="overlay" />
+    ) : null;
+  // @ai-end
 
   const handlers = {
     onSpeedPress: handleShowSpeedSheet,
@@ -161,7 +176,7 @@ export const PlayerBody = () => {
   // Not keyed on sheetMode: the layout would switch while the surface is
   // still shrinking on close. Closed, the surface is off-screen anyway.
   const body = isTablet ? (
-    <TabletPlayerLayout {...handlers} />
+    <TabletPlayerLayout {...handlers} optionsMenu={optionsMenu} />
   ) : (
     <PlayerContent {...handlers} />
   );

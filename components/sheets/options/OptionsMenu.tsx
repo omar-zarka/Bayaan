@@ -1,6 +1,6 @@
 // @ai-generated
 import React, {type ReactNode} from 'react';
-import {Platform, type StyleProp, type ViewStyle} from 'react-native';
+import {Platform, View, type StyleProp, type ViewStyle} from 'react-native';
 import {NativeMenu} from '@/components/native/NativeMenu';
 import {
   nativeMenusAvailable,
@@ -39,7 +39,8 @@ export interface OptionsMenuProps {
   layout?: 'wrap' | 'overlay' | 'row';
   accessibilityLabel?: string;
   style?: StyleProp<ViewStyle>;
-  children: ReactNode;
+  /** The trigger. Overlay menus that sit over an existing button can omit it. */
+  children?: ReactNode;
 }
 
 /** Renders a built menu model around its trigger. */
@@ -60,7 +61,7 @@ export function OptionsMenuView({
       layout={layout}
       accessibilityLabel={accessibilityLabel}
       style={style}>
-      {children}
+      {children ?? <View />}
     </NativeMenu>
   );
 }

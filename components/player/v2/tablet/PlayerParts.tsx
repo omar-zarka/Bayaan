@@ -114,12 +114,20 @@ export function CloseButton() {
   );
 }
 
-export function MoreButton({onPress}: {onPress: () => void}) {
+/** ••• for the track. With a native `menu` laid over it, the menu takes the press. */
+export function MoreButton({
+  onPress,
+  menu,
+}: {
+  onPress: () => void;
+  menu?: React.ReactNode; // @ai
+}) {
   const {theme} = useTheme();
   const a11y = usePlayerA11y();
   return (
-    <CircleButton onPress={onPress} {...a11y.moreOptions}>
+    <CircleButton onPress={menu ? undefined : onPress} {...a11y.moreOptions}>
       <Feather name="more-horizontal" size={20} color={theme.colors.text} />
+      {menu}
     </CircleButton>
   );
 }

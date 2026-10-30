@@ -37,6 +37,7 @@ import {HomeCardOptionsSheet} from './HomeCardOptionsSheet';
 import {AdhkarSessionOptionsSheet} from './AdhkarSessionOptionsSheet';
 import {installRewayahFallbackNotice} from './rewayahFallbackNotice'; // @ai
 import type {SurahOptionsPayload} from './options/surahOptions'; // @ai
+import type {PlayerOptionsPayload} from './options/playerOptions'; // @ai
 
 // Register all sheets
 registerSheet('surah-options', SurahOptionsSheet);
@@ -131,14 +132,7 @@ declare module 'react-native-actions-sheet' {
         | undefined;
     }>;
     'player-options': SheetDefinition<{
-      payload: {
-        surah?: Surah;
-        reciterId?: string;
-        rewayatId?: string;
-        onGoToReciter?: () => void;
-        isUserUpload?: boolean;
-        userRecitationId?: string;
-      };
+      payload: PlayerOptionsPayload; // @ai
     }>;
     'playback-speed': SheetDefinition<{
       payload: {
