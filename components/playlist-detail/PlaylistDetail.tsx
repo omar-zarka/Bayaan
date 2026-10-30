@@ -1,4 +1,4 @@
-import React, {useState, useEffect, useCallback, useRef} from 'react';
+import React, {useState, useEffect, useCallback, useRef, useMemo} from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,11 @@ import {
 import {useTheme} from '@/hooks/useTheme';
 import {TrackItem} from '@/components/TrackItem';
 import {SurahOptionsRow} from '@/components/sheets/options/surahOptions'; // @ai
+import {useNativeOptionsMenu} from '@/components/sheets/options/OptionsMenu'; // @ai
+import {
+  PlaylistOptionsMenu,
+  type PlaylistOptionsPayload,
+} from '@/components/sheets/options/playlistOptions'; // @ai
 import {usePlaylists} from '@/hooks/usePlaylists';
 import {getReciterById, getSurahById} from '@/services/dataService';
 import {Reciter} from '@/data/reciterData';
@@ -58,6 +63,7 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
   const listBottomPadding = useLibraryListBottomPadding(); // @ai
   const router = useRouter();
   const {t} = useTranslation(['collection', 'common']);
+  const nativeMenus = useNativeOptionsMenu(); // @ai
   const {
     getPlaylist,
     getPlaylistItems,
@@ -268,11 +274,10 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
     [playlists],
   );
 
-  const handleOptionsPress = useCallback(() => {
-    if (!playlist) return;
-
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    shouldClearPlaylistRef.current = true;
+  // @ai-start
+  // Built at render so tablets can show it as a native menu.
+  const playlistOptions = useMemo<PlaylistOptionsPayload | null>(() => {
+    if (!playlist) return null;
 
     const handleEditForThisPlaylist = async () => {
       shouldClearPlaylistRef.current = false;
@@ -312,15 +317,13 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
       }
     };
 
-    SheetManager.show('playlist-context', {
-      payload: {
-        playlistId: playlist.id,
-        playlistName: playlist.name,
-        playlistColor: playlist.color,
-        onDelete: handleDeleteForThisPlaylist,
-        onEdit: handleEditForThisPlaylist,
-      },
-    });
+    return {
+      playlistId: playlist.id,
+      playlistName: playlist.name,
+      playlistColor: playlist.color,
+      onDelete: handleDeleteForThisPlaylist,
+      onEdit: handleEditForThisPlaylist,
+    };
   }, [
     playlist,
     deletePlaylist,
@@ -330,6 +333,15 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
     loadPlaylistData,
   ]);
 
+  const handleOptionsPress = useCallback(() => {
+    if (!playlistOptions) return;
+
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    shouldClearPlaylistRef.current = true;
+    SheetManager.show('playlist-context', {payload: playlistOptions});
+  }, [playlistOptions]);
+  // @ai-end
+
   const renderHeaderRight = useCallback(
     () => (
       <Pressable onPress={handleOptionsPress} hitSlop={8}>
@@ -338,9 +350,12 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
           size={moderateScale(20)}
           color={theme.colors.text}
         />
+        {nativeMenus && playlistOptions && (
+          <PlaylistOptionsMenu payload={playlistOptions} />
+        )}
       </Pressable>
     ),
-    [handleOptionsPress, theme.colors.text],
+    [handleOptionsPress, theme.colors.text, nativeMenus, playlistOptions],
   );
 
   useCollectionNativeHeader({
@@ -399,6 +414,11 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
         onPlayPress={handlePlayAll}
         onShufflePress={handleShuffle}
         onOptionsPress={USE_GLASS ? undefined : handleOptionsPress}
+        optionsMenu={
+          nativeMenus && playlistOptions ? (
+            <PlaylistOptionsMenu payload={playlistOptions} />
+          ) : undefined
+        }
         theme={theme}
       />
     );
@@ -408,6 +428,8 @@ const PlaylistDetail: React.FC<PlaylistDetailProps> = ({id}) => {
     handlePlayAll,
     handleShuffle,
     handleOptionsPress,
+    nativeMenus,
+    playlistOptions,
     theme,
     t,
   ]);

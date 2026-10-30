@@ -366,6 +366,17 @@ export const PlaylistContextSheet = (props: SheetProps<'playlist-context'>) => {
     isDownloadingWithRewayat,
   ]);
 
+  // @ai-start
+  // "Download" in a tablet's native menu opens this sheet to show progress.
+  const startDownload = !!payload?.startDownload;
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!startDownload || startedRef.current) return;
+    startedRef.current = true;
+    handleDownloadPlaylist();
+  }, [startDownload, handleDownloadPlaylist]);
+  // @ai-end
+
   if (!playlistId) {
     return null;
   }

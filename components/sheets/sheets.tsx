@@ -41,6 +41,7 @@ import type {PlayerOptionsPayload} from './options/playerOptions'; // @ai
 import type {DownloadOptionsPayload} from './options/downloadOptions'; // @ai
 import type {CollectionOptionsPayload} from './options/collectionOptions'; // @ai
 import type {UploadOptionsPayload} from './options/uploadOptions'; // @ai
+import type {PlaylistOptionsPayload} from './options/playlistOptions'; // @ai
 
 // Register all sheets
 registerSheet('surah-options', SurahOptionsSheet);
@@ -112,13 +113,7 @@ declare module 'react-native-actions-sheet' {
       };
     }>;
     'playlist-context': SheetDefinition<{
-      payload: {
-        playlistId: string;
-        playlistName: string;
-        playlistColor?: string;
-        onDelete: () => void;
-        onEdit?: () => void;
-      };
+      payload: PlaylistOptionsPayload; // @ai
     }>;
     'create-playlist': SheetDefinition<{
       payload: {
