@@ -18,7 +18,7 @@ const AUDIO_FILE_VERSIONS: Record<string, number | Record<number, number>> = {
   '15424ace-0623-4ebb-b08b-ff502e974e52': {1: 2}, // abdulrahman-aljuraydhi
   '0e7944ac-de91-4bc2-a6a1-4976140e7eb7': {1: 2}, // abdulwali-al-arkani
   'bfafeb7e-1cde-491e-b816-6e530fbf34f8': {1: 2}, // ahmad-al-nufais
-  '81b8f244-577d-457e-b175-2a79afc0f03b': {1: 2}, // ahmad-talib-bin-humaid
+  '81b8f244-577d-457e-b175-2a79afc0f03b': {1: 2, 16: 2}, // ahmad-talib-bin-humaid (016 trimmed)
   'a762d292-6fd1-4120-a55a-4c18d289f6e4': {1: 2}, // khaled-al-qahtani
   'd7f42caf-d6ee-4f21-a7c9-4b5c25ccd34a': {1: 2}, // khalid-al-shoraimy
   'acf9420e-a268-4951-abfc-050df35e0f11': {1: 2}, // malik-ahmad
