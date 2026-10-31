@@ -26,8 +26,8 @@ The numbers below come from a Samsung Galaxy A10s (Android 10, 2 GB RAM, 32-bit 
 `loadMainSnapshot` (`services/mushaf/DigitalKhattDataService.ts:1194`) calls `readWordRows` (`:615`), which runs `SELECT id, text, location FROM words`, and then `buildWordsData` (`:517`). That builds 83,668 rows into `wordsById`, `wordInfoById` and `verseWords`. On the A10s:
 
 - The words are ready about 12 s after the load starts.
-- The one async query holds Expo's native async queue for about 7 s. Every other Expo async call waits behind it: a `FileSystem.getInfoAsync` waited 3.8 s.
-- The row conversion and the map build block the JS thread for 3.7–5 s.
+- The SQLite read runs on a native IO thread for about 1.8 s.
+- Then the JS thread runs for about 6.7 s in one piece: it converts the 83,668 rows to JS objects and builds the maps. No other JS work runs in that time.
 
 The boot waits for this load. `services/AppInitializer.ts:285` registers "Mushaf Preload" as non-critical, but `initialize()` awaits the non-critical services too (`Promise.allSettled`, `:127`). `services/appBoot.ts:67-69` awaits `appInitializer.initialize()` ("This blocks splash screen"). On the A10s, a build that moved only this load off the splash path cut the cold start from 16.9 s to 10.7 s. A user who only listens pays this cost at every launch.
 
@@ -35,7 +35,7 @@ The boot waits for this load. `services/AppInitializer.ts:285` registers "Mushaf
 
 ### 2. Two small queries are slow during a launch
 
-With part 1, the load runs two queries: the verse index (one `GROUP BY`) and the page lines (`readLayoutRows`, `DigitalKhattDataService.ts:649`). On a desktop they take 17 ms and 5 ms. On the A10s, during a launch, they took 2.3 s together, because each async call waits behind the other launch work. Their results change only when a bundled database changes, and each database copy already has a content-addressed name (`contentAddressedDbName`, `:194`).
+With part 1, the load runs two queries: the verse index (one `GROUP BY`) and the page lines (`readLayoutRows`, `DigitalKhattDataService.ts:649`). On a desktop they take 17 ms and 5 ms. On the A10s, during a launch, they took 2.3 s together, because each `await` resumes only after the other JS work of the launch. Their results change only when a bundled database changes, and each database copy already has a content-addressed name (`contentAddressedDbName`, `:194`).
 
 ### 3. The first page builds each justified line twice
 
