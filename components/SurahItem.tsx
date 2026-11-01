@@ -18,6 +18,7 @@ import Color from 'color';
 import {MakkahIcon, MadinahIcon} from '@/components/Icons';
 import * as Haptics from 'expo-haptics';
 import {usePlayerStore} from '@/services/player/store/playerStore';
+import type {QueueState} from '@/services/player/types/state'; // @ai
 
 import {NowPlayingIndicator} from './NowPlayingIndicator';
 import {
@@ -128,52 +129,20 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
     // Narrow selectors: each one returns a boolean, so a row re-renders only
     // when its own playing/current state flips. A subscription to the whole
     // `queue.tracks` array re-renders every row on each play, because
-    // `updateQueue` assigns a new tracks array.
+    // `updateQueue` assigns a new tracks array. The play state is read inside
+    // the selector, so a pause re-renders only the current row.
     const isCurrentlyPlaying = usePlayerStore(state => {
       const status = state.playback.state;
-      if ((status !== 'playing' && status !== 'buffering') || !reciterId) {
-        return false;
-      }
-      const idx = state.queue.currentIndex;
-      const currentTrack =
-        idx >= 0 && idx < (state.queue.tracks?.length ?? 0)
-          ? state.queue.tracks[idx]
-          : null;
-      if (!currentTrack) return false;
-      // Match rewayatId too, as isCurrentTrack does, so that a different
-      // rewayah of the same reciter and surah does not read as playing.
-      const rewayatMatches =
-        rewayatId && currentTrack.rewayatId
-          ? rewayatId === currentTrack.rewayatId
-          : true;
+      const active = status === 'playing' || status === 'buffering';
       return (
-        currentTrack.reciterId === reciterId &&
-        currentTrack.surahId === item.id.toString() &&
-        rewayatMatches
+        active && isRowCurrentTrack(state.queue, reciterId, item.id, rewayatId)
       );
     });
 
     // Check if this is the current track (regardless of play state)
-    const isCurrentTrack = usePlayerStore(state => {
-      const idx = state.queue.currentIndex;
-      const currentTrack =
-        idx >= 0 && idx < (state.queue.tracks?.length ?? 0)
-          ? state.queue.tracks[idx]
-          : null;
-
-      if (!reciterId || !currentTrack) return false;
-
-      const rewayatMatches =
-        rewayatId && currentTrack.rewayatId
-          ? rewayatId === currentTrack.rewayatId
-          : true;
-
-      return (
-        currentTrack.reciterId === reciterId &&
-        currentTrack.surahId === item.id.toString() &&
-        rewayatMatches
-      );
-    });
+    const isCurrentTrack = usePlayerStore(state =>
+      isRowCurrentTrack(state.queue, reciterId, item.id, rewayatId),
+    );
 
     const handlePress = React.useCallback(() => {
       if (enableHaptics) {
@@ -420,6 +389,37 @@ export const SurahItem: React.FC<SurahItemProps> = React.memo(
 // @ai-end
 
 SurahItem.displayName = 'SurahItem';
+
+// @ai-start
+/**
+ * True when the queue's current track is this row: the same reciter and
+ * surah, and the same rewayah when both have one. Both player-store
+ * selectors of SurahItem use it, so the two checks cannot drift apart.
+ */
+function isRowCurrentTrack(
+  queue: Pick<QueueState, 'tracks' | 'currentIndex'>,
+  reciterId: string | undefined,
+  surahId: number,
+  rewayatId: string | undefined,
+): boolean {
+  if (!reciterId) return false;
+  const {tracks, currentIndex} = queue;
+  const currentTrack =
+    currentIndex >= 0 && currentIndex < (tracks?.length ?? 0)
+      ? tracks[currentIndex]
+      : null;
+  if (!currentTrack) return false;
+  const rewayatMatches =
+    rewayatId && currentTrack.rewayatId
+      ? rewayatId === currentTrack.rewayatId
+      : true;
+  return (
+    currentTrack.reciterId === reciterId &&
+    currentTrack.surahId === surahId.toString() &&
+    rewayatMatches
+  );
+}
+// @ai-end
 
 // @ai-start
 /** Wraps the row in its context menu when given one, else renders it. */
