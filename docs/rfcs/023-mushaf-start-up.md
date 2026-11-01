@@ -33,6 +33,8 @@ The review of this RFC (#481) asked for these changes. All of them are in:
 
 One new finding changed step 2 more than the review did: on the A10s the chunk read itself cost 119–151 ms, also with the index seek. Most of that is the conversion of 2,048 rows to JS objects. Step 2 now reads one joined string: 7–11 ms with a warm page cache, 8–54 ms in a session on the A10s.
 
+A second finding changed step 1. With the load off the splash, a bookmark or a note opened during the load goes to page 1, or the tap does not respond for seconds. The fork had the first defect after its own version of step 1. Step 1 now opens the reader at once and resolves the page there.
+
 ## Motivation
 
 ### How the numbers were measured
@@ -84,7 +86,14 @@ When the last screen was the reader, `app/_layout.tsx:398-429` pushes `/mushaf` 
 ### Step 1: the Mushaf load leaves the splash path
 
 - "Mushaf Preload" is not awaited by `initialize()`: it starts after the splash hides. (The other non-critical services keep their current order.)
-- `app/mushaf.tsx` reads `digitalKhattDataService.initialized` once at mount (`:69`). That is safe today only because the boot waits. With step 1 the reader subscribes to the load (`useSyncExternalStore`, as the preload state already does at `:147`), shows its loading view until the data is ready, and resolves `surah`, `ayah` and `anchor` params after it. Opening a bookmark, a note or a `/quran/{s}/{a}` link before the data is ready waits for it the same way.
+- `app/mushaf.tsx` reads `digitalKhattDataService.initialized` once at mount (`:69`). That is safe today only because the boot waits. With step 1 the reader subscribes to the load (`useSyncExternalStore`, as the preload state already does at `:147`), shows its loading view until the data is ready, and resolves `surah`, `ayah` and `anchor` params after it. With no `page` param, it takes the page of the verse (`getPageForVerse`), not the start page of the surah.
+- **A saved verse opens the reader at once.** Today `savedVerseOpenParams` (`services/verse-annotations/openSavedVerse.ts`, used by Bookmarks and Notes) reads the data before it navigates. With step 1, a tap during the load fails in one of two ways:
+  - A row that needs no rewayah switch opens page 1. `getPageForVerse` returns nothing, the `|| 1` fallback sends `page=1`, and the reader takes it as a valid page.
+  - A row that needs a rewayah switch does not respond. `restoreSavedRewayah` awaits `switchRewayah()`, which before the first load ends only when the whole load ends. On the A10s the screen does not change for several seconds after the tap.
+
+  So the list sends the saved verse (`surah`, `ayah`, `anchor`) and its rewayah, with no page, and does not await the data. The reader shows its loading view at once. When the data is ready, it restores the rewayah and goes to the page of the verse.
+- **The player's verse sheet** (`components/player/v2/PlayerContent/QuranView/VerseItem.tsx`) opens `VerseActionsSheet` outside the reader, so it can open before the data is ready. Its page lookups (`components/sheets/VerseActionsSheet.tsx:523`, `:542`, `:673`) then store `currentPage || 1`. They resolve the page when the data is ready, not at the tap.
+- The `/quran/{s}/{a}` link already holds its redirect until the page is known (`app/quran/[surah].tsx`). It does not change.
 - On a restore launch the reader starts the load at once, so it does not wait for the splash to hide.
 
 **Result (`develop` + the boot part of step 1; the reader changes are not in this lab build, so it was measured on cold launches to Home only):**
@@ -175,7 +184,7 @@ Two of the 10 fork restores on the A10s lost their start line in the phone's log
 
 Five code PRs, in the order above, each with its tests and its numbers:
 
-1. **Step 1.** The reader waits for the data at mount and for each param; a bookmark and a deep link before the data is ready.
+1. **Step 1.** The reader waits for the data at mount and for each param. A bookmark and a note (one in the active rewayah, one in another), a deep link and the player's verse sheet, each before the data is ready: the screen changes at the tap, and the reader then shows the page of the verse.
 2. **Step 2.** The database rebuild, the manifest, and the query-plan test. An `*.alldbs` test compares every getter with the old full build on all 8 words databases: each word's text and info, each verse's words, each verse's page, the surah start pages, page-to-surah, the text of every ayah line, and a side rewayah. A failed and a short chunk read. The streaming read and the units build on all 8.
 3. **Step 3.** The generated module, its staleness test, and the lazy load.
 4. **Step 4.** The same key keeps a fit; a new update id or format starts empty; a bad value is never stored.
@@ -212,6 +221,7 @@ Five code PRs, in the order above, each with its tests and its numbers:
 - The all-databases getter test passes in CI on all 8 words databases.
 - On a 2 GB Android phone, release build, 10 launches or more each:
   - after step 1, a cold launch to Home hides the splash sooner than `develop` by about the load time;
+  - after step 1, a bookmark tapped during the load opens the reader at once, and the reader then shows the page of the bookmarked verse;
   - after step 2, the words are ready less than 3 s after the load starts, and a chunk read with a warm page cache takes less than one frame (16 ms);
   - after step 5, a restore launch shows the first page with no empty reader frame, and sooner than `develop`.
 
