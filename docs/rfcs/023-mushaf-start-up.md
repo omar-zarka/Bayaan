@@ -1,174 +1,222 @@
 # RFC-023: A cheaper Mushaf start-up for every phone
 
-| Field  | Value               |
-| ------ | ------------------- |
-| Status | Proposed            |
-| Date   | 2026-10-30          |
-| Author | Omar Zarka (Qariah) |
+| Field  | Value                                                    |
+| ------ | -------------------------------------------------------- |
+| Status | Proposed (revision 2, after review)                      |
+| Date   | 2026-10-30 (revision 2: 2026-10-31)                      |
+| Author | Omar Zarka (Qariah)                                      |
 
 ## Summary
 
-At every launch, `DigitalKhattDataService` reads all 83,668 words of the active rewayah and builds them into maps, and the boot waits for that before the splash hides. On a 2 GB Android phone this is the largest single cost of a launch. This RFC proposes four changes. Together they make the Mushaf load and the first reader page cheaper on every phone. They add no setting, change no public method of the service, and change no bundled database file:
+At every launch, `DigitalKhattDataService` reads all 83,668 words of the active rewayah and builds them into maps, and the boot waits for that before the splash hides. On a 2 GB Android phone this is the largest single cost of a launch. This RFC proposes five steps, in this order. Each step is its own small code PR with tests, and each one is measured before the next:
 
-1. **Words on demand.** The load reads a verse index, not every word. A getter reads the words that it needs.
-2. **A query cache.** The two queries that remain are cached under the content-addressed name of the database copy.
-3. **Line fits across launches.** The fit of each justified line is kept for the next launch of the same app build.
-4. **The restore-launch order.** When the app reopens the reader, the reader's first page goes first, and the splash hides when that page draws.
+1. **The Mushaf load leaves the splash path.** The boot stops waiting for it, and the reader waits for the data itself. This needs none of the other steps.
+2. **Words on demand.** The load reads a verse index, not every word. A getter reads the words it needs, from words databases rebuilt with `id INTEGER PRIMARY KEY`.
+3. **The verse index and the page lines at build time.** Both are the same for every rewayah, so a script generates them next to `rewayahDataManifest.ts`.
+4. **Line fits across launches**, under a key that changes with every bundle (an OTA update too) and with a format constant.
+5. **One restore state machine** in the root layout. Every reader surface reports its first content.
 
-Each part comes as its own small code PR after this RFC, with tests.
+No new setting, no new dependency, and no change to a public method of the data service.
+
+### What changed in revision 2
+
+The review of this RFC (#481) asked for these changes. All of them are in:
+
+- A first step that only moves the load off the splash, measured on `develop` (step 1).
+- The words databases are rebuilt with `id INTEGER PRIMARY KEY`, rows in id order. The "no bundled file change" rule is gone (step 2).
+- A plan for `RewayahVerseUnitsService`: a streaming read for its build, outside the chunk cache (step 2).
+- `WordStore` in its own module, and the connection, reset, error and side-rewayah rules written down (step 2).
+- The MMKV query cache is replaced by tables generated at build time (step 3).
+- The line-fit store is keyed on the update id and a `LINE_FIT_FORMAT` constant (step 4).
+- One restore state machine with `onFirstContent` on every surface, and a defined offline path (step 5).
+- A `develop` baseline on the same phone, 10 launches or more (min, median, p90), a second phone, a first launch after install, a non-Hafs rewayah, memory after reading, and the chunk-read cost at page turns.
+
+One new finding changed step 2 more than the review did: on the A10s the chunk read itself cost 119–151 ms, also with the index seek. Most of that is the conversion of 2,048 rows to JS objects. Step 2 now reads one joined string: 7–11 ms with a warm page cache, 8–54 ms in a session on the A10s.
 
 ## Motivation
 
-The numbers below come from a Samsung Galaxy A10s (Android 10, 2 GB RAM, 32-bit `armeabi-v7a`), release builds of a fork that runs this code (Expo SDK 57, React Native 0.86). `develop` is now on SDK 58 and React Native 0.88. The Mushaf data files named below did not change between the two. `app/_layout.tsx` and `components/mushaf/main.tsx` did change; the line numbers are for `develop`.
+### How the numbers were measured
+
+- **Phones:** a Samsung Galaxy A10s (Android 10, 2 GB RAM, 32-bit `armeabi-v7a`) and a Google Pixel 3 (Android 12, 4 GB RAM).
+- **Builds:** release builds, no telemetry keys, `armeabi-v7a`. Each app was compiled the same way before a run (three launches, then `cmd package compile -m speed-profile -f`), and no test driver ran on the phone during a timed launch.
+- **`develop`** is `9271fb3` with lab-only log lines (`[BOOT] <name>`): the splash hide call, the data service's ready point, the reader page's first `onReady`. The times are from the `Start proc` line of the process.
+- **The proposal** was measured in the fork that runs this code (Expo SDK 57, React Native 0.86; `develop` is on SDK 58 and RN 0.88). The Mushaf files named here are the same in both. The fork numbers have the same lab log lines.
+- **A restore launch** is a cold launch whose last screen was the reader, at the start of Al-Baqarah (page 2). A cold launch to Home is a cold launch whose last screen was Home.
+
+### `develop` today
+
+Median (min–p90) in seconds from the process start; n is the number of launches.
+
+| `develop`, release build | Samsung Galaxy A10s | Pixel 3 |
+| --- | --- | --- |
+| Cold launch to Home: the splash hides | 13.95 (13.88–14.05), n=10 | 4.29 (4.28–4.30), n=10 |
+| — of which the Mushaf data is ready (inside the splash) | 11.36 | 3.53 |
+| Restore launch, Hafs: the page draws (under the splash) | 14.94 (14.49–15.67), n=10 | 4.56 (4.54–4.62), n=10 |
+| Restore launch, Hafs: the splash hides, so the user sees the page | 15.22 (14.59–15.80) | 5.41 (5.35–5.49) |
+| Restore launch, Warsh: the page draws / the splash hides | 15.38 / 15.79, n=5 | 4.54 / 5.06, n=10 |
+| First launch after an install: the splash hides | 17.00 (16.80–20.73), n=3 | 5.76 (5.68–5.79), n=3 |
+| Memory (PSS) with the reader open, then after 40 page turns | 417 MB → 713 MB | 706 MB → 800 MB |
+| Janky frames over the 40 page turns (`gfxinfo`) | 96% (p90 57 ms) | 11% (p90 32 ms) |
+
+On both phones the restored page draws before the splash hides: the splash waits for `runAfterInteractions` after the push (0.3 s on the A10s, 0.85 s on the Pixel 3). We did not see an empty reader frame, but the user waits for the splash after the page is ready.
+
 
 ### 1. The load builds every word
 
-`loadMainSnapshot` (`services/mushaf/DigitalKhattDataService.ts:1194`) calls `readWordRows` (`:615`), which runs `SELECT id, text, location FROM words`, and then `buildWordsData` (`:517`). That builds 83,668 rows into `wordsById`, `wordInfoById` and `verseWords`. On the A10s:
+`loadMainSnapshot` (`services/mushaf/DigitalKhattDataService.ts:1194`) calls `readWordRows` (`:615`), which runs `SELECT id, text, location FROM words`, and then `buildWordsData` (`:517`). That builds 83,668 rows into `wordsById`, `wordInfoById` and `verseWords`. The SQLite read runs on a native thread; then the JS thread converts the rows and builds the maps in one piece. No other JS work runs in that time.
 
-- The words are ready about 12 s after the load starts.
-- The SQLite read runs on a native IO thread for about 1.8 s.
-- Then the JS thread runs for about 6.7 s in one piece: it converts the 83,668 rows to JS objects and builds the maps. No other JS work runs in that time.
-
-The boot waits for this load. `services/AppInitializer.ts:285` registers "Mushaf Preload" as non-critical, but `initialize()` awaits the non-critical services too (`Promise.allSettled`, `:127`). `services/appBoot.ts:67-69` awaits `appInitializer.initialize()` ("This blocks splash screen"). On the A10s, a build that moved only this load off the splash path cut the cold start from 16.9 s to 10.7 s. A user who only listens pays this cost at every launch.
-
-`MushafPreloadService.ts:169-174` also loads the Skia fonts after the data, but the fonts need none of the data.
+The boot waits for this load. `services/AppInitializer.ts:285` registers "Mushaf Preload" as non-critical, but `initialize()` awaits the non-critical services too (`Promise.allSettled`, `:127`), and `services/appBoot.ts:67-69` awaits `appInitializer.initialize()` ("This blocks splash screen"). A user who only listens pays this cost at every launch. `MushafPreloadService.ts:169-174` also loads the Skia fonts after the data, but the fonts need none of the data.
 
 ### 2. Two small queries are slow during a launch
 
-With part 1, the load runs two queries: the verse index (one `GROUP BY`) and the page lines (`readLayoutRows`, `DigitalKhattDataService.ts:649`). On a desktop they take 17 ms and 5 ms. On the A10s, during a launch, they took 2.3 s together, because each `await` resumes only after the other JS work of the launch. Their results change only when a bundled database changes, and each database copy already has a content-addressed name (`contentAddressedDbName`, `:194`).
+With words on demand, the load runs two queries: the verse index (one `GROUP BY`) and the page lines (`readLayoutRows`, `:649`). On a desktop they take 17 ms and 5 ms. On the A10s, during a launch, they took 2.3 s together, because each `await` resumes only after the other JS work of the launch. Their results are the same for every rewayah: the verse index is identical in all 8 words databases, and all 8 rewayat share one layout database.
 
 ### 3. The first page builds each justified line twice
 
-`components/mushaf/skia/SkiaLine.tsx:241-274` builds a justified line, measures it, and builds it again with the fit (the word size and the extra space width). `components/mushaf/skia/justifiedSpace.ts:114-132` keeps the fit for the session only. So the first page after each launch builds every justified line twice. On the A10s that is about half of the 0.7 s of paragraph work on the first page.
+`components/mushaf/skia/SkiaLine.tsx:241-274` builds a justified line, measures it, and builds it again with the fit. `components/mushaf/skia/justifiedSpace.ts:114-132` keeps the fit for the session only. So the first page after each launch builds every justified line twice.
 
 ### 4. A restore launch draws the home route first
 
-When the last screen was the reader, `app/_layout.tsx:398-429` pushes `/mushaf` over the home route. The home route (`app/(tabs)/(a.home)/index.tsx`, `RecitersView`) renders and mounts first, under the reader, where nobody sees it. On the A10s that held the push for 0.7–1.2 s, and its later work competed with the reader's first page.
-
-After the push, the splash hides through `runAfterInteractions` (`:422`) and the effect at `:431-450`, not when the page draws. The reader page has opacity 0 until its `onReady` (`components/mushaf/main.tsx:252`, `:298`, `:307`). So the user can see an empty reader frame before the page.
+When the last screen was the reader, `app/_layout.tsx:398-429` pushes `/mushaf` over the home route. The home route renders and mounts first, under the reader, where nobody sees it: on the A10s it rendered 1.6 s before the push. After the push, the splash hides through `runAfterInteractions` (`:422`), not when the page draws. On both phones the page drew first, and the splash hid 0.3–0.85 s later (table above). On a phone where the page is slower than that wait, the user sees an empty reader frame instead, because the page has opacity 0 until its `onReady` (`components/mushaf/main.tsx:252`, `:298`, `:307`).
 
 ## Decision
 
-### Part 1: words on demand (`services/mushaf/DigitalKhattDataService.ts`)
+### Step 1: the Mushaf load leaves the splash path
 
-- The load opens the words database and runs integrity counts:
+- "Mushaf Preload" is not awaited by `initialize()`: it starts after the splash hides. (The other non-critical services keep their current order.)
+- `app/mushaf.tsx` reads `digitalKhattDataService.initialized` once at mount (`:69`). That is safe today only because the boot waits. With step 1 the reader subscribes to the load (`useSyncExternalStore`, as the preload state already does at `:147`), shows its loading view until the data is ready, and resolves `surah`, `ayah` and `anchor` params after it. Opening a bookmark, a note or a `/quran/{s}/{a}` link before the data is ready waits for it the same way.
+- On a restore launch the reader starts the load at once, so it does not wait for the splash to hide.
+
+**Result (`develop` + the boot part of step 1; the reader changes are not in this lab build, so it was measured on cold launches to Home only):**
+
+10 cold launches to Home, release builds. "Data ready" is when the words are in memory.
+
+| | A10s: splash hides | A10s: data ready | Pixel 3: splash hides | Pixel 3: data ready |
+| --- | --- | --- | --- | --- |
+| `develop` | 13.95 | 11.36 (before the splash) | 4.29 | 3.53 (before the splash) |
+| `develop` + step 1 | **8.47** (8.38–8.53) | 14.77 (14.23–15.07) | **2.83** (2.81–2.84) | 4.53 |
+
+So step 1 alone moves 5.5 s off the splash on the A10s. It does not remove the work: the JS thread builds the words in one block for 6.3 s after the splash, while the user sees Home. Steps 2–5 remove most of the work.
+
+### Step 2: words on demand
+
+**The words databases.** All 8 words databases are rebuilt with `words.id` as the `INTEGER PRIMARY KEY` and the rows in id order. Today no `words` table has an index (`id INTEGER` only), so `WHERE id BETWEEN` scans the table, and the Hafs rows are stored out of id order (the rowid is not the id for 83,663 of 83,668 rows). The rows do not change: the Hafs database is rewritten in id order, and the 7 others come from `scripts/rewayah/build_sibling_rewayah.py`, which copies the Hafs schema; all its validators pass, and a second run writes nothing. Each file gets about 220 KB smaller. The content-addressed copies and `gen-manifest.mjs` make installed apps import the new files. A test checks that a chunk read's query plan is `SEARCH words USING INTEGER PRIMARY KEY` on all 8.
+
+**The load.** It opens the words database, runs the integrity counts, and reads the verse index (6,236 rows: the first and the last word id of each verse; step 3 makes this a generated table). `MushafPreloadService` loads the Skia fonts while the data loads.
+
+**`WordStore`** (`services/mushaf/wordStore.ts`, not in `DigitalKhattDataService.ts`):
+
+- **A getter** reads the 2,048 ids around a word, synchronously, so no caller changes. The read asks for one string, the texts in id order joined by U+001F (no text holds it):
 
   ```sql
-  SELECT COUNT(*) AS n, COUNT(id) AS ids, COUNT(text) AS texts, COUNT(location) AS locations FROM words;
+  SELECT group_concat(text, char(31) ORDER BY id) AS texts FROM words WHERE id BETWEEN ? AND ?;
   ```
 
-- Then it reads a verse index with one native query. That is 6,236 rows, the first and the last word id of each verse:
+  On the A10s this takes 7–11 ms. The same 2,048 rows as objects (`getAllSync`) took 119–151 ms, also with the seek, and as raw arrays 71–78 ms. A word's verse and position come from the verse index: in every words database `location` is `surah:ayah:(id − first id of the verse + 1)` (a test checks it on all 8). A word's info object is built on first use.
+- **Cache:** the 24 chunks and the 1,024 verses used last.
+- **Connection:** the data service owns each `WordStore`, and a `WordStore` owns one open connection to its copy. The existing side-cache rules decide when a store closes: on a rewayah switch the old main store becomes a side store (as the old maps do today), and `trimSideCache()` closes the idle side stores beyond `MAX_IDLE_SIDE_ENTRIES` (1) that no surface retains. A closed store answers nothing. `resetDatabases()` closes every store and waits for each close before it deletes a copy.
+- **A failed read** (the read throws, or gives the wrong number of texts) returns no word, caches nothing, logs one warning for each store, and the next call reads again. Callers already handle `undefined` (`getWordInfo`) and `''` (`getWordText`).
+- **Side rewayat** are on demand too: each one is a `WordStore` with its own cache.
+- **The verse-units build** (`RewayahVerseUnitsService`) gets a streaming read: `WordStore.readInOrder()` reads the table in id order, 2,048 ids at a time, with the same query, outside the chunk cache. So the build evicts none of the reader's chunks, and each read is 7–11 ms inside the build's slices. Its readiness check becomes "the `WordStore` of that rewayah is open", not "the words are in memory". In the fork, which reads the build through the chunk cache today, a switch to Warsh built its units in 8.3 s on the A10s and 2.4 s on the Pixel 3, in slices; the reader then read its evicted chunks again (3–22 ms each). (Generating the units at build time is the other option; it removes the runtime work but adds a second copy of the data to keep in step.)
 
-  ```sql
-  SELECT surah, ayah, MIN(id) AS first, MAX(id) AS last FROM words GROUP BY surah, ayah ORDER BY first;
-  ```
+**Result:** In the fork (SDK 57, RN 0.86; full mode):
 
-- The connection stays open. A `WordStore` for each words database answers the getters. A getter reads the 2,048 ids around a word with `getAllSync` (`WHERE id BETWEEN ? AND ?`). So every getter stays synchronous, and no caller changes.
-- The store keeps the 24 chunks and the 1,024 verses that were used last.
-- The surah start pages and the verse-to-page map come from the verse index and the layout.
-- A copy that fails the counts or the index checks throws inside the read. The existing delete, re-import and retry path then handles it, as it does for the full read today.
-- `MushafPreloadService` loads the Skia fonts while the data loads.
+| Fork build | A10s | Pixel 3 |
+| --- | --- | --- |
+| A chunk read (2,048 ids) | 8–54 ms (the first read after the open is the slow one) | 3–5 ms |
+| Memory (PSS) with the reader open, then after 40 page turns | 322 MB → 393 MB | 502 MB → 587 MB |
+| Janky frames over the 40 page turns | 22% (p90 23 ms) | 5% (p90 24 ms) |
+| First launch after an install: the splash hides / data ready | 4.45 / 9.48 (n=3; this fork's low-memory mode starts the load 3 s after the splash) | 2.76 / 4.70 (n=3) |
 
-The design uses three facts of the bundled data. All 8 words databases have them: the ids run from 1 to 83,668 with no gaps, each verse is one id range, and no field is NULL. A test checks them.
+The fork has more changes than step 2 (for example the line-fit store and the restore order), so the memory and frame rows compare two builds against the `develop` table above, not step 2 alone. The step 2 code PR will carry its own numbers on `develop`.
 
-The Hafs words database stores its rows in a shuffled order (the rowid is not the id), so a chunk read there scans the table. That takes 1.6 ms on a Mac and about 40 ms on the A10s (an estimate), once for each 2,048 words. An index on `id` would remove the scan, but it changes the bundled files, so this RFC does not propose it.
+### Step 3: the verse index and the page lines at build time
 
-**Result (A10s):** the words are ready 2.0–2.4 s after the load starts, not about 12 s. The fonts load in 0.35–0.44 s at the same time. Memory on the home route: 230 MB → 216 MB (PSS).
+- A script (a new mode of `gen-manifest.mjs`, or a sibling script) reads the verse index from the words databases and the page lines from the layout database, checks that the verse index is the same in all 8, and writes them as packed integer arrays into a generated module next to `rewayahDataManifest.ts`.
+- The manifest test recomputes both from the database files and fails when the module is stale, as it does for the hashes.
+- The data service loads the module on its first Mushaf use (a lazy `require`), so a user who only listens does not parse it.
+- This removes the MMKV cache, its keys and its reset hook. It also helps the first launch after an install or an update, which a cache cannot help.
+- Size: 6,236 verses × 4 numbers and 9,046 page lines × 7 numbers, about 0.3–0.4 MB in the bundle.
 
-### Part 2: a query cache
+### Step 4: line fits across launches (`components/mushaf/skia/justifiedSpace.ts`)
 
-- A load stores the verse index and the page lines in MMKV after it reads them from a copy whose md5 matched its asset (the existing `verifyCopy` check, `DigitalKhattDataService.ts:1454`). The rows are packed in an `Int32Array` and stored with `set(key, ArrayBuffer)`.
-- The key is `<format>:<kind>:<base name>:<content-addressed copy name>`. A new bundled database has a new copy name, so it never reads an old entry. A write removes the older entries of the same kind and base name.
-- The next load takes the rows from MMKV. The page lines then need no database work. The verse index waits only for the md5 check of the words copy.
-- A damaged entry falls back to the query. `resetDatabases()` clears the cache.
-- Size: about 100 KB for each words database in use, and 250 KB for the page lines.
-
-**Result (A10s):** after the first launch, a launch no longer spends the 2.3 s of the two queries.
-
-### Part 3: line fits across launches (`components/mushaf/skia/justifiedSpace.ts`)
-
-- `getLineFit` looks in a persistent store when the session map has no fit. `setLineFit` writes to both. Two lines change in `justifiedSpace.ts`.
-- The store is a separate MMKV instance. The key is a hash of the existing fit key (the line text, its justification, the font, the size and the width). The value is `wordSize,spaceExtra`.
-- Each new app build starts with an empty store (`expoConfig.extra.version`: `semanticVersion` and `buildNumber`). So a new font or new shaping code never uses an old fit. With no build version (for example in tests), there is no store.
+- `getLineFit` looks in a persistent store when the session map has no fit; `setLineFit` writes to both. Two lines change in `justifiedSpace.ts`.
+- The store is a separate MMKV instance. Its name has `LINE_FIT_FORMAT` (a constant that changes with the fit pass, `JustificationService` or a font) and the update id (`Updates.updateId`; with updates off, the build version). So an OTA that changes the shaping or a font starts with an empty store, and a store from another bundle is deleted.
 - A value that is not a finite, positive fit is never stored and never served.
 
-**Result:** the first page after a launch builds each justified line once.
+### Step 5: one restore state machine
 
-### Part 4: the restore-launch order
-
-- A small module, `services/mushaf/readerRestoreGate.ts`, reads `mushafSessionStore.getLastScreenWasMushaf()` once and keeps the value for the launch.
-- While a restore is pending, the home route returns an empty `View`, not `RecitersView`.
-- The wait ends at the first of these events:
-  - 1 s after the reader's first page draws. The reader calls `noteReaderPageDrawn()` from its page `onReady`, and at mount in the vertical mode.
-  - A return to the home route (a focus after a blur).
-  - A launch that does not push the reader: no restore, a deep link, or a share intent.
-  - 15 s after the first read (a safety limit).
-- After the push, the root layout hides the splash when the reader's first page draws (`whenReaderPageDrawn()`). It does not wait for `runAfterInteractions`. A deadline of 4 s from the start of the restore effect still hides the splash for a reader that never draws.
-- `develop` already starts the Mushaf load in the boot. With parts 1 and 2, the data and the fonts are ready before the push.
+- The root layout owns one restore state for the launch: `none`, `pushing`, `waitingForContent`, `shown`, `ended`. It reads `mushafSessionStore.getLastScreenWasMushaf()` once.
+- Every reader surface takes an `onFirstContent` prop and calls it once: `DKPageView` (also inside `DKSpreadView`), `ContinuousMushafView`, `ContinuousListView`, `ReadingPageView` and `QCFPage`.
+- **The splash** hides at the first content, with a 4 s deadline from the push for a surface that never reports.
+- **Offline Mushaf 1440:** `QCFPage` already calls `onReady` on a page-font load error (`components/mushaf/qcf/QCFPage.tsx:710`), so `onFirstContent` fires at the error and the reader shows its error state. A download that neither ends nor fails is caught by the 4 s deadline.
+- **The home route** returns an empty `View` while the state is `pushing` or `waitingForContent`, and renders 1 s after `shown`, on a return to Home, or 15 s after the launch (a safety limit).
 
 ![The order of a launch that restores the reader, today and proposed](assets/023-restore-launch-order.svg)
 
-**Result (A10s, a launch that restores the reader, median of 4 launches, the time to the first page):**
+**Result (restore launches):** the fork build (steps 1 and 2, and the revision-1 forms of steps 3–5: the query cache, a line-fit store per build, and a restore latch), against `develop`. When the user sees the first page:
 
-| Step (each row adds to the row above)                     | First page |
-| --------------------------------------------------------- | ---------- |
-| Part 1 only, Mushaf load after the splash                 | 11.00 s    |
-| + part 2 (this build also moved a fork-only storage read) | 9.52 s     |
-| + the Mushaf load in the boot, as `develop` does today    | 9.06 s     |
-| + part 3, and the empty home route of part 4              | 7.44 s     |
-| + the splash hide at the page draw (part 4)               | **6.90 s** |
+| | A10s | Pixel 3 |
+| --- | --- | --- |
+| `develop`, Hafs | 15.22 (14.59–15.80), n=10 | 5.41 (5.35–5.49), n=10 |
+| Fork, Hafs | **5.94** (5.62–7.60), n=8 | **2.82** (2.76–2.86), n=10 |
+| `develop`, Warsh | 15.79, n=5 | 5.06, n=10 |
+| Fork, Warsh | **6.28**, n=5 | **2.85**, n=5 |
+| Cold launch to Home (`develop`) or Listen (fork): the splash hides | 13.95 → **4.04** | 4.29 → **2.65** |
+
+Two of the 10 fork restores on the A10s lost their start line in the phone's log buffer, so n=8. The fork's home screen is not Bayaan's, so the cold-launch row compares the boots, not the screens.
 
 ### What does not change
 
 - No public method of `DigitalKhattDataService` changes its signature.
-- No new setting or feature flag. Every phone gets all four parts.
-- No bundled database file changes.
+- No new setting or feature flag. Every phone gets every step.
 
 ### Delivery
 
-Four code PRs, in this order, each with its tests:
+Five code PRs, in the order above, each with its tests and its numbers:
 
-1. **Part 1.** An `*.alldbs` test compares every getter with the old full build on all 8 words databases: each word's text and info, each verse's words and text, each verse's page, the surah start pages, page-to-surah, the text of every ayah line, and a side rewayah. The existing service tests pass with no change; the SQLite fakes answer the new queries and `getAllSync`.
-2. **Part 2.** A hit, a miss, a damaged entry, an untrusted copy (no write), a new copy name (a miss), and a reset (the cache is empty).
-3. **Part 3.** The same build keeps a fit; another build starts empty; no build version means no store; a bad value is never stored.
-4. **Part 4.** Each end condition of the wait, and the safety limit.
+1. **Step 1.** The reader waits for the data at mount and for each param; a bookmark and a deep link before the data is ready.
+2. **Step 2.** The database rebuild, the manifest, and the query-plan test. An `*.alldbs` test compares every getter with the old full build on all 8 words databases: each word's text and info, each verse's words, each verse's page, the surah start pages, page-to-surah, the text of every ayah line, and a side rewayah. A failed and a short chunk read. The streaming read and the units build on all 8.
+3. **Step 3.** The generated module, its staleness test, and the lazy load.
+4. **Step 4.** The same key keeps a fit; a new update id or format starts empty; a bad value is never stored.
+5. **Step 5.** Each surface reports its first content once; each end of the wait; the deadline and the safety limit.
 
 ## Alternatives considered
 
-1. **Pre-drawn page images.** Some Quran apps show page images on weak phones. Rejected: each rewayah and layout needs a large download or bundle; the images lose the tajweed colours, the highlights and the text features; and they are a second renderer to keep.
+1. **Pre-drawn page images.** Rejected: each rewayah and layout needs a large download or bundle; the images lose the tajweed colours, the highlights and the text features; and they are a second renderer to keep.
 2. **Build the maps on a background thread or a JSI worker.** Rejected: the synchronous getters need the maps on the JS thread, so the 83,668 entries must still cross to it. It also adds a native dependency.
-3. **Keep the full build, but read it in chunks and yield between them.** Rejected: the JS thread gets shorter blocks, but the total work (about 12 s on the A10s) and the memory stay, at every launch, also for users who only listen.
-4. **Store the built maps.** Rejected: the maps are about 33 MB on the A10s, and to read them back costs most of the build.
-5. **Precompute the line fits at build time.** Rejected: a fit depends on the font size and the page width of the device.
-6. **Render the home route at a lower priority on a restore launch.** Rejected: its work still competes with the first page. An empty view costs almost nothing.
+3. **Keep the full build, but read it in chunks and yield between them.** Rejected: the JS thread gets shorter blocks, but the total work and the memory stay, at every launch, also for users who only listen.
+4. **Store the built maps.** Rejected: they are about 33 MB on the A10s, and to read them back costs most of the build.
+5. **A cache of the verse index and page lines (revision 1).** Replaced by step 3: the tables are constant, so a cache adds keys and a reset hook and does not help a first launch.
+6. **Raw row arrays for a chunk** (`executeForRawResultSync`). Measured: 71–78 ms on the A10s, against 7–11 ms for the joined string.
+7. **Precompute the line fits at build time.** Rejected: a fit depends on the font size and the page width of the device.
 
 ## Consequences
 
 - **Positive:**
-  - Every phone does less work and uses less memory at every launch. On a 2 GB phone, the Mushaf load takes about 2 s, not about 12 s. On a fast phone the gain is smaller.
+  - Every phone does less work and uses less memory at every launch. On the A10s, a restore launch showed its page at 5.9 s, not 15.2 s, and memory after 40 page turns was 393 MB, not 713 MB.
   - A user who only listens pays almost nothing for the Mushaf at launch.
   - A restore launch shows the page with no empty reader frame.
 - **Neutral:**
-  - The public API of the data service and the bundled database files do not change.
+  - The public API of the data service does not change. The words databases change their schema, not their rows.
 - **Negative / risks:**
   - A wrong word on a page is a severe defect. The all-databases test compares every getter with the old build, and it must stay in CI.
-  - The data facts of part 1 (no gaps in the ids, one id range for each verse) become a contract of the bundled databases. A new words database must keep them. The test finds a break.
+  - The data facts of step 2 become a contract of the bundled databases: ids 1..n with no gaps, one id range for each verse, `location` derivable from the id, no NULLs, no U+001F in a text, `id` as the integer primary key. A new words database must keep them; the tests find a break.
   - The words database connection stays open while the app runs (one for each words database in use).
-  - A chunk read runs on the JS thread: about 40 ms on the A10s for the Hafs database, once for each 2,048 words. A fast swipe into a new chunk can drop a frame.
-  - MMKV holds about 100 KB for each rewayah in use, 250 KB of page lines, and a few hundred KB of line fits.
-  - The first launch after an install or an update runs the two queries once and starts with no line fits.
-  - On a restore launch the splash stays until the page draws. A user who goes back at once sees an empty home screen for about 1 s while it renders.
+  - A chunk read still runs on the JS thread at a page turn into a new chunk (about every 15 pages): 8–54 ms on the A10s, the first read after the open being the slow one.
+  - The generated tables add about 0.3–0.4 MB to the bundle.
+  - On a restore launch the splash stays until the first content. A user who goes back at once sees an empty home screen for about 1 s while it renders.
 
 ## How we'll know it worked
 
 - The all-databases getter test passes in CI on all 8 words databases.
-- On a 2 GB Android phone, release build:
-  - the words are ready less than 3 s after the load starts;
-  - the `app-initializer-ready` boot breadcrumb comes earlier by the time the load saves;
-  - a launch that restores the reader shows the first page with no empty reader frame, and sooner than today.
+- On a 2 GB Android phone, release build, 10 launches or more each:
+  - after step 1, a cold launch to Home hides the splash sooner than `develop` by about the load time;
+  - after step 2, the words are ready less than 3 s after the load starts, and a chunk read with a warm page cache takes less than one frame (16 ms);
+  - after step 5, a restore launch shows the first page with no empty reader frame, and sooner than `develop`.
 
 ## Open questions
 
-1. **The cache store.** This RFC uses MMKV: it is already a dependency, and it reads synchronously. A file next to each database copy is the alternative. It would keep the cache with its copy and delete it with the copy.
-2. **The 1 s delay** before the home route renders after the reader's page. A shorter delay gives a full home screen sooner after a quick back gesture. A longer delay keeps the next pages' builds free of competing work.
-3. **The 15 s safety limit and the 4 s splash deadline.** Both only catch a reader that never draws. They need no change on a phone that works correctly.
+1. **The 1 s delay** before the home route renders after the reader's first content. Shorter gives a full home screen sooner after a quick back gesture; longer keeps the next pages' builds free of competing work.
+2. **The 15 s safety limit and the 4 s splash deadline.** Both only catch a reader that never reports. They need no change on a phone that works correctly.
+3. **The generated tables' format.** Packed numbers in a TS module (parsed with the bundle, on first use) or a binary asset read at load. The first is simpler; the second keeps the bundle smaller.
