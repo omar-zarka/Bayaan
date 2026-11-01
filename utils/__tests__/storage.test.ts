@@ -1,7 +1,9 @@
 // @ai-start
 // Locks the contract of `safeAsyncStorage`: a failed write is logged and
 // reported once, and never rejects, so zustand `persist` cannot turn a full
-// disk into an unhandled rejection on every state change (BAYAAN-6J).
+// disk into an unhandled rejection on every state change (BAYAAN-6J). And of
+// `persistStorage`: a key is written only after a read of it resolved, and the
+// first failed read is reported once.
 // Sentry and AsyncStorage are the root __mocks__ stubs.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -121,6 +123,7 @@ describe('persistStorage before a key is read', () => {
     JSON.parse((await AsyncStorage.getItem(key)) as string);
 
   beforeEach(async () => {
+    jest.mocked(Sentry.captureMessage).mockClear();
     resetStorageForTests();
     jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     await AsyncStorage.setItem('guarded', JSON.stringify(saved));
@@ -173,6 +176,39 @@ describe('persistStorage before a key is read', () => {
 
     jest.mocked(AsyncStorage.getItem).mockImplementation(realGetItem);
     expect(await onDisk('guarded')).toEqual(saved);
+  });
+
+  it('reports only the first failed read to Sentry', async () => {
+    jest.mocked(AsyncStorage.getItem).mockRejectedValue(locked);
+    const store = persistStorage<{count: number}>();
+
+    await expect(store?.getItem('guarded')).rejects.toBe(locked);
+    await expect(store?.getItem('other')).rejects.toBe(locked);
+
+    expect(console.warn).toHaveBeenCalledTimes(2);
+    expect(Sentry.captureMessage).toHaveBeenCalledTimes(1);
+    expect(Sentry.captureMessage).toHaveBeenCalledWith(
+      'storage-read-failed',
+      expect.objectContaining({
+        level: 'warning',
+        tags: {storage_op: 'getItem'},
+        extra: {key: 'guarded', error: String(locked)},
+      }),
+    );
+  });
+
+  it('reports a failed write apart from a failed read', async () => {
+    jest.mocked(AsyncStorage.getItem).mockRejectedValueOnce(locked);
+    jest.mocked(AsyncStorage.setItem).mockRejectedValue(outOfSpace);
+    const store = persistStorage<{count: number}>();
+
+    await expect(store?.getItem('guarded')).rejects.toBe(locked);
+    await store?.getItem('guarded');
+    await store?.setItem('guarded', changed);
+
+    expect(
+      jest.mocked(Sentry.captureMessage).mock.calls.map(c => c[0]),
+    ).toEqual(['storage-read-failed', 'storage-write-failed']);
   });
 
   it('makes the key writable when a later read resolves', async () => {

@@ -79,7 +79,7 @@ describe('persisted store when the hydrating read fails', () => {
   beforeEach(() => {
     mockDisk = {};
     mockFailingReads = new Set();
-    // The default error handler warns in development; keep test output clean.
+    // utils/storage warns on a failed read; keep test output clean.
     warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
   });
 
