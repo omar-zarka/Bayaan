@@ -7,15 +7,17 @@
  * utils/storage. Add each new persisted store; a test fails when a module that
  * calls `persist(` is not imported here.
  *
- * The default-reciter pick in store/reciterStore is persisted too, but that
- * store is private to its module, so a failed read of it lasts until the next
- * launch.
+ * Two persisted stores are not in the list:
+ * - The default-reciter pick in store/reciterStore: the store is private to
+ *   its module.
+ * - The player store: it holds the live queue and playback. A late retry
+ *   would merge the saved queue over the one that plays. After a failed read
+ *   it keeps the session in memory and saves nothing until the next launch.
  */
 import {useSettings} from '@/hooks/useSettings';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
 import {useFavoriteRecitersStore} from '@/services/player/store/favoriteRecitersStore';
 import {useLovedStore} from '@/services/player/store/lovedStore';
-import {usePlayerStore} from '@/services/player/store/playerStore';
 import {useRecentlyPlayedStore} from '@/services/player/store/recentlyPlayedStore';
 import type {PersistedStore} from '@/services/rehydrateOnForeground';
 import {useAdhkarSettingsStore} from '@/store/adhkarSettingsStore';
@@ -33,7 +35,6 @@ export const PERSISTED_STORES: readonly PersistedStore[] = [
   useDownloadStore,
   useFavoriteRecitersStore,
   useLovedStore,
-  usePlayerStore,
   useRecentlyPlayedStore,
   useAdhkarSettingsStore,
   useAmbientStore,

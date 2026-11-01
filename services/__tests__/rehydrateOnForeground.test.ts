@@ -147,8 +147,12 @@ describe('initForegroundRehydration', () => {
 describe('PERSISTED_STORES', () => {
   const root = path.resolve(__dirname, '../..');
   const skipped = new Set(['node_modules', 'ios', 'android', 'assets']);
-  // Persisted, but the store is private to its module.
-  const notExported = new Set(['store/reciterStore.ts']);
+  // Persisted, but not retried: the reciter pick is private to its module,
+  // and a late merge into the player store would replace the queue that plays.
+  const notRetried = new Set([
+    'store/reciterStore.ts',
+    'services/player/store/playerStore.ts',
+  ]);
 
   function sourceFiles(dir: string): string[] {
     return fs.readdirSync(dir, {withFileTypes: true}).flatMap(entry => {
@@ -183,9 +187,17 @@ describe('PERSISTED_STORES', () => {
     expect(persisted.length).toBeGreaterThan(10);
     const missing = persisted.filter(
       file =>
-        !notExported.has(file) &&
+        !notRetried.has(file) &&
         !list.includes(`from '@/${file.replace(/\.tsx?$/, '')}'`),
     );
     expect(missing).toEqual([]);
+  });
+
+  it('leaves the player store out', () => {
+    const list = fs.readFileSync(
+      path.join(__dirname, '../persistedStores.ts'),
+      'utf8',
+    );
+    expect(list).not.toContain("from '@/services/player/store/playerStore'");
   });
 });
