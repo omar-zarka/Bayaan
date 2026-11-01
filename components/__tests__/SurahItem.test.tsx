@@ -55,11 +55,6 @@ jest.mock('@/hooks/useTheme', () => ({
   }),
 }));
 
-jest.mock('react-native-size-matters', () => ({
-  ScaledSheet: {create: (styles: object) => styles},
-  moderateScale: (value: number) => value,
-}));
-
 jest.mock('expo-haptics', () => ({
   impactAsync: jest.fn(),
   ImpactFeedbackStyle: {Light: 'light', Medium: 'medium'},
@@ -125,11 +120,14 @@ const noop = jest.fn();
 // useMemo. Change this helper if that format changes.
 const rowKey = (surahId: number): string => `reciter-1-${surahId}-rw-a`;
 
+// The play zone of a row is the button whose label starts with the surah
+// name. Match on the role and that prefix, not on the hint: the hint text
+// changes with the screen (pressAction) and with the copy.
 const playLabelOf = (renderer: ReactTestRenderer, surahId: number): string =>
   renderer.root
     .findAll(
       node =>
-        node.props?.accessibilityHint === 'Tap to play Surah' &&
+        node.props?.accessibilityRole === 'button' &&
         typeof node.props.accessibilityLabel === 'string' &&
         node.props.accessibilityLabel.startsWith(`Surah Surah ${surahId},`),
     )
@@ -268,11 +266,9 @@ describe('SurahItem currently-playing label', () => {
         />,
       );
     });
-    const labels = renderer.root
-      .findAll(node => node.props.accessibilityHint === 'Tap to play Surah')
-      .map(node => node.props.accessibilityLabel as string);
+    const label = playLabelOf(renderer, 1);
     act(() => renderer.unmount());
-    return labels[0];
+    return label;
   };
 
   it('announces "currently playing" only for the rewayah that plays', () => {
