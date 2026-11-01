@@ -12,7 +12,7 @@
 
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 import {AmbientSoundType, DEFAULT_AMBIENT_VOLUME} from '@/types/ambient';
 import {ambientAudioService} from '@/services/audio/AmbientAudioService';
 import {analyticsService} from '@/services/analytics/AnalyticsService';
@@ -94,7 +94,7 @@ export const useAmbientStore = create<AmbientStoreState>()(
     }),
     {
       name: STORAGE_KEY,
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
       partialize: state => ({
         // Only persist preferences, not runtime state
         currentSound: state.currentSound,

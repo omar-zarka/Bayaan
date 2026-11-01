@@ -2,7 +2,7 @@ import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
 import {Reciter, RECITERS} from '@/data/reciterData';
 import {Surah, SURAHS} from '@/data/surahData';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 import {usePlayerStore} from '@/services/player/store/playerStore';
 
 export interface RecentlyPlayedTrack {
@@ -304,7 +304,7 @@ export const useRecentlyPlayedStore = create<RecentlyPlayedState>()(
     }),
     {
       name: 'player-recently-played-storage',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
       partialize: state =>
         ({
           recentTracks: state.recentTracks,

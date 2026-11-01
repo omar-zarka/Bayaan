@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 import {
   clearAllDownloads as clearAllDownloadsService,
   removeDownload as removeDownloadService,
@@ -494,7 +494,7 @@ export const useDownloadStore = create<DownloadStoreState>()(
     }),
     {
       name: STORAGE_KEY,
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
       partialize: state => ({
         downloads: state.downloads,
         playlists: state.playlists,

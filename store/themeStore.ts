@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 import {ThemeMode, PrimaryColor, Theme, createTheme} from '@/utils/themeUtils';
 import {Appearance, Platform} from 'react-native';
 
@@ -72,7 +72,7 @@ export const useThemeStore = create<ThemeState>()(
     }),
     {
       name: 'theme-storage',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
       partialize: state => ({
         themeMode: state.themeMode,
         primaryColor: state.primaryColor,

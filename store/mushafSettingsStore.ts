@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 import {getReadingThemeById} from '@/constants/readingThemes';
 import {defaultShowEnglishReadingAids} from '@/i18n/language'; // @ai
 import {
@@ -399,7 +399,7 @@ export const useMushafSettingsStore = create<MushafSettingsState>()(
     }),
     {
       name: 'mushaf-settings',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
       version: 19, // @ai
       // @ai-start
       // A startup fallback lasts one session: persist the reader's saved

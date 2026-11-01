@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 
 interface PlayCount {
   surahId: number;
@@ -51,7 +51,7 @@ export const usePlayCountStore = create<PlayCountState>()(
     }),
     {
       name: 'play-count-storage',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
     },
   ),
 );

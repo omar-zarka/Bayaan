@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
 import {Reciter} from '@/data/reciterData';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 
 interface FavoriteReciterWithTimestamp extends Reciter {
   favoritedAt: number;
@@ -92,7 +92,7 @@ export const useFavoriteRecitersStore = create<FavoriteRecitersState>()(
     }),
     {
       name: 'player-favorite-reciters-storage',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
     },
   ),
 );

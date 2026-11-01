@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 // @ai-start
 import {
   defaultShowEnglishReadingAids,
@@ -67,7 +67,7 @@ export const useAdhkarSettingsStore = create<AdhkarSettingsState>()(
     }),
     {
       name: 'adhkar-settings',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
     },
   ),
 );

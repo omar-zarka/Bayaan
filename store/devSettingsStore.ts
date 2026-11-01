@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 
 interface DevSettingsState {
   showFloatingDevMenu: boolean;
@@ -36,7 +36,7 @@ export const useDevSettingsStore = create<DevSettingsState>()(
     }),
     {
       name: 'dev-settings-store',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
     },
   ),
 );

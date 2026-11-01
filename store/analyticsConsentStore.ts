@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 
 /**
  * User consent for anonymous product-usage analytics.
@@ -23,7 +23,7 @@ export const useAnalyticsConsentStore = create<AnalyticsConsentState>()(
     }),
     {
       name: 'analytics-consent-store',
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
     },
   ),
 );

@@ -1,6 +1,6 @@
 import {create} from 'zustand';
 import {persist} from 'zustand/middleware';
-import {createGuardedJSONStorage} from '@/utils/guardedJSONStorage'; // @ai
+import {persistStorage} from '@/utils/storage'; // @ai
 import {analyticsService} from '@/services/analytics/AnalyticsService';
 
 const STORAGE_KEY = 'loved-tracks-store';
@@ -189,7 +189,7 @@ export const useLovedStore = create<LovedTracksState>()(
     }),
     {
       name: STORAGE_KEY,
-      storage: createGuardedJSONStorage(), // @ai
+      storage: persistStorage(), // @ai
       partialize: state => ({
         tracks: state.tracks,
         lastSynced: state.lastSynced,
