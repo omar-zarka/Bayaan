@@ -114,6 +114,28 @@ describe('persisted store when the hydrating read fails', () => {
     expect(storedTracks()).toEqual([savedTrack]);
   });
 
+  it('keeps memory and disk in step after a change during a read that succeeds', async () => {
+    seedLovedTracks();
+    const {loved} = loadStores();
+
+    // No await yet, so the hydrating read has not resolved.
+    loved.getState().toggleLoved('reciter-b', '2', 'rewayah-b');
+    await settle();
+
+    expect(loved.persist.hasHydrated()).toBe(true);
+    expect(storedTracks()).toEqual([savedTrack]);
+    expect(loved.getState().tracks).toEqual(storedTracks());
+
+    loved.getState().toggleLoved('reciter-b', '2', 'rewayah-b');
+    await settle();
+
+    expect(storedTracks().map(t => t.reciterId)).toEqual([
+      'reciter-b',
+      'reciter-a',
+    ]);
+    expect(loved.getState().tracks).toEqual(storedTracks());
+  });
+
   it('merges saved data and persists again after a later successful read', async () => {
     seedLovedTracks();
     mockFailingReads.add(LOVED_KEY);
