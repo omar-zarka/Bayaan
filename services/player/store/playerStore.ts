@@ -647,15 +647,17 @@ export const usePlayerStore = create<PlayerStoreState>()(
               settled = 'paused';
               break;
           }
-          // Superseded by cleanup()/a newer load: skip the write below, so
-          // the queue of the newer action stands.
+          // Superseded by cleanup()/a newer load: the newer queue stands.
           if (!stillCurrent) return;
 
+          // @ai Re-read the queue after the await. addToQueue() appends, so
+          // a track queued during the reload is past the old end: keep it.
+          const added = get().queue.tracks.slice(queue.tracks.length);
           set(state => ({
             queue: {
               ...state.queue,
-              tracks,
-              total: tracks.length,
+              tracks: [...tracks, ...added],
+              total: tracks.length + added.length,
               currentIndex: index,
             },
             loading: {
