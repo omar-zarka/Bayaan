@@ -2,21 +2,33 @@
 
 | Field  | Value                                                    |
 | ------ | -------------------------------------------------------- |
-| Status | Proposed (revision 2, after review)                      |
-| Date   | 2026-10-30 (revision 2: 2026-10-31)                      |
+| Status | Proposed (revision 3, after review)                      |
+| Date   | 2026-10-30 (revision 3: 2026-11-01)                      |
 | Author | Omar Zarka (Qariah)                                      |
 
 ## Summary
 
 At every launch, `DigitalKhattDataService` reads all 83,668 words of the active rewayah and builds them into maps, and the boot waits for that before the splash hides. On a 2 GB Android phone this is the largest single cost of a launch. This RFC proposes five steps, in this order. Each step is its own small code PR with tests, and each one is measured before the next:
 
-1. **The Mushaf load leaves the splash path.** The boot stops waiting for it, and the reader waits for the data itself. This needs none of the other steps.
+1. **The Mushaf load leaves the splash path.** The boot stops waiting for it, and the reader waits for the data itself. It works without the other steps, but it ships in one release with step 2: alone, it moves the words build from the splash onto Home.
 2. **Words on demand.** The load reads a verse index, not every word. A getter reads the words it needs, from words databases rebuilt with `id INTEGER PRIMARY KEY`.
-3. **The verse index and the page lines at build time.** Both are the same for every rewayah, so a script generates them next to `rewayahDataManifest.ts`.
+3. **The verse index and the page lines at build time.** Both are the same for every rewayah, so a script generates them next to `rewayahDataManifest.ts`, and the layout database leaves the bundle.
 4. **Line fits across launches**, under a key that changes with every bundle (an OTA update too) and with a format constant.
 5. **One restore state machine** in the root layout. Every reader surface reports its first content.
 
 No new setting, no new dependency, and no change to a public method of the data service.
+
+### What changed in revision 3
+
+The second review of this RFC (#481) asked for these changes. All of them are in:
+
+- A failed chunk read no longer returns `''` and reads again on the next call. The first error marks the store failed, the rewayah's load state becomes `'error'`, and its copy goes through the delete and re-import path (step 2).
+- Step 1 has two more early readers: the home-screen widget and the Live Activity. Both re-run on `subscribeCacheChanges`.
+- Steps 1 and 2 ship in the same release.
+- The layout database leaves the bundle after step 3, and the verse index is 6,236 word counts.
+- The fork's memory and frame numbers are context only. Each code PR brings its own numbers on `develop`. The memory growth on `develop` has its own issue: #482.
+
+One correction to revision 2: of the three page lookups in the verse sheet, only the player's Repeat runs before the data is ready (step 1).
 
 ### What changed in revision 2
 
@@ -60,6 +72,8 @@ Median (min–p90) in seconds from the process start; n is the number of launche
 | Memory (PSS) with the reader open, then after 40 page turns | 417 MB → 713 MB | 706 MB → 800 MB |
 | Janky frames over the 40 page turns (`gfxinfo`) | 96% (p90 57 ms) | 11% (p90 32 ms) |
 
+The growth over 40 page turns on `develop` (417 MB to 713 MB on the A10s) is its own issue, #482. This RFC does not claim to fix it.
+
 On both phones the restored page draws before the splash hides: the splash waits for `runAfterInteractions` after the push (0.3 s on the A10s, 0.85 s on the Pixel 3). We did not see an empty reader frame, but the user waits for the splash after the page is ready.
 
 
@@ -92,9 +106,11 @@ When the last screen was the reader, `app/_layout.tsx:398-429` pushes `/mushaf` 
   - A row that needs a rewayah switch does not respond. `restoreSavedRewayah` awaits `switchRewayah()`, which before the first load ends only when the whole load ends. On the A10s the screen does not change for several seconds after the tap.
 
   So the list sends the saved verse (`surah`, `ayah`, `anchor`) and its rewayah, with no page, and does not await the data. The reader shows its loading view at once. When the data is ready, it restores the rewayah and goes to the page of the verse.
-- **The player's verse sheet** (`components/player/v2/PlayerContent/QuranView/VerseItem.tsx`) opens `VerseActionsSheet` outside the reader, so it can open before the data is ready. Its page lookups (`components/sheets/VerseActionsSheet.tsx:523`, `:542`, `:673`) then store `currentPage || 1`. They resolve the page when the data is ready, not at the tap.
+- **The player's Repeat opens the reader at once.** The player's verse list (`components/player/v2/PlayerContent/QuranView/VerseItem.tsx`) opens `VerseActionsSheet` outside the reader, so it can open before the data is ready. `handlePlayerRepeat` (`components/sheets/VerseActionsSheet.tsx:649`) looks the page up at the tap (`:673`). Before the data is ready it then opens the reader at an old page or at page 1, with the player options on that page. So Repeat sends the verse and a `playerOptions` param, with no page. When the data is ready, the reader opens the page of the verse, sets `currentPage`, and shows `mushaf-player-options` once. The two lookups in `startPlaybackForSelection` (`:523`, `:542`) do not change: only a sheet opened from the reader runs them, and the reader is behind its load gate.
+- **Two more early readers re-run when the data is ready.** `collectSnapshotInput` (`services/widgets/collectSnapshotInput.ts:30`, `:55`) gives `''` and `null` while the data is not loaded, and `startWidgetSync` (`services/widgets/syncWidgets.ts:244`) does not subscribe to the data service. So the first snapshot after a launch leaves the Continue Reading widget with no verse text until another store changes. `startWidgetSync` subscribes to `subscribeCacheChanges`, and the snapshot diff still writes only what changed. The Live Activity's ayah ticker (`services/widgets/live-activity/syncLiveActivity.ts:177`; its mode is `'off'` on `develop`) publishes again on the same signal. A new snapshot alone is not enough there, because `publish` skips the same ayah number (`ayahTicker.ts:55`).
 - The `/quran/{s}/{a}` link already holds its redirect until the page is known (`app/quran/[surah].tsx`). It does not change.
 - On a restore launch the reader starts the load at once, so it does not wait for the splash to hide.
+- **One release with step 2.** Step 1 alone moves the 6.3 s words build from the splash onto Home, where taps do not respond. The code PRs stay separate, but no release carries step 1 without step 2.
 
 **Result (`develop` + the boot part of step 1; the reader changes are not in this lab build, so it was measured on cold launches to Home only):**
 
@@ -105,7 +121,9 @@ When the last screen was the reader, `app/_layout.tsx:398-429` pushes `/mushaf` 
 | `develop` | 13.95 | 11.36 (before the splash) | 4.29 | 3.53 (before the splash) |
 | `develop` + step 1 | **8.47** (8.38–8.53) | 14.77 (14.23–15.07) | **2.83** (2.81–2.84) | 4.53 |
 
-So step 1 alone moves 5.5 s off the splash on the A10s. It does not remove the work: the JS thread builds the words in one block for 6.3 s after the splash, while the user sees Home. Steps 2–5 remove most of the work.
+So step 1 alone moves 5.5 s off the splash on the A10s. It does not remove the work: the JS thread builds the words in one block for 6.3 s after the splash, while the user sees Home. That is why step 2 ships with it. Steps 2–5 remove most of the work.
+
+Fork context, on the A10s with the words on demand: a lab build that held the load for 180 s opened the reader 0.59 s after a Repeat tap, then showed the options on the page of the verse when the data was ready. On a normal launch, the first widget snapshot had no verse text, and a second snapshot, after the data was ready, wrote it to the Continue Reading widget only.
 
 ### Step 2: words on demand
 
@@ -124,11 +142,11 @@ So step 1 alone moves 5.5 s off the splash on the A10s. It does not remove the w
   On the A10s this takes 7–11 ms. The same 2,048 rows as objects (`getAllSync`) took 119–151 ms, also with the seek, and as raw arrays 71–78 ms. A word's verse and position come from the verse index: in every words database `location` is `surah:ayah:(id − first id of the verse + 1)` (a test checks it on all 8). A word's info object is built on first use.
 - **Cache:** the 24 chunks and the 1,024 verses used last.
 - **Connection:** the data service owns each `WordStore`, and a `WordStore` owns one open connection to its copy. The existing side-cache rules decide when a store closes: on a rewayah switch the old main store becomes a side store (as the old maps do today), and `trimSideCache()` closes the idle side stores beyond `MAX_IDLE_SIDE_ENTRIES` (1) that no surface retains. A closed store answers nothing. `resetDatabases()` closes every store and waits for each close before it deletes a copy.
-- **A failed read** (the read throws, or gives the wrong number of texts) returns no word, caches nothing, logs one warning for each store, and the next call reads again. Callers already handle `undefined` (`getWordInfo`) and `''` (`getWordText`).
+- **A failed read** (the read throws, or gives the wrong number of texts) marks the store failed on the first error. A getter cannot report this with `''`: 7 of the 8 words databases have words whose text is empty (81–88 in six of them, 3 in Shu'bah), so a page would draw as valid with words missing. A retry on the next call would also read a broken copy again on every getter of a render. So the store reads no more, and the data service drops it in a microtask, because a getter can run inside a render and this wakes subscribers. The rewayah's load state becomes `'error'`, and for the active rewayah `initialized` becomes false. The store closes and its copy is deleted, under the per-name lock, so the next load imports the bundled asset again. `useRewayahWords` already offers its retry on `'error'`, and the reader shows its load-failed view. The preload stays `'ready'`, so the reader's retry calls `ensureRewayahLoaded(rewayah, {retry: true})`. In the fork on the A10s, a forced failure showed that view, and the retry brought the page back in less than 2 s.
 - **Side rewayat** are on demand too: each one is a `WordStore` with its own cache.
 - **The verse-units build** (`RewayahVerseUnitsService`) gets a streaming read: `WordStore.readInOrder()` reads the table in id order, 2,048 ids at a time, with the same query, outside the chunk cache. So the build evicts none of the reader's chunks, and each read is 7–11 ms inside the build's slices. Its readiness check becomes "the `WordStore` of that rewayah is open", not "the words are in memory". In the fork, which reads the build through the chunk cache today, a switch to Warsh built its units in 8.3 s on the A10s and 2.4 s on the Pixel 3, in slices; the reader then read its evicted chunks again (3–22 ms each). (Generating the units at build time is the other option; it removes the runtime work but adds a second copy of the data to keep in step.)
 
-**Result:** In the fork (SDK 57, RN 0.86; full mode):
+**Fork context, not a claim for this step** (SDK 57, RN 0.86; full mode):
 
 | Fork build | A10s | Pixel 3 |
 | --- | --- | --- |
@@ -137,15 +155,17 @@ So step 1 alone moves 5.5 s off the splash on the A10s. It does not remove the w
 | Janky frames over the 40 page turns | 22% (p90 23 ms) | 5% (p90 24 ms) |
 | First launch after an install: the splash hides / data ready | 4.45 / 9.48 (n=3; this fork's low-memory mode starts the load 3 s after the splash) | 2.76 / 4.70 (n=3) |
 
-The fork has more changes than step 2 (for example the line-fit store and the restore order), so the memory and frame rows compare two builds against the `develop` table above, not step 2 alone. The step 2 code PR will carry its own numbers on `develop`.
+The fork has more changes than step 2 (for example the line-fit store and the restore order), and the word maps are only about 33 MB of its memory gap against `develop`. So these rows do not measure step 2. The step 2 code PR brings its own numbers on `develop`.
 
 ### Step 3: the verse index and the page lines at build time
 
 - A script (a new mode of `gen-manifest.mjs`, or a sibling script) reads the verse index from the words databases and the page lines from the layout database, checks that the verse index is the same in all 8, and writes them as packed integer arrays into a generated module next to `rewayahDataManifest.ts`.
+- **The verse index is 6,236 word counts,** in verse order. The largest is 129, so each fits in one byte. The first and the last id of a verse are a running sum, and the verse keys follow from each surah's verse count: in all 8 databases the verses are contiguous and in `surah:ayah` order.
+- **The layout database leaves the bundle.** Once the page lines are generated, nothing opens `digital-khatt-15-lines.db`. It stays in the repository as the generator's source, with no `require`, no manifest entry and no device copy, so the same rows do not ship twice. The stale-copy sweep keeps `dk_layout` in its list with no current name, so it deletes the copy that an installed app already has (`selectStaleDbFiles` skips a base it does not know: `services/mushaf/DigitalKhattDataService.ts:225-226`).
 - The manifest test recomputes both from the database files and fails when the module is stale, as it does for the hashes.
 - The data service loads the module on its first Mushaf use (a lazy `require`), so a user who only listens does not parse it.
 - This removes the MMKV cache, its keys and its reset hook. It also helps the first launch after an install or an update, which a cache cannot help.
-- Size: 6,236 verses × 4 numbers and 9,046 page lines × 7 numbers, about 0.3–0.4 MB in the bundle.
+- Size: 6,236 word counts and 9,046 page lines × 7 numbers, about 0.25 MB as text in the bundle. The layout database (0.24 MB) leaves it, so the bundle stays about the same size.
 
 ### Step 4: line fits across launches (`components/mushaf/skia/justifiedSpace.ts`)
 
@@ -163,7 +183,7 @@ The fork has more changes than step 2 (for example the line-fit store and the re
 
 ![The order of a launch that restores the reader, today and proposed](assets/023-restore-launch-order.svg)
 
-**Result (restore launches):** the fork build (steps 1 and 2, and the revision-1 forms of steps 3–5: the query cache, a line-fit store per build, and a restore latch), against `develop`. When the user sees the first page:
+**Fork context, not a claim for this step (restore launches):** the fork build (steps 1 and 2, and the revision-1 forms of steps 3–5: the query cache, a line-fit store per build, and a restore latch), against `develop`. When the user sees the first page:
 
 | | A10s | Pixel 3 |
 | --- | --- | --- |
@@ -184,9 +204,9 @@ Two of the 10 fork restores on the A10s lost their start line in the phone's log
 
 Five code PRs, in the order above, each with its tests and its numbers:
 
-1. **Step 1.** The reader waits for the data at mount and for each param. A bookmark and a note (one in the active rewayah, one in another), a deep link and the player's verse sheet, each before the data is ready: the screen changes at the tap, and the reader then shows the page of the verse.
-2. **Step 2.** The database rebuild, the manifest, and the query-plan test. An `*.alldbs` test compares every getter with the old full build on all 8 words databases: each word's text and info, each verse's words, each verse's page, the surah start pages, page-to-surah, the text of every ayah line, and a side rewayah. A failed and a short chunk read. The streaming read and the units build on all 8.
-3. **Step 3.** The generated module, its staleness test, and the lazy load.
+1. **Step 1.** The reader waits for the data at mount and for each param. A bookmark and a note (one in the active rewayah, one in another), a deep link and the player's Repeat, each before the data is ready: the screen changes at the tap, and the reader then shows the page of the verse. The widget writes again when the data is ready. Step 1 and step 2 go out in one release.
+2. **Step 2.** The database rebuild, the manifest, and the query-plan test. An `*.alldbs` test compares every getter with the old full build on all 8 words databases: each word's text and info, each verse's words, each verse's page, the surah start pages, page-to-surah, the text of every ayah line, and a side rewayah. A failed and a short chunk read: no second read, the load state is `'error'`, the copy is gone, and a retry imports it again. A word with empty text is no failure. The streaming read and the units build on all 8.
+3. **Step 3.** The generated module, its staleness test, the lazy load, and no layout database in the bundle or on the device.
 4. **Step 4.** The same key keeps a fit; a new update id or format starts empty; a bad value is never stored.
 5. **Step 5.** Each surface reports its first content once; each end of the wait; the deadline and the safety limit.
 
@@ -199,21 +219,22 @@ Five code PRs, in the order above, each with its tests and its numbers:
 5. **A cache of the verse index and page lines (revision 1).** Replaced by step 3: the tables are constant, so a cache adds keys and a reset hook and does not help a first launch.
 6. **Raw row arrays for a chunk** (`executeForRawResultSync`). Measured: 71–78 ms on the A10s, against 7–11 ms for the joined string.
 7. **Precompute the line fits at build time.** Rejected: a fit depends on the font size and the page width of the device.
+8. **A failed chunk read that returns `''` and reads again on the next call (revision 2).** Replaced: `''` is a real word text, and a broken copy would read again on every getter of a render.
 
 ## Consequences
 
 - **Positive:**
-  - Every phone does less work and uses less memory at every launch. On the A10s, a restore launch showed its page at 5.9 s, not 15.2 s, and memory after 40 page turns was 393 MB, not 713 MB.
+  - Every phone does less work at every launch, and the word maps (about 33 MB on the A10s) leave memory. Each code PR claims its own numbers on `develop`; the fork's numbers above are context only.
   - A user who only listens pays almost nothing for the Mushaf at launch.
   - A restore launch shows the page with no empty reader frame.
 - **Neutral:**
   - The public API of the data service does not change. The words databases change their schema, not their rows.
+  - The generated tables replace the layout database in the bundle, at about the same size.
 - **Negative / risks:**
   - A wrong word on a page is a severe defect. The all-databases test compares every getter with the old build, and it must stay in CI.
   - The data facts of step 2 become a contract of the bundled databases: ids 1..n with no gaps, one id range for each verse, `location` derivable from the id, no NULLs, no U+001F in a text, `id` as the integer primary key. A new words database must keep them; the tests find a break.
   - The words database connection stays open while the app runs (one for each words database in use).
   - A chunk read still runs on the JS thread at a page turn into a new chunk (about every 15 pages): 8–54 ms on the A10s, the first read after the open being the slow one.
-  - The generated tables add about 0.3–0.4 MB to the bundle.
   - On a restore launch the splash stays until the first content. A user who goes back at once sees an empty home screen for about 1 s while it renders.
 
 ## How we'll know it worked
@@ -222,6 +243,7 @@ Five code PRs, in the order above, each with its tests and its numbers:
 - On a 2 GB Android phone, release build, 10 launches or more each:
   - after step 1, a cold launch to Home hides the splash sooner than `develop` by about the load time;
   - after step 1, a bookmark tapped during the load opens the reader at once, and the reader then shows the page of the bookmarked verse;
+  - after step 1, the Continue Reading widget has its verse text with no change to another store;
   - after step 2, the words are ready less than 3 s after the load starts, and a chunk read with a warm page cache takes less than one frame (16 ms);
   - after step 5, a restore launch shows the first page with no empty reader frame, and sooner than `develop`.
 
