@@ -147,12 +147,9 @@ describe('initForegroundRehydration', () => {
 describe('PERSISTED_STORES', () => {
   const root = path.resolve(__dirname, '../..');
   const skipped = new Set(['node_modules', 'ios', 'android', 'assets']);
-  // Persisted, but not retried: the reciter pick is private to its module,
-  // and a late merge into the player store would replace the queue that plays.
-  const notRetried = new Set([
-    'store/reciterStore.ts',
-    'services/player/store/playerStore.ts',
-  ]);
+  // Persisted, but not retried: a late merge into the player store would
+  // replace the queue that plays.
+  const notRetried = new Set(['services/player/store/playerStore.ts']);
 
   function sourceFiles(dir: string): string[] {
     return fs.readdirSync(dir, {withFileTypes: true}).flatMap(entry => {
@@ -170,12 +167,9 @@ describe('PERSISTED_STORES', () => {
     });
   }
 
-  it('imports every module that creates a persisted store', () => {
-    const list = fs.readFileSync(
-      path.join(__dirname, '../persistedStores.ts'),
-      'utf8',
-    );
-    const persisted = sourceFiles(root)
+  /** Each module that creates a persisted store, relative to the repo root. */
+  function persistedModules(): string[] {
+    return sourceFiles(root)
       .filter(file => {
         const text = fs.readFileSync(file, 'utf8');
         return (
@@ -183,6 +177,14 @@ describe('PERSISTED_STORES', () => {
         );
       })
       .map(file => path.relative(root, file).split(path.sep).join('/'));
+  }
+
+  it('imports every module that creates a persisted store', () => {
+    const list = fs.readFileSync(
+      path.join(__dirname, '../persistedStores.ts'),
+      'utf8',
+    );
+    const persisted = persistedModules();
 
     expect(persisted.length).toBeGreaterThan(10);
     const missing = persisted.filter(
@@ -191,6 +193,16 @@ describe('PERSISTED_STORES', () => {
         !list.includes(`from '@/${file.replace(/\.tsx?$/, '')}'`),
     );
     expect(missing).toEqual([]);
+  });
+
+  it('gives every persisted store the guarded storage', () => {
+    const unguarded = persistedModules().filter(
+      file =>
+        !/storage: persistStorage(<[^>]*>)?\(\)/.test(
+          fs.readFileSync(path.join(root, file), 'utf8'),
+        ),
+    );
+    expect(unguarded).toEqual([]);
   });
 
   it('leaves the player store out', () => {

@@ -7,12 +7,10 @@
  * utils/storage. Add each new persisted store; a test fails when a module that
  * calls `persist(` is not imported here.
  *
- * Two persisted stores are not in the list:
- * - The default-reciter pick in store/reciterStore: the store is private to
- *   its module.
- * - The player store: it holds the live queue and playback. A late retry
- *   would merge the saved queue over the one that plays. After a failed read
- *   it keeps the session in memory and saves nothing until the next launch.
+ * One persisted store is not in the list: the player store. It holds the live
+ * queue and playback, so a late retry would merge the saved queue over the one
+ * that plays. After a failed read it keeps the session in memory and saves
+ * nothing until the next launch.
  */
 import {useSettings} from '@/hooks/useSettings';
 import {useDownloadStore} from '@/services/player/store/downloadStore';
@@ -27,6 +25,7 @@ import {useDevSettingsStore} from '@/store/devSettingsStore';
 import {useMushafPlayerStore} from '@/store/mushafPlayerStore';
 import {useMushafSettingsStore} from '@/store/mushafSettingsStore';
 import {usePlayCountStore} from '@/store/playCountStore';
+import {useDefaultReciterPick} from '@/store/reciterStore';
 import {useTafseerStore} from '@/store/tafseerStore';
 import {useThemeStore} from '@/store/themeStore';
 
@@ -43,6 +42,7 @@ export const PERSISTED_STORES: readonly PersistedStore[] = [
   useMushafPlayerStore,
   useMushafSettingsStore,
   usePlayCountStore,
+  useDefaultReciterPick,
   useTafseerStore,
   useThemeStore,
 ];
