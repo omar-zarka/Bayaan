@@ -221,6 +221,60 @@ describe('useMushafFontMgr', () => {
     expect(mockMakeProvider).toHaveBeenCalledTimes(2);
   });
 
+  describe('with no other mount', () => {
+    async function advance(ms: number): Promise<void> {
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(ms);
+      });
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      mockService.initialized = true;
+      mockService.loadError = true;
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('tries the load again for a caller that waits', async () => {
+      const useMushafFontMgr = loadHook();
+      mockMakeTypeface.mockReturnValueOnce(null);
+
+      const {probe} = mount(useMushafFontMgr);
+      await advance(0);
+      expect(probe.current).toBeNull();
+
+      await advance(3000);
+      expect(probe.current).not.toBeNull();
+      expect(mockMakeProvider).toHaveBeenCalledTimes(2);
+    });
+
+    it('stops after three more tries', async () => {
+      const useMushafFontMgr = loadHook();
+      mockMakeTypeface.mockReturnValue(null);
+
+      const {probe} = mount(useMushafFontMgr);
+      await advance(60000);
+
+      expect(probe.current).toBeNull();
+      expect(mockMakeProvider).toHaveBeenCalledTimes(4);
+    });
+
+    it('does not try again after the last caller unmounts', async () => {
+      const useMushafFontMgr = loadHook();
+      mockMakeTypeface.mockReturnValue(null);
+
+      const {unmount} = mount(useMushafFontMgr);
+      await advance(0);
+      unmount();
+      await advance(60000);
+
+      expect(mockMakeProvider).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it('prefers the preloaded provider when a retry of the preload succeeds', async () => {
     const useMushafFontMgr = loadHook();
     mockService.initialized = true;

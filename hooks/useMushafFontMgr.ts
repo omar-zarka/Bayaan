@@ -61,6 +61,11 @@ const FALLBACK_FONT_SOURCES: Record<string, number> = {
 let fallbackFontMgr: SkTypefaceFontProvider | null = null;
 let fallbackLoading = false;
 const fallbackListeners = new Set<() => void>();
+// A failed read can be transient, and a caller can wait with nothing that
+// would mount again: the vertical reader mounts no page before the fonts.
+const FALLBACK_RETRY_MS = 3000;
+const FALLBACK_MAX_RETRIES = 3;
+let fallbackRetries = 0;
 
 async function ensureFallbackFontMgr(): Promise<void> {
   if (
@@ -88,13 +93,18 @@ async function ensureFallbackFontMgr(): Promise<void> {
     }
     fallbackFontMgr = fontMgr;
   } catch (error) {
-    // The next mount tries again: a failed read can be transient.
     console.warn('[useMushafFontMgr] Fallback font load failed:', error);
   } finally {
     fallbackLoading = false;
   }
   if (fallbackFontMgr) {
     for (const listener of fallbackListeners) listener();
+  } else if (fallbackRetries < FALLBACK_MAX_RETRIES) {
+    // Each later mount also tries again, with or without retries left.
+    fallbackRetries += 1;
+    setTimeout(() => {
+      if (fallbackListeners.size > 0) ensureFallbackFontMgr();
+    }, FALLBACK_RETRY_MS);
   }
 }
 
